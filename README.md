@@ -1,9 +1,8 @@
+# XCodeReviewer - 您的智能代码审计伙伴 🚀
+
 <div style="width: 100%; max-width: 600px; margin: 0 auto;">
   <img src="public/images/logo.png" alt="VerifyVision-Pro Logo" style="width: 100%; height: auto; display: block; margin: 0 auto;">
 </div>
-
-# XCodeReviewer - 您的智能代码审计伙伴 🚀
-
 
 <div align="center">
   <p>
@@ -19,7 +18,6 @@
 [![Vite](https://img.shields.io/badge/Vite-5.1.4-646CFF.svg)](https://vitejs.dev/)
 [![Supabase](https://img.shields.io/badge/Supabase-3ECF8E.svg)](https://supabase.com/)
 [![Google Gemini](https://img.shields.io/badge/Google%20Gemini-4285F4.svg)](https://ai.google.dev/)
-[![Star History](https://api.star-history.com/svg?repos=lintsinghua/XCodeReviewer&type=Date)](https://star-history.com/#lintsinghua/XCodeReviewer&Date)
 
 **XCodeReviewer** 是一个由大型语言模型（LLM）驱动的现代化代码审计平台，旨在为开发者提供智能、全面且极具深度的代码质量分析和审查服务。
 
@@ -352,3 +350,4 @@ pnpm dev
 ---
 
 ⭐ 如果这个项目对您有帮助，请给我们一个 **Star**！您的支持是我们不断前进的动力！
+[![Star History](https://api.star-history.com/svg?repos=lintsinghua/XCodeReviewer&type=Date)](https://star-history.com/#lintsinghua/XCodeReviewer&Date)
