@@ -1,5 +1,12 @@
 # XCodeReviewer - 您的智能代码审计伙伴 🚀
 
+<div align="center">
+  <p>
+    <a href="README.md">中文</a> •
+    <a href="README_EN.md">English</a>
+  </p>
+</div>
+
 [![构建状态](https://img.shields.io/badge/build-passing-brightgreen)](https://github.com/lintsinghua/XCodeReviewer)
 [![许可证: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![React](https://img.shields.io/badge/React-18.0.0-blue.svg)](https://reactjs.org/)
