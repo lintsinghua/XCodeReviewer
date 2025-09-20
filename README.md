@@ -1,4 +1,9 @@
+<div style="width: 100%; max-width: 600px; margin: 0 auto;">
+  <img src="public/images/logo.png" alt="VerifyVision-Pro Logo" style="width: 100%; height: auto; display: block; margin: 0 auto;">
+</div>
+
 # XCodeReviewer - 您的智能代码审计伙伴 🚀
+
 
 <div align="center">
   <p>
