@@ -171,7 +171,7 @@ In the fast-paced world of software development, ensuring code quality is crucia
 2. Create a new API Key
 3. Add the API Key to `VITE_GEMINI_API_KEY` in the `.env` file
 
-#### Supabase Configuration (Optional)
+#### Supabase Configuration
 1. Visit [Supabase](https://supabase.com/) to create a new project
 2. Get the URL and anonymous key from project settings
 3. Run the database migration script:
@@ -234,14 +234,6 @@ XCodeReviewer/
 4. Monitor task execution status
 5. View detailed issue reports
 
-## 🔧 Development Guide
-
-### Code Standards
-- Use TypeScript for type-safe development
-- Follow ESLint and Biome code standards
-- Use Prettier for code formatting
-- Components use functional components + Hooks
-
 ### Build and Deploy
 ```bash
 # Development mode
@@ -279,31 +271,6 @@ We warmly welcome all forms of contributions! Whether it's submitting issues, cr
 4.  Push to the branch (`git push origin feature/AmazingFeature`)
 5.  Create a **Pull Request**
 
-## 🚨 Troubleshooting
-
-### Common Issues
-
-#### 1. White Screen Issue
-**Problem**: Application shows white screen after startup
-**Solution**:
-- Check browser console for error messages
-- Confirm `VITE_GEMINI_API_KEY` environment variable is properly configured
-- Check network connection to ensure access to Google AI API
-
-#### 2. API Call Failure
-**Problem**: Code analysis functionality not working
-**Solution**:
-- Verify Gemini API Key is valid
-- Check if API quota is exhausted
-- Confirm network can access `https://generativelanguage.googleapis.com`
-
-#### 3. Database Connection Issues
-**Problem**: Project data cannot be saved
-**Solution**:
-- Check if Supabase configuration is correct
-- Confirm database table structure is properly created
-- Verify RLS (Row Level Security) policies
-
 #### 4. Build Failure
 **Problem**: `pnpm build` command fails
 **Solution**:
@@ -316,19 +283,6 @@ pnpm install
 # Check TypeScript type errors
 pnpm type-check
 ```
-
-### Debug Mode
-Enable debug mode to view detailed logs:
-```bash
-# Set debug environment variable
-export DEBUG=true
-pnpm dev
-```
-
-### Performance Optimization
-- Use `pnpm` instead of `npm` for faster installation
-- Enable Vite's pre-build cache
-- Configure CDN for static asset acceleration
 
 ## 🙏 Acknowledgments
 
@@ -343,6 +297,7 @@ pnpm dev
 
 - **Project Link**: [https://github.com/lintsinghua/XCodeReviewer](https://github.com/lintsinghua/XCodeReviewer)
 - **Issue Feedback**: [Issues](https://github.com/lintsinghua/XCodeReviewer/issues)
+- **Email**: tsinghuaiiilove@gmail.com
 
 ---
 
