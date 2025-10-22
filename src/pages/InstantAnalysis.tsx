@@ -6,15 +6,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  AlertTriangle, 
-  CheckCircle, 
+import {
+  AlertTriangle,
+  CheckCircle,
   Clock,
-  Code, 
-  FileText, 
-  Info, 
+  Code,
+  FileText,
+  Info,
   Lightbulb,
-  Shield, 
+  Shield,
   Target,
   TrendingUp,
   Upload,
@@ -121,11 +121,11 @@ public class Example {
     try {
       setAnalyzing(true);
       const startTime = Date.now();
-      
+
       const analysisResult = await CodeAnalysisEngine.analyzeCode(code, language);
       const endTime = Date.now();
       const duration = (endTime - startTime) / 1000;
-      
+
       setResult(analysisResult);
       setAnalysisTime(duration);
 
@@ -162,7 +162,7 @@ public class Example {
     reader.onload = (e) => {
       const content = e.target?.result as string;
       setCode(content);
-      
+
       // 根据文件扩展名自动选择语言
       const extension = file.name.split('.').pop()?.toLowerCase();
       const languageMap: Record<string, string> = {
@@ -180,7 +180,7 @@ public class Example {
         'php': 'php',
         'rb': 'ruby'
       };
-      
+
       if (extension && languageMap[extension]) {
         setLanguage(languageMap[extension]);
       }
@@ -202,7 +202,7 @@ public class Example {
       case 'critical': return 'bg-red-100 text-red-800 border-red-200';
       case 'high': return 'bg-orange-100 text-orange-800 border-orange-200';
       case 'medium': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'low': return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'low': return 'bg-red-50 text-red-800 border-red-200';
       default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
@@ -325,8 +325,8 @@ public class Example {
           </div>
 
           {/* 分析按钮 */}
-          <Button 
-            onClick={handleAnalyze} 
+          <Button
+            onClick={handleAnalyze}
             disabled={!code.trim() || !language || analyzing}
             className="w-full btn-primary"
           >
@@ -370,14 +370,14 @@ public class Example {
             <CardContent>
               {/* 核心指标 */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                <div className="text-center p-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
-                  <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <div className="text-center p-6 bg-gradient-to-br from-red-50/50 to-red-100/30 rounded-xl border border-red-200">
+                  <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
                     <Target className="w-8 h-8 text-white" />
                   </div>
-                  <div className="text-3xl font-bold text-blue-600 mb-2">
+                  <div className="text-3xl font-bold text-primary mb-2">
                     {result.quality_score.toFixed(1)}
                   </div>
-                  <p className="text-sm font-medium text-blue-700 mb-3">质量评分</p>
+                  <p className="text-sm font-medium text-primary/80 mb-3">质量评分</p>
                   <Progress value={result.quality_score} className="h-2" />
                 </div>
 
@@ -478,12 +478,11 @@ public class Example {
                       <div key={index} className="border border-gray-200 rounded-xl p-6 hover:shadow-md transition-all duration-200 bg-white">
                         <div className="flex items-start justify-between mb-4">
                           <div className="flex items-start space-x-3">
-                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                              issue.severity === 'critical' ? 'bg-red-100 text-red-600' :
-                              issue.severity === 'high' ? 'bg-orange-100 text-orange-600' :
-                              issue.severity === 'medium' ? 'bg-yellow-100 text-yellow-600' :
-                              'bg-blue-100 text-blue-600'
-                            }`}>
+                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${issue.severity === 'critical' ? 'bg-red-100 text-red-600' :
+                                issue.severity === 'high' ? 'bg-orange-100 text-orange-600' :
+                                  issue.severity === 'medium' ? 'bg-yellow-100 text-yellow-600' :
+                                    'bg-red-50 text-red-600'
+                              }`}>
                               {getTypeIcon(issue.type)}
                             </div>
                             <div>
@@ -493,15 +492,15 @@ public class Example {
                           </div>
                           <Badge className={`${getSeverityColor(issue.severity)} px-3 py-1`}>
                             {issue.severity === 'critical' ? '严重' :
-                             issue.severity === 'high' ? '高' :
-                             issue.severity === 'medium' ? '中等' : '低'}
+                              issue.severity === 'high' ? '高' :
+                                issue.severity === 'medium' ? '中等' : '低'}
                           </Badge>
                         </div>
-                        
+
                         <p className="text-gray-700 mb-4 leading-relaxed">
                           {issue.description}
                         </p>
-                        
+
                         <div className="bg-gray-900 rounded-lg p-4 mb-4">
                           <div className="flex items-center justify-between mb-2">
                             <span className="text-gray-300 text-sm font-medium">问题代码</span>
@@ -511,16 +510,16 @@ public class Example {
                             <code>{issue.code_snippet}</code>
                           </pre>
                         </div>
-                        
+
                         <div className="grid md:grid-cols-2 gap-4">
-                          <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                          <div className="bg-red-50 rounded-lg p-4 border border-red-200">
                             <div className="flex items-center mb-2">
-                              <Lightbulb className="w-5 h-5 text-blue-600 mr-2" />
-                              <span className="font-medium text-blue-800">修复建议</span>
+                              <Lightbulb className="w-5 h-5 text-primary mr-2" />
+                              <span className="font-medium text-red-800">修复建议</span>
                             </div>
-                            <p className="text-blue-700 text-sm leading-relaxed">{issue.suggestion}</p>
+                            <p className="text-red-700 text-sm leading-relaxed">{issue.suggestion}</p>
                           </div>
-                          
+
                           {issue.ai_explanation && (
                             <div className="bg-green-50 rounded-lg p-4 border border-green-200">
                               <div className="flex items-center mb-2">
@@ -539,44 +538,60 @@ public class Example {
                     <TabsContent key={severity} value={severity} className="space-y-4 mt-6">
                       {result.issues.filter(issue => issue.severity === severity).length > 0 ? (
                         result.issues.filter(issue => issue.severity === severity).map((issue, index) => (
-                          <div key={index} className={`border rounded-xl p-6 ${
-                            severity === 'critical' ? 'border-red-200 bg-red-50' :
-                            severity === 'high' ? 'border-orange-200 bg-orange-50' :
-                            'border-yellow-200 bg-yellow-50'
-                          }`}>
-                            <div className="flex items-start justify-between mb-3">
-                              <div className="flex items-center space-x-3">
-                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                                  severity === 'critical' ? 'bg-red-600 text-white' :
-                                  severity === 'high' ? 'bg-orange-600 text-white' :
-                                  'bg-yellow-600 text-white'
-                                }`}>
+                          <div key={index} className="border border-gray-200 rounded-xl p-6 hover:shadow-md transition-all duration-200 bg-white">
+                            <div className="flex items-start justify-between mb-4">
+                              <div className="flex items-start space-x-3">
+                                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${issue.severity === 'critical' ? 'bg-red-100 text-red-600' :
+                                    issue.severity === 'high' ? 'bg-orange-100 text-orange-600' :
+                                      issue.severity === 'medium' ? 'bg-yellow-100 text-yellow-600' :
+                                        'bg-red-50 text-red-600'
+                                  }`}>
                                   {getTypeIcon(issue.type)}
                                 </div>
-                                <h4 className={`font-semibold ${
-                                  severity === 'critical' ? 'text-red-800' :
-                                  severity === 'high' ? 'text-orange-800' :
-                                  'text-yellow-800'
-                                }`}>{issue.title}</h4>
+                                <div>
+                                  <h4 className="font-semibold text-lg text-gray-900 mb-1">{issue.title}</h4>
+                                  <p className="text-gray-600 text-sm">第 {issue.line} 行</p>
+                                </div>
                               </div>
-                              <span className={`text-xs px-2 py-1 rounded ${
-                                severity === 'critical' ? 'bg-red-200 text-red-800' :
-                                severity === 'high' ? 'bg-orange-200 text-orange-800' :
-                                'bg-yellow-200 text-yellow-800'
-                              }`}>
-                                第 {issue.line} 行
-                              </span>
+                              <Badge className={`${getSeverityColor(issue.severity)} px-3 py-1`}>
+                                {issue.severity === 'critical' ? '严重' :
+                                  issue.severity === 'high' ? '高' :
+                                    issue.severity === 'medium' ? '中等' : '低'}
+                              </Badge>
                             </div>
-                            <p className={`text-sm mb-3 ${
-                              severity === 'critical' ? 'text-red-700' :
-                              severity === 'high' ? 'text-orange-700' :
-                              'text-yellow-700'
-                            }`}>
+
+                            <p className="text-gray-700 mb-4 leading-relaxed">
                               {issue.description}
                             </p>
-                            <div className="bg-white rounded-lg p-3 border">
-                              <p className="text-sm font-medium text-gray-800 mb-1">修复建议：</p>
-                              <p className="text-sm text-gray-600">{issue.suggestion}</p>
+
+                            <div className="bg-gray-900 rounded-lg p-4 mb-4">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="text-gray-300 text-sm font-medium">问题代码</span>
+                                <span className="text-gray-400 text-xs">第 {issue.line} 行</span>
+                              </div>
+                              <pre className="text-sm text-gray-100 overflow-x-auto">
+                                <code>{issue.code_snippet}</code>
+                              </pre>
+                            </div>
+
+                            <div className="grid md:grid-cols-2 gap-4">
+                              <div className="bg-red-50 rounded-lg p-4 border border-red-200">
+                                <div className="flex items-center mb-2">
+                                  <Lightbulb className="w-5 h-5 text-primary mr-2" />
+                                  <span className="font-medium text-red-800">修复建议</span>
+                                </div>
+                                <p className="text-red-700 text-sm leading-relaxed">{issue.suggestion}</p>
+                              </div>
+
+                              {issue.ai_explanation && (
+                                <div className="bg-green-50 rounded-lg p-4 border border-green-200">
+                                  <div className="flex items-center mb-2">
+                                    <Zap className="w-5 h-5 text-green-600 mr-2" />
+                                    <span className="font-medium text-green-800">AI 解释</span>
+                                  </div>
+                                  <p className="text-green-700 text-sm leading-relaxed">{issue.ai_explanation}</p>
+                                </div>
+                              )}
                             </div>
                           </div>
                         ))
@@ -620,13 +635,13 @@ public class Example {
         <Card className="card-modern">
           <CardContent className="py-16">
             <div className="text-center">
-              <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent"></div>
+              <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent"></div>
               </div>
               <h3 className="text-2xl font-bold text-gray-900 mb-3">AI正在分析您的代码</h3>
-              <p className="text-gray-600 text-lg mb-6">请稍候，这通常只需要几秒钟...</p>
-              <div className="bg-blue-50 rounded-lg p-6 max-w-md mx-auto">
-                <p className="text-blue-700 text-sm">
+              <p className="text-gray-600 text-lg mb-6">请稍候，这通常需要至少30秒钟...</p>
+              <div className="bg-red-50 rounded-lg p-6 max-w-md mx-auto">
+                <p className="text-red-700 text-sm">
                   正在进行安全检测、性能分析、代码风格检查等多维度评估
                 </p>
               </div>

@@ -29,7 +29,7 @@ const login_config = {
 export default function Login() {
   return (
     <div 
-      className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center p-4"
+      className="min-h-screen bg-gradient-to-br from-red-50/30 via-white to-red-50/20 flex items-center justify-center p-4"
       style={{
         backgroundImage: `linear-gradient(rgba(59, 130, 246, 0.1), rgba(99, 102, 241, 0.1)), url('https://miaoda-site-img.cdn.bcebos.com/30639cc7-9e0c-45fa-8987-a5389e64f8e9/images/94d4a1a8-923b-11f0-b78c-5a8ff2041e7f_0.jpg')`,
         backgroundSize: 'cover',
@@ -39,7 +39,7 @@ export default function Login() {
     >
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full mb-4 shadow-lg">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-primary to-accent rounded-full mb-4 shadow-lg">
             <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>

@@ -6,12 +6,12 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { 
-  Users, 
-  Settings, 
-  Shield, 
-  Activity, 
-  AlertTriangle, 
+import {
+  Users,
+  Settings,
+  Shield,
+  Activity,
+  AlertTriangle,
   Search,
   Edit,
   Trash2,
@@ -94,7 +94,7 @@ export default function AdminDashboard() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
       </div>
     );
   }
@@ -109,7 +109,7 @@ export default function AdminDashboard() {
             管理系统用户、配置和监控系统状态
           </p>
         </div>
-        <Badge variant="outline" className="bg-blue-50 text-blue-700">
+        <Badge variant="outline" className="bg-red-50 text-red-700">
           <Shield className="w-4 h-4 mr-2" />
           管理员权限
         </Badge>
@@ -120,7 +120,7 @@ export default function AdminDashboard() {
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center">
-              <Users className="h-8 w-8 text-blue-600" />
+              <Users className="h-8 w-8 text-primary" />
               <div className="ml-4">
                 <p className="text-sm font-medium text-muted-foreground">总用户数</p>
                 <p className="text-2xl font-bold">{profiles.length}</p>
@@ -211,7 +211,7 @@ export default function AdminDashboard() {
                 {filteredProfiles.map((profile) => (
                   <div key={profile.id} className="flex items-center justify-between p-4 border rounded-lg">
                     <div className="flex items-center space-x-4">
-                      <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-medium">
+                      <div className="w-10 h-10 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center text-white font-medium">
                         {profile.full_name?.charAt(0) || profile.phone?.charAt(0) || 'U'}
                       </div>
                       <div>
@@ -231,16 +231,16 @@ export default function AdminDashboard() {
                         </p>
                       </div>
                     </div>
-                    
+
                     <div className="flex items-center space-x-3">
                       <Badge variant={profile.role === 'admin' ? 'default' : 'secondary'}>
                         {profile.role === 'admin' ? '管理员' : '普通用户'}
                       </Badge>
-                      
+
                       {profile.id !== user?.id && (
                         <Select
                           value={profile.role}
-                          onValueChange={(value: 'admin' | 'member') => 
+                          onValueChange={(value: 'admin' | 'member') =>
                             handleUpdateUserRole(profile.id, value)
                           }
                         >
@@ -253,7 +253,7 @@ export default function AdminDashboard() {
                           </SelectContent>
                         </Select>
                       )}
-                      
+
                       <Button variant="outline" size="sm">
                         <Edit className="w-4 h-4" />
                       </Button>
@@ -282,9 +282,9 @@ export default function AdminDashboard() {
                     <span className="text-sm text-muted-foreground">15%</span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div className="bg-blue-600 h-2 rounded-full" style={{ width: '15%' }}></div>
+                    <div className="bg-primary h-2 rounded-full" style={{ width: '15%' }}></div>
                   </div>
-                  
+
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium">内存使用率</span>
                     <span className="text-sm text-muted-foreground">32%</span>
@@ -292,7 +292,7 @@ export default function AdminDashboard() {
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div className="bg-green-600 h-2 rounded-full" style={{ width: '32%' }}></div>
                   </div>
-                  
+
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium">磁盘使用率</span>
                     <span className="text-sm text-muted-foreground">58%</span>
@@ -347,8 +347,8 @@ export default function AdminDashboard() {
                     <p className="text-xs text-muted-foreground">2024-01-15 09:00:00</p>
                   </div>
                 </div>
-                <div className="flex items-center space-x-3 p-3 bg-blue-50 rounded-lg">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                <div className="flex items-center space-x-3 p-3 bg-red-50 rounded-lg">
+                  <div className="w-2 h-2 bg-primary rounded-full"></div>
                   <div className="flex-1">
                     <p className="text-sm font-medium">新用户注册</p>
                     <p className="text-xs text-muted-foreground">2024-01-15 08:45:00</p>

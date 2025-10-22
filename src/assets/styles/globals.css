@@ -5,93 +5,113 @@
 
 /* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
 All colors MUST be HSL.
+
+专业深红色配色方案：
+- 主色调：深红色 (0 75% 25%) - 体现专业性和权威感
+- 强调色：暗红色 (0 60% 35%) - 用于交互元素和重点突出
+- 背景色：浅灰到黑色渐变 - 提供高对比度和现代感
+- 状态色：保持语义化的绿色(成功)、红色(错误)、黄色(警告)
 */
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --background: 0 0% 98%;
+    --foreground: 0 0% 5%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 0 0% 5%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 0 0% 5%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 0 75% 25%;
+    --primary-foreground: 0 0% 98%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 0 0% 95%;
+    --secondary-foreground: 0 75% 25%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 0 0% 94%;
+    --muted-foreground: 0 0% 40%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 0 60% 35%;
+    --accent-foreground: 0 0% 98%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 0 0% 90%;
+    --input: 0 0% 90%;
+    --ring: 0 75% 25%;
 
     --radius: 0.5rem;
 
-    --sidebar-background: 0 0% 98%;
+    /* 专业渐变效果 */
+    --gradient-primary: linear-gradient(135deg, hsl(0 75% 25%) 0%, hsl(0 60% 35%) 100%);
+    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%) 0%, hsl(0 0% 98%) 100%);
+    --gradient-background: linear-gradient(180deg, hsl(0 0% 98%) 0%, hsl(0 0% 95%) 100%);
+    
+    /* 专业阴影效果 */
+    --shadow-card: 0 1px 3px 0 hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
+    --shadow-hover: 0 4px 6px -1px hsl(0 0% 0% / 0.1), 0 2px 4px -2px hsl(0 0% 0% / 0.1);
+    --shadow-focus: 0 0 0 3px hsl(0 75% 25% / 0.1);
 
-    --sidebar-foreground: 240 5.3% 26.1%;
-
-    --sidebar-primary: 240 5.9% 10%;
-
+    --sidebar-background: 0 0% 8%;
+    --sidebar-foreground: 0 0% 85%;
+    --sidebar-primary: 0 75% 35%;
     --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-accent: 0 0% 12%;
+    --sidebar-accent-foreground: 0 0% 85%;
+    --sidebar-border: 0 0% 15%;
+    --sidebar-ring: 0 75% 45%;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    --background: 0 0% 3%;
+    --foreground: 0 0% 95%;
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    --card: 0 0% 5%;
+    --card-foreground: 0 0% 95%;
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 0 0% 5%;
+    --popover-foreground: 0 0% 95%;
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary: 0 75% 45%;
+    --primary-foreground: 0 0% 5%;
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 0 0% 8%;
+    --secondary-foreground: 0 0% 95%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 0 0% 8%;
+    --muted-foreground: 0 0% 60%;
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 0 60% 50%;
+    --accent-foreground: 0 0% 5%;
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 75% 55%;
+    --destructive-foreground: 0 0% 95%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --border: 0 0% 12%;
+    --input: 0 0% 12%;
+    --ring: 0 75% 45%;
+    
+    /* 暗色模式专业渐变效果 */
+    --gradient-primary: linear-gradient(135deg, hsl(0 75% 45%) 0%, hsl(0 60% 50%) 100%);
+    --gradient-card: linear-gradient(145deg, hsl(0 0% 5%) 0%, hsl(0 0% 3%) 100%);
+    --gradient-background: linear-gradient(180deg, hsl(0 0% 3%) 0%, hsl(0 0% 1%) 100%);
+    
+    /* 暗色模式专业阴影效果 */
+    --shadow-card: 0 1px 3px 0 hsl(0 0% 0% / 0.3), 0 1px 2px -1px hsl(0 0% 0% / 0.3);
+    --shadow-hover: 0 4px 6px -1px hsl(0 0% 0% / 0.4), 0 2px 4px -2px hsl(0 0% 0% / 0.4);
+    --shadow-focus: 0 0 0 3px hsl(0 75% 45% / 0.2);
+    
+    --sidebar-background: 0 0% 2%;
+    --sidebar-foreground: 0 0% 85%;
+    --sidebar-primary: 0 75% 50%;
+    --sidebar-primary-foreground: 0 0% 5%;
+    --sidebar-accent: 0 0% 6%;
+    --sidebar-accent-foreground: 0 0% 85%;
+    --sidebar-border: 0 0% 8%;
+    --sidebar-ring: 0 75% 55%;
   }
 }
 
@@ -109,42 +129,42 @@ All colors MUST be HSL.
 @layer components {
   /* 页面标题样式 */
   .page-title {
-    @apply text-2xl md:text-3xl font-bold text-gray-900 tracking-tight;
+    @apply text-2xl md:text-3xl font-bold text-foreground tracking-tight;
   }
   
   .page-subtitle {
-    @apply text-sm md:text-base text-gray-600 mt-1;
+    @apply text-sm md:text-base text-muted-foreground mt-1;
   }
 
   /* 现代化卡片样式 */
   .card-modern {
-    @apply bg-white rounded-xl border border-gray-200/60 shadow-sm hover:shadow-md transition-all duration-200;
+    @apply bg-card rounded-xl border border-border shadow-sm hover:shadow-md transition-all duration-200;
   }
 
   /* 统计卡片样式 */
   .stat-card {
-    @apply bg-white rounded-xl border border-gray-200/60 shadow-sm hover:shadow-lg transition-all duration-300 hover:border-gray-300/60;
+    @apply bg-card rounded-xl border border-border shadow-sm hover:shadow-lg transition-all duration-300 hover:border-accent/30;
   }
 
   .stat-label {
-    @apply text-xs font-medium text-gray-500 uppercase tracking-wide;
+    @apply text-xs font-medium text-muted-foreground uppercase tracking-wide;
   }
 
   .stat-value {
-    @apply text-2xl md:text-3xl font-bold text-gray-900 mt-1;
+    @apply text-2xl md:text-3xl font-bold text-foreground mt-1;
   }
 
   .stat-icon {
-    @apply w-12 h-12 rounded-lg bg-gradient-to-br flex items-center justify-center shadow-sm;
+    @apply w-12 h-12 rounded-lg bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center shadow-sm;
   }
 
   /* 按钮样式 */
   .btn-primary {
-    @apply bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-sm hover:shadow-md transition-all duration-200;
+    @apply bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-primary-foreground shadow-sm hover:shadow-md transition-all duration-200;
   }
 
   .btn-secondary {
-    @apply border-gray-300 hover:border-gray-400 hover:bg-gray-50 transition-all duration-200;
+    @apply border-border hover:border-accent/50 hover:bg-accent/5 transition-all duration-200;
   }
 
   /* 空状态样式 */
@@ -153,7 +173,7 @@ All colors MUST be HSL.
   }
 
   .empty-icon {
-    @apply w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-4;
+    @apply w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4;
   }
 
   /* 动画 */
@@ -174,7 +194,7 @@ All colors MUST be HSL.
 
   /* 渐变背景 */
   .gradient-bg {
-    @apply bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50;
+    @apply bg-gradient-to-br from-background via-muted/30 to-accent/5;
   }
 
   /* 响应式容器 */
@@ -211,11 +231,138 @@ All colors MUST be HSL.
   }
 
   ::-webkit-scrollbar-thumb {
-    background: rgba(156, 163, 175, 0.5);
+    background: hsl(var(--muted-foreground) / 0.3);
     border-radius: 3px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: rgba(156, 163, 175, 0.8);
+    background: hsl(var(--accent) / 0.6);
+  }
+
+  /* 专业高级感样式 */
+  .professional-card {
+    @apply bg-gradient-card border border-border/50 shadow-card hover:shadow-hover transition-all duration-300;
+  }
+
+  .professional-button {
+    @apply bg-gradient-primary text-primary-foreground font-semibold px-6 py-3 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 focus:ring-2 focus:ring-primary/20 focus:outline-none;
+  }
+
+  .professional-input {
+    @apply bg-background border border-border rounded-lg px-4 py-2 focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200;
+  }
+
+  .status-indicator {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+
+  .status-success {
+    @apply bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400;
+  }
+
+  .status-warning {
+    @apply bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400;
+  }
+
+  .status-error {
+    @apply bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400;
+  }
+
+  .status-info {
+    @apply bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400;
+  }
+
+  /* 高级导航样式 */
+  .nav-link {
+    @apply flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200 hover:bg-accent/10 hover:text-accent-foreground;
+  }
+
+  .nav-link.active {
+    @apply bg-primary/10 text-primary border-r-2 border-primary;
+  }
+
+  /* 专业表格样式 */
+  .professional-table {
+    @apply w-full border-collapse bg-card rounded-lg overflow-hidden shadow-card;
+  }
+
+  .professional-table th {
+    @apply bg-muted/50 px-6 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider border-b border-border;
+  }
+
+  .professional-table td {
+    @apply px-6 py-4 whitespace-nowrap text-sm text-foreground border-b border-border/50;
+  }
+
+  .professional-table tr:hover {
+    @apply bg-accent/5;
+  }
+
+  /* 图表和图标专用样式 */
+  .chart-primary {
+    color: hsl(var(--primary));
+  }
+
+  .chart-accent {
+    color: hsl(var(--accent));
+  }
+
+  .chart-success {
+    color: #10b981;
+  }
+
+  .chart-warning {
+    color: #f59e0b;
+  }
+
+  .chart-error {
+    color: #ef4444;
+  }
+
+  .icon-primary {
+    @apply text-primary;
+  }
+
+  .icon-accent {
+    @apply text-accent;
+  }
+
+  .icon-muted {
+    @apply text-muted-foreground;
+  }
+
+  /* 加载动画 */
+  .loading-spinner {
+    @apply animate-spin rounded-full border-2 border-primary border-t-transparent;
+  }
+
+  /* 状态指示器颜色 */
+  .status-running {
+    @apply bg-red-50 text-red-800 border-red-200;
+  }
+
+  .status-completed {
+    @apply bg-green-50 text-green-800 border-green-200;
+  }
+
+  .status-failed {
+    @apply bg-red-100 text-red-900 border-red-300;
+  }
+
+  /* 渐变图标背景 */
+  .icon-bg-primary {
+    @apply bg-gradient-to-br from-primary/10 to-accent/10;
+  }
+
+  .icon-bg-success {
+    @apply bg-gradient-to-br from-green-100 to-emerald-100;
+  }
+
+  .icon-bg-warning {
+    @apply bg-gradient-to-br from-yellow-100 to-orange-100;
+  }
+
+  .icon-bg-error {
+    @apply bg-gradient-to-br from-red-100 to-red-200;
   }
 }

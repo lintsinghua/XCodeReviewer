@@ -44,8 +44,8 @@ export default function AuditTasks() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'completed': return 'bg-green-100 text-green-800';
-      case 'running': return 'bg-blue-100 text-blue-800';
-      case 'failed': return 'bg-red-100 text-red-800';
+      case 'running': return 'bg-red-50 text-red-800';
+      case 'failed': return 'bg-red-100 text-red-900';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -79,7 +79,7 @@ export default function AuditTasks() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
       </div>
     );
   }
@@ -107,7 +107,7 @@ export default function AuditTasks() {
                 <p className="stat-label">总任务数</p>
                 <p className="stat-value text-xl">{tasks.length}</p>
               </div>
-              <div className="stat-icon from-blue-500 to-blue-600">
+              <div className="stat-icon from-primary to-accent">
                 <Activity className="w-5 h-5 text-white" />
               </div>
             </div>
@@ -214,13 +214,13 @@ export default function AuditTasks() {
                   <div className="flex items-center space-x-4">
                     <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
                       task.status === 'completed' ? 'bg-emerald-100 text-emerald-600' :
-                      task.status === 'running' ? 'bg-blue-100 text-blue-600' :
+                      task.status === 'running' ? 'bg-red-50 text-red-600' :
                       task.status === 'failed' ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-600'
                     }`}>
                       {getStatusIcon(task.status)}
                     </div>
                     <div>
-                      <h3 className="font-semibold text-lg text-gray-900 group-hover:text-blue-600 transition-colors">
+                      <h3 className="font-semibold text-lg text-gray-900 group-hover:text-primary transition-colors">
                         {task.project?.name || '未知项目'}
                       </h3>
                       <p className="text-sm text-gray-500">
@@ -249,7 +249,7 @@ export default function AuditTasks() {
                     <p className="text-xs text-gray-500 mt-1">发现问题</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-2xl font-bold text-blue-600">{task.quality_score.toFixed(1)}</p>
+                    <p className="text-2xl font-bold text-primary">{task.quality_score.toFixed(1)}</p>
                     <p className="text-xs text-gray-500 mt-1">质量评分</p>
                   </div>
                   <div className="text-center">
@@ -298,7 +298,7 @@ export default function AuditTasks() {
         <Card className="card-modern">
           <CardContent className="empty-state py-16">
             <div className="empty-icon">
-              <Activity className="w-8 h-8 text-blue-600" />
+              <Activity className="w-8 h-8 text-primary" />
             </div>
             <h3 className="text-lg font-medium text-gray-900 mb-2">
               {searchTerm || statusFilter !== "all" ? '未找到匹配的任务' : '暂无审计任务'}

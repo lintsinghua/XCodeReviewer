@@ -74,18 +74,18 @@ export default function Dashboard() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'completed': return 'bg-emerald-100 text-emerald-700 border-emerald-200';
-      case 'running': return 'bg-blue-100 text-blue-700 border-blue-200';
-      case 'failed': return 'bg-red-100 text-red-700 border-red-200';
+      case 'running': return 'bg-red-50 text-red-700 border-red-200';
+      case 'failed': return 'bg-red-100 text-red-800 border-red-300';
       default: return 'bg-gray-100 text-gray-700 border-gray-200';
     }
   };
 
   const issueTypeData = [
-    { name: '安全问题', value: 15, color: '#ef4444' },
-    { name: '性能问题', value: 25, color: '#f97316' },
-    { name: '代码风格', value: 35, color: '#eab308' },
-    { name: '潜在Bug', value: 20, color: '#3b82f6' },
-    { name: '可维护性', value: 5, color: '#8b5cf6' }
+    { name: '安全问题', value: 15, color: '#dc2626' },
+    { name: '性能问题', value: 25, color: '#b91c1c' },
+    { name: '代码风格', value: 35, color: '#991b1b' },
+    { name: '潜在Bug', value: 20, color: '#7f1d1d' },
+    { name: '可维护性', value: 5, color: '#450a0a' }
   ];
 
   const qualityTrendData = [
@@ -145,7 +145,7 @@ export default function Dashboard() {
                 <p className="stat-value">{stats?.total_projects || 5}</p>
                 <p className="text-xs text-gray-500 mt-1">活跃 {stats?.active_projects || 4} 个</p>
               </div>
-              <div className="stat-icon from-blue-500 to-blue-600 group-hover:scale-110 transition-transform">
+              <div className="stat-icon from-primary to-accent group-hover:scale-110 transition-transform">
                 <Code className="w-6 h-6 text-white" />
               </div>
             </div>
@@ -211,7 +211,7 @@ export default function Dashboard() {
             <Card className="card-modern">
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center text-lg">
-                  <TrendingUp className="w-5 h-5 mr-2 text-blue-600" />
+                  <TrendingUp className="w-5 h-5 mr-2 text-primary" />
                   代码质量趋势
                 </CardTitle>
               </CardHeader>
@@ -232,9 +232,9 @@ export default function Dashboard() {
                     <Line
                       type="monotone"
                       dataKey="score"
-                      stroke="#3b82f6"
+                      stroke="hsl(var(--primary))"
                       strokeWidth={3}
-                      dot={{ fill: '#3b82f6', strokeWidth: 2, r: 4 }}
+                      dot={{ fill: 'hsl(var(--primary))', strokeWidth: 2, r: 4 }}
                       activeDot={{ r: 6 }}
                     />
                   </LineChart>
@@ -246,7 +246,7 @@ export default function Dashboard() {
             <Card className="card-modern">
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center text-lg">
-                  <BarChart3 className="w-5 h-5 mr-2 text-orange-600" />
+                  <BarChart3 className="w-5 h-5 mr-2 text-accent" />
                   问题类型分布
                 </CardTitle>
               </CardHeader>
@@ -278,7 +278,7 @@ export default function Dashboard() {
           <Card className="card-modern">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center text-lg">
-                <FileText className="w-5 h-5 mr-2 text-blue-600" />
+                <FileText className="w-5 h-5 mr-2 text-primary" />
                 项目概览
               </CardTitle>
             </CardHeader>
@@ -289,10 +289,10 @@ export default function Dashboard() {
                     <Link
                       key={project.id}
                       to={`/projects/${project.id}`}
-                      className="block p-4 rounded-lg border border-gray-200 hover:border-blue-300 hover:bg-blue-50/50 transition-all group"
+                      className="block p-4 rounded-lg border border-gray-200 hover:border-primary/30 hover:bg-primary/5 transition-all group"
                     >
                       <div className="flex items-start justify-between mb-2">
-                        <h4 className="font-medium text-gray-900 group-hover:text-blue-600 transition-colors truncate">
+                        <h4 className="font-medium text-gray-900 group-hover:text-primary transition-colors truncate">
                           {project.name}
                         </h4>
                         <Badge
@@ -348,7 +348,7 @@ export default function Dashboard() {
                     >
                       <div className="flex items-center space-x-3">
                         <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${task.status === 'completed' ? 'bg-emerald-100 text-emerald-600' :
-                          task.status === 'running' ? 'bg-blue-100 text-blue-600' :
+                          task.status === 'running' ? 'bg-red-50 text-red-600' :
                             'bg-red-100 text-red-600'
                           }`}>
                           {task.status === 'completed' ? <Activity className="w-4 h-4" /> :
@@ -356,7 +356,7 @@ export default function Dashboard() {
                               <AlertTriangle className="w-4 h-4" />}
                         </div>
                         <div>
-                          <p className="font-medium text-sm text-gray-900 group-hover:text-blue-600 transition-colors">
+                          <p className="font-medium text-sm text-gray-900 group-hover:text-primary transition-colors">
                             {task.project?.name || '未知项目'}
                           </p>
                           <p className="text-xs text-gray-500">
@@ -384,7 +384,7 @@ export default function Dashboard() {
         {/* 右侧边栏 - 紧凑设计 */}
         <div className="xl:col-span-1 space-y-4">
           {/* 快速操作 */}
-          <Card className="card-modern bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 border border-blue-100/50">
+          <Card className="card-modern bg-gradient-to-br from-red-50/30 via-background to-red-50/20 border border-red-100/50">
             <CardHeader className="pb-3">
               <CardTitle className="text-lg flex items-center">
                 <Zap className="w-5 h-5 mr-2 text-indigo-600" />
@@ -450,10 +450,10 @@ export default function Dashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-                <p className="text-sm font-medium text-blue-900">系统更新</p>
-                <p className="text-xs text-blue-700 mt-1">新增代码安全检测功能</p>
-                <p className="text-xs text-blue-600 mt-1">2小时前</p>
+              <div className="p-3 bg-red-50 rounded-lg border border-red-200">
+                <p className="text-sm font-medium text-red-900">系统更新</p>
+                <p className="text-xs text-red-700 mt-1">新增代码安全检测功能</p>
+                <p className="text-xs text-red-600 mt-1">2小时前</p>
               </div>
               <div className="p-3 bg-emerald-50 rounded-lg border border-emerald-200">
                 <p className="text-sm font-medium text-emerald-900">任务完成</p>

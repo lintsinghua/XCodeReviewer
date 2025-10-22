@@ -24,7 +24,7 @@ export default function Header() {
               alt="XCodeReviewer Logo" 
               className="w-9 h-9 rounded-xl shadow-sm group-hover:shadow-md transition-all"
             />
-            <span className="text-xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors">XCodeReviewer</span>
+            <span className="text-xl font-bold text-gray-900 group-hover:text-primary transition-colors">XCodeReviewer</span>
           </Link>
 
           {/* Desktop Navigation */}
@@ -35,8 +35,8 @@ export default function Header() {
                 to={route.path}
                 className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
                   location.pathname === route.path
-                    ? "text-blue-600 bg-blue-50"
-                    : "text-gray-700 hover:text-blue-600 hover:bg-gray-50"
+                    ? "text-primary bg-red-50"
+                    : "text-gray-700 hover:text-primary hover:bg-gray-50"
                 }`}
               >
                 {route.name}
@@ -74,8 +74,8 @@ export default function Header() {
                   to={route.path}
                   className={`block px-3 py-2 text-base font-medium rounded-md transition-colors ${
                     location.pathname === route.path
-                      ? "text-blue-600 bg-blue-50"
-                      : "text-gray-700 hover:text-blue-600 hover:bg-gray-50"
+                      ? "text-primary bg-red-50"
+                      : "text-gray-700 hover:text-primary hover:bg-gray-50"
                   }`}
                   onClick={() => setMobileMenuOpen(false)}
                 >

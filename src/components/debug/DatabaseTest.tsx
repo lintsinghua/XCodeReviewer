@@ -126,7 +126,7 @@ export default function DatabaseTest() {
       case 'error':
         return <AlertTriangle className="w-4 h-4 text-red-600" />;
       case 'pending':
-        return <Loader2 className="w-4 h-4 text-blue-600 animate-spin" />;
+        return <Loader2 className="w-4 h-4 text-primary animate-spin" />;
       default:
         return null;
     }
@@ -139,7 +139,7 @@ export default function DatabaseTest() {
       case 'error':
         return <Badge className="bg-red-100 text-red-800">失败</Badge>;
       case 'pending':
-        return <Badge className="bg-blue-100 text-blue-800">测试中</Badge>;
+        return <Badge className="bg-red-50 text-red-800">测试中</Badge>;
       default:
         return null;
     }
