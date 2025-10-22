@@ -49,14 +49,43 @@
 
 ## 🚀 快速开始
 
-### 环境要求
+### 🐳 Docker 部署（推荐）
+
+使用 Docker 可以快速部署应用，无需配置 Node.js 环境。
+
+1. **克隆项目**
+   ```bash
+   git clone https://github.com/lintsinghua/XCodeReviewer.git
+   cd XCodeReviewer
+   ```
+
+2. **配置环境变量**
+   ```bash
+   cp .env.example .env
+   # 编辑 .env 文件，至少需要配置 VITE_GEMINI_API_KEY
+   ```
+
+3. **构建并启动**
+   ```bash
+   docker-compose build
+   docker-compose up -d
+   ```
+
+4. **访问应用**
+   
+   在浏览器中打开 `http://localhost:5174`
+
+### 💻 本地开发部署
+
+如果需要进行开发或自定义修改，可以使用本地部署方式。
+
+#### 环境要求
 
 - **Node.js**: `18+`
 - **pnpm**: `8+` (推荐) 或 `npm` / `yarn`
 - **Google Gemini API Key**: 用于 AI 代码分析
-- **Supabase 项目**: 用于数据存储（可选，支持离线模式）
 
-### 安装与启动
+#### 安装与启动
 
 1.  **克隆项目**
     ```bash
@@ -256,6 +285,7 @@ XCodeReviewer/
 5. 查看详细的问题报告
 
 ### 构建和部署
+
 ```bash
 # 开发模式
 pnpm dev

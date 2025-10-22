@@ -49,14 +49,50 @@ In the fast-paced world of software development, ensuring code quality is crucia
 
 ## 🚀 Quick Start
 
-### Requirements
+### 🐳 Docker Deployment (Recommended)
+
+Deploy quickly using Docker without Node.js environment setup.
+
+1. **Clone the project**
+   ```bash
+   git clone https://github.com/lintsinghua/XCodeReviewer.git
+   cd XCodeReviewer
+   ```
+
+2. **Configure environment variables**
+   ```bash
+   cp .env.example .env
+   # Edit .env file and set at least VITE_GEMINI_API_KEY
+   ```
+
+3. **Build and start**
+   ```bash
+   docker-compose build
+   docker-compose up -d
+   ```
+
+4. **Access the application**
+   
+   Open `http://localhost:5174` in your browser
+
+**Common commands:**
+```bash
+docker-compose logs -f      # View logs
+docker-compose restart      # Restart service
+docker-compose down         # Stop service
+```
+
+### 💻 Local Development Deployment
+
+For development or custom modifications, use local deployment.
+
+#### Requirements
 
 - **Node.js**: `18+`
 - **pnpm**: `8+` (recommended) or `npm` / `yarn`
 - **Google Gemini API Key**: For AI code analysis
-- **Supabase Project**: For data storage (optional, supports offline mode)
 
-### Installation & Setup
+#### Installation & Setup
 
 1.  **Clone the project**
     ```bash
@@ -111,7 +147,7 @@ In the fast-paced world of software development, ensuring code quality is crucia
     ```
 
 5.  **Access the application**
-    Open `http://localhost:5173` in your browser
+    Open `http://localhost:5174` in your browser
 
 ### 🔑 Getting API Keys
 

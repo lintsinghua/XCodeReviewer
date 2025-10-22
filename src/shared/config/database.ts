@@ -19,19 +19,49 @@ const isValidUuid = (value?: string): boolean => {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 };
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+// 检查是否配置了 Supabase
+const hasSupabaseConfig = supabaseUrl && supabaseAnonKey;
+
+// 如果没有配置 Supabase，使用虚拟配置避免错误
+const finalSupabaseUrl = hasSupabaseConfig ? supabaseUrl : 'https://demo.supabase.co';
+const finalSupabaseKey = hasSupabaseConfig ? supabaseAnonKey : 'demo-key';
+
+export const supabase = hasSupabaseConfig ? createClient(finalSupabaseUrl, finalSupabaseKey, {
   global: {
     fetch: undefined
   },
   auth: {
     storageKey: (import.meta.env.VITE_APP_ID || "sb") + "-auth-token"
   }
-});
+}) : null;
+
+// 演示模式标识
+export const isDemoMode = !hasSupabaseConfig;
+
+// 演示数据
+const demoProfile: Profile = {
+  id: 'demo-user',
+  phone: null,
+  email: 'demo@xcodereviewer.com',
+  full_name: 'Demo User',
+  avatar_url: null,
+  role: 'admin',
+  github_username: 'demo-user',
+  gitlab_username: null,
+  created_at: new Date().toISOString(),
+  updated_at: new Date().toISOString()
+};
 
 // 用户相关API
 export const api = {
   // Profile相关
   async getProfilesById(id: string): Promise<Profile | null> {
+    if (isDemoMode) {
+      return demoProfile;
+    }
+    
+    if (!supabase) return null;
+    
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
@@ -43,6 +73,12 @@ export const api = {
   },
 
   async getProfilesCount(): Promise<number> {
+    if (isDemoMode) {
+      return 1;
+    }
+    
+    if (!supabase) return 0;
+    
     const { count, error } = await supabase
       .from('profiles')
       .select('*', { count: 'exact', head: true });
@@ -95,6 +131,25 @@ export const api = {
 
   // Project相关
   async getProjects(): Promise<Project[]> {
+    if (isDemoMode) {
+      return [{
+        id: 'demo-project-1',
+        name: 'Demo Project',
+        description: '这是一个演示项目，展示 XCodeReviewer 的功能',
+        repository_url: 'https://github.com/demo/project',
+        repository_type: 'github',
+        default_branch: 'main',
+        programming_languages: JSON.stringify(['TypeScript', 'JavaScript', 'React']),
+        owner_id: 'demo-user',
+        owner: demoProfile,
+        is_active: true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }];
+    }
+    
+    if (!supabase) return [];
+    
     const { data, error } = await supabase
       .from('projects')
       .select(`
@@ -382,6 +437,28 @@ export const api = {
 
   // 统计相关
   async getProjectStats(): Promise<any> {
+    if (isDemoMode) {
+      return {
+        total_projects: 1,
+        active_projects: 1,
+        total_tasks: 3,
+        completed_tasks: 2,
+        total_issues: 15,
+        resolved_issues: 12
+      };
+    }
+    
+    if (!supabase) {
+      return {
+        total_projects: 0,
+        active_projects: 0,
+        total_tasks: 0,
+        completed_tasks: 0,
+        total_issues: 0,
+        resolved_issues: 0
+      };
+    }
+
     const [projectsResult, tasksResult, issuesResult] = await Promise.all([
       supabase.from('projects').select('id, is_active', { count: 'exact' }),
       supabase.from('audit_tasks').select('id, status', { count: 'exact' }),

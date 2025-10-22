@@ -1,0 +1,40 @@
+services:
+  # XCodeReviewer 前端应用
+  xcodereviewer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: xcodereviewer-app
+    ports:
+      - "5174:80"
+    environment:
+      # Google Gemini AI 配置 (必需)
+      - VITE_GEMINI_API_KEY=${VITE_GEMINI_API_KEY}
+      - VITE_GEMINI_MODEL=${VITE_GEMINI_MODEL:-gemini-2.5-flash}
+      - VITE_GEMINI_TIMEOUT_MS=${VITE_GEMINI_TIMEOUT_MS:-25000}
+      
+      # Supabase 配置 (可选)
+      - VITE_SUPABASE_URL=${VITE_SUPABASE_URL}
+      - VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY}
+      
+      # GitHub 集成 (可选)
+      - VITE_GITHUB_TOKEN=${VITE_GITHUB_TOKEN}
+      
+      # 应用配置
+      - VITE_APP_ID=${VITE_APP_ID:-xcodereviewer}
+      - VITE_MAX_ANALYZE_FILES=${VITE_MAX_ANALYZE_FILES:-40}
+      - VITE_LLM_CONCURRENCY=${VITE_LLM_CONCURRENCY:-2}
+      - VITE_LLM_GAP_MS=${VITE_LLM_GAP_MS:-500}
+    restart: unless-stopped
+    networks:
+      - xcodereviewer-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  xcodereviewer-network:
+    driver: bridge

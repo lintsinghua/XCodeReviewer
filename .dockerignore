@@ -1,0 +1,46 @@
+# 依赖
+node_modules
+
+# 构建产物
+dist
+.vite
+
+# 环境变量（保留 .env 用于构建）
+.env.local
+.env.*.local
+
+# 日志
+logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 编辑器
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# 操作系统
+.DS_Store
+Thumbs.db
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# 测试
+coverage
+.nyc_output
+
+# 文档
+*.md
+docs
+
+# 其他
+.history
+.cache
