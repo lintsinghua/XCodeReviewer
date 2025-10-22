@@ -6,78 +6,35 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
-  ArrowLeft, 
+  ArrowLeft,
   Activity, 
   AlertTriangle, 
   CheckCircle, 
   Clock, 
   FileText,
+  Calendar,
+  GitBranch,
   Shield,
+  Bug,
+  TrendingUp,
+  Download,
   Code,
-  Zap,
+  Lightbulb,
   Info,
-  Lightbulb
+  Zap
 } from "lucide-react";
 import { api } from "@/shared/config/database";
 import type { AuditTask, AuditIssue } from "@/shared/types";
 import { toast } from "sonner";
 
-export default function TaskDetail() {
-  const { id } = useParams<{ id: string }>();
-  const [task, setTask] = useState<AuditTask | null>(null);
-  const [issues, setIssues] = useState<AuditIssue[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (id) {
-      loadTaskData();
-    }
-  }, [id]);
-
-  const loadTaskData = async () => {
-    if (!id) return;
-    
-    try {
-      setLoading(true);
-      const [taskData, issuesData] = await Promise.all([
-        api.getAuditTaskById(id),
-        api.getAuditIssues(id)
-      ]);
-      
-      setTask(taskData);
-      setIssues(issuesData);
-    } catch (error) {
-      console.error('Failed to load task data:', error);
-      toast.error("加载任务数据失败");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed': return 'bg-green-100 text-green-800';
-      case 'running': return 'bg-red-50 text-red-800';
-      case 'failed': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'completed': return <CheckCircle className="w-5 h-5" />;
-      case 'running': return <Activity className="w-5 h-5" />;
-      case 'failed': return <AlertTriangle className="w-5 h-5" />;
-      default: return <Clock className="w-5 h-5" />;
-    }
-  };
-
+// 问题列表组件
+function IssuesList({ issues }: { issues: AuditIssue[] }) {
   const getSeverityColor = (severity: string) => {
     switch (severity) {
       case 'critical': return 'bg-red-100 text-red-800 border-red-200';
       case 'high': return 'bg-orange-100 text-orange-800 border-orange-200';
       case 'medium': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'low': return 'bg-red-50 text-red-800 border-red-200';
+      case 'low': return 'bg-blue-100 text-blue-800 border-blue-200';
       default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
@@ -93,6 +50,229 @@ export default function TaskDetail() {
     }
   };
 
+  const criticalIssues = issues.filter(issue => issue.severity === 'critical');
+  const highIssues = issues.filter(issue => issue.severity === 'high');
+  const mediumIssues = issues.filter(issue => issue.severity === 'medium');
+  const lowIssues = issues.filter(issue => issue.severity === 'low');
+
+  const renderIssue = (issue: AuditIssue, index: number) => (
+    <div key={issue.id || index} className="border border-gray-200 rounded-xl p-6 hover:shadow-md transition-all duration-200 bg-white">
+      <div className="flex items-start justify-between mb-4">
+        <div className="flex items-start space-x-3">
+          <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+            issue.severity === 'critical' ? 'bg-red-100 text-red-600' :
+            issue.severity === 'high' ? 'bg-orange-100 text-orange-600' :
+            issue.severity === 'medium' ? 'bg-yellow-100 text-yellow-600' :
+            'bg-blue-100 text-blue-600'
+          }`}>
+            {getTypeIcon(issue.issue_type)}
+          </div>
+          <div>
+            <h4 className="font-semibold text-lg text-gray-900 mb-1">{issue.title}</h4>
+            <p className="text-gray-600 text-sm">{issue.file_path}</p>
+            {issue.line_number && (
+              <p className="text-gray-500 text-xs mt-1">
+                第 {issue.line_number} 行
+                {issue.column_number && `, 第 ${issue.column_number} 列`}
+              </p>
+            )}
+          </div>
+        </div>
+        <Badge className={`${getSeverityColor(issue.severity)} px-3 py-1`}>
+          {issue.severity === 'critical' ? '严重' :
+           issue.severity === 'high' ? '高' :
+           issue.severity === 'medium' ? '中等' : '低'}
+        </Badge>
+      </div>
+
+      {issue.description && (
+        <p className="text-gray-700 mb-4 leading-relaxed">
+          {issue.description}
+        </p>
+      )}
+
+      {issue.code_snippet && (
+        <div className="bg-gray-900 rounded-lg p-4 mb-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-gray-300 text-sm font-medium">问题代码</span>
+            {issue.line_number && (
+              <span className="text-gray-400 text-xs">第 {issue.line_number} 行</span>
+            )}
+          </div>
+          <pre className="text-sm text-gray-100 overflow-x-auto">
+            <code>{issue.code_snippet}</code>
+          </pre>
+        </div>
+      )}
+
+      <div className="grid md:grid-cols-2 gap-4">
+        {issue.suggestion && (
+          <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+            <div className="flex items-center mb-2">
+              <Lightbulb className="w-5 h-5 text-blue-600 mr-2" />
+              <span className="font-medium text-blue-800">修复建议</span>
+            </div>
+            <p className="text-blue-700 text-sm leading-relaxed">{issue.suggestion}</p>
+          </div>
+        )}
+
+        {issue.ai_explanation && (
+          <div className="bg-green-50 rounded-lg p-4 border border-green-200">
+            <div className="flex items-center mb-2">
+              <Zap className="w-5 h-5 text-green-600 mr-2" />
+              <span className="font-medium text-green-800">AI 解释</span>
+            </div>
+            <p className="text-green-700 text-sm leading-relaxed">{issue.ai_explanation}</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  if (issues.length === 0) {
+    return (
+      <div className="text-center py-16">
+        <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+          <CheckCircle className="w-12 h-12 text-green-600" />
+        </div>
+        <h3 className="text-2xl font-bold text-green-800 mb-3">代码质量优秀！</h3>
+        <p className="text-green-600 text-lg mb-6">恭喜！没有发现任何问题</p>
+        <div className="bg-green-50 rounded-lg p-6 max-w-md mx-auto">
+          <p className="text-green-700 text-sm">
+            您的代码通过了所有质量检查，包括安全性、性能、可维护性等各个方面的评估。
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <Tabs defaultValue="all" className="w-full">
+      <TabsList className="grid w-full grid-cols-5 mb-6">
+        <TabsTrigger value="all" className="text-sm">
+          全部 ({issues.length})
+        </TabsTrigger>
+        <TabsTrigger value="critical" className="text-sm">
+          严重 ({criticalIssues.length})
+        </TabsTrigger>
+        <TabsTrigger value="high" className="text-sm">
+          高 ({highIssues.length})
+        </TabsTrigger>
+        <TabsTrigger value="medium" className="text-sm">
+          中等 ({mediumIssues.length})
+        </TabsTrigger>
+        <TabsTrigger value="low" className="text-sm">
+          低 ({lowIssues.length})
+        </TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="all" className="space-y-4 mt-6">
+        {issues.map((issue, index) => renderIssue(issue, index))}
+      </TabsContent>
+
+      <TabsContent value="critical" className="space-y-4 mt-6">
+        {criticalIssues.length > 0 ? (
+          criticalIssues.map((issue, index) => renderIssue(issue, index))
+        ) : (
+          <div className="text-center py-12">
+            <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">没有发现严重问题</h3>
+            <p className="text-gray-500">代码在严重级别的检查中表现良好</p>
+          </div>
+        )}
+      </TabsContent>
+
+      <TabsContent value="high" className="space-y-4 mt-6">
+        {highIssues.length > 0 ? (
+          highIssues.map((issue, index) => renderIssue(issue, index))
+        ) : (
+          <div className="text-center py-12">
+            <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">没有发现高优先级问题</h3>
+            <p className="text-gray-500">代码在高优先级检查中表现良好</p>
+          </div>
+        )}
+      </TabsContent>
+
+      <TabsContent value="medium" className="space-y-4 mt-6">
+        {mediumIssues.length > 0 ? (
+          mediumIssues.map((issue, index) => renderIssue(issue, index))
+        ) : (
+          <div className="text-center py-12">
+            <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">没有发现中等优先级问题</h3>
+            <p className="text-gray-500">代码在中等优先级检查中表现良好</p>
+          </div>
+        )}
+      </TabsContent>
+
+      <TabsContent value="low" className="space-y-4 mt-6">
+        {lowIssues.length > 0 ? (
+          lowIssues.map((issue, index) => renderIssue(issue, index))
+        ) : (
+          <div className="text-center py-12">
+            <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">没有发现低优先级问题</h3>
+            <p className="text-gray-500">代码在低优先级检查中表现良好</p>
+          </div>
+        )}
+      </TabsContent>
+    </Tabs>
+  );
+}
+
+export default function TaskDetail() {
+  const { id } = useParams<{ id: string }>();
+  const [task, setTask] = useState<AuditTask | null>(null);
+  const [issues, setIssues] = useState<AuditIssue[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (id) {
+      loadTaskDetail();
+    }
+  }, [id]);
+
+  const loadTaskDetail = async () => {
+    if (!id) return;
+    
+    try {
+      setLoading(true);
+      const [taskData, issuesData] = await Promise.all([
+        api.getAuditTaskById(id),
+        api.getAuditIssues(id)
+      ]);
+      
+      setTask(taskData);
+      setIssues(issuesData);
+    } catch (error) {
+      console.error('Failed to load task detail:', error);
+      toast.error("加载任务详情失败");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'completed': return 'bg-green-100 text-green-800';
+      case 'running': return 'bg-red-50 text-red-800';
+      case 'failed': return 'bg-red-100 text-red-900';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'completed': return <CheckCircle className="w-4 h-4" />;
+      case 'running': return <Activity className="w-4 h-4" />;
+      case 'failed': return <AlertTriangle className="w-4 h-4" />;
+      default: return <Clock className="w-4 h-4" />;
+    }
+  };
+
+
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('zh-CN', {
       year: 'numeric',
@@ -106,52 +286,56 @@ export default function TaskDetail() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
       </div>
     );
   }
 
   if (!task) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <AlertTriangle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">任务未找到</h2>
-          <p className="text-gray-600 mb-4">请检查任务ID是否正确</p>
-          <Link to="/audit-tasks">
-            <Button>
+      <div className="space-y-6 animate-fade-in">
+        <div className="flex items-center space-x-4">
+          <Link to="/tasks">
+            <Button variant="outline" size="sm">
               <ArrowLeft className="w-4 h-4 mr-2" />
               返回任务列表
             </Button>
           </Link>
         </div>
+        <Card className="card-modern">
+          <CardContent className="empty-state py-16">
+            <div className="empty-icon">
+              <AlertTriangle className="w-8 h-8 text-red-500" />
+            </div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">任务不存在</h3>
+            <p className="text-gray-500">请检查任务ID是否正确</p>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
+  const progressPercentage = Math.round((task.scanned_files / task.total_files) * 100);
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in">
       {/* 页面标题 */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
-          <Link to="/audit-tasks">
+          <Link to="/tasks">
             <Button variant="outline" size="sm">
               <ArrowLeft className="w-4 h-4 mr-2" />
-              返回
+              返回任务列表
             </Button>
           </Link>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">
-              {task.task_type === 'repository' ? '仓库审计任务' : '即时分析任务'}
-            </h1>
-            <p className="text-gray-600 mt-1">
-              项目：{task.project?.name || '未知项目'}
-            </p>
+            <h1 className="page-title">任务详情</h1>
+            <p className="page-subtitle">{task.project?.name || '未知项目'} - 审计任务</p>
           </div>
         </div>
         
         <div className="flex items-center space-x-3">
-          <Badge className={getStatusColor(task.status)} variant="outline">
+          <Badge className={getStatusColor(task.status)}>
             {getStatusIcon(task.status)}
             <span className="ml-2">
               {task.status === 'completed' ? '已完成' : 
@@ -159,320 +343,209 @@ export default function TaskDetail() {
                task.status === 'failed' ? '失败' : '等待中'}
             </span>
           </Badge>
+          {task.status === 'completed' && (
+            <Button size="sm" className="btn-primary">
+              <Download className="w-4 h-4 mr-2" />
+              导出报告
+            </Button>
+          )}
         </div>
       </div>
 
       {/* 任务概览 */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <FileText className="h-8 w-8 text-blue-600" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-muted-foreground">扫描文件</p>
-                <p className="text-2xl font-bold">{task.scanned_files}/{task.total_files}</p>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Card className="stat-card">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="stat-label">扫描进度</p>
+                <p className="stat-value text-xl">{progressPercentage}%</p>
+                <Progress value={progressPercentage} className="mt-2" />
+              </div>
+              <div className="stat-icon from-primary to-accent">
+                <Activity className="w-5 h-5 text-white" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <Code className="h-8 w-8 text-green-600" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-muted-foreground">代码行数</p>
-                <p className="text-2xl font-bold">{task.total_lines.toLocaleString()}</p>
+        <Card className="stat-card">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="stat-label">发现问题</p>
+                <p className="stat-value text-xl text-orange-600">{task.issues_count}</p>
+              </div>
+              <div className="stat-icon from-orange-500 to-orange-600">
+                <Bug className="w-5 h-5 text-white" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <AlertTriangle className="h-8 w-8 text-orange-600" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-muted-foreground">发现问题</p>
-                <p className="text-2xl font-bold">{task.issues_count}</p>
+        <Card className="stat-card">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="stat-label">质量评分</p>
+                <p className="stat-value text-xl text-primary">{task.quality_score.toFixed(1)}</p>
+              </div>
+              <div className="stat-icon from-emerald-500 to-emerald-600">
+                <TrendingUp className="w-5 h-5 text-white" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <CheckCircle className="h-8 w-8 text-purple-600" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-muted-foreground">质量评分</p>
-                <p className="text-2xl font-bold">{task.quality_score.toFixed(1)}</p>
+        <Card className="stat-card">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="stat-label">代码行数</p>
+                <p className="stat-value text-xl">{task.total_lines.toLocaleString()}</p>
+              </div>
+              <div className="stat-icon from-purple-500 to-purple-600">
+                <FileText className="w-5 h-5 text-white" />
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* 主要内容 */}
-      <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="overview">任务概览</TabsTrigger>
-          <TabsTrigger value="issues">问题详情</TabsTrigger>
-          <TabsTrigger value="config">配置信息</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="overview" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* 任务信息 */}
-            <Card>
-              <CardHeader>
-                <CardTitle>任务信息</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">任务类型</span>
-                    <Badge variant="outline">
-                      {task.task_type === 'repository' ? '仓库审计' : '即时分析'}
-                    </Badge>
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">创建时间</span>
-                    <span className="text-sm text-muted-foreground">
-                      {formatDate(task.created_at)}
-                    </span>
-                  </div>
-                  
-                  {task.started_at && (
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">开始时间</span>
-                      <span className="text-sm text-muted-foreground">
-                        {formatDate(task.started_at)}
-                      </span>
-                    </div>
-                  )}
-                  
-                  {task.completed_at && (
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">完成时间</span>
-                      <span className="text-sm text-muted-foreground">
-                        {formatDate(task.completed_at)}
-                      </span>
-                    </div>
-                  )}
-                  
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">创建者</span>
-                    <span className="text-sm text-muted-foreground">
-                      {task.creator?.full_name || task.creator?.phone || '未知'}
-                    </span>
-                  </div>
-                </div>
-
-                {/* 扫描进度 */}
-                {task.status === 'running' && (
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-sm">
-                      <span>扫描进度</span>
-                      <span>{task.scanned_files}/{task.total_files}</span>
-                    </div>
-                    <Progress value={(task.scanned_files / task.total_files) * 100} />
-                  </div>
-                )}
-
-                {/* 质量评分 */}
-                {task.status === 'completed' && (
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-sm">
-                      <span>代码质量评分</span>
-                      <span>{task.quality_score.toFixed(1)}/100</span>
-                    </div>
-                    <Progress value={task.quality_score} />
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* 问题统计 */}
-            <Card>
-              <CardHeader>
-                <CardTitle>问题统计</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {issues.length > 0 ? (
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="text-center p-4 bg-red-50 rounded-lg">
-                        <p className="text-2xl font-bold text-red-600">
-                          {issues.filter(i => i.severity === 'critical').length}
-                        </p>
-                        <p className="text-sm text-red-600">严重问题</p>
-                      </div>
-                      <div className="text-center p-4 bg-orange-50 rounded-lg">
-                        <p className="text-2xl font-bold text-orange-600">
-                          {issues.filter(i => i.severity === 'high').length}
-                        </p>
-                        <p className="text-sm text-orange-600">高优先级</p>
-                      </div>
-                      <div className="text-center p-4 bg-yellow-50 rounded-lg">
-                        <p className="text-2xl font-bold text-yellow-600">
-                          {issues.filter(i => i.severity === 'medium').length}
-                        </p>
-                        <p className="text-sm text-yellow-600">中等优先级</p>
-                      </div>
-                      <div className="text-center p-4 bg-blue-50 rounded-lg">
-                        <p className="text-2xl font-bold text-blue-600">
-                          {issues.filter(i => i.severity === 'low').length}
-                        </p>
-                        <p className="text-sm text-blue-600">低优先级</p>
-                      </div>
-                    </div>
-
-                    {/* 问题类型分布 */}
-                    <div className="space-y-2">
-                      <h4 className="font-medium">问题类型分布</h4>
-                      {['security', 'bug', 'performance', 'style', 'maintainability'].map(type => {
-                        const count = issues.filter(i => i.issue_type === type).length;
-                        const percentage = issues.length > 0 ? (count / issues.length) * 100 : 0;
-                        return (
-                          <div key={type} className="flex items-center justify-between">
-                            <div className="flex items-center space-x-2">
-                              {getTypeIcon(type)}
-                              <span className="text-sm capitalize">{type}</span>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <div className="w-20 bg-gray-200 rounded-full h-2">
-                                <div 
-                                  className="bg-blue-600 h-2 rounded-full" 
-                                  style={{ width: `${percentage}%` }}
-                                ></div>
-                              </div>
-                              <span className="text-sm text-muted-foreground w-8">{count}</span>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <CheckCircle className="w-12 h-12 text-green-600 mx-auto mb-4" />
-                    <p className="text-green-600 font-medium">未发现问题</p>
-                    <p className="text-sm text-muted-foreground">代码质量良好</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="issues" className="space-y-6">
-          {issues.length > 0 ? (
-            <div className="space-y-4">
-              {issues.map((issue, index) => (
-                <Card key={issue.id} className="border-l-4 border-l-blue-500">
-                  <CardContent className="p-6">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex items-center space-x-3">
-                        {getTypeIcon(issue.issue_type)}
-                        <div>
-                          <h4 className="font-medium text-lg">{issue.title}</h4>
-                          <p className="text-sm text-muted-foreground">
-                            {issue.file_path}:{issue.line_number}
-                          </p>
-                        </div>
-                      </div>
-                      <Badge className={getSeverityColor(issue.severity)}>
-                        {issue.severity}
-                      </Badge>
-                    </div>
-                    
-                    <p className="text-sm text-muted-foreground mb-4">
-                      {issue.description}
-                    </p>
-                    
-                    {issue.code_snippet && (
-                      <div className="bg-gray-50 rounded p-3 mb-4">
-                        <p className="text-sm font-medium mb-2">代码片段：</p>
-                        <pre className="text-xs bg-gray-100 p-2 rounded overflow-x-auto">
-                          {issue.code_snippet}
-                        </pre>
-                      </div>
-                    )}
-                    
-                    {issue.suggestion && (
-                      <div className="bg-blue-50 rounded p-3 mb-4">
-                        <p className="text-sm font-medium text-blue-800 mb-1">
-                          <Lightbulb className="w-4 h-4 inline mr-1" />
-                          修复建议：
-                        </p>
-                        <p className="text-sm text-blue-700">{issue.suggestion}</p>
-                      </div>
-                    )}
-                    
-                    {issue.ai_explanation && (
-                      <div className="bg-green-50 rounded p-3">
-                        <p className="text-sm font-medium text-green-800 mb-1">
-                          AI 解释：
-                        </p>
-                        <p className="text-sm text-green-700">{issue.ai_explanation}</p>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : (
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center py-12">
-                <CheckCircle className="w-16 h-16 text-green-600 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-green-800 mb-2">代码质量良好！</h3>
-                <p className="text-green-600">未发现任何问题</p>
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
-
-        <TabsContent value="config" className="space-y-6">
-          <Card>
+      {/* 任务信息 */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          <Card className="card-modern">
             <CardHeader>
-              <CardTitle>扫描配置</CardTitle>
+              <CardTitle className="flex items-center space-x-2">
+                <Shield className="w-5 h-5 text-primary" />
+                <span>任务信息</span>
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <h4 className="font-medium mb-2">分支信息</h4>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm font-medium text-gray-500">任务类型</p>
+                  <p className="text-base">
+                    {task.task_type === 'repository' ? '仓库审计任务' : '即时分析任务'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-500">目标分支</p>
+                  <p className="text-base flex items-center">
+                    <GitBranch className="w-4 h-4 mr-1" />
                     {task.branch_name || '默认分支'}
                   </p>
                 </div>
                 <div>
-                  <h4 className="font-medium mb-2">排除模式</h4>
-                  <div className="space-y-1">
-                    {JSON.parse(task.exclude_patterns || '[]').length > 0 ? (
-                      JSON.parse(task.exclude_patterns).map((pattern: string, index: number) => (
-                        <Badge key={index} variant="outline" className="text-xs">
-                          {pattern}
-                        </Badge>
-                      ))
-                    ) : (
-                      <p className="text-sm text-muted-foreground">无排除模式</p>
-                    )}
+                  <p className="text-sm font-medium text-gray-500">创建时间</p>
+                  <p className="text-base flex items-center">
+                    <Calendar className="w-4 h-4 mr-1" />
+                    {formatDate(task.created_at)}
+                  </p>
+                </div>
+                {task.completed_at && (
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">完成时间</p>
+                    <p className="text-base flex items-center">
+                      <CheckCircle className="w-4 h-4 mr-1" />
+                      {formatDate(task.completed_at)}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* 排除模式 */}
+              {task.exclude_patterns && (
+                <div>
+                  <p className="text-sm font-medium text-gray-500 mb-2">排除模式</p>
+                  <div className="flex flex-wrap gap-2">
+                    {JSON.parse(task.exclude_patterns).map((pattern: string) => (
+                      <Badge key={pattern} variant="outline" className="text-xs">
+                        {pattern}
+                      </Badge>
+                    ))}
                   </div>
                 </div>
-              </div>
-              
-              <div>
-                <h4 className="font-medium mb-2">扫描配置</h4>
-                <pre className="text-xs bg-gray-100 p-3 rounded overflow-x-auto">
-                  {JSON.stringify(JSON.parse(task.scan_config || '{}'), null, 2)}
-                </pre>
-              </div>
+              )}
+
+              {/* 扫描配置 */}
+              {task.scan_config && (
+                <div>
+                  <p className="text-sm font-medium text-gray-500 mb-2">扫描配置</p>
+                  <div className="bg-gray-50 rounded-lg p-3">
+                    <pre className="text-xs text-gray-600">
+                      {JSON.stringify(JSON.parse(task.scan_config), null, 2)}
+                    </pre>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
-        </TabsContent>
-      </Tabs>
+        </div>
+
+        <div>
+          <Card className="card-modern">
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <FileText className="w-5 h-5 text-primary" />
+                <span>项目信息</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {task.project ? (
+                <>
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">项目名称</p>
+                    <Link to={`/projects/${task.project.id}`} className="text-base text-primary hover:underline">
+                      {task.project.name}
+                    </Link>
+                  </div>
+                  {task.project.description && (
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">项目描述</p>
+                      <p className="text-sm text-gray-600">{task.project.description}</p>
+                    </div>
+                  )}
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">仓库类型</p>
+                    <p className="text-base">{task.project.repository_type?.toUpperCase() || 'OTHER'}</p>
+                  </div>
+                  {task.project.programming_languages && (
+                    <div>
+                      <p className="text-sm font-medium text-gray-500 mb-2">编程语言</p>
+                      <div className="flex flex-wrap gap-1">
+                        {JSON.parse(task.project.programming_languages).map((lang: string) => (
+                          <Badge key={lang} variant="secondary" className="text-xs">
+                            {lang}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <p className="text-gray-500">项目信息不可用</p>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* 问题列表 */}
+      {issues.length > 0 && (
+        <Card className="card-modern">
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Bug className="w-6 h-6 text-orange-600" />
+              <span>发现的问题 ({issues.length})</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <IssuesList issues={issues} />
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

@@ -9,20 +9,22 @@ import {
   CheckCircle, 
   Clock, 
   Search,
-  Play,
   FileText,
-  Calendar
+  Calendar,
+  Plus
 } from "lucide-react";
 import { api } from "@/shared/config/database";
 import type { AuditTask } from "@/shared/types";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
+import CreateTaskDialog from "@/components/audit/CreateTaskDialog";
 
 export default function AuditTasks() {
   const [tasks, setTasks] = useState<AuditTask[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
 
   useEffect(() => {
     loadTasks();
@@ -92,8 +94,8 @@ export default function AuditTasks() {
           <h1 className="page-title">审计任务</h1>
           <p className="page-subtitle">查看和管理所有代码审计任务的执行状态</p>
         </div>
-        <Button className="btn-primary">
-          <Play className="w-4 h-4 mr-2" />
+        <Button className="btn-primary" onClick={() => setShowCreateDialog(true)}>
+          <Plus className="w-4 h-4 mr-2" />
           新建任务
         </Button>
       </div>
@@ -235,28 +237,43 @@ export default function AuditTasks() {
                   </Badge>
                 </div>
 
-                <div className="grid grid-cols-3 md:grid-cols-5 gap-6 mb-6">
-                  <div className="text-center">
-                    <p className="text-2xl font-bold text-gray-900">{task.total_files}</p>
-                    <p className="text-xs text-gray-500 mt-1">文件数</p>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                  <div className="text-center p-4 bg-gradient-to-br from-blue-50 to-blue-100/30 rounded-xl border border-blue-200">
+                    <div className="text-2xl font-bold text-blue-600 mb-1">{task.total_files}</div>
+                    <p className="text-xs text-blue-700 font-medium">文件数</p>
                   </div>
-                  <div className="text-center">
-                    <p className="text-2xl font-bold text-gray-900">{task.total_lines}</p>
-                    <p className="text-xs text-gray-500 mt-1">代码行数</p>
+                  <div className="text-center p-4 bg-gradient-to-br from-purple-50 to-purple-100/30 rounded-xl border border-purple-200">
+                    <div className="text-2xl font-bold text-purple-600 mb-1">{task.total_lines.toLocaleString()}</div>
+                    <p className="text-xs text-purple-700 font-medium">代码行数</p>
                   </div>
-                  <div className="text-center">
-                    <p className="text-2xl font-bold text-orange-600">{task.issues_count}</p>
-                    <p className="text-xs text-gray-500 mt-1">发现问题</p>
+                  <div className="text-center p-4 bg-gradient-to-br from-orange-50 to-orange-100/30 rounded-xl border border-orange-200">
+                    <div className="text-2xl font-bold text-orange-600 mb-1">{task.issues_count}</div>
+                    <p className="text-xs text-orange-700 font-medium">发现问题</p>
                   </div>
-                  <div className="text-center">
-                    <p className="text-2xl font-bold text-primary">{task.quality_score.toFixed(1)}</p>
-                    <p className="text-xs text-gray-500 mt-1">质量评分</p>
+                  <div className="text-center p-4 bg-gradient-to-br from-green-50 to-green-100/30 rounded-xl border border-green-200">
+                    <div className="text-2xl font-bold text-green-600 mb-1">{task.quality_score.toFixed(1)}</div>
+                    <p className="text-xs text-green-700 font-medium">质量评分</p>
                   </div>
-                  <div className="text-center">
-                    <p className="text-2xl font-bold text-emerald-600">
-                      {Math.round((task.scanned_files / task.total_files) * 100)}%
-                    </p>
-                    <p className="text-xs text-gray-500 mt-1">扫描进度</p>
+                </div>
+
+                {/* 扫描进度 */}
+                <div className="mb-6">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-700">扫描进度</span>
+                    <span className="text-sm text-gray-500">
+                      {task.scanned_files} / {task.total_files} 文件
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div 
+                      className="bg-gradient-to-r from-primary to-accent h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${Math.round((task.scanned_files / task.total_files) * 100)}%` }}
+                    ></div>
+                  </div>
+                  <div className="text-right mt-1">
+                    <span className="text-xs text-gray-500">
+                      {Math.round((task.scanned_files / task.total_files) * 100)}% 完成
+                    </span>
                   </div>
                 </div>
 
@@ -307,14 +324,21 @@ export default function AuditTasks() {
               {searchTerm || statusFilter !== "all" ? '尝试调整搜索条件或筛选器' : '创建第一个审计任务开始代码质量分析'}
             </p>
             {!searchTerm && statusFilter === "all" && (
-              <Button className="btn-primary">
-                <Play className="w-4 h-4 mr-2" />
+              <Button className="btn-primary" onClick={() => setShowCreateDialog(true)}>
+                <Plus className="w-4 h-4 mr-2" />
                 创建任务
               </Button>
             )}
           </CardContent>
         </Card>
       )}
+
+      {/* 新建任务对话框 */}
+      <CreateTaskDialog
+        open={showCreateDialog}
+        onOpenChange={setShowCreateDialog}
+        onTaskCreated={loadTasks}
+      />
     </div>
   );
 }
