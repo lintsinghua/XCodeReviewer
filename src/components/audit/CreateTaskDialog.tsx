@@ -26,9 +26,10 @@ interface CreateTaskDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onTaskCreated: () => void;
+  preselectedProjectId?: string;
 }
 
-export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated }: CreateTaskDialogProps) {
+export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, preselectedProjectId }: CreateTaskDialogProps) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -61,8 +62,12 @@ export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated }: 
   useEffect(() => {
     if (open) {
       loadProjects();
+      // 如果有预选择的项目ID，设置到表单中
+      if (preselectedProjectId) {
+        setTaskForm(prev => ({ ...prev, project_id: preselectedProjectId }));
+      }
     }
-  }, [open]);
+  }, [open, preselectedProjectId]);
 
   const loadProjects = async () => {
     try {

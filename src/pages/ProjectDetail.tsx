@@ -7,9 +7,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { 
   ArrowLeft, 
-  GitBranch, 
-  Calendar, 
-  Users, 
   Settings, 
   ExternalLink,
   Code,
@@ -23,8 +20,9 @@ import {
 } from "lucide-react";
 import { api } from "@/shared/config/database";
 import { runRepositoryAudit } from "@/features/projects/services";
-import type { Project, AuditTask, AuditIssue } from "@/shared/types";
+import type { Project, AuditTask } from "@/shared/types";
 import { toast } from "sonner";
+import CreateTaskDialog from "@/components/audit/CreateTaskDialog";
 
 export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
@@ -32,6 +30,7 @@ export default function ProjectDetail() {
   const [tasks, setTasks] = useState<AuditTask[]>([]);
   const [loading, setLoading] = useState(true);
   const [scanning, setScanning] = useState(false);
+  const [showCreateTaskDialog, setShowCreateTaskDialog] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -110,6 +109,15 @@ export default function ProjectDetail() {
       hour: '2-digit',
       minute: '2-digit'
     });
+  };
+
+  const handleCreateTask = () => {
+    setShowCreateTaskDialog(true);
+  };
+
+  const handleTaskCreated = () => {
+    toast.success("审计任务已创建");
+    loadProjectData(); // 重新加载项目数据以显示新任务
   };
 
   if (loading) {
@@ -352,7 +360,7 @@ export default function ProjectDetail() {
         <TabsContent value="tasks" className="space-y-6">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-medium">审计任务列表</h3>
-            <Button>
+            <Button onClick={handleCreateTask}>
               <Play className="w-4 h-4 mr-2" />
               新建任务
             </Button>
@@ -429,7 +437,7 @@ export default function ProjectDetail() {
                 <Activity className="w-16 h-16 text-muted-foreground mb-4" />
                 <h3 className="text-lg font-medium text-muted-foreground mb-2">暂无审计任务</h3>
                 <p className="text-sm text-muted-foreground mb-4">创建第一个审计任务开始代码质量分析</p>
-                <Button>
+                <Button onClick={handleCreateTask}>
                   <Play className="w-4 h-4 mr-2" />
                   创建任务
                 </Button>
@@ -454,6 +462,14 @@ export default function ProjectDetail() {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* 创建任务对话框 */}
+      <CreateTaskDialog
+        open={showCreateTaskDialog}
+        onOpenChange={setShowCreateTaskDialog}
+        onTaskCreated={handleTaskCreated}
+        preselectedProjectId={id}
+      />
     </div>
   );
 }
