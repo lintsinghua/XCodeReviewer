@@ -1,4 +1,8 @@
-# XCodeReviewer - Your Intelligent Code Review Partner 🚀
+# XCodeReviewer - Your Intelligent Code Audit Partner 🚀
+
+<div style="width: 100%; max-width: 600px; margin: 0 auto;">
+  <img src="public/images/logo.png" alt="XCodeReviewer Logo" style="width: 100%; height: auto; display: block; margin: 0 auto;">
+</div>
 
 <div align="center">
   <p>
@@ -14,19 +18,18 @@
 [![Vite](https://img.shields.io/badge/Vite-5.1.4-646CFF.svg)](https://vitejs.dev/)
 [![Supabase](https://img.shields.io/badge/Supabase-3ECF8E.svg)](https://supabase.com/)
 [![Google Gemini](https://img.shields.io/badge/Google%20Gemini-4285F4.svg)](https://ai.google.dev/)
-[![Star History](https://api.star-history.com/svg?repos=lintsinghua/XCodeReviewer&type=Date)](https://star-history.com/#lintsinghua/XCodeReviewer&Date)
 
-**XCodeReviewer** is a modern code auditing platform powered by Large Language Models (LLM), designed to provide developers with intelligent, comprehensive, and in-depth code quality analysis and review services.
+**XCodeReviewer** is a modern code audit platform powered by Large Language Models (LLM), designed to provide developers with intelligent, comprehensive, and in-depth code quality analysis and review services.
 
 ## 🌟 Why Choose XCodeReviewer?
 
-In the fast-paced world of software development, ensuring code quality is crucial. Traditional code auditing tools are rigid and inefficient, while manual auditing is time-consuming and labor-intensive. XCodeReviewer leverages the powerful capabilities of Google Gemini AI to revolutionize the way code review is conducted:
+In the fast-paced world of software development, ensuring code quality is crucial. Traditional code audit tools are rigid and inefficient, while manual audits are time-consuming and labor-intensive. XCodeReviewer leverages the powerful capabilities of Google Gemini AI to revolutionize the way code reviews are conducted:
 
-- **🤖 AI-Driven Deep Analysis**: Beyond traditional static analysis, understanding code intent and discovering deep logical issues.
+- **🤖 AI-Driven Deep Analysis**: Beyond traditional static analysis, understands code intent and discovers deep logical issues.
 - **🎯 Multi-dimensional, Comprehensive Assessment**: From **security**, **performance**, **maintainability** to **code style**, providing 360-degree quality evaluation.
-- **💡 Clear, Actionable Fix Suggestions**: Innovative **What-Why-How** pattern that not only tells you "what" the problem is, but also explains "why" and provides "how to fix" with specific code examples.
-- **⚡ Real-time Feedback, Instant Improvement**: Whether it's code snippets or entire code repositories, you can get fast and accurate analysis results.
-- **✨ Modern, High-Quality User Interface**: Built with React + TypeScript, providing smooth and intuitive user experience.
+- **💡 Clear, Actionable Fix Suggestions**: Innovative **What-Why-How** approach that not only tells you "what" the problem is, but also explains "why" and provides "how to fix" with specific code examples.
+- **⚡ Real-time Feedback, Instant Improvement**: Whether it's code snippets or entire repositories, get fast and accurate analysis results.
+- **✨ Modern, Beautiful User Interface**: Built with React + TypeScript, providing a smooth and intuitive user experience.
 
 ## 🎬 Project Demo
 
@@ -34,77 +37,15 @@ In the fast-paced world of software development, ensuring code quality is crucia
 
 #### 📊 Intelligent Dashboard
 ![Intelligent Dashboard](public/images/example1.png)
-*Real-time display of project statistics, quality trends and system performance, providing comprehensive code audit overview*
+*Real-time display of project statistics, quality trends, and system performance, providing comprehensive code audit overview*
 
 #### ⚡ Instant Analysis
 ![Instant Analysis](public/images/example3.png)
-*Support for rapid code snippet analysis, providing detailed What-Why-How explanations and fix suggestions*
+*Support for quick code snippet analysis with detailed What-Why-How explanations and fix suggestions*
 
 #### 🚀 Project Management
 ![Project Management](public/images/example2.png)
-*Integration with GitHub/GitLab repositories, supporting multi-language project auditing and batch code analysis*
-
-## ✨ Core Features
-
-<details>
-<summary><b>🚀 Project Management</b></summary>
-
-- **One-click Repository Integration**: Seamless integration with mainstream platforms like GitHub, GitLab.
-- **Multi-language "Full Suite" Support**: Covering popular languages like JavaScript, TypeScript, Python, Java, Go, Rust.
-- **Flexible Branch Auditing**: Support for precise analysis of specified code branches.
-</details>
-
-<details>
-<summary><b>⚡ Instant Analysis</b></summary>
-
-- **Code Snippet "Paste & Go"**: Directly paste code in the web interface and get instant analysis results.
-- **10+ Language Instant Support**: Meeting your diverse code analysis needs.
-- **Millisecond Response**: Quickly get code quality scores and optimization suggestions.
-</details>
-
-<details>
-<summary><b>🧠 Intelligent Auditing</b></summary>
-
-- **AI Deep Code Understanding**: Based on Google Gemini, providing intelligent analysis beyond keyword matching.
-- **Five Core Dimension Detection**:
-  - 🐛 **Potential Bugs**: Accurately capture logic errors, boundary conditions, and null pointer issues.
-  - 🔒 **Security Vulnerabilities**: Identify security risks like SQL injection, XSS, sensitive information leakage.
-  - ⚡ **Performance Bottlenecks**: Discover inefficient algorithms, memory leaks, and unreasonable async operations.
-  - 🎨 **Code Style**: Ensure code follows industry best practices and unified standards.
-  - 🔧 **Maintainability**: Evaluate code readability, complexity, and modularity.
-</details>
-
-<details>
-<summary><b>💡 Explainable Analysis (What-Why-How)</b></summary>
-
-- **What (What is it)**: Clearly point out problems in the code.
-- **Why (Why)**: Detailed explanation of potential risks and impacts this problem may bring.
-- **How (How to fix)**: Provide specific, directly usable code fix examples.
-- **Precise Code Location**: Quickly jump to the line and column where the problem is located.
-</details>
-
-<details>
-<summary><b>📊 Visual Reports</b></summary>
-
-- **Code Quality Dashboard**: Provide 0-100 comprehensive quality assessment, making code health status clear at a glance.
-- **Multi-dimensional Issue Statistics**: Classify and count issues by type and severity.
-- **Quality Trend Analysis**: Display code quality changes over time through charts.
-</details>
-
-## 🛠️ Tech Stack
-
-| Category | Technology | Description |
-| :--- | :--- | :--- |
-| **Frontend Framework** | `React 18` `TypeScript` `Vite` | Modern frontend development stack with hot reload and type safety |
-| **UI Components** | `Tailwind CSS` `Radix UI` `Lucide React` | Responsive design, accessibility, rich icon library |
-| **Data Visualization** | `Recharts` | Professional chart library supporting multiple chart types |
-| **Routing** | `React Router v6` | Single-page application routing solution |
-| **State Management** | `React Hooks` `Sonner` | Lightweight state management and notification system |
-| **AI Engine** | `Google Gemini 2.5 Flash` | Powerful large language model for code analysis |
-| **Backend Service** | `Supabase` `PostgreSQL` | Full-stack backend-as-a-service with real-time database |
-| **HTTP Client** | `Axios` `Ky` | Modern HTTP request libraries |
-| **Code Quality** | `Biome` `Ast-grep` `TypeScript` | Code formatting, static analysis, and type checking |
-| **Build Tools** | `Vite` `PostCSS` `Autoprefixer` | Fast build tools and CSS processing |
+*Integrated GitHub/GitLab repositories, supporting multi-language project audits and batch code analysis*
 
 ## 🚀 Quick Start
 
@@ -137,11 +78,11 @@ In the fast-paced world of software development, ensuring code quality is crucia
 
 3.  **Configure environment variables**
     ```bash
-    # Create environment variables file
-    touch .env
+    # Copy environment template
+    cp .env.example .env
     ```
     
-    Add the following configuration to the `.env` file:
+    Edit the `.env` file and configure the necessary environment variables:
     ```env
     # Google Gemini AI Configuration (Required)
     VITE_GEMINI_API_KEY=your_gemini_api_key_here
@@ -152,8 +93,16 @@ In the fast-paced world of software development, ensuring code quality is crucia
     VITE_SUPABASE_URL=https://your-project.supabase.co
     VITE_SUPABASE_ANON_KEY=your-anon-key-here
     
-    # App Configuration
+    # GitHub Integration (Optional, for repository analysis)
+    VITE_GITHUB_TOKEN=your_github_token_here
+    
+    # Application Configuration
     VITE_APP_ID=xcodereviewer
+    
+    # Analysis Configuration
+    VITE_MAX_ANALYZE_FILES=40
+    VITE_LLM_CONCURRENCY=2
+    VITE_LLM_GAP_MS=500
     ```
 
 4.  **Start development server**
@@ -169,49 +118,121 @@ In the fast-paced world of software development, ensuring code quality is crucia
 #### Google Gemini API Key
 1. Visit [Google AI Studio](https://makersuite.google.com/app/apikey)
 2. Create a new API Key
-3. Add the API Key to `VITE_GEMINI_API_KEY` in the `.env` file
+3. Add the API Key to `VITE_GEMINI_API_KEY` in your `.env` file
 
-#### Supabase Configuration
+#### Supabase Configuration (Optional)
 1. Visit [Supabase](https://supabase.com/) to create a new project
 2. Get the URL and anonymous key from project settings
-3. Run the database migration script:
+3. Run database migration scripts:
    ```bash
-   # Execute in Supabase SQL editor
+   # Execute in Supabase SQL Editor
    cat supabase/migrations/full_schema.sql
    ```
+4. If Supabase is not configured, the system will run in demo mode without data persistence
+
+## ✨ Core Features
+
+<details>
+<summary><b>🚀 Project Management</b></summary>
+
+- **One-click Repository Integration**: Seamlessly connect with GitHub, GitLab, and other mainstream platforms.
+- **Multi-language "Full Stack" Support**: Covers popular languages like JavaScript, TypeScript, Python, Java, Go, Rust, and more.
+- **Flexible Branch Auditing**: Support for precise analysis of specified code branches.
+</details>
+
+<details>
+<summary><b>⚡ Instant Analysis</b></summary>
+
+- **Code Snippet "Quick Paste"**: Directly paste code in the web interface for immediate analysis results.
+- **10+ Language Instant Support**: Meet your diverse code analysis needs.
+- **Millisecond Response**: Quickly get code quality scores and optimization suggestions.
+</details>
+
+<details>
+<summary><b>🧠 Intelligent Auditing</b></summary>
+
+- **AI Deep Code Understanding**: Based on Google Gemini, providing intelligent analysis beyond keyword matching.
+- **Five Core Detection Dimensions**:
+  - 🐛 **Potential Bugs**: Precisely capture logical errors, boundary conditions, and null pointer issues.
+  - 🔒 **Security Vulnerabilities**: Identify SQL injection, XSS, sensitive information leakage, and other security risks.
+  - ⚡ **Performance Bottlenecks**: Discover inefficient algorithms, memory leaks, and unreasonable asynchronous operations.
+  - 🎨 **Code Style**: Ensure code follows industry best practices and unified standards.
+  - 🔧 **Maintainability**: Evaluate code readability, complexity, and modularity.
+</details>
+
+<details>
+<summary><b>💡 Explainable Analysis (What-Why-How)</b></summary>
+
+- **What**: Clearly identify problems in the code.
+- **Why**: Detailed explanation of potential risks and impacts the problem may cause.
+- **How**: Provide specific, directly usable code fix examples.
+- **Precise Code Location**: Quickly jump to the problematic line and column.
+</details>
+
+<details>
+<summary><b>📊 Visual Reports</b></summary>
+
+- **Code Quality Dashboard**: Provides comprehensive quality assessment from 0-100, making code health status clear at a glance.
+- **Multi-dimensional Issue Statistics**: Classify and count issues by type and severity.
+- **Quality Trend Analysis**: Display code quality changes over time through charts.
+</details>
+
+## 🛠️ Tech Stack
+
+| Category | Technology | Description |
+| :--- | :--- | :--- |
+| **Frontend Framework** | `React 18` `TypeScript` `Vite` | Modern frontend development stack with hot reload and type safety |
+| **UI Components** | `Tailwind CSS` `Radix UI` `Lucide React` | Responsive design, accessibility, rich icon library |
+| **Data Visualization** | `Recharts` | Professional chart library supporting multiple chart types |
+| **Routing** | `React Router v6` | Single-page application routing solution |
+| **State Management** | `React Hooks` `Sonner` | Lightweight state management and notification system |
+| **AI Engine** | `Google Gemini 2.5 Flash` | Powerful large language model supporting code analysis |
+| **Backend Service** | `Supabase` `PostgreSQL` | Full-stack backend-as-a-service with real-time database |
+| **HTTP Client** | `Axios` `Ky` | Modern HTTP request libraries |
+| **Code Quality** | `Biome` `Ast-grep` `TypeScript` | Code formatting, static analysis, and type checking |
+| **Build Tools** | `Vite` `PostCSS` `Autoprefixer` | Fast build tools and CSS processing |
 
 ## 📁 Project Structure
 
 ```
 XCodeReviewer/
 ├── src/
-│   ├── components/          # React Components
-│   │   ├── common/         # Common Components (Header, Footer, PageMeta)
-│   │   ├── ui/             # UI Component Library (Based on Radix UI)
-│   │   └── debug/          # Debug Components
-│   ├── pages/              # Page Components
+│   ├── app/                # Application configuration
+│   │   ├── App.tsx         # Main application component
+│   │   ├── main.tsx        # Application entry point
+│   │   └── routes.tsx      # Route configuration
+│   ├── components/         # React components
+│   │   ├── layout/         # Layout components (Header, Footer, PageMeta)
+│   │   ├── ui/             # UI component library (based on Radix UI)
+│   │   └── debug/          # Debug components
+│   ├── pages/              # Page components
 │   │   ├── Dashboard.tsx   # Dashboard
-│   │   ├── Projects.tsx    # Project Management
-│   │   ├── InstantAnalysis.tsx # Instant Analysis
-│   │   ├── AuditTasks.tsx  # Audit Tasks
-│   │   └── AdminDashboard.tsx # System Management
-│   ├── services/           # Service Layer
-│   │   ├── codeAnalysis.ts # AI Code Analysis Engine
-│   │   ├── repoScan.ts     # Repository Scanning Service
-│   │   └── repoZipScan.ts  # ZIP File Scanning
-│   ├── db/                 # Database Configuration
-│   │   └── supabase.ts     # Supabase Client and API
-│   ├── types/              # TypeScript Type Definitions
-│   ├── hooks/              # Custom React Hooks
-│   ├── lib/                # Utility Functions
-│   └── routes.tsx          # Route Configuration
+│   │   ├── Projects.tsx    # Project management
+│   │   ├── InstantAnalysis.tsx # Instant analysis
+│   │   ├── AuditTasks.tsx  # Audit tasks
+│   │   └── AdminDashboard.tsx # System management
+│   ├── features/           # Feature modules
+│   │   ├── analysis/       # Analysis related services
+│   │   │   └── services/   # AI code analysis engine
+│   │   └── projects/       # Project related services
+│   │       └── services/   # Repository scanning, ZIP file scanning
+│   ├── shared/             # Shared utilities
+│   │   ├── config/         # Configuration files (database, environment)
+│   │   ├── types/          # TypeScript type definitions
+│   │   ├── hooks/          # Custom React Hooks
+│   │   ├── utils/          # Utility functions
+│   │   └── constants/      # Constants definition
+│   └── assets/             # Static assets
+│       └── styles/         # Style files
 ├── supabase/
-│   └── migrations/         # Database Migration Files
-├── public/                 # Static Assets
-└── docs/                   # Documentation
+│   └── migrations/         # Database migration files
+├── public/
+│   └── images/             # Image resources
+├── scripts/                # Build and setup scripts
+└── rules/                  # Code rules configuration
 ```
 
-## 🎯 User Guide
+## 🎯 Usage Guide
 
 ### Instant Code Analysis
 1. Visit the `/instant-analysis` page
@@ -224,12 +245,12 @@ XCodeReviewer/
 1. Visit the `/projects` page
 2. Click "New Project" to create a project
 3. Configure repository URL and scan parameters
-4. Start code audit tasks
+4. Start code audit task
 5. View audit results and issue statistics
 
 ### Audit Tasks
-1. Create audit tasks in project details page
-2. Select scan branch and exclude patterns
+1. Create audit tasks in project detail page
+2. Select scan branch and exclusion patterns
 3. Configure analysis depth and scope
 4. Monitor task execution status
 5. View detailed issue reports
@@ -245,23 +266,27 @@ pnpm build
 # Preview build results
 pnpm preview
 
-# Code checking
+# Code linting
 pnpm lint
 ```
 
 ### Environment Variables
+
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `VITE_GEMINI_API_KEY` | ✅ | Google Gemini API Key |
-| `VITE_GEMINI_MODEL` | ❌ | AI Model Name (default: gemini-2.5-flash) |
-| `VITE_GEMINI_TIMEOUT_MS` | ❌ | Request Timeout (default: 25000ms) |
-| `VITE_SUPABASE_URL` | ❌ | Supabase Project URL |
-| `VITE_SUPABASE_ANON_KEY` | ❌ | Supabase Anonymous Key |
-| `VITE_APP_ID` | ❌ | App Identifier (default: xcodereviewer) |
+| `VITE_GEMINI_API_KEY` | ✅ | Google Gemini API key |
+| `VITE_GEMINI_MODEL` | ❌ | AI model name (default: gemini-2.5-flash) |
+| `VITE_GEMINI_TIMEOUT_MS` | ❌ | Request timeout (default: 25000ms) |
+| `VITE_SUPABASE_URL` | ❌ | Supabase project URL |
+| `VITE_SUPABASE_ANON_KEY` | ❌ | Supabase anonymous key |
+| `VITE_APP_ID` | ❌ | Application identifier (default: xcodereviewer) |
+| `VITE_MAX_ANALYZE_FILES` | ❌ | Maximum files to analyze (default: 40) |
+| `VITE_LLM_CONCURRENCY` | ❌ | LLM concurrency limit (default: 2) |
+| `VITE_LLM_GAP_MS` | ❌ | Gap between LLM requests (default: 500ms) |
 
 ## 🤝 Contributing
 
-We warmly welcome all forms of contributions! Whether it's submitting issues, creating PRs, or improving documentation, every contribution is crucial to us. Please contact us for detailed information.
+We warmly welcome all forms of contributions! Whether it's submitting issues, creating PRs, or improving documentation, every contribution is important to us. Please contact us for detailed information.
 
 ### Development Workflow
 
@@ -271,19 +296,6 @@ We warmly welcome all forms of contributions! Whether it's submitting issues, cr
 4.  Push to the branch (`git push origin feature/AmazingFeature`)
 5.  Create a **Pull Request**
 
-#### 4. Build Failure
-**Problem**: `pnpm build` command fails
-**Solution**:
-```bash
-# Clear cache
-pnpm clean
-rm -rf node_modules
-pnpm install
-
-# Check TypeScript type errors
-pnpm type-check
-```
-
 ## 🙏 Acknowledgments
 
 - **[Google Gemini AI](https://ai.google.dev/)**: Providing powerful AI analysis capabilities
@@ -291,14 +303,15 @@ pnpm type-check
 - **[Radix UI](https://www.radix-ui.com/)**: Providing accessible UI components
 - **[Tailwind CSS](https://tailwindcss.com/)**: Providing modern CSS framework
 - **[Recharts](https://recharts.org/)**: Providing professional chart components
-- And all the authors of the open source software used in this project!
+- And all the authors of open source software used in this project!
 
 ## 📞 Contact Us
 
 - **Project Link**: [https://github.com/lintsinghua/XCodeReviewer](https://github.com/lintsinghua/XCodeReviewer)
-- **Issue Feedback**: [Issues](https://github.com/lintsinghua/XCodeReviewer/issues)
-- **Email**: tsinghuaiiilove@gmail.com
+- **Issue Reports**: [Issues](https://github.com/lintsinghua/XCodeReviewer/issues)
+- **Author Email**: tsinghuaiiilove@gmail.com
 
 ---
 
-⭐ If this project is helpful to you, please give us a **Star**! Your support is the driving force for our continuous progress!
+⭐ If this project helps you, please give us a **Star**! Your support is our motivation to keep moving forward!
+[![Star History](https://api.star-history.com/svg?repos=lintsinghua/XCodeReviewer&type=Date)](https://star-history.com/#lintsinghua/XCodeReview

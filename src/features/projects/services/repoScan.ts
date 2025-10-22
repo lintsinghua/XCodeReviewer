@@ -1,5 +1,5 @@
-import { api } from "@/db/supabase";
-import { CodeAnalysisEngine } from "@/services/codeAnalysis";
+import { api } from "@/shared/config/database";
+import { CodeAnalysisEngine } from "@/features/analysis/services";
 
 type GithubTreeItem = { path: string; type: "blob" | "tree"; size?: number; url: string; sha: string };
 

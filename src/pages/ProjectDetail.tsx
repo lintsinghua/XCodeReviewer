@@ -21,9 +21,9 @@ import {
   Play,
   FileText
 } from "lucide-react";
-import { api } from "@/db/supabase";
-import { runRepositoryAudit } from "@/services/repoScan";
-import type { Project, AuditTask, AuditIssue } from "@/types/types";
+import { api } from "@/shared/config/database";
+import { runRepositoryAudit } from "@/features/projects/services";
+import type { Project, AuditTask, AuditIssue } from "@/shared/types";
 import { toast } from "sonner";
 
 export default function ProjectDetail() {

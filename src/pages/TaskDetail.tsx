@@ -18,8 +18,8 @@ import {
   Info,
   Lightbulb
 } from "lucide-react";
-import { api } from "@/db/supabase";
-import type { AuditTask, AuditIssue } from "@/types/types";
+import { api } from "@/shared/config/database";
+import type { AuditTask, AuditIssue } from "@/shared/types";
 import { toast } from "sonner";
 
 export default function TaskDetail() {

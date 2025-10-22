@@ -2,7 +2,7 @@
  * 示例页面
  */
 
-import PageMeta from "../components/common/PageMeta";
+import PageMeta from "@/components/layout/PageMeta";
 
 export default function SamplePage() {
   return (

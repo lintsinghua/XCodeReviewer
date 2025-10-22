@@ -1,3 +1,11 @@
+// 通用选项接口
+export interface Option {
+  label: string;
+  value: string;
+  icon?: React.ComponentType<{ className?: string }>;
+  withCount?: boolean;
+}
+
 // 用户相关类型
 export interface Profile {
   id: string;

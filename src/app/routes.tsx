@@ -1,10 +1,10 @@
-import Dashboard from "./pages/Dashboard";
-import Projects from "./pages/Projects";
-import ProjectDetail from "./pages/ProjectDetail";
-import InstantAnalysis from "./pages/InstantAnalysis";
-import AuditTasks from "./pages/AuditTasks";
-import TaskDetail from "./pages/TaskDetail";
-import AdminDashboard from "./pages/AdminDashboard";
+import Dashboard from "@/pages/Dashboard";
+import Projects from "@/pages/Projects";
+import ProjectDetail from "@/pages/ProjectDetail";
+import InstantAnalysis from "@/pages/InstantAnalysis";
+import AuditTasks from "@/pages/AuditTasks";
+import TaskDetail from "@/pages/TaskDetail";
+import AdminDashboard from "@/pages/AdminDashboard";
 import type { ReactNode } from 'react';
 
 export interface RouteConfig {

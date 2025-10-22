@@ -4,27 +4,26 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   AlertTriangle, 
   CheckCircle, 
-  Clock, 
+  Clock,
   Code, 
   FileText, 
   Info, 
-  Lightbulb, 
-  Play, 
+  Lightbulb,
   Shield, 
+  Target,
+  TrendingUp,
   Upload,
   Zap,
-  X,
-  Sparkles
+  X
 } from "lucide-react";
-import { CodeAnalysisEngine } from "@/services/codeAnalysis";
-import { api } from "@/db/supabase";
-import type { CodeAnalysisResult } from "@/types/types";
+import { CodeAnalysisEngine } from "@/features/analysis/services";
+import { api } from "@/shared/config/database";
+import type { CodeAnalysisResult } from "@/shared/types";
 import { toast } from "sonner";
 
 export default function InstantAnalysis() {
@@ -227,388 +226,414 @@ public class Example {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in">
       {/* 页面标题 */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">即时代码分析</h1>
-          <p className="text-gray-600 mt-2">
-            快速分析代码片段，发现潜在问题并获得AI建议
-          </p>
-        </div>
-        {result && (
-          <Button variant="outline" onClick={clearAnalysis}>
-            <X className="w-4 h-4 mr-2" />
-            清空分析
-          </Button>
-        )}
+      <div>
+        <h1 className="page-title">即时代码分析</h1>
+        <p className="page-subtitle">快速分析代码片段，发现潜在问题并获得修复建议</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* 左侧：代码输入 */}
+      {/* 代码输入区域 */}
+      <Card className="card-modern">
+        <CardHeader className="pb-4">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg">代码分析</CardTitle>
+            {result && (
+              <Button variant="outline" onClick={clearAnalysis} size="sm">
+                <X className="w-4 h-4 mr-2" />
+                重新分析
+              </Button>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* 工具栏 */}
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex-1">
+              <Select value={language} onValueChange={setLanguage}>
+                <SelectTrigger>
+                  <SelectValue placeholder="选择编程语言" />
+                </SelectTrigger>
+                <SelectContent>
+                  {supportedLanguages.map((lang) => (
+                    <SelectItem key={lang} value={lang}>
+                      {lang.charAt(0).toUpperCase() + lang.slice(1)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button
+              variant="outline"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={analyzing}
+              size="sm"
+            >
+              <Upload className="w-4 h-4 mr-2" />
+              上传文件
+            </Button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".js,.jsx,.ts,.tsx,.py,.java,.go,.rs,.cpp,.c,.cs,.php,.rb"
+              onChange={handleFileUpload}
+              className="hidden"
+            />
+          </div>
+
+          {/* 快速示例 */}
+          <div className="flex flex-wrap gap-2">
+            <span className="text-sm text-gray-600">示例：</span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => loadExampleCode('javascript')}
+              disabled={analyzing}
+            >
+              JavaScript
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => loadExampleCode('python')}
+              disabled={analyzing}
+            >
+              Python
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => loadExampleCode('java')}
+              disabled={analyzing}
+            >
+              Java
+            </Button>
+          </div>
+
+          {/* 代码编辑器 */}
+          <div>
+            <Textarea
+              placeholder="粘贴代码或上传文件..."
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              className="min-h-[300px] font-mono text-sm"
+              disabled={analyzing}
+            />
+            <div className="text-xs text-gray-500 mt-2">
+              {code.length} 字符，{code.split('\n').length} 行
+            </div>
+          </div>
+
+          {/* 分析按钮 */}
+          <Button 
+            onClick={handleAnalyze} 
+            disabled={!code.trim() || !language || analyzing}
+            className="w-full btn-primary"
+          >
+            {analyzing ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                分析中...
+              </>
+            ) : (
+              <>
+                <Zap className="w-4 h-4 mr-2" />
+                开始分析
+              </>
+            )}
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* 分析结果区域 */}
+      {result && (
         <div className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Code className="w-5 h-5 mr-2" />
-                代码输入
+          {/* 结果概览 */}
+          <Card className="card-modern">
+            <CardHeader className="pb-4">
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center text-xl">
+                  <CheckCircle className="w-6 h-6 mr-3 text-green-600" />
+                  分析结果
+                </CardTitle>
+                <div className="flex items-center gap-3">
+                  <Badge variant="outline" className="text-sm">
+                    <Clock className="w-4 h-4 mr-2" />
+                    {analysisTime.toFixed(2)}s
+                  </Badge>
+                  <Badge variant="outline" className="text-sm">
+                    {language.charAt(0).toUpperCase() + language.slice(1)}
+                  </Badge>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {/* 核心指标 */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div className="text-center p-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
+                  <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Target className="w-8 h-8 text-white" />
+                  </div>
+                  <div className="text-3xl font-bold text-blue-600 mb-2">
+                    {result.quality_score.toFixed(1)}
+                  </div>
+                  <p className="text-sm font-medium text-blue-700 mb-3">质量评分</p>
+                  <Progress value={result.quality_score} className="h-2" />
+                </div>
+
+                <div className="text-center p-6 bg-gradient-to-br from-red-50 to-pink-50 rounded-xl border border-red-200">
+                  <div className="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <AlertTriangle className="w-8 h-8 text-white" />
+                  </div>
+                  <div className="text-3xl font-bold text-red-600 mb-2">
+                    {result.summary.critical_issues + result.summary.high_issues}
+                  </div>
+                  <p className="text-sm font-medium text-red-700 mb-1">严重问题</p>
+                  <div className="text-xs text-red-600">需要立即处理</div>
+                </div>
+
+                <div className="text-center p-6 bg-gradient-to-br from-yellow-50 to-orange-50 rounded-xl border border-yellow-200">
+                  <div className="w-16 h-16 bg-yellow-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Info className="w-8 h-8 text-white" />
+                  </div>
+                  <div className="text-3xl font-bold text-yellow-600 mb-2">
+                    {result.summary.medium_issues + result.summary.low_issues}
+                  </div>
+                  <p className="text-sm font-medium text-yellow-700 mb-1">一般问题</p>
+                  <div className="text-xs text-yellow-600">建议优化</div>
+                </div>
+
+                <div className="text-center p-6 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border border-green-200">
+                  <div className="w-16 h-16 bg-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <FileText className="w-8 h-8 text-white" />
+                  </div>
+                  <div className="text-3xl font-bold text-green-600 mb-2">
+                    {result.issues.length}
+                  </div>
+                  <p className="text-sm font-medium text-green-700 mb-1">总问题数</p>
+                  <div className="text-xs text-green-600">已全部识别</div>
+                </div>
+              </div>
+
+              {/* 详细指标 */}
+              <div className="bg-gray-50 rounded-xl p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                  <TrendingUp className="w-5 h-5 mr-2" />
+                  详细指标
+                </h3>
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-gray-900 mb-2">{result.metrics.complexity}</div>
+                    <p className="text-sm text-gray-600 mb-3">复杂度</p>
+                    <Progress value={result.metrics.complexity} className="h-2" />
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-gray-900 mb-2">{result.metrics.maintainability}</div>
+                    <p className="text-sm text-gray-600 mb-3">可维护性</p>
+                    <Progress value={result.metrics.maintainability} className="h-2" />
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-gray-900 mb-2">{result.metrics.security}</div>
+                    <p className="text-sm text-gray-600 mb-3">安全性</p>
+                    <Progress value={result.metrics.security} className="h-2" />
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-gray-900 mb-2">{result.metrics.performance}</div>
+                    <p className="text-sm text-gray-600 mb-3">性能</p>
+                    <Progress value={result.metrics.performance} className="h-2" />
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* 问题详情 */}
+          <Card className="card-modern">
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center text-xl">
+                <Shield className="w-6 h-6 mr-3 text-orange-600" />
+                发现的问题 ({result.issues.length})
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              {/* 语言选择和文件上传 */}
-              <div className="flex space-x-3">
-                <div className="flex-1">
-                  <Select value={language} onValueChange={setLanguage}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="选择编程语言" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {supportedLanguages.map((lang) => (
-                        <SelectItem key={lang} value={lang}>
-                          {lang.charAt(0).toUpperCase() + lang.slice(1)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+            <CardContent>
+              {result.issues.length > 0 ? (
+                <Tabs defaultValue="all" className="w-full">
+                  <TabsList className="grid w-full grid-cols-4 mb-6">
+                    <TabsTrigger value="all" className="text-sm">
+                      全部 ({result.issues.length})
+                    </TabsTrigger>
+                    <TabsTrigger value="critical" className="text-sm">
+                      严重 ({result.issues.filter(i => i.severity === 'critical').length})
+                    </TabsTrigger>
+                    <TabsTrigger value="high" className="text-sm">
+                      高 ({result.issues.filter(i => i.severity === 'high').length})
+                    </TabsTrigger>
+                    <TabsTrigger value="medium" className="text-sm">
+                      中等 ({result.issues.filter(i => i.severity === 'medium').length})
+                    </TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="all" className="space-y-4 mt-6">
+                    {result.issues.map((issue, index) => (
+                      <div key={index} className="border border-gray-200 rounded-xl p-6 hover:shadow-md transition-all duration-200 bg-white">
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="flex items-start space-x-3">
+                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                              issue.severity === 'critical' ? 'bg-red-100 text-red-600' :
+                              issue.severity === 'high' ? 'bg-orange-100 text-orange-600' :
+                              issue.severity === 'medium' ? 'bg-yellow-100 text-yellow-600' :
+                              'bg-blue-100 text-blue-600'
+                            }`}>
+                              {getTypeIcon(issue.type)}
+                            </div>
+                            <div>
+                              <h4 className="font-semibold text-lg text-gray-900 mb-1">{issue.title}</h4>
+                              <p className="text-gray-600 text-sm">第 {issue.line} 行</p>
+                            </div>
+                          </div>
+                          <Badge className={`${getSeverityColor(issue.severity)} px-3 py-1`}>
+                            {issue.severity === 'critical' ? '严重' :
+                             issue.severity === 'high' ? '高' :
+                             issue.severity === 'medium' ? '中等' : '低'}
+                          </Badge>
+                        </div>
+                        
+                        <p className="text-gray-700 mb-4 leading-relaxed">
+                          {issue.description}
+                        </p>
+                        
+                        <div className="bg-gray-900 rounded-lg p-4 mb-4">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-gray-300 text-sm font-medium">问题代码</span>
+                            <span className="text-gray-400 text-xs">第 {issue.line} 行</span>
+                          </div>
+                          <pre className="text-sm text-gray-100 overflow-x-auto">
+                            <code>{issue.code_snippet}</code>
+                          </pre>
+                        </div>
+                        
+                        <div className="grid md:grid-cols-2 gap-4">
+                          <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                            <div className="flex items-center mb-2">
+                              <Lightbulb className="w-5 h-5 text-blue-600 mr-2" />
+                              <span className="font-medium text-blue-800">修复建议</span>
+                            </div>
+                            <p className="text-blue-700 text-sm leading-relaxed">{issue.suggestion}</p>
+                          </div>
+                          
+                          {issue.ai_explanation && (
+                            <div className="bg-green-50 rounded-lg p-4 border border-green-200">
+                              <div className="flex items-center mb-2">
+                                <Zap className="w-5 h-5 text-green-600 mr-2" />
+                                <span className="font-medium text-green-800">AI 解释</span>
+                              </div>
+                              <p className="text-green-700 text-sm leading-relaxed">{issue.ai_explanation}</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </TabsContent>
+
+                  {['critical', 'high', 'medium'].map(severity => (
+                    <TabsContent key={severity} value={severity} className="space-y-4 mt-6">
+                      {result.issues.filter(issue => issue.severity === severity).length > 0 ? (
+                        result.issues.filter(issue => issue.severity === severity).map((issue, index) => (
+                          <div key={index} className={`border rounded-xl p-6 ${
+                            severity === 'critical' ? 'border-red-200 bg-red-50' :
+                            severity === 'high' ? 'border-orange-200 bg-orange-50' :
+                            'border-yellow-200 bg-yellow-50'
+                          }`}>
+                            <div className="flex items-start justify-between mb-3">
+                              <div className="flex items-center space-x-3">
+                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                                  severity === 'critical' ? 'bg-red-600 text-white' :
+                                  severity === 'high' ? 'bg-orange-600 text-white' :
+                                  'bg-yellow-600 text-white'
+                                }`}>
+                                  {getTypeIcon(issue.type)}
+                                </div>
+                                <h4 className={`font-semibold ${
+                                  severity === 'critical' ? 'text-red-800' :
+                                  severity === 'high' ? 'text-orange-800' :
+                                  'text-yellow-800'
+                                }`}>{issue.title}</h4>
+                              </div>
+                              <span className={`text-xs px-2 py-1 rounded ${
+                                severity === 'critical' ? 'bg-red-200 text-red-800' :
+                                severity === 'high' ? 'bg-orange-200 text-orange-800' :
+                                'bg-yellow-200 text-yellow-800'
+                              }`}>
+                                第 {issue.line} 行
+                              </span>
+                            </div>
+                            <p className={`text-sm mb-3 ${
+                              severity === 'critical' ? 'text-red-700' :
+                              severity === 'high' ? 'text-orange-700' :
+                              'text-yellow-700'
+                            }`}>
+                              {issue.description}
+                            </p>
+                            <div className="bg-white rounded-lg p-3 border">
+                              <p className="text-sm font-medium text-gray-800 mb-1">修复建议：</p>
+                              <p className="text-sm text-gray-600">{issue.suggestion}</p>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="text-center py-12">
+                          <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
+                          <h3 className="text-lg font-medium text-gray-900 mb-2">
+                            没有发现{severity === 'critical' ? '严重' : severity === 'high' ? '高优先级' : '中等优先级'}问题
+                          </h3>
+                          <p className="text-gray-500">
+                            代码在此级别的检查中表现良好
+                          </p>
+                        </div>
+                      )}
+                    </TabsContent>
+                  ))}
+                </Tabs>
+
+
+              ) : (
+                <div className="text-center py-16">
+                  <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <CheckCircle className="w-12 h-12 text-green-600" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-green-800 mb-3">代码质量优秀！</h3>
+                  <p className="text-green-600 text-lg mb-6">恭喜！没有发现任何问题</p>
+                  <div className="bg-green-50 rounded-lg p-6 max-w-md mx-auto">
+                    <p className="text-green-700 text-sm">
+                      您的代码通过了所有质量检查，包括安全性、性能、可维护性等各个方面的评估。
+                    </p>
+                  </div>
                 </div>
-                <Button
-                  variant="outline"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={analyzing}
-                >
-                  <Upload className="w-4 h-4 mr-2" />
-                  上传文件
-                </Button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".js,.jsx,.ts,.tsx,.py,.java,.go,.rs,.cpp,.c,.cs,.php,.rb"
-                  onChange={handleFileUpload}
-                  className="hidden"
-                />
-              </div>
-
-              {/* 示例代码按钮 */}
-              <div className="flex flex-wrap gap-2">
-                <span className="text-sm font-medium text-muted-foreground">快速开始：</span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => loadExampleCode('javascript')}
-                  disabled={analyzing}
-                >
-                  <Sparkles className="w-3 h-3 mr-1" />
-                  JavaScript示例
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => loadExampleCode('python')}
-                  disabled={analyzing}
-                >
-                  <Sparkles className="w-3 h-3 mr-1" />
-                  Python示例
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => loadExampleCode('java')}
-                  disabled={analyzing}
-                >
-                  <Sparkles className="w-3 h-3 mr-1" />
-                  Java示例
-                </Button>
-              </div>
-
-              {/* 代码编辑器 */}
-              <div className="space-y-2">
-                <Textarea
-                  placeholder="在此粘贴您的代码，或点击上方按钮加载示例代码..."
-                  value={code}
-                  onChange={(e) => setCode(e.target.value)}
-                  className="min-h-[400px] font-mono text-sm"
-                  disabled={analyzing}
-                />
-                <div className="flex items-center justify-between text-sm text-muted-foreground">
-                  <span>{code.length} 字符，{code.split('\n').length} 行</span>
-                  <span>支持拖拽文件上传</span>
-                </div>
-              </div>
-
-              {/* 分析按钮 */}
-              <Button 
-                onClick={handleAnalyze} 
-                disabled={!code.trim() || !language || analyzing}
-                className="w-full"
-                size="lg"
-              >
-                {analyzing ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    分析中...
-                  </>
-                ) : (
-                  <>
-                    <Play className="w-4 h-4 mr-2" />
-                    开始分析
-                  </>
-                )}
-              </Button>
-
-              {/* 分析提示 */}
-              {!result && (
-                <Alert>
-                  <Lightbulb className="h-4 w-4" />
-                  <AlertDescription>
-                    支持多种编程语言的代码质量分析，包括安全漏洞检测、性能优化建议、代码风格检查等。
-                    点击上方示例按钮快速体验分析功能。
-                  </AlertDescription>
-                </Alert>
               )}
             </CardContent>
           </Card>
         </div>
+      )}
 
-        {/* 右侧：分析结果 */}
-        <div className="space-y-4">
-          {result ? (
-            <>
-              {/* 分析概览 */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <span className="flex items-center">
-                      <CheckCircle className="w-5 h-5 mr-2 text-green-600" />
-                      分析结果
-                    </span>
-                    <Badge variant="outline">
-                      <Clock className="w-3 h-3 mr-1" />
-                      {analysisTime.toFixed(2)}s
-                    </Badge>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {/* 质量评分 */}
-                  <div className="text-center">
-                    <div className="text-3xl font-bold mb-2">
-                      {result.quality_score.toFixed(1)}
-                    </div>
-                    <Progress value={result.quality_score} className="mb-2" />
-                    <p className="text-sm text-muted-foreground">代码质量评分</p>
-                  </div>
-
-                  {/* 问题统计 */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="text-center p-3 bg-red-50 rounded-lg">
-                      <div className="text-2xl font-bold text-red-600">
-                        {result.summary.critical_issues + result.summary.high_issues}
-                      </div>
-                      <p className="text-sm text-red-600">严重问题</p>
-                    </div>
-                    <div className="text-center p-3 bg-yellow-50 rounded-lg">
-                      <div className="text-2xl font-bold text-yellow-600">
-                        {result.summary.medium_issues + result.summary.low_issues}
-                      </div>
-                      <p className="text-sm text-yellow-600">一般问题</p>
-                    </div>
-                  </div>
-
-                  {/* 指标详情 */}
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm">复杂度</span>
-                      <span className="text-sm font-medium">{result.metrics.complexity}/100</span>
-                    </div>
-                    <Progress value={result.metrics.complexity} />
-                    
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm">可维护性</span>
-                      <span className="text-sm font-medium">{result.metrics.maintainability}/100</span>
-                    </div>
-                    <Progress value={result.metrics.maintainability} />
-                    
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm">安全性</span>
-                      <span className="text-sm font-medium">{result.metrics.security}/100</span>
-                    </div>
-                    <Progress value={result.metrics.security} />
-                    
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm">性能</span>
-                      <span className="text-sm font-medium">{result.metrics.performance}/100</span>
-                    </div>
-                    <Progress value={result.metrics.performance} />
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* 问题详情 */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>发现的问题 ({result.issues.length})</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {result.issues.length > 0 ? (
-                    <Tabs defaultValue="all" className="w-full">
-                      <TabsList className="grid w-full grid-cols-4">
-                        <TabsTrigger value="all">全部</TabsTrigger>
-                        <TabsTrigger value="critical">严重</TabsTrigger>
-                        <TabsTrigger value="high">高</TabsTrigger>
-                        <TabsTrigger value="medium">中等</TabsTrigger>
-                      </TabsList>
-
-                      <TabsContent value="all" className="space-y-3 mt-4">
-                        {result.issues.map((issue, index) => (
-                          <div key={index} className="border rounded-lg p-4 space-y-3 hover:shadow-md transition-shadow">
-                            <div className="flex items-start justify-between">
-                              <div className="flex items-center space-x-2">
-                                {getTypeIcon(issue.type)}
-                                <h4 className="font-medium">{issue.title}</h4>
-                              </div>
-                              <Badge className={getSeverityColor(issue.severity)}>
-                                {issue.severity}
-                              </Badge>
-                            </div>
-                            
-                            <p className="text-sm text-muted-foreground">
-                              {issue.description}
-                            </p>
-                            
-                            <div className="bg-gray-50 rounded p-3">
-                              <p className="text-sm font-medium mb-1">第 {issue.line} 行：</p>
-                              <pre className="text-xs bg-gray-100 p-2 rounded overflow-x-auto">
-                                {issue.code_snippet}
-                              </pre>
-                            </div>
-                            
-                            <div className="bg-blue-50 rounded p-3">
-                              <p className="text-sm font-medium text-blue-800 mb-1">
-                                <Lightbulb className="w-4 h-4 inline mr-1" />
-                                修复建议：
-                              </p>
-                              <p className="text-sm text-blue-700">{issue.suggestion}</p>
-                            </div>
-                            
-                            <div className="bg-green-50 rounded p-3 space-y-1">
-                              <p className="text-sm font-medium text-green-800">AI 解释</p>
-                              <p className="text-sm text-green-700">{issue.ai_explanation}</p>
-                              {issue.xai && (
-                                <div className="mt-2 space-y-1 text-sm">
-                                  <p><span className="font-medium">What：</span>{issue.xai.what}</p>
-                                  <p><span className="font-medium">Why：</span>{issue.xai.why}</p>
-                                  <p><span className="font-medium">How：</span>{issue.xai.how}</p>
-                                  {issue.xai.learn_more && (
-                                    <p>
-                                      <span className="font-medium">Learn More：</span>
-                                      <a href={issue.xai.learn_more} target="_blank" rel="noreferrer" className="text-blue-700 underline">
-                                        文档链接
-                                      </a>
-                                    </p>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </TabsContent>
-
-                      <TabsContent value="critical" className="space-y-3 mt-4">
-                        {result.issues.filter(issue => issue.severity === 'critical').map((issue, index) => (
-                          <div key={index} className="border border-red-200 rounded-lg p-4 bg-red-50">
-                            <div className="flex items-center space-x-2 mb-2">
-                              {getTypeIcon(issue.type)}
-                              <h4 className="font-medium text-red-800">{issue.title}</h4>
-                            </div>
-                            <p className="text-sm text-red-700 mb-2">{issue.description}</p>
-                            <p className="text-sm text-red-600">
-                              <strong>建议：</strong>{issue.suggestion}
-                            </p>
-                          </div>
-                        ))}
-                        {result.issues.filter(issue => issue.severity === 'critical').length === 0 && (
-                          <p className="text-center text-muted-foreground py-8">
-                            没有发现严重问题
-                          </p>
-                        )}
-                      </TabsContent>
-
-                      <TabsContent value="high" className="space-y-3 mt-4">
-                        {result.issues.filter(issue => issue.severity === 'high').map((issue, index) => (
-                          <div key={index} className="border border-orange-200 rounded-lg p-4 bg-orange-50">
-                            <div className="flex items-center space-x-2 mb-2">
-                              {getTypeIcon(issue.type)}
-                              <h4 className="font-medium text-orange-800">{issue.title}</h4>
-                            </div>
-                            <p className="text-sm text-orange-700 mb-2">{issue.description}</p>
-                            <p className="text-sm text-orange-600">
-                              <strong>建议：</strong>{issue.suggestion}
-                            </p>
-                          </div>
-                        ))}
-                        {result.issues.filter(issue => issue.severity === 'high').length === 0 && (
-                          <p className="text-center text-muted-foreground py-8">
-                            没有发现高优先级问题
-                          </p>
-                        )}
-                      </TabsContent>
-
-                      <TabsContent value="medium" className="space-y-3 mt-4">
-                        {result.issues.filter(issue => issue.severity === 'medium').map((issue, index) => (
-                          <div key={index} className="border border-yellow-200 rounded-lg p-4 bg-yellow-50">
-                            <div className="flex items-center space-x-2 mb-2">
-                              {getTypeIcon(issue.type)}
-                              <h4 className="font-medium text-yellow-800">{issue.title}</h4>
-                            </div>
-                            <p className="text-sm text-yellow-700 mb-2">{issue.description}</p>
-                            <p className="text-sm text-yellow-600">
-                              <strong>建议：</strong>{issue.suggestion}
-                            </p>
-                          </div>
-                        ))}
-                        {result.issues.filter(issue => issue.severity === 'medium').length === 0 && (
-                          <p className="text-center text-muted-foreground py-8">
-                            没有发现中等优先级问题
-                          </p>
-                        )}
-                      </TabsContent>
-                    </Tabs>
-                  ) : (
-                    <div className="text-center py-8">
-                      <CheckCircle className="w-12 h-12 text-green-600 mx-auto mb-4" />
-                      <h3 className="text-lg font-medium text-green-800 mb-2">代码质量良好！</h3>
-                      <p className="text-green-600">没有发现明显的问题</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </>
-          ) : (
-            <Card>
-              <CardContent className="flex items-center justify-center py-12">
-                <div className="text-center">
-                  <Code className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-muted-foreground mb-2">
-                    等待代码分析
-                  </h3>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    请在左侧输入代码并选择编程语言
-                  </p>
-                  <div className="flex justify-center space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => loadExampleCode('javascript')}
-                    >
-                      <Sparkles className="w-3 h-3 mr-1" />
-                      试试JavaScript示例
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-      </div>
+      {/* 分析进行中状态 */}
+      {analyzing && (
+        <Card className="card-modern">
+          <CardContent className="py-16">
+            <div className="text-center">
+              <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent"></div>
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-3">AI正在分析您的代码</h3>
+              <p className="text-gray-600 text-lg mb-6">请稍候，这通常只需要几秒钟...</p>
+              <div className="bg-blue-50 rounded-lg p-6 max-w-md mx-auto">
+                <p className="text-blue-700 text-sm">
+                  正在进行安全检测、性能分析、代码风格检查等多维度评估
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

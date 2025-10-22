@@ -1,7 +1,7 @@
 # XCodeReviewer - 您的智能代码审计伙伴 🚀
 
 <div style="width: 100%; max-width: 600px; margin: 0 auto;">
-  <img src="public/images/logo.png" alt="VerifyVision-Pro Logo" style="width: 100%; height: auto; display: block; margin: 0 auto;">
+  <img src="public/images/logo.png" alt="XCodeReviewer Logo" style="width: 100%; height: auto; display: block; margin: 0 auto;">
 </div>
 
 <div align="center">
@@ -25,25 +25,25 @@
 
 在快节奏的软件开发中，保证代码质量至关重要。传统代码审计工具规则死板、效率低下，而人工审计则耗时耗力。XCodeReviewer 借助 Google Gemini AI 的强大能力，彻底改变了代码审查的方式：
 
-- **🤖 AI 驱动的深度分析**：超越传统静态分析，理解代码意图，发现深层逻辑问题。
-- **🎯 多维度、全方位评估**：从**安全性**、**性能**、**可维护性**到**代码风格**，提供 360 度无死角的质量评估。
-- **💡 清晰、可行的修复建议**：独创 **What-Why-How** 模式，不仅告诉您“是什么”问题，还解释“为什么”，并提供“如何修复”的具体代码示例。
-- **⚡ 实时反馈，即时提升**：无论是代码片段还是整个代码仓库，都能获得快速、准确的分析结果。
-- **✨ 现代化、高颜值的用户界面**：基于 React + TypeScript 构建，提供流畅、直观的操作体验。
+- **AI 驱动的深度分析**：超越传统静态分析，理解代码意图，发现深层逻辑问题。
+- **多维度、全方位评估**：从**安全性**、**性能**、**可维护性**到**代码风格**，提供 360 度无死角的质量评估。
+- **清晰、可行的修复建议**：独创 **What-Why-How** 模式，不仅告诉您“是什么”问题，还解释“为什么”，并提供“如何修复”的具体代码示例。
+- **实时反馈，即时提升**：无论是代码片段还是整个代码仓库，都能获得快速、准确的分析结果。
+- **现代化、高颜值的用户界面**：基于 React + TypeScript 构建，提供流畅、直观的操作体验。
 
 ## 🎬 项目演示
 
 ### 主要功能界面
 
-#### 📊 智能仪表盘
+#### 智能仪表盘
 ![智能仪表盘](public/images/example1.png)
 *实时展示项目统计、质量趋势和系统性能，提供全面的代码审计概览*
 
-#### ⚡ 即时分析
+#### 即时分析
 ![即时分析](public/images/example3.png)
 *支持代码片段快速分析，提供详细的 What-Why-How 解释和修复建议*
 
-#### 🚀 项目管理
+#### 项目管理
 ![项目管理](public/images/example2.png)
 *集成 GitHub/GitLab 仓库，支持多语言项目审计和批量代码分析*
 
@@ -78,11 +78,11 @@
 
 3.  **配置环境变量**
     ```bash
-    # 创建环境变量文件
-    touch .env
+    # 复制环境变量模板
+    cp .env.example .env
     ```
     
-    在 `.env` 文件中添加以下配置：
+    编辑 `.env` 文件，配置必要的环境变量：
     ```env
     # Google Gemini AI 配置 (必需)
     VITE_GEMINI_API_KEY=your_gemini_api_key_here
@@ -93,8 +93,16 @@
     VITE_SUPABASE_URL=https://your-project.supabase.co
     VITE_SUPABASE_ANON_KEY=your-anon-key-here
     
+    # GitHub 集成 (可选，用于仓库分析)
+    VITE_GITHUB_TOKEN=your_github_token_here
+    
     # 应用配置
     VITE_APP_ID=xcodereviewer
+    
+    # 分析配置
+    VITE_MAX_ANALYZE_FILES=40
+    VITE_LLM_CONCURRENCY=2
+    VITE_LLM_GAP_MS=500
     ```
 
 4.  **启动开发服务器**
@@ -112,7 +120,7 @@
 2. 创建新的 API Key
 3. 将 API Key 添加到 `.env` 文件中的 `VITE_GEMINI_API_KEY`
 
-#### Supabase 配置
+#### Supabase 配置（可选）
 1. 访问 [Supabase](https://supabase.com/) 创建新项目
 2. 在项目设置中获取 URL 和匿名密钥
 3. 运行数据库迁移脚本：
@@ -120,6 +128,7 @@
    # 在 Supabase SQL 编辑器中执行
    cat supabase/migrations/full_schema.sql
    ```
+4. 如果不配置 Supabase，系统将以演示模式运行，数据不会持久化
 
 ## ✨ 核心功能
 
@@ -188,8 +197,12 @@
 ```
 XCodeReviewer/
 ├── src/
-│   ├── components/          # React 组件
-│   │   ├── common/         # 通用组件 (Header, Footer, PageMeta)
+│   ├── app/                # 应用配置
+│   │   ├── App.tsx         # 主应用组件
+│   │   ├── main.tsx        # 应用入口点
+│   │   └── routes.tsx      # 路由配置
+│   ├── components/         # React 组件
+│   │   ├── layout/         # 布局组件 (Header, Footer, PageMeta)
 │   │   ├── ui/             # UI 组件库 (基于 Radix UI)
 │   │   └── debug/          # 调试组件
 │   ├── pages/              # 页面组件
@@ -198,20 +211,25 @@ XCodeReviewer/
 │   │   ├── InstantAnalysis.tsx # 即时分析
 │   │   ├── AuditTasks.tsx  # 审计任务
 │   │   └── AdminDashboard.tsx # 系统管理
-│   ├── services/           # 服务层
-│   │   ├── codeAnalysis.ts # AI 代码分析引擎
-│   │   ├── repoScan.ts     # 仓库扫描服务
-│   │   └── repoZipScan.ts  # ZIP 文件扫描
-│   ├── db/                 # 数据库配置
-│   │   └── supabase.ts     # Supabase 客户端和 API
-│   ├── types/              # TypeScript 类型定义
-│   ├── hooks/              # 自定义 React Hooks
-│   ├── lib/                # 工具函数
-│   └── routes.tsx          # 路由配置
+│   ├── features/           # 功能模块
+│   │   ├── analysis/       # 分析相关服务
+│   │   │   └── services/   # AI 代码分析引擎
+│   │   └── projects/       # 项目相关服务
+│   │       └── services/   # 仓库扫描、ZIP 文件扫描
+│   ├── shared/             # 共享工具
+│   │   ├── config/         # 配置文件 (数据库、环境变量)
+│   │   ├── types/          # TypeScript 类型定义
+│   │   ├── hooks/          # 自定义 React Hooks
+│   │   ├── utils/          # 工具函数
+│   │   └── constants/      # 常量定义
+│   └── assets/             # 静态资源
+│       └── styles/         # 样式文件
 ├── supabase/
 │   └── migrations/         # 数据库迁移文件
-├── public/                 # 静态资源
-└── docs/                   # 文档
+├── public/
+│   └── images/             # 图片资源
+├── scripts/                # 构建和设置脚本
+└── rules/                  # 代码规则配置
 ```
 
 ## 🎯 使用指南

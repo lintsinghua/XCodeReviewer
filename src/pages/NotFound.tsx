@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import PageMeta from "@/components/common/PageMeta";
+import PageMeta from "@/components/layout/PageMeta";
 
 export default function NotFound() {
   return (

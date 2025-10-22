@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Progress } from "@/components/ui/progress";
 import { 
   Plus, 
   Search, 
@@ -19,10 +20,13 @@ import {
   Code,
   Shield,
   Activity,
-  AlertTriangle
+  Upload,
+  FileText,
+  AlertCircle
 } from "lucide-react";
-import { api } from "@/db/supabase";
-import type { Project, CreateProjectForm } from "@/types/types";
+import { api } from "@/shared/config/database";
+import { scanZipFile, validateZipFile } from "@/features/projects/services";
+import type { Project, CreateProjectForm } from "@/shared/types";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -31,6 +35,9 @@ export default function Projects() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [createForm, setCreateForm] = useState<CreateProjectForm>({
     name: "",
     description: "",
@@ -75,18 +82,93 @@ export default function Projects() {
       
       toast.success("项目创建成功");
       setShowCreateDialog(false);
-      setCreateForm({
-        name: "",
-        description: "",
-        repository_url: "",
-        repository_type: "github",
-        default_branch: "main",
-        programming_languages: []
-      });
+      resetCreateForm();
       loadProjects();
     } catch (error) {
       console.error('Failed to create project:', error);
       toast.error("创建项目失败");
+    }
+  };
+
+  const resetCreateForm = () => {
+    setCreateForm({
+      name: "",
+      description: "",
+      repository_url: "",
+      repository_type: "github",
+      default_branch: "main",
+      programming_languages: []
+    });
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // 验证文件
+    const validation = validateZipFile(file);
+    if (!validation.valid) {
+      toast.error(validation.error);
+      return;
+    }
+
+    // 检查是否有项目名称
+    if (!createForm.name.trim()) {
+      toast.error("请先输入项目名称");
+      return;
+    }
+
+    try {
+      setUploading(true);
+      setUploadProgress(0);
+
+      // 创建项目
+      const project = await api.createProject({
+        ...createForm,
+        repository_type: "other"
+      } as any);
+
+      // 模拟上传进度
+      const progressInterval = setInterval(() => {
+        setUploadProgress(prev => {
+          if (prev >= 90) {
+            clearInterval(progressInterval);
+            return 90;
+          }
+          return prev + 10;
+        });
+      }, 200);
+
+      // 扫描ZIP文件
+      const taskId = await scanZipFile({
+        projectId: project.id,
+        zipFile: file,
+        excludePatterns: ['node_modules/**', '.git/**', 'dist/**', 'build/**'],
+        createdBy: undefined
+      });
+
+      clearInterval(progressInterval);
+      setUploadProgress(100);
+
+      toast.success("项目创建并开始分析");
+      setShowCreateDialog(false);
+      resetCreateForm();
+      loadProjects();
+
+      // 跳转到任务详情页
+      setTimeout(() => {
+        window.open(`/tasks/${taskId}`, '_blank');
+      }, 1000);
+
+    } catch (error: any) {
+      console.error('Upload failed:', error);
+      toast.error(error.message || "上传失败");
+    } finally {
+      setUploading(false);
+      setUploadProgress(0);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
@@ -116,14 +198,12 @@ export default function Projects() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in">
       {/* 页面标题和操作 */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">项目管理</h1>
-          <p className="text-gray-600 mt-2">
-            管理您的代码项目，配置审计规则和查看分析结果
-          </p>
+          <h1 className="page-title">项目管理</h1>
+          <p className="page-subtitle">管理您的代码项目，配置审计规则和查看分析结果</p>
         </div>
         
         <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
@@ -133,109 +213,229 @@ export default function Projects() {
               新建项目
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-3xl">
             <DialogHeader>
               <DialogTitle>创建新项目</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+            
+            <Tabs defaultValue="repository" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="repository">Git 仓库</TabsTrigger>
+                <TabsTrigger value="upload">上传代码</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="repository" className="space-y-4 mt-6">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="name">项目名称 *</Label>
+                    <Input
+                      id="name"
+                      value={createForm.name}
+                      onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
+                      placeholder="输入项目名称"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="repository_type">仓库类型</Label>
+                    <Select 
+                      value={createForm.repository_type} 
+                      onValueChange={(value: any) => setCreateForm({ ...createForm, repository_type: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="github">GitHub</SelectItem>
+                        <SelectItem value="gitlab">GitLab</SelectItem>
+                        <SelectItem value="other">其他</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
                 <div className="space-y-2">
-                  <Label htmlFor="name">项目名称 *</Label>
+                  <Label htmlFor="description">项目描述</Label>
+                  <Textarea
+                    id="description"
+                    value={createForm.description}
+                    onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })}
+                    placeholder="简要描述项目内容和目标"
+                    rows={3}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="repository_url">仓库地址</Label>
+                    <Input
+                      id="repository_url"
+                      value={createForm.repository_url}
+                      onChange={(e) => setCreateForm({ ...createForm, repository_url: e.target.value })}
+                      placeholder="https://github.com/user/repo"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="default_branch">默认分支</Label>
+                    <Input
+                      id="default_branch"
+                      value={createForm.default_branch}
+                      onChange={(e) => setCreateForm({ ...createForm, default_branch: e.target.value })}
+                      placeholder="main"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>编程语言</Label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {supportedLanguages.map((lang) => (
+                      <label key={lang} className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          checked={createForm.programming_languages.includes(lang)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setCreateForm({
+                                ...createForm,
+                                programming_languages: [...createForm.programming_languages, lang]
+                              });
+                            } else {
+                              setCreateForm({
+                                ...createForm,
+                                programming_languages: createForm.programming_languages.filter(l => l !== lang)
+                              });
+                            }
+                          }}
+                          className="rounded"
+                        />
+                        <span className="text-sm">{lang}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex justify-end space-x-3 pt-4">
+                  <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
+                    取消
+                  </Button>
+                  <Button onClick={handleCreateProject}>
+                    创建项目
+                  </Button>
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="upload" className="space-y-4 mt-6">
+                <div className="space-y-2">
+                  <Label htmlFor="upload-name">项目名称 *</Label>
                   <Input
-                    id="name"
+                    id="upload-name"
                     value={createForm.name}
                     onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
                     placeholder="输入项目名称"
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="repository_type">仓库类型</Label>
-                  <Select 
-                    value={createForm.repository_type} 
-                    onValueChange={(value: any) => setCreateForm({ ...createForm, repository_type: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="github">GitHub</SelectItem>
-                      <SelectItem value="gitlab">GitLab</SelectItem>
-                      <SelectItem value="other">其他</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="description">项目描述</Label>
-                <Textarea
-                  id="description"
-                  value={createForm.description}
-                  onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })}
-                  placeholder="简要描述项目内容和目标"
-                  rows={3}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="repository_url">仓库地址</Label>
-                  <Input
-                    id="repository_url"
-                    value={createForm.repository_url}
-                    onChange={(e) => setCreateForm({ ...createForm, repository_url: e.target.value })}
-                    placeholder="https://github.com/user/repo"
+                  <Label htmlFor="upload-description">项目描述</Label>
+                  <Textarea
+                    id="upload-description"
+                    value={createForm.description}
+                    onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })}
+                    placeholder="简要描述项目内容和目标"
+                    rows={3}
                   />
                 </div>
+
                 <div className="space-y-2">
-                  <Label htmlFor="default_branch">默认分支</Label>
-                  <Input
-                    id="default_branch"
-                    value={createForm.default_branch}
-                    onChange={(e) => setCreateForm({ ...createForm, default_branch: e.target.value })}
-                    placeholder="main"
-                  />
+                  <Label>编程语言</Label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {supportedLanguages.map((lang) => (
+                      <label key={lang} className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          checked={createForm.programming_languages.includes(lang)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setCreateForm({
+                                ...createForm,
+                                programming_languages: [...createForm.programming_languages, lang]
+                              });
+                            } else {
+                              setCreateForm({
+                                ...createForm,
+                                programming_languages: createForm.programming_languages.filter(l => l !== lang)
+                              });
+                            }
+                          }}
+                          className="rounded"
+                        />
+                        <span className="text-sm">{lang}</span>
+                      </label>
+                    ))}
+                  </div>
                 </div>
-              </div>
 
-              <div className="space-y-2">
-                <Label>编程语言</Label>
-                <div className="grid grid-cols-3 gap-2">
-                  {supportedLanguages.map((lang) => (
-                    <label key={lang} className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        checked={createForm.programming_languages.includes(lang)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setCreateForm({
-                              ...createForm,
-                              programming_languages: [...createForm.programming_languages, lang]
-                            });
-                          } else {
-                            setCreateForm({
-                              ...createForm,
-                              programming_languages: createForm.programming_languages.filter(l => l !== lang)
-                            });
-                          }
-                        }}
-                        className="rounded"
-                      />
-                      <span className="text-sm">{lang}</span>
-                    </label>
-                  ))}
+                {/* 文件上传区域 */}
+                <div className="space-y-4">
+                  <Label>上传代码文件</Label>
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-gray-400 transition-colors">
+                    <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">上传 ZIP 文件</h3>
+                    <p className="text-sm text-gray-500 mb-4">
+                      支持 ZIP 格式，最大 100MB
+                    </p>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".zip"
+                      onChange={handleFileUpload}
+                      className="hidden"
+                      disabled={uploading}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploading || !createForm.name.trim()}
+                    >
+                      <FileText className="w-4 h-4 mr-2" />
+                      选择文件
+                    </Button>
+                  </div>
+
+                  {uploading && (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <span>上传并分析中...</span>
+                        <span>{uploadProgress}%</span>
+                      </div>
+                      <Progress value={uploadProgress} />
+                    </div>
+                  )}
+
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div className="flex items-start space-x-3">
+                      <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5" />
+                      <div className="text-sm text-blue-800">
+                        <p className="font-medium mb-1">上传说明：</p>
+                        <ul className="space-y-1 text-xs">
+                          <li>• 请确保 ZIP 文件包含完整的项目代码</li>
+                          <li>• 系统会自动排除 node_modules、.git 等目录</li>
+                          <li>• 上传后将立即开始代码分析</li>
+                          <li>• 分析完成后可在任务详情页查看结果</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              </div>
 
-              <div className="flex justify-end space-x-3 pt-4">
-                <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
-                  取消
-                </Button>
-                <Button onClick={handleCreateProject}>
-                  创建项目
-                </Button>
-              </div>
-            </div>
+                <div className="flex justify-end space-x-3 pt-4">
+                  <Button variant="outline" onClick={() => setShowCreateDialog(false)} disabled={uploading}>
+                    取消
+                  </Button>
+                </div>
+              </TabsContent>
+            </Tabs>
           </DialogContent>
         </Dialog>
       </div>
@@ -265,87 +465,89 @@ export default function Projects() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredProjects.length > 0 ? (
           filteredProjects.map((project) => (
-            <Card key={project.id} className="hover:shadow-lg transition-shadow">
-              <CardHeader className="pb-3">
+            <Card key={project.id} className="card-modern group">
+              <CardHeader className="pb-4">
                 <div className="flex items-start justify-between">
-                  <div className="flex items-center space-x-2">
-                    <span className="text-lg">{getRepositoryIcon(project.repository_type)}</span>
-                    <CardTitle className="text-lg">
-                      <Link 
-                        to={`/projects/${project.id}`}
-                        className="hover:text-blue-600 transition-colors"
-                      >
-                        {project.name}
-                      </Link>
-                    </CardTitle>
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-lg">
+                      {getRepositoryIcon(project.repository_type)}
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg group-hover:text-blue-600 transition-colors">
+                        <Link to={`/projects/${project.id}`}>
+                          {project.name}
+                        </Link>
+                      </CardTitle>
+                      {project.description && (
+                        <p className="text-sm text-gray-500 mt-1 line-clamp-2">
+                          {project.description}
+                        </p>
+                      )}
+                    </div>
                   </div>
-                  <Badge variant={project.is_active ? "default" : "secondary"}>
+                  <Badge variant={project.is_active ? "default" : "secondary"} className="flex-shrink-0">
                     {project.is_active ? '活跃' : '暂停'}
                   </Badge>
                 </div>
-                {project.description && (
-                  <p className="text-sm text-muted-foreground mt-2">
-                    {project.description}
-                  </p>
-                )}
               </CardHeader>
               
               <CardContent className="space-y-4">
                 {/* 项目信息 */}
-                <div className="space-y-2">
+                <div className="space-y-3">
                   {project.repository_url && (
-                    <div className="flex items-center text-sm text-muted-foreground">
-                      <GitBranch className="w-4 h-4 mr-2" />
+                    <div className="flex items-center text-sm text-gray-500">
+                      <GitBranch className="w-4 h-4 mr-2 flex-shrink-0" />
                       <a 
                         href={project.repository_url} 
                         target="_blank" 
                         rel="noopener noreferrer"
-                        className="hover:text-blue-600 transition-colors flex items-center"
+                        className="hover:text-blue-600 transition-colors flex items-center truncate"
                       >
-                        {project.repository_url.replace('https://', '').substring(0, 30)}...
-                        <ExternalLink className="w-3 h-3 ml-1" />
+                        <span className="truncate">{project.repository_url.replace('https://', '')}</span>
+                        <ExternalLink className="w-3 h-3 ml-1 flex-shrink-0" />
                       </a>
                     </div>
                   )}
                   
-                  <div className="flex items-center text-sm text-muted-foreground">
-                    <Calendar className="w-4 h-4 mr-2" />
-                    创建于 {formatDate(project.created_at)}
-                  </div>
-                  
-                  <div className="flex items-center text-sm text-muted-foreground">
-                    <Users className="w-4 h-4 mr-2" />
-                    所有者：{project.owner?.full_name || project.owner?.phone || '未知'}
+                  <div className="flex items-center justify-between text-sm text-gray-500">
+                    <div className="flex items-center">
+                      <Calendar className="w-4 h-4 mr-2" />
+                      {formatDate(project.created_at)}
+                    </div>
+                    <div className="flex items-center">
+                      <Users className="w-4 h-4 mr-2" />
+                      {project.owner?.full_name || '未知'}
+                    </div>
                   </div>
                 </div>
 
                 {/* 编程语言 */}
                 {project.programming_languages && (
-                  <div className="flex flex-wrap gap-1">
-                    {JSON.parse(project.programming_languages).slice(0, 3).map((lang: string) => (
+                  <div className="flex flex-wrap gap-2">
+                    {JSON.parse(project.programming_languages).slice(0, 4).map((lang: string) => (
                       <Badge key={lang} variant="outline" className="text-xs">
                         {lang}
                       </Badge>
                     ))}
-                    {JSON.parse(project.programming_languages).length > 3 && (
+                    {JSON.parse(project.programming_languages).length > 4 && (
                       <Badge variant="outline" className="text-xs">
-                        +{JSON.parse(project.programming_languages).length - 3}
+                        +{JSON.parse(project.programming_languages).length - 4}
                       </Badge>
                     )}
                   </div>
                 )}
 
                 {/* 快速操作 */}
-                <div className="flex space-x-2 pt-2">
+                <div className="flex gap-2 pt-2">
                   <Link to={`/projects/${project.id}`} className="flex-1">
-                    <Button variant="outline" size="sm" className="w-full">
+                    <Button variant="outline" size="sm" className="w-full btn-secondary">
                       <Code className="w-4 h-4 mr-2" />
                       查看详情
                     </Button>
                   </Link>
-                  <Button variant="outline" size="sm">
+                  <Button size="sm" className="btn-primary">
                     <Shield className="w-4 h-4 mr-2" />
-                    启动审计
+                    审计
                   </Button>
                 </div>
               </CardContent>
@@ -353,17 +555,19 @@ export default function Projects() {
           ))
         ) : (
           <div className="col-span-full">
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center py-12">
-                <Code className="w-16 h-16 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-medium text-muted-foreground mb-2">
+            <Card className="card-modern">
+              <CardContent className="empty-state py-16">
+                <div className="empty-icon">
+                  <Code className="w-8 h-8 text-blue-600" />
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
                   {searchTerm ? '未找到匹配的项目' : '暂无项目'}
                 </h3>
-                <p className="text-sm text-muted-foreground mb-4">
+                <p className="text-gray-500 mb-6 max-w-md">
                   {searchTerm ? '尝试调整搜索条件' : '创建您的第一个项目开始代码审计'}
                 </p>
                 {!searchTerm && (
-                  <Button onClick={() => setShowCreateDialog(true)}>
+                  <Button onClick={() => setShowCreateDialog(true)} className="btn-primary">
                     <Plus className="w-4 h-4 mr-2" />
                     创建项目
                   </Button>
@@ -376,56 +580,58 @@ export default function Projects() {
 
       {/* 项目统计 */}
       {projects.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center">
-                <Code className="h-8 w-8 text-blue-600" />
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-muted-foreground">总项目数</p>
-                  <p className="text-2xl font-bold">{projects.length}</p>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Card className="stat-card">
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="stat-label">总项目数</p>
+                  <p className="stat-value text-xl">{projects.length}</p>
+                </div>
+                <div className="stat-icon from-blue-500 to-blue-600">
+                  <Code className="w-5 h-5 text-white" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center">
-                <Activity className="h-8 w-8 text-green-600" />
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-muted-foreground">活跃项目</p>
-                  <p className="text-2xl font-bold">
-                    {projects.filter(p => p.is_active).length}
-                  </p>
+          <Card className="stat-card">
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="stat-label">活跃项目</p>
+                  <p className="stat-value text-xl">{projects.filter(p => p.is_active).length}</p>
+                </div>
+                <div className="stat-icon from-emerald-500 to-emerald-600">
+                  <Activity className="w-5 h-5 text-white" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center">
-                <GitBranch className="h-8 w-8 text-purple-600" />
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-muted-foreground">GitHub项目</p>
-                  <p className="text-2xl font-bold">
-                    {projects.filter(p => p.repository_type === 'github').length}
-                  </p>
+          <Card className="stat-card">
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="stat-label">GitHub</p>
+                  <p className="stat-value text-xl">{projects.filter(p => p.repository_type === 'github').length}</p>
+                </div>
+                <div className="stat-icon from-purple-500 to-purple-600">
+                  <GitBranch className="w-5 h-5 text-white" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center">
-                <Shield className="h-8 w-8 text-orange-600" />
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-muted-foreground">GitLab项目</p>
-                  <p className="text-2xl font-bold">
-                    {projects.filter(p => p.repository_type === 'gitlab').length}
-                  </p>
+          <Card className="stat-card">
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="stat-label">GitLab</p>
+                  <p className="stat-value text-xl">{projects.filter(p => p.repository_type === 'gitlab').length}</p>
+                </div>
+                <div className="stat-icon from-orange-500 to-orange-600">
+                  <Shield className="w-5 h-5 text-white" />
                 </div>
               </div>
             </CardContent>

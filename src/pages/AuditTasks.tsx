@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -8,14 +8,13 @@ import {
   AlertTriangle, 
   CheckCircle, 
   Clock, 
-  Search, 
-  Filter,
+  Search,
   Play,
   FileText,
   Calendar
 } from "lucide-react";
-import { api } from "@/db/supabase";
-import type { AuditTask } from "@/types/types";
+import { api } from "@/shared/config/database";
+import type { AuditTask } from "@/shared/types";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -86,72 +85,72 @@ export default function AuditTasks() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in">
       {/* 页面标题 */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">审计任务</h1>
-          <p className="text-gray-600 mt-2">
-            查看和管理所有代码审计任务的执行状态
-          </p>
+          <h1 className="page-title">审计任务</h1>
+          <p className="page-subtitle">查看和管理所有代码审计任务的执行状态</p>
         </div>
-        <Button>
+        <Button className="btn-primary">
           <Play className="w-4 h-4 mr-2" />
           新建任务
         </Button>
       </div>
 
       {/* 统计卡片 */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <Activity className="h-8 w-8 text-blue-600" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-muted-foreground">总任务数</p>
-                <p className="text-2xl font-bold">{tasks.length}</p>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card className="stat-card">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="stat-label">总任务数</p>
+                <p className="stat-value text-xl">{tasks.length}</p>
+              </div>
+              <div className="stat-icon from-blue-500 to-blue-600">
+                <Activity className="w-5 h-5 text-white" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <CheckCircle className="h-8 w-8 text-green-600" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-muted-foreground">已完成</p>
-                <p className="text-2xl font-bold">
-                  {tasks.filter(t => t.status === 'completed').length}
-                </p>
+        <Card className="stat-card">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="stat-label">已完成</p>
+                <p className="stat-value text-xl">{tasks.filter(t => t.status === 'completed').length}</p>
+              </div>
+              <div className="stat-icon from-emerald-500 to-emerald-600">
+                <CheckCircle className="w-5 h-5 text-white" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <Clock className="h-8 w-8 text-orange-600" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-muted-foreground">运行中</p>
-                <p className="text-2xl font-bold">
-                  {tasks.filter(t => t.status === 'running').length}
-                </p>
+        <Card className="stat-card">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="stat-label">运行中</p>
+                <p className="stat-value text-xl">{tasks.filter(t => t.status === 'running').length}</p>
+              </div>
+              <div className="stat-icon from-orange-500 to-orange-600">
+                <Clock className="w-5 h-5 text-white" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <AlertTriangle className="h-8 w-8 text-red-600" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-muted-foreground">失败</p>
-                <p className="text-2xl font-bold">
-                  {tasks.filter(t => t.status === 'failed').length}
-                </p>
+        <Card className="stat-card">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="stat-label">失败</p>
+                <p className="stat-value text-xl">{tasks.filter(t => t.status === 'failed').length}</p>
+              </div>
+              <div className="stat-icon from-red-500 to-red-600">
+                <AlertTriangle className="w-5 h-5 text-white" />
               </div>
             </div>
           </CardContent>
@@ -209,16 +208,22 @@ export default function AuditTasks() {
       {filteredTasks.length > 0 ? (
         <div className="space-y-4">
           {filteredTasks.map((task) => (
-            <Card key={task.id} className="hover:shadow-lg transition-shadow">
+            <Card key={task.id} className="card-modern group">
               <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center space-x-3">
-                    {getStatusIcon(task.status)}
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center space-x-4">
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                      task.status === 'completed' ? 'bg-emerald-100 text-emerald-600' :
+                      task.status === 'running' ? 'bg-blue-100 text-blue-600' :
+                      task.status === 'failed' ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-600'
+                    }`}>
+                      {getStatusIcon(task.status)}
+                    </div>
                     <div>
-                      <h3 className="font-semibold text-lg">
+                      <h3 className="font-semibold text-lg text-gray-900 group-hover:text-blue-600 transition-colors">
                         {task.project?.name || '未知项目'}
                       </h3>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-sm text-gray-500">
                         {task.task_type === 'repository' ? '仓库审计任务' : '即时分析任务'}
                       </p>
                     </div>
@@ -230,55 +235,55 @@ export default function AuditTasks() {
                   </Badge>
                 </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
+                <div className="grid grid-cols-3 md:grid-cols-5 gap-6 mb-6">
                   <div className="text-center">
-                    <p className="text-xl font-bold">{task.total_files}</p>
-                    <p className="text-xs text-muted-foreground">文件数</p>
+                    <p className="text-2xl font-bold text-gray-900">{task.total_files}</p>
+                    <p className="text-xs text-gray-500 mt-1">文件数</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-xl font-bold">{task.total_lines}</p>
-                    <p className="text-xs text-muted-foreground">代码行数</p>
+                    <p className="text-2xl font-bold text-gray-900">{task.total_lines}</p>
+                    <p className="text-xs text-gray-500 mt-1">代码行数</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-xl font-bold">{task.issues_count}</p>
-                    <p className="text-xs text-muted-foreground">发现问题</p>
+                    <p className="text-2xl font-bold text-orange-600">{task.issues_count}</p>
+                    <p className="text-xs text-gray-500 mt-1">发现问题</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-xl font-bold">{task.quality_score.toFixed(1)}</p>
-                    <p className="text-xs text-muted-foreground">质量评分</p>
+                    <p className="text-2xl font-bold text-blue-600">{task.quality_score.toFixed(1)}</p>
+                    <p className="text-xs text-gray-500 mt-1">质量评分</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-xl font-bold">
-                      {task.scanned_files}/{task.total_files}
+                    <p className="text-2xl font-bold text-emerald-600">
+                      {Math.round((task.scanned_files / task.total_files) * 100)}%
                     </p>
-                    <p className="text-xs text-muted-foreground">扫描进度</p>
+                    <p className="text-xs text-gray-500 mt-1">扫描进度</p>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                  <div className="flex items-center space-x-6 text-sm text-gray-500">
                     <div className="flex items-center">
-                      <Calendar className="w-4 h-4 mr-1" />
-                      创建于 {formatDate(task.created_at)}
+                      <Calendar className="w-4 h-4 mr-2" />
+                      {formatDate(task.created_at)}
                     </div>
                     {task.completed_at && (
                       <div className="flex items-center">
-                        <CheckCircle className="w-4 h-4 mr-1" />
-                        完成于 {formatDate(task.completed_at)}
+                        <CheckCircle className="w-4 h-4 mr-2" />
+                        {formatDate(task.completed_at)}
                       </div>
                     )}
                   </div>
                   
-                  <div className="flex space-x-2">
+                  <div className="flex gap-3">
                     <Link to={`/tasks/${task.id}`}>
-                      <Button variant="outline" size="sm">
+                      <Button variant="outline" size="sm" className="btn-secondary">
                         <FileText className="w-4 h-4 mr-2" />
                         查看详情
                       </Button>
                     </Link>
                     {task.project && (
                       <Link to={`/projects/${task.project.id}`}>
-                        <Button variant="outline" size="sm">
+                        <Button size="sm" className="btn-primary">
                           查看项目
                         </Button>
                       </Link>
@@ -290,17 +295,19 @@ export default function AuditTasks() {
           ))}
         </div>
       ) : (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <Activity className="w-16 h-16 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-medium text-muted-foreground mb-2">
+        <Card className="card-modern">
+          <CardContent className="empty-state py-16">
+            <div className="empty-icon">
+              <Activity className="w-8 h-8 text-blue-600" />
+            </div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
               {searchTerm || statusFilter !== "all" ? '未找到匹配的任务' : '暂无审计任务'}
             </h3>
-            <p className="text-sm text-muted-foreground mb-4">
+            <p className="text-gray-500 mb-6 max-w-md">
               {searchTerm || statusFilter !== "all" ? '尝试调整搜索条件或筛选器' : '创建第一个审计任务开始代码质量分析'}
             </p>
             {!searchTerm && statusFilter === "all" && (
-              <Button>
+              <Button className="btn-primary">
                 <Play className="w-4 h-4 mr-2" />
                 创建任务
               </Button>

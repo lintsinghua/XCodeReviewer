@@ -20,8 +20,8 @@ import {
   Server,
   BarChart3
 } from "lucide-react";
-import { api } from "@/db/supabase";
-import type { Profile } from "@/types/types";
+import { api } from "@/shared/config/database";
+import type { Profile } from "@/shared/types";
 import { toast } from "sonner";
 
 export default function AdminDashboard() {

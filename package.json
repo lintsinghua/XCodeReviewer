@@ -1,12 +1,18 @@
 {
-  "name": "miaoda-react-admin",
+  "name": "xcode-reviewer",
   "version": "0.0.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview --strictPort --port 5173",
-    "lint": "tsgo -p tsconfig.check.json; biome lint --only=correctness/noUndeclaredDependencies; ast-grep scan"
+    "lint": "tsgo -p tsconfig.check.json; biome lint --only=correctness/noUndeclaredDependencies; ast-grep scan",
+    "lint:fix": "biome check --apply .",
+    "type-check": "tsc --noEmit",
+    "format": "biome format --write .",
+    "clean": "rm -rf dist node_modules/.vite",
+    "setup": "node scripts/setup.js || ./scripts/setup.sh",
+    "analyze": "vite build --mode analyze"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
@@ -82,6 +88,7 @@
     "globals": "^15.14.0",
     "postcss": "^8.5.2",
     "tailwindcss": "^3.4.11",
+    "terser": "^5.44.0",
     "typescript": "~5.7.2",
     "vite": "^5.1.4",
     "vite-plugin-svgr": "^4.3.0"

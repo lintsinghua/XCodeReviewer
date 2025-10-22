@@ -1,8 +1,8 @@
 import { LoginPanel } from "miaoda-auth-react";
-import { api } from "@/db/supabase";
+import { api } from "@/shared/config/database";
 
 const login_config = {
-  title: '智能代码审计系统',
+  title: 'XCodeReviewer',
   desc: '登录以开始代码质量分析',
   onLoginSuccess: async (user: any) => {
     try {
@@ -44,7 +44,7 @@ export default function Login() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">智能代码审计系统</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">XCodeReviewer</h1>
           <p className="text-gray-600">基于AI的代码质量分析平台</p>
         </div>
         

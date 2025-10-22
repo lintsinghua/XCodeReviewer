@@ -1,394 +1,322 @@
-/*
-# 智能代码审计系统数据库架构
-
-## 1. 概述
-为智能代码审计系统创建完整的数据库架构，支持用户管理、项目管理、代码审计、即时分析等核心功能。
-
-## 2. 表结构说明
-
-### 2.1 用户相关表
-- `profiles`: 用户基本信息表
-  - `id` (uuid, 主键): 用户唯一标识，关联auth.users
-  - `phone` (text, 唯一): 用户手机号
-  - `email` (text): 用户邮箱
-  - `full_name` (text): 用户全名
-  - `avatar_url` (text): 头像URL
-  - `role` (text): 用户角色 (admin/member)
-  - `github_username` (text): GitHub用户名
-  - `gitlab_username` (text): GitLab用户名
-  - `created_at` (timestamptz): 创建时间
-  - `updated_at` (timestamptz): 更新时间
-
-### 2.2 项目管理表
-- `projects`: 代码项目表
-  - `id` (uuid, 主键): 项目唯一标识
-  - `name` (text): 项目名称
-  - `description` (text): 项目描述
-  - `repository_url` (text): 仓库URL
-  - `repository_type` (text): 仓库类型 (github/gitlab)
-  - `default_branch` (text): 默认分支
-  - `programming_languages` (text): 支持的编程语言，JSON格式
-  - `owner_id` (uuid): 项目所有者ID
-  - `is_active` (boolean): 是否激活
-  - `created_at` (timestamptz): 创建时间
-  - `updated_at` (timestamptz): 更新时间
-
-### 2.3 审计相关表
-- `audit_tasks`: 代码审计任务表
-  - `id` (uuid, 主键): 任务唯一标识
-  - `project_id` (uuid): 关联项目ID
-  - `task_type` (text): 任务类型 (repository/instant)
-  - `status` (text): 任务状态 (pending/running/completed/failed)
-  - `branch_name` (text): 扫描分支
-  - `exclude_patterns` (text): 排除文件模式，JSON格式
-  - `scan_config` (text): 扫描配置，JSON格式
-  - `total_files` (integer): 总文件数
-  - `scanned_files` (integer): 已扫描文件数
-  - `total_lines` (integer): 总代码行数
-  - `issues_count` (integer): 发现问题数量
-  - `quality_score` (numeric): 代码质量评分
-  - `started_at` (timestamptz): 开始时间
-  - `completed_at` (timestamptz): 完成时间
-  - `created_by` (uuid): 创建者ID
-  - `created_at` (timestamptz): 创建时间
-
-- `audit_issues`: 审计发现的问题表
-  - `id` (uuid, 主键): 问题唯一标识
-  - `task_id` (uuid): 关联任务ID
-  - `file_path` (text): 文件路径
-  - `line_number` (integer): 行号
-  - `column_number` (integer): 列号
-  - `issue_type` (text): 问题类型 (bug/security/performance/style/maintainability)
-  - `severity` (text): 严重程度 (critical/high/medium/low)
-  - `title` (text): 问题标题
-  - `description` (text): 问题描述
-  - `suggestion` (text): 修复建议
-  - `code_snippet` (text): 相关代码片段
-  - `ai_explanation` (text): AI详细解释
-  - `status` (text): 问题状态 (open/resolved/false_positive)
-  - `resolved_by` (uuid): 解决者ID
-  - `resolved_at` (timestamptz): 解决时间
-  - `created_at` (timestamptz): 创建时间
-
-### 2.4 即时分析表
-- `instant_analyses`: 即时代码分析表
-  - `id` (uuid, 主键): 分析唯一标识
-  - `user_id` (uuid): 用户ID
-  - `language` (text): 编程语言
-  - `code_content` (text): 代码内容
-  - `analysis_result` (text): 分析结果，JSON格式
-  - `issues_count` (integer): 发现问题数量
-  - `quality_score` (numeric): 质量评分
-  - `analysis_time` (numeric): 分析耗时（秒）
-  - `created_at` (timestamptz): 创建时间
-
-### 2.5 项目成员表
-- `project_members`: 项目成员关联表
-  - `id` (uuid, 主键): 关联唯一标识
-  - `project_id` (uuid): 项目ID
-  - `user_id` (uuid): 用户ID
-  - `role` (text): 项目角色 (owner/admin/member/viewer)
-  - `permissions` (text): 权限配置，JSON格式
-  - `joined_at` (timestamptz): 加入时间
-  - `created_at` (timestamptz): 创建时间
-
-## 3. 安全策略
-- 启用所有表的行级安全 (RLS)
-- 用户只能访问自己的数据或有权限的项目数据
-- 管理员可以访问所有数据
-
-## 4. 初始数据
-- 预设一些常见的编程语言配置
-- 预设问题类型和严重程度枚举值
-*/
+-- 智能代码审计平台数据库架构
+-- 创建时间: 2024-01-15
+-- 版本: 1.0.0
 
 -- 启用必要的扩展
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
--- 创建用户信息表
+-- 用户配置表
 CREATE TABLE IF NOT EXISTS profiles (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  phone text UNIQUE,
-  email text,
-  full_name text,
-  avatar_url text,
-  role text DEFAULT 'member' CHECK (role IN ('admin', 'member')),
-  github_username text,
-  gitlab_username text,
-  created_at timestamptz DEFAULT now(),
-  updated_at timestamptz DEFAULT now()
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    phone VARCHAR(20) UNIQUE,
+    email VARCHAR(255) UNIQUE,
+    full_name VARCHAR(100),
+    avatar_url TEXT,
+    role VARCHAR(20) DEFAULT 'member' CHECK (role IN ('admin', 'member')),
+    github_username VARCHAR(100),
+    gitlab_username VARCHAR(100),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- 创建项目表
+-- 项目表
 CREATE TABLE IF NOT EXISTS projects (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  name text NOT NULL,
-  description text,
-  repository_url text,
-  repository_type text CHECK (repository_type IN ('github', 'gitlab', 'other')),
-  default_branch text DEFAULT 'main',
-  programming_languages text DEFAULT '[]',
-  owner_id uuid,
-  is_active boolean DEFAULT true,
-  created_at timestamptz DEFAULT now(),
-  updated_at timestamptz DEFAULT now()
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    repository_url TEXT,
+    repository_type VARCHAR(20) DEFAULT 'other' CHECK (repository_type IN ('github', 'gitlab', 'other')),
+    default_branch VARCHAR(100) DEFAULT 'main',
+    programming_languages JSONB DEFAULT '[]',
+    owner_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- 创建项目成员表
+-- 项目成员表
 CREATE TABLE IF NOT EXISTS project_members (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  project_id uuid,
-  user_id uuid,
-  role text DEFAULT 'member' CHECK (role IN ('owner', 'admin', 'member', 'viewer')),
-  permissions text DEFAULT '{}',
-  joined_at timestamptz DEFAULT now(),
-  created_at timestamptz DEFAULT now(),
-  UNIQUE(project_id, user_id)
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+    role VARCHAR(20) DEFAULT 'member' CHECK (role IN ('owner', 'admin', 'member', 'viewer')),
+    permissions JSONB DEFAULT '{}',
+    joined_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(project_id, user_id)
 );
 
--- 创建审计任务表
+-- 审计任务表
 CREATE TABLE IF NOT EXISTS audit_tasks (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  project_id uuid,
-  task_type text DEFAULT 'repository' CHECK (task_type IN ('repository', 'instant')),
-  status text DEFAULT 'pending' CHECK (status IN ('pending', 'running', 'completed', 'failed')),
-  branch_name text,
-  exclude_patterns text DEFAULT '[]',
-  scan_config text DEFAULT '{}',
-  total_files integer DEFAULT 0,
-  scanned_files integer DEFAULT 0,
-  total_lines integer DEFAULT 0,
-  issues_count integer DEFAULT 0,
-  quality_score numeric(5,2) DEFAULT 0,
-  started_at timestamptz,
-  completed_at timestamptz,
-  created_by uuid,
-  created_at timestamptz DEFAULT now()
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    task_type VARCHAR(20) DEFAULT 'repository' CHECK (task_type IN ('repository', 'instant')),
+    status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'running', 'completed', 'failed')),
+    branch_name VARCHAR(100),
+    exclude_patterns JSONB DEFAULT '[]',
+    scan_config JSONB DEFAULT '{}',
+    total_files INTEGER DEFAULT 0,
+    scanned_files INTEGER DEFAULT 0,
+    total_lines INTEGER DEFAULT 0,
+    issues_count INTEGER DEFAULT 0,
+    quality_score DECIMAL(5,2) DEFAULT 0,
+    started_at TIMESTAMP WITH TIME ZONE,
+    completed_at TIMESTAMP WITH TIME ZONE,
+    created_by UUID REFERENCES profiles(id) ON DELETE SET NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- 创建审计问题表
+-- 审计问题表
 CREATE TABLE IF NOT EXISTS audit_issues (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  task_id uuid,
-  file_path text NOT NULL,
-  line_number integer,
-  column_number integer,
-  issue_type text CHECK (issue_type IN ('bug', 'security', 'performance', 'style', 'maintainability')),
-  severity text CHECK (severity IN ('critical', 'high', 'medium', 'low')),
-  title text NOT NULL,
-  description text,
-  suggestion text,
-  code_snippet text,
-  ai_explanation text,
-  status text DEFAULT 'open' CHECK (status IN ('open', 'resolved', 'false_positive')),
-  resolved_by uuid,
-  resolved_at timestamptz,
-  created_at timestamptz DEFAULT now()
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    task_id UUID NOT NULL REFERENCES audit_tasks(id) ON DELETE CASCADE,
+    file_path TEXT NOT NULL,
+    line_number INTEGER,
+    column_number INTEGER,
+    issue_type VARCHAR(20) DEFAULT 'maintainability' CHECK (issue_type IN ('bug', 'security', 'performance', 'style', 'maintainability')),
+    severity VARCHAR(20) DEFAULT 'low' CHECK (severity IN ('critical', 'high', 'medium', 'low')),
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    suggestion TEXT,
+    code_snippet TEXT,
+    ai_explanation TEXT,
+    status VARCHAR(20) DEFAULT 'open' CHECK (status IN ('open', 'resolved', 'false_positive')),
+    resolved_by UUID REFERENCES profiles(id) ON DELETE SET NULL,
+    resolved_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- 创建即时分析表
+-- 即时分析表
 CREATE TABLE IF NOT EXISTS instant_analyses (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id uuid,
-  language text NOT NULL,
-  code_content text NOT NULL,
-  analysis_result text DEFAULT '{}',
-  issues_count integer DEFAULT 0,
-  quality_score numeric(5,2) DEFAULT 0,
-  analysis_time numeric(10,3) DEFAULT 0,
-  created_at timestamptz DEFAULT now()
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+    language VARCHAR(50) NOT NULL,
+    code_content TEXT DEFAULT '', -- 不存储实际代码内容，仅保留空字符串
+    analysis_result JSONB DEFAULT '{}',
+    issues_count INTEGER DEFAULT 0,
+    quality_score DECIMAL(5,2) DEFAULT 0,
+    analysis_time DECIMAL(8,3) DEFAULT 0, -- 分析耗时（秒）
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- 外键约束（匹配前端使用的关系别名）
-ALTER TABLE public.projects
-  DROP CONSTRAINT IF EXISTS projects_owner_id_fkey,
-  ADD CONSTRAINT projects_owner_id_fkey FOREIGN KEY (owner_id)
-  REFERENCES public.profiles(id) ON DELETE SET NULL;
+-- 系统通知表
+CREATE TABLE IF NOT EXISTS notifications (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+    type VARCHAR(50) NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    message TEXT NOT NULL,
+    data JSONB DEFAULT '{}',
+    read BOOLEAN DEFAULT false,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
 
-ALTER TABLE public.project_members
-  DROP CONSTRAINT IF EXISTS project_members_project_id_fkey,
-  ADD CONSTRAINT project_members_project_id_fkey FOREIGN KEY (project_id)
-  REFERENCES public.projects(id) ON DELETE CASCADE;
+-- 系统配置表
+CREATE TABLE IF NOT EXISTS system_configs (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    key VARCHAR(100) UNIQUE NOT NULL,
+    value JSONB NOT NULL,
+    description TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
 
-ALTER TABLE public.project_members
-  DROP CONSTRAINT IF EXISTS project_members_user_id_fkey,
-  ADD CONSTRAINT project_members_user_id_fkey FOREIGN KEY (user_id)
-  REFERENCES public.profiles(id) ON DELETE CASCADE;
+-- 创建索引以提高查询性能
+CREATE INDEX IF NOT EXISTS idx_profiles_phone ON profiles(phone);
+CREATE INDEX IF NOT EXISTS idx_profiles_email ON profiles(email);
+CREATE INDEX IF NOT EXISTS idx_profiles_role ON profiles(role);
 
-ALTER TABLE public.audit_tasks
-  DROP CONSTRAINT IF EXISTS audit_tasks_project_id_fkey,
-  ADD CONSTRAINT audit_tasks_project_id_fkey FOREIGN KEY (project_id)
-  REFERENCES public.projects(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS idx_projects_owner_id ON projects(owner_id);
+CREATE INDEX IF NOT EXISTS idx_projects_is_active ON projects(is_active);
+CREATE INDEX IF NOT EXISTS idx_projects_created_at ON projects(created_at);
 
-ALTER TABLE public.audit_tasks
-  DROP CONSTRAINT IF EXISTS audit_tasks_created_by_fkey,
-  ADD CONSTRAINT audit_tasks_created_by_fkey FOREIGN KEY (created_by)
-  REFERENCES public.profiles(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS idx_project_members_project_id ON project_members(project_id);
+CREATE INDEX IF NOT EXISTS idx_project_members_user_id ON project_members(user_id);
 
-ALTER TABLE public.audit_issues
-  DROP CONSTRAINT IF EXISTS audit_issues_task_id_fkey,
-  ADD CONSTRAINT audit_issues_task_id_fkey FOREIGN KEY (task_id)
-  REFERENCES public.audit_tasks(id) ON DELETE CASCADE;
+CREATE INDEX IF NOT EXISTS idx_audit_tasks_project_id ON audit_tasks(project_id);
+CREATE INDEX IF NOT EXISTS idx_audit_tasks_status ON audit_tasks(status);
+CREATE INDEX IF NOT EXISTS idx_audit_tasks_created_by ON audit_tasks(created_by);
+CREATE INDEX IF NOT EXISTS idx_audit_tasks_created_at ON audit_tasks(created_at);
 
-ALTER TABLE public.audit_issues
-  DROP CONSTRAINT IF EXISTS audit_issues_resolved_by_fkey,
-  ADD CONSTRAINT audit_issues_resolved_by_fkey FOREIGN KEY (resolved_by)
-  REFERENCES public.profiles(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS idx_audit_issues_task_id ON audit_issues(task_id);
+CREATE INDEX IF NOT EXISTS idx_audit_issues_severity ON audit_issues(severity);
+CREATE INDEX IF NOT EXISTS idx_audit_issues_status ON audit_issues(status);
+CREATE INDEX IF NOT EXISTS idx_audit_issues_issue_type ON audit_issues(issue_type);
 
-ALTER TABLE public.instant_analyses
-  DROP CONSTRAINT IF EXISTS instant_analyses_user_id_fkey,
-  ADD CONSTRAINT instant_analyses_user_id_fkey FOREIGN KEY (user_id)
-  REFERENCES public.profiles(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS idx_instant_analyses_user_id ON instant_analyses(user_id);
+CREATE INDEX IF NOT EXISTS idx_instant_analyses_language ON instant_analyses(language);
+CREATE INDEX IF NOT EXISTS idx_instant_analyses_created_at ON instant_analyses(created_at);
 
--- 启用行级安全
+CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_read ON notifications(read);
+CREATE INDEX IF NOT EXISTS idx_notifications_created_at ON notifications(created_at);
+
+-- 创建更新时间触发器函数
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+-- 为需要的表添加更新时间触发器
+CREATE TRIGGER update_profiles_updated_at BEFORE UPDATE ON profiles
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_projects_updated_at BEFORE UPDATE ON projects
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_system_configs_updated_at BEFORE UPDATE ON system_configs
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- 插入默认系统配置
+INSERT INTO system_configs (key, value, description) VALUES
+    ('max_file_size', '204800', '最大文件大小限制（字节）'),
+    ('supported_languages', '["javascript", "typescript", "python", "java", "go", "rust", "cpp", "csharp", "php", "ruby"]', '支持的编程语言列表'),
+    ('analysis_timeout', '25000', '分析超时时间（毫秒）'),
+    ('max_concurrent_tasks', '5', '最大并发任务数'),
+    ('notification_settings', '{"email_enabled": true, "webhook_url": null}', '通知设置')
+ON CONFLICT (key) DO NOTHING;
+
+-- 创建RLS (Row Level Security) 策略
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE projects ENABLE ROW LEVEL SECURITY;
 ALTER TABLE project_members ENABLE ROW LEVEL SECURITY;
 ALTER TABLE audit_tasks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE audit_issues ENABLE ROW LEVEL SECURITY;
 ALTER TABLE instant_analyses ENABLE ROW LEVEL SECURITY;
+ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
 
--- 创建安全策略
+-- 基本的RLS策略（可根据需要调整）
+-- 用户只能查看和修改自己的数据
+CREATE POLICY "Users can view own profile" ON profiles
+    FOR SELECT USING (id = auth.uid());
 
--- profiles表策略
-CREATE POLICY "Users can read own profile"
-  ON profiles FOR SELECT
-  TO authenticated
-  USING (auth.uid() = id);
+CREATE POLICY "Users can update own profile" ON profiles
+    FOR UPDATE USING (id = auth.uid());
 
-CREATE POLICY "Users can update own profile"
-  ON profiles FOR UPDATE
-  TO authenticated
-  USING (auth.uid() = id);
+-- 项目访问策略
+CREATE POLICY "Users can view projects they own or are members of" ON projects
+    FOR SELECT USING (
+        owner_id = auth.uid() OR 
+        id IN (SELECT project_id FROM project_members WHERE user_id = auth.uid())
+    );
 
-CREATE POLICY "Admins can read all profiles"
-  ON profiles FOR SELECT
-  TO authenticated
-  USING (
-    EXISTS (
-      SELECT 1 FROM profiles 
-      WHERE id = auth.uid() AND role = 'admin'
-    )
-  );
+CREATE POLICY "Users can create projects" ON projects
+    FOR INSERT WITH CHECK (owner_id = auth.uid());
 
--- projects表策略 - 简化版本
-CREATE POLICY "Users can read all projects"
-  ON projects FOR SELECT
-  TO authenticated
-  USING (true);
+CREATE POLICY "Project owners can update their projects" ON projects
+    FOR UPDATE USING (owner_id = auth.uid());
 
-CREATE POLICY "Users can create projects"
-  ON projects FOR INSERT
-  TO authenticated
-  WITH CHECK (owner_id = auth.uid());
+-- 项目成员策略
+CREATE POLICY "Users can view project members for their projects" ON project_members
+    FOR SELECT USING (
+        project_id IN (
+            SELECT id FROM projects WHERE owner_id = auth.uid()
+        ) OR user_id = auth.uid()
+    );
 
-CREATE POLICY "Project owners can update projects"
-  ON projects FOR UPDATE
-  TO authenticated
-  USING (owner_id = auth.uid());
+-- 审计任务策略
+CREATE POLICY "Users can view audit tasks for their projects" ON audit_tasks
+    FOR SELECT USING (
+        project_id IN (
+            SELECT id FROM projects WHERE owner_id = auth.uid() OR 
+            id IN (SELECT project_id FROM project_members WHERE user_id = auth.uid())
+        )
+    );
 
--- project_members表策略
-CREATE POLICY "Users can read project members"
-  ON project_members FOR SELECT
-  TO authenticated
-  USING (true);
+-- 即时分析策略
+CREATE POLICY "Users can view own instant analyses" ON instant_analyses
+    FOR SELECT USING (user_id = auth.uid());
 
--- audit_tasks表策略
-CREATE POLICY "Users can read audit tasks"
-  ON audit_tasks FOR SELECT
-  TO authenticated
-  USING (true);
+CREATE POLICY "Users can create instant analyses" ON instant_analyses
+    FOR INSERT WITH CHECK (user_id = auth.uid());
 
-CREATE POLICY "Users can create audit tasks"
-  ON audit_tasks FOR INSERT
-  TO authenticated
-  WITH CHECK (created_by = auth.uid());
+-- 通知策略
+CREATE POLICY "Users can view own notifications" ON notifications
+    FOR SELECT USING (user_id = auth.uid());
 
--- audit_issues表策略
-CREATE POLICY "Users can read audit issues"
-  ON audit_issues FOR SELECT
-  TO authenticated
-  USING (true);
+CREATE POLICY "Users can update own notifications" ON notifications
+    FOR UPDATE USING (user_id = auth.uid());
 
--- instant_analyses表策略
-CREATE POLICY "Users can read own instant analyses"
-  ON instant_analyses FOR SELECT
-  TO authenticated
-  USING (user_id = auth.uid());
+-- 创建视图以简化查询
+CREATE OR REPLACE VIEW project_stats AS
+SELECT 
+    p.id,
+    p.name,
+    p.owner_id,
+    COUNT(DISTINCT at.id) as total_tasks,
+    COUNT(DISTINCT CASE WHEN at.status = 'completed' THEN at.id END) as completed_tasks,
+    COUNT(DISTINCT ai.id) as total_issues,
+    COUNT(DISTINCT CASE WHEN ai.status = 'resolved' THEN ai.id END) as resolved_issues,
+    AVG(at.quality_score) as avg_quality_score
+FROM projects p
+LEFT JOIN audit_tasks at ON p.id = at.project_id
+LEFT JOIN audit_issues ai ON at.id = ai.task_id
+WHERE p.is_active = true
+GROUP BY p.id, p.name, p.owner_id;
 
-CREATE POLICY "Users can create instant analyses"
-  ON instant_analyses FOR INSERT
-  TO authenticated
-  WITH CHECK (user_id = auth.uid());
-
--- 创建更新时间触发器函数
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
+-- 创建函数以获取项目统计信息
+CREATE OR REPLACE FUNCTION get_project_stats()
+RETURNS TABLE (
+    total_projects BIGINT,
+    active_projects BIGINT,
+    total_tasks BIGINT,
+    completed_tasks BIGINT,
+    total_issues BIGINT,
+    resolved_issues BIGINT,
+    avg_quality_score NUMERIC
+) AS $$
 BEGIN
-  NEW.updated_at = now();
-  RETURN NEW;
+    RETURN QUERY
+    SELECT 
+        COUNT(DISTINCT p.id) as total_projects,
+        COUNT(DISTINCT CASE WHEN p.is_active THEN p.id END) as active_projects,
+        COUNT(DISTINCT at.id) as total_tasks,
+        COUNT(DISTINCT CASE WHEN at.status = 'completed' THEN at.id END) as completed_tasks,
+        COUNT(DISTINCT ai.id) as total_issues,
+        COUNT(DISTINCT CASE WHEN ai.status = 'resolved' THEN ai.id END) as resolved_issues,
+        AVG(at.quality_score) as avg_quality_score
+    FROM projects p
+    LEFT JOIN audit_tasks at ON p.id = at.project_id
+    LEFT JOIN audit_issues ai ON at.id = ai.task_id;
 END;
-$$ language 'plpgsql';
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- 为需要的表创建更新时间触发器
-CREATE TRIGGER update_profiles_updated_at BEFORE UPDATE ON profiles
-  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+-- 创建清理过期数据的函数
+CREATE OR REPLACE FUNCTION cleanup_old_data()
+RETURNS void AS $$
+BEGIN
+    -- 清理30天前的即时分析记录（不保留代码内容）
+    DELETE FROM instant_analyses 
+    WHERE created_at < NOW() - INTERVAL '30 days';
+    
+    -- 清理已读的通知（7天前）
+    DELETE FROM notifications 
+    WHERE read = true AND created_at < NOW() - INTERVAL '7 days';
+    
+    -- 清理失败的审计任务（7天前）
+    DELETE FROM audit_tasks 
+    WHERE status = 'failed' AND created_at < NOW() - INTERVAL '7 days';
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
-CREATE TRIGGER update_projects_updated_at BEFORE UPDATE ON projects
-  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+-- 创建定时清理任务（需要pg_cron扩展，可选）
+-- SELECT cron.schedule('cleanup-old-data', '0 2 * * *', 'SELECT cleanup_old_data();');
 
--- 插入示例数据
--- 若无管理员用户则先插入一个，避免 owner_id 为空
-INSERT INTO profiles (id, email, full_name, role)
-SELECT gen_random_uuid(), 'admin@example.com', 'Admin', 'admin'
-WHERE NOT EXISTS (SELECT 1 FROM profiles WHERE role = 'admin');
+COMMENT ON TABLE profiles IS '用户配置表';
+COMMENT ON TABLE projects IS '项目表';
+COMMENT ON TABLE project_members IS '项目成员表';
+COMMENT ON TABLE audit_tasks IS '审计任务表';
+COMMENT ON TABLE audit_issues IS '审计问题表';
+COMMENT ON TABLE instant_analyses IS '即时分析表';
+COMMENT ON TABLE notifications IS '系统通知表';
+COMMENT ON TABLE system_configs IS '系统配置表';
 
--- 精简版示例项目（与表结构一致）
-INSERT INTO projects (name, description, repository_type, programming_languages, owner_id, is_active) VALUES
-('React前端项目', '基于React的现代化前端应用，包含TypeScript和Tailwind CSS', 'github', '["JavaScript", "TypeScript", "CSS"]', (SELECT id FROM profiles WHERE role = 'admin' LIMIT 1), true),
-('Python后端API', 'Django REST框架构建的后端API服务', 'github', '["Python", "SQL"]', (SELECT id FROM profiles WHERE role = 'admin' LIMIT 1), true),
-('Java微服务', 'Spring Boot构建的微服务架构项目', 'gitlab', '["Java", "XML"]', (SELECT id FROM profiles WHERE role = 'admin' LIMIT 1), true)
-ON CONFLICT DO NOTHING;
+COMMENT ON FUNCTION get_project_stats() IS '获取项目统计信息';
+COMMENT ON FUNCTION cleanup_old_data() IS '清理过期数据';
 
--- 插入示例审计任务
-INSERT INTO audit_tasks (project_id, task_type, status, total_files, scanned_files, total_lines, issues_count, quality_score, created_by, started_at, completed_at) VALUES
-((SELECT id FROM projects WHERE name = 'React前端项目' LIMIT 1), 'repository', 'completed', 156, 156, 12500, 23, 87.5, (SELECT id FROM profiles WHERE role = 'admin' LIMIT 1), now() - interval '2 hours', now() - interval '1 hour'),
-((SELECT id FROM projects WHERE name = 'Python后端API' LIMIT 1), 'repository', 'completed', 89, 89, 8900, 12, 92.3, (SELECT id FROM profiles WHERE role = 'admin' LIMIT 1), now() - interval '1 day', now() - interval '23 hours'),
-((SELECT id FROM projects WHERE name = 'Java微服务' LIMIT 1), 'repository', 'running', 234, 180, 18700, 25, 0, (SELECT id FROM profiles WHERE role = 'admin' LIMIT 1), now() - interval '30 minutes', null)
-ON CONFLICT DO NOTHING;
-
--- 追加：无登录演示用匿名策略（生产环境请按需收紧）
--- 允许匿名读取所有项目
-CREATE POLICY "anon can read all projects"
-  ON projects FOR SELECT
-  TO anon
-  USING (true);
-
--- 允许匿名写项目（演示/本地联调用，如不需要可删除）
-CREATE POLICY "anon can write projects"
-  ON projects FOR ALL
-  TO anon
-  USING (true)
-  WITH CHECK (true);
-
--- 允许匿名读取审计任务/问题
-CREATE POLICY "anon can read audit tasks"
-  ON audit_tasks FOR SELECT
-  TO anon
-  USING (true);
-
-CREATE POLICY "anon can read audit issues"
-  ON audit_issues FOR SELECT
-  TO anon
-  USING (true);
-
--- 允许匿名创建与读取即时分析记录（前端只写摘要，不存代码）
-CREATE POLICY "anon can insert instant analyses"
-  ON instant_analyses FOR INSERT
-  TO anon
-  WITH CHECK (true);
-
-CREATE POLICY "anon can read instant analyses"
-  ON instant_analyses FOR SELECT
-  TO anon
-  USING (true);
+-- 完成
+SELECT 'Database schema created successfully!' as message;
