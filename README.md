@@ -40,11 +40,11 @@
 *实时展示项目统计、质量趋势和系统性能，提供全面的代码审计概览*
 
 #### 即时分析
-![即时分析](public/images/example3.png)
+![即时分析](public/images/example2.png)
 *支持代码片段快速分析，提供详细的 What-Why-How 解释和修复建议*
 
 #### 项目管理
-![项目管理](public/images/example2.png)
+![项目管理](public/images/example3.png)
 *集成 GitHub/GitLab 仓库，支持多语言项目审计和批量代码分析*
 
 ## 🚀 快速开始

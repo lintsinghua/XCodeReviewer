@@ -40,11 +40,11 @@ In the fast-paced world of software development, ensuring code quality is crucia
 *Real-time display of project statistics, quality trends, and system performance, providing comprehensive code audit overview*
 
 #### ⚡ Instant Analysis
-![Instant Analysis](public/images/example3.png)
+![Instant Analysis](public/images/example2.png)
 *Support for quick code snippet analysis with detailed What-Why-How explanations and fix suggestions*
 
 #### 🚀 Project Management
-![Project Management](public/images/example2.png)
+![Project Management](public/images/example3.png)
 *Integrated GitHub/GitLab repositories, supporting multi-language project audits and batch code analysis*
 
 ## 🚀 Quick Start
