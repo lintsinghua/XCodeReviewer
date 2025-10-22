@@ -5,12 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
+import {
   ArrowLeft,
-  Activity, 
-  AlertTriangle, 
-  CheckCircle, 
-  Clock, 
+  Activity,
+  AlertTriangle,
+  CheckCircle,
+  Clock,
   FileText,
   Calendar,
   GitBranch,
@@ -26,6 +26,26 @@ import {
 import { api } from "@/shared/config/database";
 import type { AuditTask, AuditIssue } from "@/shared/types";
 import { toast } from "sonner";
+
+// AI解释解析函数
+function parseAIExplanation(aiExplanation: string) {
+  try {
+    const parsed = JSON.parse(aiExplanation);
+    // 检查是否有xai字段
+    if (parsed.xai) {
+      return parsed.xai;
+    }
+    // 检查是否直接包含what, why, how字段
+    if (parsed.what || parsed.why || parsed.how) {
+      return parsed;
+    }
+    // 如果都没有，返回null表示无法解析
+    return null;
+  } catch (error) {
+    // JSON解析失败，返回null
+    return null;
+  }
+}
 
 // 问题列表组件
 function IssuesList({ issues }: { issues: AuditIssue[] }) {
@@ -56,75 +76,148 @@ function IssuesList({ issues }: { issues: AuditIssue[] }) {
   const lowIssues = issues.filter(issue => issue.severity === 'low');
 
   const renderIssue = (issue: AuditIssue, index: number) => (
-    <div key={issue.id || index} className="border border-gray-200 rounded-xl p-6 hover:shadow-md transition-all duration-200 bg-white">
-      <div className="flex items-start justify-between mb-4">
+    <div key={issue.id || index} className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md hover:border-gray-300 transition-all duration-200 group">
+      <div className="flex items-start justify-between mb-3">
         <div className="flex items-start space-x-3">
-          <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-            issue.severity === 'critical' ? 'bg-red-100 text-red-600' :
+          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${issue.severity === 'critical' ? 'bg-red-100 text-red-600' :
             issue.severity === 'high' ? 'bg-orange-100 text-orange-600' :
-            issue.severity === 'medium' ? 'bg-yellow-100 text-yellow-600' :
-            'bg-blue-100 text-blue-600'
-          }`}>
+              issue.severity === 'medium' ? 'bg-yellow-100 text-yellow-600' :
+                'bg-blue-100 text-blue-600'
+            }`}>
             {getTypeIcon(issue.issue_type)}
           </div>
-          <div>
-            <h4 className="font-semibold text-lg text-gray-900 mb-1">{issue.title}</h4>
-            <p className="text-gray-600 text-sm">{issue.file_path}</p>
+          <div className="flex-1">
+            <h4 className="font-semibold text-base text-gray-900 mb-1 group-hover:text-gray-700 transition-colors">{issue.title}</h4>
+            <div className="flex items-center space-x-1 text-xs text-gray-600">
+              <FileText className="w-3 h-3" />
+              <span className="font-medium">{issue.file_path}</span>
+            </div>
             {issue.line_number && (
-              <p className="text-gray-500 text-xs mt-1">
-                第 {issue.line_number} 行
-                {issue.column_number && `, 第 ${issue.column_number} 列`}
-              </p>
+              <div className="flex items-center space-x-1 text-xs text-gray-500 mt-1">
+                <span>📍</span>
+                <span>第 {issue.line_number} 行</span>
+                {issue.column_number && <span>，第 {issue.column_number} 列</span>}
+              </div>
             )}
           </div>
         </div>
-        <Badge className={`${getSeverityColor(issue.severity)} px-3 py-1`}>
+        <Badge className={`${getSeverityColor(issue.severity)} px-2 py-1 text-xs font-medium`}>
           {issue.severity === 'critical' ? '严重' :
-           issue.severity === 'high' ? '高' :
-           issue.severity === 'medium' ? '中等' : '低'}
+            issue.severity === 'high' ? '高' :
+              issue.severity === 'medium' ? '中等' : '低'}
         </Badge>
       </div>
 
       {issue.description && (
-        <p className="text-gray-700 mb-4 leading-relaxed">
-          {issue.description}
-        </p>
+        <div className="bg-white border border-gray-200 rounded-lg p-3 mb-3">
+          <div className="flex items-center mb-1">
+            <Info className="w-3 h-3 text-gray-600 mr-1" />
+            <span className="font-medium text-gray-800 text-xs">问题详情</span>
+          </div>
+          <p className="text-gray-700 text-xs leading-relaxed">
+            {issue.description}
+          </p>
+        </div>
       )}
 
       {issue.code_snippet && (
-        <div className="bg-gray-900 rounded-lg p-4 mb-4">
+        <div className="bg-gray-900 rounded-lg p-3 mb-3 border border-gray-700">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-gray-300 text-sm font-medium">问题代码</span>
+            <div className="flex items-center space-x-1">
+              <div className="w-4 h-4 bg-red-600 rounded flex items-center justify-center">
+                <Code className="w-2 h-2 text-white" />
+              </div>
+              <span className="text-gray-300 text-xs font-medium">问题代码</span>
+            </div>
             {issue.line_number && (
               <span className="text-gray-400 text-xs">第 {issue.line_number} 行</span>
             )}
           </div>
-          <pre className="text-sm text-gray-100 overflow-x-auto">
-            <code>{issue.code_snippet}</code>
-          </pre>
+          <div className="bg-black/40 rounded p-2">
+            <pre className="text-xs text-gray-100 overflow-x-auto">
+              <code>{issue.code_snippet}</code>
+            </pre>
+          </div>
         </div>
       )}
 
-      <div className="grid md:grid-cols-2 gap-4">
+      <div className="space-y-2">
         {issue.suggestion && (
-          <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+          <div className="bg-white border border-blue-200 rounded-lg p-3 shadow-sm">
             <div className="flex items-center mb-2">
-              <Lightbulb className="w-5 h-5 text-blue-600 mr-2" />
-              <span className="font-medium text-blue-800">修复建议</span>
+              <div className="w-5 h-5 bg-blue-600 rounded flex items-center justify-center mr-2">
+                <Lightbulb className="w-3 h-3 text-white" />
+              </div>
+              <span className="font-medium text-blue-800 text-sm">修复建议</span>
             </div>
-            <p className="text-blue-700 text-sm leading-relaxed">{issue.suggestion}</p>
+            <p className="text-blue-700 text-xs leading-relaxed">{issue.suggestion}</p>
           </div>
         )}
 
-        {issue.ai_explanation && (
-          <div className="bg-green-50 rounded-lg p-4 border border-green-200">
-            <div className="flex items-center mb-2">
-              <Zap className="w-5 h-5 text-green-600 mr-2" />
-              <span className="font-medium text-green-800">AI 解释</span>
-            </div>
-            <p className="text-green-700 text-sm leading-relaxed">{issue.ai_explanation}</p>
-          </div>
-        )}
+        {issue.ai_explanation && (() => {
+          const parsedExplanation = parseAIExplanation(issue.ai_explanation);
+
+          if (parsedExplanation) {
+            return (
+              <div className="bg-white border border-red-200 rounded-lg p-3 shadow-sm">
+                <div className="flex items-center mb-2">
+                  <div className="w-5 h-5 bg-red-600 rounded flex items-center justify-center mr-2">
+                    <Zap className="w-3 h-3 text-white" />
+                  </div>
+                  <span className="font-medium text-red-800 text-sm">AI 解释</span>
+                </div>
+
+                <div className="space-y-2 text-xs">
+                  {parsedExplanation.what && (
+                    <div className="border-l-2 border-red-600 pl-2">
+                      <span className="font-medium text-red-700">问题：</span>
+                      <span className="text-gray-700 ml-1">{parsedExplanation.what}</span>
+                    </div>
+                  )}
+
+                  {parsedExplanation.why && (
+                    <div className="border-l-2 border-gray-600 pl-2">
+                      <span className="font-medium text-gray-700">原因：</span>
+                      <span className="text-gray-700 ml-1">{parsedExplanation.why}</span>
+                    </div>
+                  )}
+
+                  {parsedExplanation.how && (
+                    <div className="border-l-2 border-black pl-2">
+                      <span className="font-medium text-black">方案：</span>
+                      <span className="text-gray-700 ml-1">{parsedExplanation.how}</span>
+                    </div>
+                  )}
+
+                  {parsedExplanation.learn_more && (
+                    <div className="border-l-2 border-red-400 pl-2">
+                      <span className="font-medium text-red-600">链接：</span>
+                      <a
+                        href={parsedExplanation.learn_more}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-red-600 hover:text-red-800 hover:underline ml-1"
+                      >
+                        {parsedExplanation.learn_more}
+                      </a>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          } else {
+            // 如果无法解析JSON，回退到原始显示方式
+            return (
+              <div className="bg-white border border-red-200 rounded-lg p-3">
+                <div className="flex items-center mb-2">
+                  <Zap className="w-4 h-4 text-red-600 mr-2" />
+                  <span className="font-medium text-red-800 text-sm">AI 解释</span>
+                </div>
+                <p className="text-gray-700 text-xs leading-relaxed">{issue.ai_explanation}</p>
+              </div>
+            );
+          }
+        })()}
       </div>
     </div>
   );
@@ -235,14 +328,14 @@ export default function TaskDetail() {
 
   const loadTaskDetail = async () => {
     if (!id) return;
-    
+
     try {
       setLoading(true);
       const [taskData, issuesData] = await Promise.all([
         api.getAuditTaskById(id),
         api.getAuditIssues(id)
       ]);
-      
+
       setTask(taskData);
       setIssues(issuesData);
     } catch (error) {
@@ -333,14 +426,14 @@ export default function TaskDetail() {
             <p className="page-subtitle">{task.project?.name || '未知项目'} - 审计任务</p>
           </div>
         </div>
-        
+
         <div className="flex items-center space-x-3">
           <Badge className={getStatusColor(task.status)}>
             {getStatusIcon(task.status)}
             <span className="ml-2">
-              {task.status === 'completed' ? '已完成' : 
-               task.status === 'running' ? '运行中' : 
-               task.status === 'failed' ? '失败' : '等待中'}
+              {task.status === 'completed' ? '已完成' :
+                task.status === 'running' ? '运行中' :
+                  task.status === 'failed' ? '失败' : '等待中'}
             </span>
           </Badge>
           {task.status === 'completed' && (
