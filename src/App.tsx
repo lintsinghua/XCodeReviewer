@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "sonner";
-import Header from "@/components/common/Header";
-import routes from "./routes";
+import Header from "@/components/layout/Header";
+import routes, { type RouteConfig } from "./app/routes";
 
 function App() {
   return (
@@ -11,7 +11,7 @@ function App() {
         <Header />
         <main className="container-responsive py-4 md:py-6">
           <Routes>
-            {routes.map((route) => (
+            {routes.map((route: RouteConfig) => (
               <Route
                 key={route.path}
                 path={route.path}
