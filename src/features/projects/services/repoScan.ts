@@ -45,74 +45,81 @@ export async function runRepositoryAudit(params: {
     created_by: params.createdBy
   } as any);
 
-  try {
-    const m = params.repoUrl.match(/github\.com\/(.+?)\/(.+?)(?:\.git)?$/i);
-    if (!m) throw new Error("仅支持 GitHub 仓库 URL，例如 https://github.com/owner/repo");
-    const owner = m[1];
-    const repo = m[2];
+  const taskId = (task as any).id as string;
 
-    const treeUrl = `https://api.github.com/repos/${owner}/${repo}/git/trees/${encodeURIComponent(branch)}?recursive=1`;
-    const tree = await githubApi<{ tree: GithubTreeItem[] }>(treeUrl, params.githubToken);
-    let files = (tree.tree || []).filter(i => i.type === "blob" && isTextFile(i.path) && !matchExclude(i.path, excludes));
-    // 采样限制，优先分析较小文件与常见语言
-    files = files
-      .sort((a, b) => (a.path.length - b.path.length))
-      .slice(0, MAX_ANALYZE_FILES);
+  // 启动后台审计任务，不阻塞返回
+  (async () => {
+    try {
+      const m = params.repoUrl.match(/github\.com\/(.+?)\/(.+?)(?:\.git)?$/i);
+      if (!m) throw new Error("仅支持 GitHub 仓库 URL，例如 https://github.com/owner/repo");
+      const owner = m[1];
+      const repo = m[2];
 
-    let totalFiles = 0, totalLines = 0, createdIssues = 0;
-    let index = 0;
-    const worker = async () => {
-      while (true) {
-        const current = index++;
-        if (current >= files.length) break;
-        const f = files[current];
-        totalFiles++;
-        try {
-          const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${encodeURIComponent(branch)}/${f.path}`;
-          const contentRes = await fetch(rawUrl);
-          if (!contentRes.ok) { await new Promise(r=>setTimeout(r, LLM_GAP_MS)); continue; }
-          const content = await contentRes.text();
-          if (content.length > MAX_FILE_SIZE_BYTES) { await new Promise(r=>setTimeout(r, LLM_GAP_MS)); continue; }
-          totalLines += content.split(/\r?\n/).length;
-          const language = (f.path.split(".").pop() || "").toLowerCase();
-          const analysis = await CodeAnalysisEngine.analyzeCode(content, language);
-          const issues = analysis.issues || [];
-          createdIssues += issues.length;
-          for (const issue of issues) {
-            await api.createAuditIssue({
-              task_id: (task as any).id,
-              file_path: f.path,
-              line_number: issue.line || null,
-              column_number: issue.column || null,
-              issue_type: issue.type || "maintainability",
-              severity: issue.severity || "low",
-              title: issue.title || "Issue",
-              description: issue.description || null,
-              suggestion: issue.suggestion || null,
-              code_snippet: issue.code_snippet || null,
-              ai_explanation: issue.xai ? JSON.stringify(issue.xai) : (issue.ai_explanation || null),
-              status: "open",
-              resolved_by: null,
-              resolved_at: null
-            } as any);
-          }
-          if (totalFiles % 10 === 0) {
-            await api.updateAuditTask((task as any).id, { status: "running", total_files: totalFiles, scanned_files: totalFiles, total_lines: totalLines, issues_count: createdIssues } as any);
-          }
-        } catch {}
-        await new Promise(r=>setTimeout(r, LLM_GAP_MS));
-      }
-    };
+      const treeUrl = `https://api.github.com/repos/${owner}/${repo}/git/trees/${encodeURIComponent(branch)}?recursive=1`;
+      const tree = await githubApi<{ tree: GithubTreeItem[] }>(treeUrl, params.githubToken);
+      let files = (tree.tree || []).filter(i => i.type === "blob" && isTextFile(i.path) && !matchExclude(i.path, excludes));
+      // 采样限制，优先分析较小文件与常见语言
+      files = files
+        .sort((a, b) => (a.path.length - b.path.length))
+        .slice(0, MAX_ANALYZE_FILES);
 
-    const pool = Array.from({ length: Math.min(LLM_CONCURRENCY, files.length) }, () => worker());
-    await Promise.all(pool);
+      let totalFiles = 0, totalLines = 0, createdIssues = 0;
+      let index = 0;
+      const worker = async () => {
+        while (true) {
+          const current = index++;
+          if (current >= files.length) break;
+          const f = files[current];
+          totalFiles++;
+          try {
+            const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${encodeURIComponent(branch)}/${f.path}`;
+            const contentRes = await fetch(rawUrl);
+            if (!contentRes.ok) { await new Promise(r=>setTimeout(r, LLM_GAP_MS)); continue; }
+            const content = await contentRes.text();
+            if (content.length > MAX_FILE_SIZE_BYTES) { await new Promise(r=>setTimeout(r, LLM_GAP_MS)); continue; }
+            totalLines += content.split(/\r?\n/).length;
+            const language = (f.path.split(".").pop() || "").toLowerCase();
+            const analysis = await CodeAnalysisEngine.analyzeCode(content, language);
+            const issues = analysis.issues || [];
+            createdIssues += issues.length;
+            for (const issue of issues) {
+              await api.createAuditIssue({
+                task_id: taskId,
+                file_path: f.path,
+                line_number: issue.line || null,
+                column_number: issue.column || null,
+                issue_type: issue.type || "maintainability",
+                severity: issue.severity || "low",
+                title: issue.title || "Issue",
+                description: issue.description || null,
+                suggestion: issue.suggestion || null,
+                code_snippet: issue.code_snippet || null,
+                ai_explanation: issue.xai ? JSON.stringify(issue.xai) : (issue.ai_explanation || null),
+                status: "open",
+                resolved_by: null,
+                resolved_at: null
+              } as any);
+            }
+            if (totalFiles % 10 === 0) {
+              await api.updateAuditTask(taskId, { status: "running", total_files: totalFiles, scanned_files: totalFiles, total_lines: totalLines, issues_count: createdIssues } as any);
+            }
+          } catch {}
+          await new Promise(r=>setTimeout(r, LLM_GAP_MS));
+        }
+      };
 
-    await api.updateAuditTask((task as any).id, { status: "completed", total_files: totalFiles, scanned_files: totalFiles, total_lines: totalLines, issues_count: createdIssues, quality_score: 0 } as any);
-    return (task as any).id as string;
-  } catch (e) {
-    await api.updateAuditTask((task as any).id, { status: "failed" } as any);
-    throw e;
-  }
+      const pool = Array.from({ length: Math.min(LLM_CONCURRENCY, files.length) }, () => worker());
+      await Promise.all(pool);
+
+      await api.updateAuditTask(taskId, { status: "completed", total_files: totalFiles, scanned_files: totalFiles, total_lines: totalLines, issues_count: createdIssues, quality_score: 0 } as any);
+    } catch (e) {
+      console.error('审计任务执行失败:', e);
+      await api.updateAuditTask(taskId, { status: "failed" } as any);
+    }
+  })();
+
+  // 立即返回任务ID，让用户可以跳转到任务详情页面
+  return taskId;
 }
 
 

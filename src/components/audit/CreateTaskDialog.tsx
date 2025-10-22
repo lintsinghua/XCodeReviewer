@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,6 +31,7 @@ interface CreateTaskDialogProps {
 }
 
 export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, preselectedProjectId }: CreateTaskDialogProps) {
+  const navigate = useNavigate();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -98,13 +100,21 @@ export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, pr
       
       await api.createAuditTask({
         ...taskForm,
-        created_by: "system" // 无登录场景下使用系统用户
+        created_by: null // 无登录场景下设置为null
       } as any);
       
-      toast.success("审计任务创建成功");
+      // 显示详细的提示信息
+      toast.success("审计任务创建成功", {
+        description: '因为网络和代码文件大小等因素，审计时长通常至少需要1分钟，请耐心等待...',
+        duration: 5000
+      });
+      
       onOpenChange(false);
       resetForm();
       onTaskCreated();
+      
+      // 跳转到项目详情页面
+      navigate(`/projects/${taskForm.project_id}`);
     } catch (error) {
       console.error('Failed to create task:', error);
       toast.error("创建任务失败");

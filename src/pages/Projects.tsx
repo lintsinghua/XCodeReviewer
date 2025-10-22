@@ -9,13 +9,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
-import { 
-  Plus, 
-  Search, 
-  GitBranch, 
-  Calendar, 
-  Users, 
-  Settings, 
+import {
+  Plus,
+  Search,
+  GitBranch,
+  Calendar,
+  Users,
+  Settings,
   ExternalLink,
   Code,
   Shield,
@@ -29,12 +29,15 @@ import { scanZipFile, validateZipFile } from "@/features/projects/services";
 import type { Project, CreateProjectForm } from "@/shared/types";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
+import CreateTaskDialog from "@/components/audit/CreateTaskDialog";
 
 export default function Projects() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showCreateTaskDialog, setShowCreateTaskDialog] = useState(false);
+  const [selectedProjectForTask, setSelectedProjectForTask] = useState<string>("");
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -79,7 +82,7 @@ export default function Projects() {
         ...createForm,
         // 无登录场景下不传 owner_id，由后端置为 null
       } as any);
-      
+
       toast.success("项目创建成功");
       setShowCreateDialog(false);
       resetCreateForm();
@@ -189,6 +192,19 @@ export default function Projects() {
     return new Date(dateString).toLocaleDateString('zh-CN');
   };
 
+  const handleCreateTask = (projectId: string) => {
+    setSelectedProjectForTask(projectId);
+    setShowCreateTaskDialog(true);
+  };
+
+  const handleTaskCreated = () => {
+    toast.success("审计任务已创建", {
+      description: '因为网络和代码文件大小等因素，审计时长通常至少需要1分钟，请耐心等待...',
+      duration: 5000
+    });
+    // 任务创建后会自动跳转到项目详情页面
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -205,7 +221,7 @@ export default function Projects() {
           <h1 className="page-title">项目管理</h1>
           <p className="page-subtitle">管理您的代码项目，配置审计规则和查看分析结果</p>
         </div>
-        
+
         <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
           <DialogTrigger asChild>
             <Button>
@@ -217,13 +233,13 @@ export default function Projects() {
             <DialogHeader>
               <DialogTitle>创建新项目</DialogTitle>
             </DialogHeader>
-            
+
             <Tabs defaultValue="repository" className="w-full">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="repository">Git 仓库</TabsTrigger>
                 <TabsTrigger value="upload">上传代码</TabsTrigger>
               </TabsList>
-              
+
               <TabsContent value="repository" className="space-y-4 mt-6">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
@@ -237,8 +253,8 @@ export default function Projects() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="repository_type">仓库类型</Label>
-                    <Select 
-                      value={createForm.repository_type} 
+                    <Select
+                      value={createForm.repository_type}
                       onValueChange={(value: any) => setCreateForm({ ...createForm, repository_type: value })}
                     >
                       <SelectTrigger>
@@ -323,7 +339,7 @@ export default function Projects() {
                   </Button>
                 </div>
               </TabsContent>
-              
+
               <TabsContent value="upload" className="space-y-4 mt-6">
                 <div className="space-y-2">
                   <Label htmlFor="upload-name">项目名称 *</Label>
@@ -490,16 +506,16 @@ export default function Projects() {
                   </Badge>
                 </div>
               </CardHeader>
-              
+
               <CardContent className="space-y-4">
                 {/* 项目信息 */}
                 <div className="space-y-3">
                   {project.repository_url && (
                     <div className="flex items-center text-sm text-gray-500">
                       <GitBranch className="w-4 h-4 mr-2 flex-shrink-0" />
-                      <a 
-                        href={project.repository_url} 
-                        target="_blank" 
+                      <a
+                        href={project.repository_url}
+                        target="_blank"
                         rel="noopener noreferrer"
                         className="hover:text-primary transition-colors flex items-center truncate"
                       >
@@ -508,7 +524,7 @@ export default function Projects() {
                       </a>
                     </div>
                   )}
-                  
+
                   <div className="flex items-center justify-between text-sm text-gray-500">
                     <div className="flex items-center">
                       <Calendar className="w-4 h-4 mr-2" />
@@ -545,9 +561,13 @@ export default function Projects() {
                       查看详情
                     </Button>
                   </Link>
-                  <Button size="sm" className="btn-primary">
+                  <Button
+                    size="sm"
+                    className="btn-primary"
+                    onClick={() => handleCreateTask(project.id)}
+                  >
                     <Shield className="w-4 h-4 mr-2" />
-                    审计
+                    新建任务
                   </Button>
                 </div>
               </CardContent>
@@ -638,6 +658,14 @@ export default function Projects() {
           </Card>
         </div>
       )}
+
+      {/* 创建任务对话框 */}
+      <CreateTaskDialog
+        open={showCreateTaskDialog}
+        onOpenChange={setShowCreateTaskDialog}
+        onTaskCreated={handleTaskCreated}
+        preselectedProjectId={selectedProjectForTask}
+      />
     </div>
   );
 }

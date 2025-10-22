@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -26,6 +26,7 @@ import CreateTaskDialog from "@/components/audit/CreateTaskDialog";
 
 export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [project, setProject] = useState<Project | null>(null);
   const [tasks, setTasks] = useState<AuditTask[]>([]);
   const [loading, setLoading] = useState(true);
@@ -66,17 +67,28 @@ export default function ProjectDetail() {
     }
     try {
       setScanning(true);
-      await runRepositoryAudit({
+      console.log('开始启动审计任务...');
+      const taskId = await runRepositoryAudit({
         projectId: id,
         repoUrl: project.repository_url,
         branch: project.default_branch || 'main',
         githubToken: undefined,
         createdBy: undefined
       });
-      toast.success('已启动仓库审计');
-      await loadProjectData();
+      
+      console.log('审计任务创建成功，taskId:', taskId);
+      
+      // 显示详细的提示信息
+      toast.success('审计任务已启动', {
+        description: '因为网络和代码文件大小等因素，审计时长通常至少需要1分钟，请耐心等待...',
+        duration: 5000
+      });
+      
+      // 跳转到任务详情页面
+      console.log('准备跳转到:', `/tasks/${taskId}`);
+      navigate(`/tasks/${taskId}`);
     } catch (e: any) {
-      console.error(e);
+      console.error('启动审计失败:', e);
       toast.error(e?.message || '启动审计失败');
     } finally {
       setScanning(false);
@@ -116,7 +128,10 @@ export default function ProjectDetail() {
   };
 
   const handleTaskCreated = () => {
-    toast.success("审计任务已创建");
+    toast.success("审计任务已创建", {
+      description: '因为网络和代码文件大小等因素，审计时长通常至少需要1分钟，请耐心等待...',
+      duration: 5000
+    });
     loadProjectData(); // 重新加载项目数据以显示新任务
   };
 
