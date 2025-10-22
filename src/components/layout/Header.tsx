@@ -3,8 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { 
   Menu, 
-  X, 
-  Code
+  X
 } from "lucide-react";
 import routes from "@/app/routes";
 
@@ -20,9 +19,11 @@ export default function Header() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-3 group">
-            <div className="w-9 h-9 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-sm group-hover:shadow-md transition-all">
-              <Code className="w-5 h-5 text-white" />
-            </div>
+            <img 
+              src="/logo_xcodereviewer.png" 
+              alt="XCodeReviewer Logo" 
+              className="w-9 h-9 rounded-xl shadow-sm group-hover:shadow-md transition-all"
+            />
             <span className="text-xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors">XCodeReviewer</span>
           </Link>
 
