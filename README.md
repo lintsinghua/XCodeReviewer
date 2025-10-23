@@ -144,7 +144,7 @@
 
 ### 🔑 获取 API Key
 
-#### Google Gemini API Key
+#### Google Gemini API Key（预计后续会开放更多主流平台API功能）
 1. 访问 [Google AI Studio](https://makersuite.google.com/app/apikey)
 2. 创建新的 API Key
 3. 将 API Key 添加到 `.env` 文件中的 `VITE_GEMINI_API_KEY`
@@ -180,7 +180,7 @@
 <details>
 <summary><b>🧠 智能审计</b></summary>
 
-- **AI 深度代码理解**：基于 Google Gemini，提供超越关键词匹配的智能分析。
+- **AI 深度代码理解**：基于 Google Gemini（预计后续会开放更多主流平台API功能），提供超越关键词匹配的智能分析。
 - **五大核心维度检测**：
   - 🐛 **潜在 Bug**：精准捕捉逻辑错误、边界条件和空指针等问题。
   - 🔒 **安全漏洞**：识别 SQL 注入、XSS、敏感信息泄露等安全风险。
@@ -215,7 +215,7 @@
 | **数据可视化** | `Recharts` | 专业的图表库，支持多种图表类型 |
 | **路由管理** | `React Router v6` | 单页应用路由解决方案 |
 | **状态管理** | `React Hooks` `Sonner` | 轻量级状态管理和通知系统 |
-| **AI 引擎** | `Google Gemini 2.5 Flash` | 强大的大语言模型，支持代码分析 |
+| **AI 引擎** | `Google Gemini 2.5 Flash` | 强大的大语言模型，支持代码分析，（预计后续会开放更多主流平台API功能） |
 | **后端服务** | `Supabase` `PostgreSQL` | 全栈后端即服务，实时数据库 |
 | **HTTP 客户端** | `Axios` `Ky` | 现代化的 HTTP 请求库 |
 | **代码质量** | `Biome` `Ast-grep` `TypeScript` | 代码格式化、静态分析和类型检查 |
