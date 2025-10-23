@@ -359,7 +359,7 @@ Currently, XCodeReviewer is positioned in the rapid prototype verification stage
 ---
 
 ⭐ If this project helps you, please give us a **Star**! Your support is our motivation to keep moving forward!
-[![Star History](https://api.star-history.com/svg?repos=lintsinghua/XCodeReviewer&type=Date)](https://star-history.com/#lintsinghua/XCodeReview]
+[![Star History](https://api.star-history.com/svg?repos=lintsinghua/XCodeReviewer&type=Date)](https://star-history.com/#lintsinghua/XCodeReview)
 ---
 
 📄 Disclaimer
