@@ -364,6 +364,8 @@ Currently, XCodeReviewer is positioned in the rapid prototype verification stage
 
 📄 Disclaimer
 
+This disclaimer is intended to clarify the responsibilities and risks associated with the use of this open source project and to protect the legitimate rights and interests of project authors, contributors and maintainers. The code, tools and related content provided by this open source project are for reference and learning purposes only.
+
 #### 1. **Non-Professional Advice**
 - The code analysis results and suggestions provided by this tool are **for reference only** and do not constitute professional security audits, code reviews, or legal advice.
 - Users must combine manual reviews, professional tools, and other reliable resources to thoroughly validate critical code (especially in high-risk areas such as security, finance, or healthcare).
