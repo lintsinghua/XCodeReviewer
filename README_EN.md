@@ -360,3 +360,33 @@ Currently, XCodeReviewer is positioned in the rapid prototype verification stage
 
 ⭐ If this project helps you, please give us a **Star**! Your support is our motivation to keep moving forward!
 [![Star History](https://api.star-history.com/svg?repos=lintsinghua/XCodeReviewer&type=Date)](https://star-history.com/#lintsinghua/XCodeReview
+---
+
+📄 Disclaimer
+
+#### 1. **Non-Professional Advice**
+- The code analysis results and suggestions provided by this tool are **for reference only** and do not constitute professional security audits, code reviews, or legal advice.
+- Users must combine manual reviews, professional tools, and other reliable resources to thoroughly validate critical code (especially in high-risk areas such as security, finance, or healthcare).
+
+#### 2. **No Warranty and Liability Disclaimer**
+- This project is provided "as is" **without any express or implied warranties**, including but not limited to merchantability, fitness for a particular purpose, and non-infringement.
+- Authors, contributors, and maintainers **shall not be liable for any direct, indirect, incidental, special, punitive, or consequential damages**, including but not limited to data loss, system failures, security breaches, or business losses, even if advised of the possibility.
+
+#### 3. **Limitations of AI Analysis**
+- This tool relies on AI models such as Google Gemini, and results may contain **errors, omissions, or inaccuracies**, with no guarantee of completeness or reliability.
+- AI outputs **cannot replace human expert judgment**; users are solely responsible for the final code quality and any outcomes.
+
+#### 4. **Third-Party Services and Data Privacy**
+- This project integrates third-party services like Google Gemini, Supabase, and GitHub, and usage is subject to their respective terms of service.
+- Users must obtain and manage API keys independently; this project **does not store, transmit, or process user sensitive credentials**.
+- Availability, accuracy, privacy, or disruptions of third-party services are the responsibility of the providers; project authors assume no liability.
+
+#### 5. **User Responsibilities**
+- Users must ensure their code does not infringe third-party intellectual property rights and complies with open-source licenses and applicable laws.
+- **This tool must not be used for illegal, malicious, or rights-infringing purposes**; users bear full legal and financial responsibility for all consequences. Authors, contributors, and maintainers **shall bear no responsibility** for such activities or their consequences and reserve the right to pursue abusers.
+
+#### 6. **Open Source Contributions**
+- Code, content, or suggestions from contributors **do not represent the project's official stance**; contributors are responsible for their accuracy, security, and compliance.
+- Maintainers reserve the right to review, modify, reject, or remove any contributions.
+
+For questions, please contact maintainers via GitHub Issues. This disclaimer is governed by the laws of the project's jurisdiction.
