@@ -337,7 +337,7 @@ pnpm lint
 - **问题反馈**: [Issues](https://github.com/lintsinghua/XCodeReviewer/issues)
 - **作者邮箱**: tsinghuaiiilove@gmail.com
 
-## 未来计划（正在加急中）
+## 🎯 未来计划（正在加急中）
 
 目前 XCodeReviewer 定位为快速原型验证阶段，功能需要逐渐完善，根据项目后续发展和大家的建议，未来开发计划如下（尽快实现）：
 
