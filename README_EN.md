@@ -363,7 +363,7 @@ Currently, XCodeReviewer is positioned in the rapid prototype verification stage
 [![Star History](https://api.star-history.com/svg?repos=lintsinghua/XCodeReviewer&type=Date)](https://star-history.com/#lintsinghua/XCodeReview)
 ---
 
-📄 Disclaimer
+## 📄 Disclaimer
 
 This disclaimer is intended to clarify the responsibilities and risks associated with the use of this open source project and to protect the legitimate rights and interests of project authors, contributors and maintainers. The code, tools and related content provided by this open source project are for reference and learning purposes only.
 
