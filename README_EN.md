@@ -151,7 +151,7 @@ For development or custom modifications, use local deployment.
 
 ### 🔑 Getting API Keys
 
-#### Google Gemini API Key
+#### Google Gemini API Key(It is expected that more mainstream platform API functions will be opened in the future)
 1. Visit [Google AI Studio](https://makersuite.google.com/app/apikey)
 2. Create a new API Key
 3. Add the API Key to `VITE_GEMINI_API_KEY` in your `.env` file
@@ -187,7 +187,7 @@ For development or custom modifications, use local deployment.
 <details>
 <summary><b>🧠 Intelligent Auditing</b></summary>
 
-- **AI Deep Code Understanding**: Based on Google Gemini, providing intelligent analysis beyond keyword matching.
+- **AI Deep Code Understanding**: Based on Google Gemini(It is expected that more mainstream platform API functions will be opened in the future), providing intelligent analysis beyond keyword matching.
 - **Five Core Detection Dimensions**:
   - 🐛 **Potential Bugs**: Precisely capture logical errors, boundary conditions, and null pointer issues.
   - 🔒 **Security Vulnerabilities**: Identify SQL injection, XSS, sensitive information leakage, and other security risks.
@@ -222,7 +222,7 @@ For development or custom modifications, use local deployment.
 | **Data Visualization** | `Recharts` | Professional chart library supporting multiple chart types |
 | **Routing** | `React Router v6` | Single-page application routing solution |
 | **State Management** | `React Hooks` `Sonner` | Lightweight state management and notification system |
-| **AI Engine** | `Google Gemini 2.5 Flash` | Powerful large language model supporting code analysis |
+| **AI Engine** | `Google Gemini 2.5 Flash`(It is expected that more mainstream platform API functions will be opened in the future) | Powerful large language model supporting code analysis |
 | **Backend Service** | `Supabase` `PostgreSQL` | Full-stack backend-as-a-service with real-time database |
 | **HTTP Client** | `Axios` `Ky` | Modern HTTP request libraries |
 | **Code Quality** | `Biome` `Ast-grep` `TypeScript` | Code formatting, static analysis, and type checking |
