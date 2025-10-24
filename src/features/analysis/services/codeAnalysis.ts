@@ -1,5 +1,7 @@
 import type { CodeAnalysisResult } from "@/types/types";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { LLMService } from '@/shared/services/llm';
+import { getCurrentLLMApiKey, getCurrentLLMModel, env } from '@/shared/config/env';
+import type { LLMConfig } from '@/shared/services/llm/types';
 
 // 基于 LLM 的代码分析引擎
 export class CodeAnalysisEngine {
@@ -11,49 +13,30 @@ export class CodeAnalysisEngine {
     return [...this.SUPPORTED_LANGUAGES];
   }
 
-  static async analyzeCode(code: string, language: string): Promise<CodeAnalysisResult> {
-    const apiKey = import.meta.env.VITE_GEMINI_API_KEY as string | undefined;
+  /**
+   * 创建LLM服务实例
+   */
+  private static createLLMService(): LLMService {
+    const apiKey = getCurrentLLMApiKey();
     if (!apiKey) {
-      throw new Error('缺少 VITE_GEMINI_API_KEY 环境变量，请在 .env 中配置');
+      throw new Error(`缺少 ${env.LLM_PROVIDER} API Key，请在 .env 中配置`);
     }
 
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const primaryModel = (import.meta.env.VITE_GEMINI_MODEL as string) || 'gemini-2.5-flash';
-    const fallbacks = ['gemini-1.5-flash'];
-
-    const requestWithTimeout = async (m: string, promptText: string, timeoutMs: number) => {
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), timeoutMs);
-      try {
-        const mdl = genAI.getGenerativeModel({ model: m });
-        const res = await mdl.generateContent({
-          contents: [{ role: 'user', parts: [{ text: promptText }] }],
-          safetySettings: [],
-          generationConfig: { temperature: 0.2 }
-        }, { signal: controller.signal as any });
-        return res.response.text();
-      } finally {
-        clearTimeout(timer);
-      }
+    const config: LLMConfig = {
+      provider: env.LLM_PROVIDER as any,
+      apiKey,
+      model: getCurrentLLMModel(),
+      baseUrl: env.LLM_BASE_URL,
+      timeout: env.LLM_TIMEOUT,
+      temperature: env.LLM_TEMPERATURE,
+      maxTokens: env.LLM_MAX_TOKENS,
     };
 
-    const generateWithRetry = async (promptText: string) => {
-      const models = [primaryModel, ...fallbacks];
-      const maxAttempts = 3;
-      const timeoutMs = Number(import.meta.env.VITE_GEMINI_TIMEOUT_MS || 25000);
-      let lastError: any = null;
-      for (const m of models) {
-        for (let i = 0; i < maxAttempts; i++) {
-          try {
-            return await requestWithTimeout(m, prompt, timeoutMs);
-          } catch (err: any) {
-            lastError = err;
-            await new Promise(r => setTimeout(r, 1000 * Math.pow(2, i))); // 1s,2s,4s
-          }
-        }
-      }
-      throw lastError;
-    };
+    return new LLMService(config);
+  }
+
+  static async analyzeCode(code: string, language: string): Promise<CodeAnalysisResult> {
+    const llmService = this.createLLMService();
 
     const schema = `{
       "issues": [
@@ -91,32 +74,39 @@ export class CodeAnalysisEngine {
       }
     }`;
 
-    const prompt = [
-      `请请严格使用中文。你是一个专业代码审计助手。请从编码规范、潜在Bug、性能问题、安全漏洞、可维护性、最佳实践等维度分析代码，并严格输出 JSON（仅 JSON）符合以下 schema：`,
-      schema,
-      `语言: ${language}`,
-      `代码: \n\n${code}`
-    ].join('\n\n');
+    const systemPrompt = `请严格使用中文。你是一个专业代码审计助手。请从编码规范、潜在Bug、性能问题、安全漏洞、可维护性、最佳实践等维度分析代码，并严格输出 JSON（仅 JSON）符合以下 schema：\n\n${schema}`;
+    
+    const userPrompt = `语言: ${language}\n\n代码:\n\n${code}`;
 
     let text = '';
     try {
-      text = await generateWithRetry(prompt);
-    } catch (e) {
-      // 全部超时/失败时，返回兜底估算结果
-      const fallbackIssues: any[] = [];
-      const fallbackMetrics = this.estimateMetricsFromIssues(fallbackIssues);
-      return {
-        issues: fallbackIssues,
-        quality_score: this.calculateQualityScore(fallbackMetrics, fallbackIssues),
-        summary: {
-          total_issues: 0,
-          critical_issues: 0,
-          high_issues: 0,
-          medium_issues: 0,
-          low_issues: 0,
-        },
-        metrics: fallbackMetrics
-      } as CodeAnalysisResult;
+      // 使用新的LLM服务进行分析
+      const response = await llmService.complete({
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+        temperature: 0.2,
+      });
+      text = response.content;
+    } catch (e: any) {
+      console.error('LLM分析失败:', e);
+      
+      // 构造更友好的错误消息
+      const errorMsg = e.message || '未知错误';
+      const provider = env.LLM_PROVIDER;
+      
+      // 抛出详细的错误信息给前端
+      throw new Error(
+        `${provider} API调用失败\n\n` +
+        `错误详情：${errorMsg}\n\n` +
+        `配置检查：\n` +
+        `- 提供商：${provider}\n` +
+        `- 模型：${getCurrentLLMModel() || '(使用默认)'}\n` +
+        `- API Key：${getCurrentLLMApiKey() ? '已配置' : '未配置'}\n` +
+        `- 超时设置：${env.LLM_TIMEOUT}ms\n\n` +
+        `请检查.env配置文件或尝试切换其他LLM提供商`
+      );
     }
     const parsed = this.safeParseJson(text);
 

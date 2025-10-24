@@ -62,7 +62,13 @@ Deploy quickly using Docker without Node.js environment setup.
 2. **Configure environment variables**
    ```bash
    cp .env.example .env
-   # Edit .env file and set at least VITE_GEMINI_API_KEY
+   # Edit .env file and configure LLM provider and API Key
+   # Method 1: Using Universal Configuration (Recommended)
+   # VITE_LLM_PROVIDER=gemini
+   # VITE_LLM_API_KEY=your_api_key
+   # 
+   # Method 2: Using Platform-Specific Configuration
+   # VITE_GEMINI_API_KEY=your_gemini_api_key
    ```
 
 3. **Build and start**
@@ -120,10 +126,16 @@ For development or custom modifications, use local deployment.
     
     Edit the `.env` file and configure the necessary environment variables:
     ```env
-    # Google Gemini AI Configuration (Required)
+    # LLM Universal Configuration (Recommended)
+    VITE_LLM_PROVIDER=gemini              # Choose provider (gemini|openai|claude|qwen|deepseek, etc.)
+    VITE_LLM_API_KEY=your_api_key_here    # Corresponding API Key
+    VITE_LLM_MODEL=gemini-2.5-flash       # Model name (optional)
+    
+    # Or use platform-specific configuration
     VITE_GEMINI_API_KEY=your_gemini_api_key_here
-    VITE_GEMINI_MODEL=gemini-2.5-flash
-    VITE_GEMINI_TIMEOUT_MS=25000
+    VITE_OPENAI_API_KEY=your_openai_api_key_here
+    VITE_CLAUDE_API_KEY=your_claude_api_key_here
+    # ... Supports 10+ mainstream platforms
     
     # Supabase Configuration (Optional, for data persistence)
     VITE_SUPABASE_URL=https://your-project.supabase.co
@@ -149,12 +161,166 @@ For development or custom modifications, use local deployment.
 5.  **Access the application**
     Open `http://localhost:5174` in your browser
 
+#### ⚙️ Advanced Configuration (Optional)
+
+If you encounter timeout or connection issues, adjust these settings:
+
+```env
+# Increase timeout (default 150000ms)
+VITE_LLM_TIMEOUT=150000
+
+# Use custom API endpoint (for proxy or private deployment)
+VITE_LLM_BASE_URL=https://your-proxy-url.com
+
+# Reduce concurrency and increase request gap (to avoid rate limiting)
+VITE_LLM_CONCURRENCY=1
+VITE_LLM_GAP_MS=1000
+```
+
+#### 🔧 FAQ
+
+<details>
+<summary><b>Q: How to quickly switch between LLM platforms?</b></summary>
+
+Simply modify the `VITE_LLM_PROVIDER` value:
+
+```env
+# Switch to OpenAI
+VITE_LLM_PROVIDER=openai
+VITE_OPENAI_API_KEY=your_openai_key
+
+# Switch to Claude
+VITE_LLM_PROVIDER=claude
+VITE_CLAUDE_API_KEY=your_claude_key
+
+# Switch to Qwen
+VITE_LLM_PROVIDER=qwen
+VITE_QWEN_API_KEY=your_qwen_key
+```
+</details>
+
+<details>
+<summary><b>Q: What to do when encountering "Request Timeout" error?</b></summary>
+
+1. **Increase timeout**: Set `VITE_LLM_TIMEOUT=300000` in `.env` (5 minutes)
+2. **Check network connection**: Ensure you can access the API endpoint
+3. **Use proxy**: Configure `VITE_LLM_BASE_URL` if API is blocked
+4. **Switch platform**: Try other LLM providers, such as DeepSeek (good for China)
+</details>
+
+<details>
+<summary><b>Q: How to use Chinese platforms to avoid network issues?</b></summary>
+
+Recommended Chinese platforms for faster access:
+
+```env
+# Use Qwen (Recommended)
+VITE_LLM_PROVIDER=qwen
+VITE_QWEN_API_KEY=your_qwen_key
+
+# Or use DeepSeek (Cost-effective)
+VITE_LLM_PROVIDER=deepseek
+VITE_DEEPSEEK_API_KEY=your_deepseek_key
+
+# Or use Zhipu AI
+VITE_LLM_PROVIDER=zhipu
+VITE_ZHIPU_API_KEY=your_zhipu_key
+```
+</details>
+
+<details>
+<summary><b>Q: What's the API Key format for Baidu ERNIE?</b></summary>
+
+Baidu API Key requires both API Key and Secret Key, separated by colon:
+
+```env
+VITE_LLM_PROVIDER=baidu
+VITE_BAIDU_API_KEY=your_api_key:your_secret_key
+VITE_BAIDU_MODEL=ERNIE-3.5-8K
+```
+
+Get API Key and Secret Key from [Baidu Qianfan Platform](https://console.bce.baidu.com/qianfan/).
+</details>
+
+<details>
+<summary><b>Q: How to configure proxy or relay service?</b></summary>
+
+Use `VITE_LLM_BASE_URL` to configure custom endpoint:
+
+```env
+# OpenAI relay example
+VITE_LLM_PROVIDER=openai
+VITE_OPENAI_API_KEY=your_key
+VITE_OPENAI_BASE_URL=https://api.your-proxy.com/v1
+
+# Or use universal config
+VITE_LLM_PROVIDER=openai
+VITE_LLM_API_KEY=your_key
+VITE_LLM_BASE_URL=https://api.your-proxy.com/v1
+```
+</details>
+
+<details>
+<summary><b>Q: How to configure multiple platforms and switch quickly?</b></summary>
+
+Configure all platform keys in `.env`, then switch by modifying `VITE_LLM_PROVIDER`:
+
+```env
+# Currently active platform
+VITE_LLM_PROVIDER=gemini
+
+# Pre-configure all platforms
+VITE_GEMINI_API_KEY=gemini_key
+VITE_OPENAI_API_KEY=openai_key
+VITE_CLAUDE_API_KEY=claude_key
+VITE_QWEN_API_KEY=qwen_key
+VITE_DEEPSEEK_API_KEY=deepseek_key
+
+# Just modify the first line's provider value to switch
+```
+</details>
+
+
 ### 🔑 Getting API Keys
 
-#### Google Gemini API Key(It is expected that more mainstream platform API functions will be opened in the future)
-1. Visit [Google AI Studio](https://makersuite.google.com/app/apikey)
-2. Create a new API Key
-3. Add the API Key to `VITE_GEMINI_API_KEY` in your `.env` file
+#### 🎯 Supported LLM Platforms
+
+XCodeReviewer now supports multiple mainstream LLM platforms. You can choose freely based on your needs:
+
+**International Platforms:**
+- **Google Gemini** - Recommended for code analysis, generous free tier [Get API Key](https://makersuite.google.com/app/apikey)
+- **OpenAI GPT** - Stable and reliable, best overall performance [Get API Key](https://platform.openai.com/api-keys)
+- **Anthropic Claude** - Strong code understanding capabilities [Get API Key](https://console.anthropic.com/)
+- **DeepSeek** - Cost-effective [Get API Key](https://platform.deepseek.com/)
+
+**Chinese Platforms:**
+- **Alibaba Qwen (通义千问)** [Get API Key](https://dashscope.console.aliyun.com/)
+- **Zhipu AI (GLM)** [Get API Key](https://open.bigmodel.cn/)
+- **Moonshot (Kimi)** [Get API Key](https://platform.moonshot.cn/)
+- **Baidu ERNIE (文心一言)** [Get API Key](https://console.bce.baidu.com/qianfan/)
+- **MiniMax** [Get API Key](https://www.minimaxi.com/)
+- **Bytedance Doubao (豆包)** [Get API Key](https://console.volcengine.com/ark)
+
+#### 📝 Configuration Examples
+
+Configure your chosen platform in the `.env` file:
+
+```env
+# Method 1: Using Universal Configuration (Recommended)
+VITE_LLM_PROVIDER=gemini          # Choose provider
+VITE_LLM_API_KEY=your_api_key     # Corresponding API Key
+VITE_LLM_MODEL=gemini-2.5-flash   # Model name (optional)
+
+# Method 2: Using Platform-Specific Configuration
+VITE_GEMINI_API_KEY=your_gemini_api_key
+VITE_OPENAI_API_KEY=your_openai_api_key
+VITE_CLAUDE_API_KEY=your_claude_api_key
+# ... Other platform configurations
+```
+
+**Quick Platform Switch:** Simply modify the value of `VITE_LLM_PROVIDER` to switch between different platforms!
+
+> 💡 **Tip:** For detailed configuration instructions, please refer to the `.env.example` file
 
 #### Supabase Configuration (Optional)
 1. Visit [Supabase](https://supabase.com/) to create a new project
@@ -187,7 +353,7 @@ For development or custom modifications, use local deployment.
 <details>
 <summary><b>🧠 Intelligent Auditing</b></summary>
 
-- **AI Deep Code Understanding**: Based on Google Gemini(It is expected that more mainstream platform API functions will be opened in the future), providing intelligent analysis beyond keyword matching.
+- **AI Deep Code Understanding**: Supports multiple mainstream LLM platforms (Gemini, OpenAI, Claude, Qwen, DeepSeek, etc.), providing intelligent analysis beyond keyword matching.
 - **Five Core Detection Dimensions**:
   - 🐛 **Potential Bugs**: Precisely capture logical errors, boundary conditions, and null pointer issues.
   - 🔒 **Security Vulnerabilities**: Identify SQL injection, XSS, sensitive information leakage, and other security risks.
@@ -222,7 +388,7 @@ For development or custom modifications, use local deployment.
 | **Data Visualization** | `Recharts` | Professional chart library supporting multiple chart types |
 | **Routing** | `React Router v6` | Single-page application routing solution |
 | **State Management** | `React Hooks` `Sonner` | Lightweight state management and notification system |
-| **AI Engine** | `Google Gemini 2.5 Flash`(It is expected that more mainstream platform API functions will be opened in the future) | Powerful large language model supporting code analysis |
+| **AI Engine** | `Multi-Platform LLM` | Supports 10+ mainstream platforms including Gemini, OpenAI, Claude, Qwen, DeepSeek |
 | **Backend Service** | `Supabase` `PostgreSQL` | Full-stack backend-as-a-service with real-time database |
 | **HTTP Client** | `Axios` `Ky` | Modern HTTP request libraries |
 | **Code Quality** | `Biome` `Ast-grep` `TypeScript` | Code formatting, static analysis, and type checking |
@@ -308,17 +474,66 @@ pnpm lint
 
 ### Environment Variables
 
+#### Core LLM Configuration
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `VITE_LLM_PROVIDER` | ✅ | `gemini` | LLM provider: `gemini`\|`openai`\|`claude`\|`qwen`\|`deepseek`\|`zhipu`\|`moonshot`\|`baidu`\|`minimax`\|`doubao` |
+| `VITE_LLM_API_KEY` | ✅ | - | Universal API Key (higher priority than platform-specific config) |
+| `VITE_LLM_MODEL` | ❌ | Auto | Model name (uses platform default if not specified) |
+| `VITE_LLM_BASE_URL` | ❌ | - | Custom API endpoint (for proxy, relay, or private deployment) |
+| `VITE_LLM_TIMEOUT` | ❌ | `150000` | Request timeout (milliseconds) |
+| `VITE_LLM_TEMPERATURE` | ❌ | `0.2` | Temperature parameter (0.0-2.0), controls output randomness |
+| `VITE_LLM_MAX_TOKENS` | ❌ | `4096` | Maximum output tokens |
+
+#### Platform-Specific API Key Configuration (Optional)
+| Variable | Description | Special Requirements |
+|----------|-------------|---------------------|
+| `VITE_GEMINI_API_KEY` | Google Gemini API Key | - |
+| `VITE_GEMINI_MODEL` | Gemini model (default: gemini-2.5-flash) | - |
+| `VITE_OPENAI_API_KEY` | OpenAI API Key | - |
+| `VITE_OPENAI_MODEL` | OpenAI model (default: gpt-4o-mini) | - |
+| `VITE_OPENAI_BASE_URL` | OpenAI custom endpoint | For relay services |
+| `VITE_CLAUDE_API_KEY` | Anthropic Claude API Key | - |
+| `VITE_CLAUDE_MODEL` | Claude model (default: claude-3-5-sonnet-20241022) | - |
+| `VITE_QWEN_API_KEY` | Alibaba Qwen API Key | - |
+| `VITE_QWEN_MODEL` | Qwen model (default: qwen-turbo) | - |
+| `VITE_DEEPSEEK_API_KEY` | DeepSeek API Key | - |
+| `VITE_DEEPSEEK_MODEL` | DeepSeek model (default: deepseek-chat) | - |
+| `VITE_ZHIPU_API_KEY` | Zhipu AI API Key | - |
+| `VITE_ZHIPU_MODEL` | Zhipu model (default: glm-4-flash) | - |
+| `VITE_MOONSHOT_API_KEY` | Moonshot Kimi API Key | - |
+| `VITE_MOONSHOT_MODEL` | Kimi model (default: moonshot-v1-8k) | - |
+| `VITE_BAIDU_API_KEY` | Baidu ERNIE API Key | ⚠️ Format: `API_KEY:SECRET_KEY` |
+| `VITE_BAIDU_MODEL` | ERNIE model (default: ERNIE-3.5-8K) | - |
+| `VITE_MINIMAX_API_KEY` | MiniMax API Key | - |
+| `VITE_MINIMAX_MODEL` | MiniMax model (default: abab6.5-chat) | - |
+| `VITE_DOUBAO_API_KEY` | Bytedance Doubao API Key | - |
+| `VITE_DOUBAO_MODEL` | Doubao model (default: doubao-pro-32k) | - |
+
+#### Database Configuration (Optional)
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `VITE_GEMINI_API_KEY` | ✅ | Google Gemini API key |
-| `VITE_GEMINI_MODEL` | ❌ | AI model name (default: gemini-2.5-flash) |
-| `VITE_GEMINI_TIMEOUT_MS` | ❌ | Request timeout (default: 25000ms) |
-| `VITE_SUPABASE_URL` | ❌ | Supabase project URL |
+| `VITE_SUPABASE_URL` | ❌ | Supabase project URL (for data persistence) |
 | `VITE_SUPABASE_ANON_KEY` | ❌ | Supabase anonymous key |
-| `VITE_APP_ID` | ❌ | Application identifier (default: xcodereviewer) |
-| `VITE_MAX_ANALYZE_FILES` | ❌ | Maximum files to analyze (default: 40) |
-| `VITE_LLM_CONCURRENCY` | ❌ | LLM concurrency limit (default: 2) |
-| `VITE_LLM_GAP_MS` | ❌ | Gap between LLM requests (default: 500ms) |
+
+> 💡 **Note**: Without Supabase config, system runs in demo mode without data persistence
+
+#### GitHub Integration Configuration (Optional)
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `VITE_GITHUB_TOKEN` | ❌ | GitHub Personal Access Token (for repository analysis) |
+
+#### Analysis Behavior Configuration
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `VITE_MAX_ANALYZE_FILES` | `40` | Maximum files per analysis |
+| `VITE_LLM_CONCURRENCY` | `2` | LLM concurrent requests (reduce to avoid rate limiting) |
+| `VITE_LLM_GAP_MS` | `500` | Gap between LLM requests (milliseconds, increase to avoid rate limiting) |
+
+#### Application Configuration
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `VITE_APP_ID` | `xcodereviewer` | Application identifier |
 
 ## 🤝 Contributing
 
@@ -351,7 +566,8 @@ We warmly welcome all forms of contributions! Whether it's submitting issues, cr
 
 Currently, XCodeReviewer is positioned in the rapid prototype verification stage, and its functions need to be gradually improved. Based on the subsequent development of the project and everyone's suggestions, the future development plan is as follows (to be implemented as soon as possible):
 
-- **Multi-platform/Local Model Support**: In the future, we will quickly add API calling functions for major mainstream models at home and abroad, such as OpenAI, Claude, Tongyi Qianwen, etc. And the function of calling local large models (to meet data privacy requirements).
+- **✅ Multi-Platform LLM Support**: Implemented API calling functionality for 10+ mainstream platforms (Gemini, OpenAI, Claude, Qwen, DeepSeek, Zhipu AI, Kimi, ERNIE, MiniMax, Doubao), with support for free configuration and switching
+- **Local Model Support**: Planning to add support for local large models (such as Ollama) to meet data privacy requirements
 - **Multi-Agent Collaboration**: Consider introducing a multi-agent collaboration architecture, which will implement the `Agent + Human Dialogue` feedback function, including multi-round dialogue process display, human dialogue interruption intervention, etc., to obtain a clearer, more transparent, and supervised auditing process, thereby improving audit quality.
 - **Professional Report File Generation**: Generate professional audit report files in relevant formats according to different needs, supporting customization of file report formats, etc.
 - **Custom Audit Standards**: Different teams have their own coding standards, and different projects have specific security requirements, which is exactly what we want to do next in this project. The current version is still in a "semi-black box mode", where the project guides the analysis direction and defines audit standards through Prompt engineering, and the actual analysis effect is determined by the built-in knowledge of powerful pre-trained AI models. In the future, we will combine methods such as reinforcement learning and supervised learning fine-tuning to develop support for custom rule configuration, define team-specific rules through YAML or JSON, provide best practice templates for common frameworks, etc., to obtain audit results that are more in line with requirements and standards.

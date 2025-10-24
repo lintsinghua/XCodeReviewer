@@ -62,7 +62,13 @@
 2. **配置环境变量**
    ```bash
    cp .env.example .env
-   # 编辑 .env 文件，至少需要配置 VITE_GEMINI_API_KEY
+   # 编辑 .env 文件，配置LLM提供商和API Key
+   # 方式一：使用通用配置（推荐）
+   # VITE_LLM_PROVIDER=gemini
+   # VITE_LLM_API_KEY=your_api_key
+   # 
+   # 方式二：使用平台专用配置
+   # VITE_GEMINI_API_KEY=your_gemini_api_key
    ```
 
 3. **构建并启动**
@@ -113,10 +119,16 @@
     
     编辑 `.env` 文件，配置必要的环境变量：
     ```env
-    # Google Gemini AI 配置 (必需)
+    # LLM 通用配置 (推荐方式)
+    VITE_LLM_PROVIDER=gemini              # 选择提供商 (gemini|openai|claude|qwen|deepseek等)
+    VITE_LLM_API_KEY=your_api_key_here    # 对应的API Key
+    VITE_LLM_MODEL=gemini-2.5-flash       # 模型名称 (可选)
+    
+    # 或使用平台专用配置
     VITE_GEMINI_API_KEY=your_gemini_api_key_here
-    VITE_GEMINI_MODEL=gemini-2.5-flash
-    VITE_GEMINI_TIMEOUT_MS=25000
+    VITE_OPENAI_API_KEY=your_openai_api_key_here
+    VITE_CLAUDE_API_KEY=your_claude_api_key_here
+    # ... 支持10+主流平台
     
     # Supabase 配置 (可选，用于数据持久化)
     VITE_SUPABASE_URL=https://your-project.supabase.co
@@ -142,12 +154,165 @@
 5.  **访问应用**
     在浏览器中打开 `http://localhost:5173`
 
+#### ⚙️ 高级配置（可选）
+
+如果遇到超时或连接问题，可以调整以下配置：
+
+```env
+# 增加超时时间（默认150000ms）
+VITE_LLM_TIMEOUT=150000
+
+# 使用自定义API端点（适用于代理或私有部署）
+VITE_LLM_BASE_URL=https://your-proxy-url.com
+
+# 降低并发数和增加请求间隔（避免频率限制）
+VITE_LLM_CONCURRENCY=1
+VITE_LLM_GAP_MS=1000
+```
+
+#### 🔧 常见问题
+
+<details>
+<summary><b>Q: 如何快速切换LLM平台？</b></summary>
+
+只需修改 `VITE_LLM_PROVIDER` 的值即可：
+
+```env
+# 切换到OpenAI
+VITE_LLM_PROVIDER=openai
+VITE_OPENAI_API_KEY=your_openai_key
+
+# 切换到Claude
+VITE_LLM_PROVIDER=claude
+VITE_CLAUDE_API_KEY=your_claude_key
+
+# 切换到通义千问
+VITE_LLM_PROVIDER=qwen
+VITE_QWEN_API_KEY=your_qwen_key
+```
+</details>
+
+<details>
+<summary><b>Q: 遇到"请求超时"错误怎么办？</b></summary>
+
+1. **增加超时时间**：在 `.env` 中设置 `VITE_LLM_TIMEOUT=300000`
+2. **检查网络连接**：确保能访问对应的API端点
+3. **使用代理**：如果API被墙，配置 `VITE_LLM_BASE_URL` 使用代理
+4. **切换平台**：尝试其他LLM提供商，如 DeepSeek（国内访问快）
+</details>
+
+<details>
+<summary><b>Q: 如何使用国内平台避免网络问题？</b></summary>
+
+推荐使用国内平台，访问速度更快：
+
+```env
+# 使用通义千问（推荐）
+VITE_LLM_PROVIDER=qwen
+VITE_QWEN_API_KEY=your_qwen_key
+
+# 或使用DeepSeek（性价比高）
+VITE_LLM_PROVIDER=deepseek
+VITE_DEEPSEEK_API_KEY=your_deepseek_key
+
+# 或使用智谱AI
+VITE_LLM_PROVIDER=zhipu
+VITE_ZHIPU_API_KEY=your_zhipu_key
+```
+</details>
+
+<details>
+<summary><b>Q: 百度文心一言的API Key格式是什么？</b></summary>
+
+百度API Key格式特殊，需要同时提供API Key和Secret Key，用冒号分隔：
+
+```env
+VITE_LLM_PROVIDER=baidu
+VITE_BAIDU_API_KEY=your_api_key:your_secret_key
+VITE_BAIDU_MODEL=ERNIE-3.5-8K
+```
+
+可在[百度千帆平台](https://console.bce.baidu.com/qianfan/)获取API Key和Secret Key。
+</details>
+
+<details>
+<summary><b>Q: 如何配置代理或中转服务？</b></summary>
+
+使用 `VITE_LLM_BASE_URL` 配置自定义端点：
+
+```env
+# OpenAI中转示例
+VITE_LLM_PROVIDER=openai
+VITE_OPENAI_API_KEY=your_key
+VITE_OPENAI_BASE_URL=https://api.your-proxy.com/v1
+
+# 或使用通用配置
+VITE_LLM_PROVIDER=openai
+VITE_LLM_API_KEY=your_key
+VITE_LLM_BASE_URL=https://api.your-proxy.com/v1
+```
+</details>
+
+<details>
+<summary><b>Q: 如何同时配置多个平台并快速切换？</b></summary>
+
+在 `.env` 中配置所有平台的Key，然后通过修改 `VITE_LLM_PROVIDER` 切换：
+
+```env
+# 当前使用的平台
+VITE_LLM_PROVIDER=gemini
+
+# 预配置所有平台
+VITE_GEMINI_API_KEY=gemini_key
+VITE_OPENAI_API_KEY=openai_key
+VITE_CLAUDE_API_KEY=claude_key
+VITE_QWEN_API_KEY=qwen_key
+VITE_DEEPSEEK_API_KEY=deepseek_key
+
+# 切换时只需修改第一行的provider值即可
+```
+</details>
+
 ### 🔑 获取 API Key
 
-#### Google Gemini API Key（预计后续会开放更多主流平台API功能）
-1. 访问 [Google AI Studio](https://makersuite.google.com/app/apikey)
-2. 创建新的 API Key
-3. 将 API Key 添加到 `.env` 文件中的 `VITE_GEMINI_API_KEY`
+#### 🎯 支持的 LLM 平台
+
+XCodeReviewer 现已支持多个主流 LLM 平台，您可以根据需求自由选择：
+
+**国际平台：**
+- **Google Gemini** - 推荐用于代码分析，免费配额充足 [获取API Key](https://makersuite.google.com/app/apikey)
+- **OpenAI GPT** - 稳定可靠，综合性能最佳 [获取API Key](https://platform.openai.com/api-keys)
+- **Anthropic Claude** - 代码理解能力强 [获取API Key](https://console.anthropic.com/)
+- **DeepSeek** - 性价比高 [获取API Key](https://platform.deepseek.com/)
+
+**国内平台：**
+- **阿里云通义千问** [获取API Key](https://dashscope.console.aliyun.com/)
+- **智谱AI (GLM)** [获取API Key](https://open.bigmodel.cn/)
+- **月之暗面 Kimi** [获取API Key](https://platform.moonshot.cn/)
+- **百度文心一言** [获取API Key](https://console.bce.baidu.com/qianfan/)
+- **MiniMax** [获取API Key](https://www.minimaxi.com/)
+- **字节豆包** [获取API Key](https://console.volcengine.com/ark)
+
+#### 📝 配置示例
+
+在 `.env` 文件中配置您选择的平台：
+
+```env
+# 方式一：使用通用配置（推荐）
+VITE_LLM_PROVIDER=gemini          # 选择提供商
+VITE_LLM_API_KEY=your_api_key     # 对应的API Key
+VITE_LLM_MODEL=gemini-2.5-flash   # 模型名称（可选）
+
+# 方式二：使用平台专用配置
+VITE_GEMINI_API_KEY=your_gemini_api_key
+VITE_OPENAI_API_KEY=your_openai_api_key
+VITE_CLAUDE_API_KEY=your_claude_api_key
+# ... 其他平台配置
+```
+
+**快速切换平台：** 只需修改 `VITE_LLM_PROVIDER` 的值，即可在不同平台间自由切换！
+
+> 💡 **提示：** 详细的配置说明请参考 `.env.example` 文件
 
 #### Supabase 配置（可选）
 1. 访问 [Supabase](https://supabase.com/) 创建新项目
@@ -180,7 +345,7 @@
 <details>
 <summary><b>🧠 智能审计</b></summary>
 
-- **AI 深度代码理解**：基于 Google Gemini（预计后续会开放更多主流平台API功能），提供超越关键词匹配的智能分析。
+- **AI 深度代码理解**：支持多个主流 LLM 平台（Gemini、OpenAI、Claude、通义千问、DeepSeek 等），提供超越关键词匹配的智能分析。
 - **五大核心维度检测**：
   - 🐛 **潜在 Bug**：精准捕捉逻辑错误、边界条件和空指针等问题。
   - 🔒 **安全漏洞**：识别 SQL 注入、XSS、敏感信息泄露等安全风险。
@@ -215,7 +380,7 @@
 | **数据可视化** | `Recharts` | 专业的图表库，支持多种图表类型 |
 | **路由管理** | `React Router v6` | 单页应用路由解决方案 |
 | **状态管理** | `React Hooks` `Sonner` | 轻量级状态管理和通知系统 |
-| **AI 引擎** | `Google Gemini 2.5 Flash` （预计后续会开放更多主流平台API功能）| 强大的大语言模型，支持代码分析 |
+| **AI 引擎** | `多平台 LLM` | 支持 Gemini、OpenAI、Claude、通义千问、DeepSeek 等 10+ 主流平台 |
 | **后端服务** | `Supabase` `PostgreSQL` | 全栈后端即服务，实时数据库 |
 | **HTTP 客户端** | `Axios` `Ky` | 现代化的 HTTP 请求库 |
 | **代码质量** | `Biome` `Ast-grep` `TypeScript` | 代码格式化、静态分析和类型检查 |
@@ -301,14 +466,67 @@ pnpm lint
 ```
 
 ### 环境变量说明
+
+#### 核心LLM配置
+| 变量名 | 必需 | 默认值 | 说明 |
+|--------|------|--------|------|
+| `VITE_LLM_PROVIDER` | ✅ | `gemini` | LLM提供商：`gemini`\|`openai`\|`claude`\|`qwen`\|`deepseek`\|`zhipu`\|`moonshot`\|`baidu`\|`minimax`\|`doubao` |
+| `VITE_LLM_API_KEY` | ✅ | - | 通用API Key（优先级高于平台专用配置） |
+| `VITE_LLM_MODEL` | ❌ | 自动 | 模型名称（不指定则使用各平台默认模型） |
+| `VITE_LLM_BASE_URL` | ❌ | - | 自定义API端点（用于代理、中转或私有部署） |
+| `VITE_LLM_TIMEOUT` | ❌ | `150000` | 请求超时时间（毫秒） |
+| `VITE_LLM_TEMPERATURE` | ❌ | `0.2` | 温度参数（0.0-2.0），控制输出随机性 |
+| `VITE_LLM_MAX_TOKENS` | ❌ | `4096` | 最大输出token数 |
+
+#### 平台专用API Key配置（可选）
+| 变量名 | 说明 | 特殊要求 |
+|--------|------|---------|
+| `VITE_GEMINI_API_KEY` | Google Gemini API Key | - |
+| `VITE_GEMINI_MODEL` | Gemini模型 (默认: gemini-2.5-flash) | - |
+| `VITE_OPENAI_API_KEY` | OpenAI API Key | - |
+| `VITE_OPENAI_MODEL` | OpenAI模型 (默认: gpt-4o-mini) | - |
+| `VITE_OPENAI_BASE_URL` | OpenAI自定义端点 | 用于中转服务 |
+| `VITE_CLAUDE_API_KEY` | Anthropic Claude API Key | - |
+| `VITE_CLAUDE_MODEL` | Claude模型 (默认: claude-3-5-sonnet-20241022) | - |
+| `VITE_QWEN_API_KEY` | 阿里云通义千问 API Key | - |
+| `VITE_QWEN_MODEL` | 通义千问模型 (默认: qwen-turbo) | - |
+| `VITE_DEEPSEEK_API_KEY` | DeepSeek API Key | - |
+| `VITE_DEEPSEEK_MODEL` | DeepSeek模型 (默认: deepseek-chat) | - |
+| `VITE_ZHIPU_API_KEY` | 智谱AI API Key | - |
+| `VITE_ZHIPU_MODEL` | 智谱模型 (默认: glm-4-flash) | - |
+| `VITE_MOONSHOT_API_KEY` | 月之暗面 Kimi API Key | - |
+| `VITE_MOONSHOT_MODEL` | Kimi模型 (默认: moonshot-v1-8k) | - |
+| `VITE_BAIDU_API_KEY` | 百度文心一言 API Key | ⚠️ 格式: `API_KEY:SECRET_KEY` |
+| `VITE_BAIDU_MODEL` | 文心模型 (默认: ERNIE-3.5-8K) | - |
+| `VITE_MINIMAX_API_KEY` | MiniMax API Key | - |
+| `VITE_MINIMAX_MODEL` | MiniMax模型 (默认: abab6.5-chat) | - |
+| `VITE_DOUBAO_API_KEY` | 字节豆包 API Key | - |
+| `VITE_DOUBAO_MODEL` | 豆包模型 (默认: doubao-pro-32k) | - |
+
+#### 数据库配置（可选）
 | 变量名 | 必需 | 说明 |
 |--------|------|------|
-| `VITE_GEMINI_API_KEY` | ✅ | Google Gemini API 密钥 |
-| `VITE_GEMINI_MODEL` | ❌ | AI 模型名称 (默认: gemini-2.5-flash) |
-| `VITE_GEMINI_TIMEOUT_MS` | ❌ | 请求超时时间 (默认: 25000ms) |
-| `VITE_SUPABASE_URL` | ❌ | Supabase 项目 URL |
-| `VITE_SUPABASE_ANON_KEY` | ❌ | Supabase 匿名密钥 |
-| `VITE_APP_ID` | ❌ | 应用标识符 (默认: xcodereviewer) |
+| `VITE_SUPABASE_URL` | ❌ | Supabase项目URL（用于数据持久化） |
+| `VITE_SUPABASE_ANON_KEY` | ❌ | Supabase匿名密钥 |
+
+> 💡 **提示**：不配置Supabase时，系统以演示模式运行，数据不持久化
+
+#### GitHub集成配置（可选）
+| 变量名 | 必需 | 说明 |
+|--------|------|------|
+| `VITE_GITHUB_TOKEN` | ❌ | GitHub Personal Access Token（用于仓库分析功能） |
+
+#### 分析行为配置
+| 变量名 | 默认值 | 说明 |
+|--------|--------|------|
+| `VITE_MAX_ANALYZE_FILES` | `40` | 单次分析的最大文件数 |
+| `VITE_LLM_CONCURRENCY` | `2` | LLM并发请求数（降低可避免频率限制） |
+| `VITE_LLM_GAP_MS` | `500` | LLM请求间隔（毫秒，增加可避免频率限制） |
+
+#### 应用配置
+| 变量名 | 默认值 | 说明 |
+|--------|--------|------|
+| `VITE_APP_ID` | `xcodereviewer` | 应用标识符 |
 
 ## 🤝 贡献指南
 
@@ -341,7 +559,8 @@ pnpm lint
 
 目前 XCodeReviewer 定位为快速原型验证阶段，功能需要逐渐完善，根据项目后续发展和大家的建议，未来开发计划如下（尽快实现）：
 
-- **多平台/本地模型支持**: 未来会尽快加入OpenAI、Claude、通义千问等各大国内外主流模型API调用功能，以及对本地大模型调用的功能（满足数据隐私需求）
+- **✅ 多平台LLM支持**: 已实现 10+ 主流平台API调用功能（Gemini、OpenAI、Claude、通义千问、DeepSeek、智谱AI、Kimi、文心一言、MiniMax、豆包），支持用户自由配置和切换
+- **本地模型支持**: 计划加入对本地大模型（如 Ollama）的调用功能，满足数据隐私需求
 - **Multi-Agent Collaboration**: 考虑引入多智能体协作架构，会实现`Agent+人工对话`反馈的功能，包括多轮对话流程展示，人工对话中断干涉等，以获得更清晰、透明、监督性的审计过程，提升审计质量
 - **专业报告文件生成**: 根据不同的需求生成相关格式的专业审计报告文件，支持文件报告格式定制等
 - **审计标准自定义**: 不同团队有自己的编码规范，不同项目有特定的安全要求，也正是我们这个项目想后续做的东西。当前的版本还属于一个“半黑盒模式”，项目通过 Prompt 工程来引导分析方向和定义审计标准，实际分析效果由强大的预训练AI 模型内置知识决定。后续将结合强化学习、监督学习微调等方法，开发以支持自定义规则配置，通过YAML或者JSON定义团队特定规则，提供常见框架的最佳实践模板等等，以获得更加符合需求和标准的审计结果
