@@ -30,6 +30,7 @@ import type { Project, CreateProjectForm } from "@/shared/types";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import CreateTaskDialog from "@/components/audit/CreateTaskDialog";
+import TerminalProgressDialog from "@/components/audit/TerminalProgressDialog";
 
 export default function Projects() {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -41,6 +42,8 @@ export default function Projects() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [showTerminalDialog, setShowTerminalDialog] = useState(false);
+  const [currentTaskId, setCurrentTaskId] = useState<string | null>(null);
   const [createForm, setCreateForm] = useState<CreateProjectForm>({
     name: "",
     description: "",
@@ -153,15 +156,14 @@ export default function Projects() {
       clearInterval(progressInterval);
       setUploadProgress(100);
 
-      toast.success("项目创建并开始分析");
+      // 关闭创建对话框
       setShowCreateDialog(false);
       resetCreateForm();
       loadProjects();
 
-      // 跳转到任务详情页
-      setTimeout(() => {
-        window.open(`/tasks/${taskId}`, '_blank');
-      }, 1000);
+      // 显示终端进度窗口
+      setCurrentTaskId(taskId);
+      setShowTerminalDialog(true);
 
     } catch (error: any) {
       console.error('Upload failed:', error);
@@ -665,6 +667,14 @@ export default function Projects() {
         onOpenChange={setShowCreateTaskDialog}
         onTaskCreated={handleTaskCreated}
         preselectedProjectId={selectedProjectForTask}
+      />
+
+      {/* 终端进度对话框 */}
+      <TerminalProgressDialog
+        open={showTerminalDialog}
+        onOpenChange={setShowTerminalDialog}
+        taskId={currentTaskId}
+        taskType="zip"
       />
     </div>
   );

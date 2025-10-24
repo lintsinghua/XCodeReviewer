@@ -22,6 +22,7 @@ import {
 import { api } from "@/shared/config/database";
 import type { Project, CreateAuditTaskForm } from "@/shared/types";
 import { toast } from "sonner";
+import TerminalProgressDialog from "./TerminalProgressDialog";
 
 interface CreateTaskDialogProps {
   open: boolean;
@@ -36,6 +37,8 @@ export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, pr
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [showTerminalDialog, setShowTerminalDialog] = useState(false);
+  const [currentTaskId, setCurrentTaskId] = useState<string | null>(null);
   
   const [taskForm, setTaskForm] = useState<CreateAuditTaskForm>({
     project_id: "",
@@ -98,23 +101,21 @@ export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, pr
     try {
       setCreating(true);
       
-      await api.createAuditTask({
+      const task = await api.createAuditTask({
         ...taskForm,
         created_by: null // 无登录场景下设置为null
       } as any);
       
-      // 显示详细的提示信息
-      toast.success("审计任务创建成功", {
-        description: '因为网络和代码文件大小等因素，审计时长通常至少需要1分钟，请耐心等待...',
-        duration: 5000
-      });
+      const taskId = (task as any).id;
       
+      // 关闭创建对话框
       onOpenChange(false);
       resetForm();
       onTaskCreated();
       
-      // 跳转到项目详情页面
-      navigate(`/projects/${taskForm.project_id}`);
+      // 显示终端进度窗口
+      setCurrentTaskId(taskId);
+      setShowTerminalDialog(true);
     } catch (error) {
       console.error('Failed to create task:', error);
       toast.error("创建任务失败");
@@ -547,6 +548,14 @@ export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, pr
           </div>
         </div>
       </DialogContent>
+
+      {/* 终端进度对话框 */}
+      <TerminalProgressDialog
+        open={showTerminalDialog}
+        onOpenChange={setShowTerminalDialog}
+        taskId={currentTaskId}
+        taskType="repository"
+      />
     </Dialog>
   );
 }

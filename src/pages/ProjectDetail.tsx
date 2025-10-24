@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -23,15 +23,17 @@ import { runRepositoryAudit } from "@/features/projects/services";
 import type { Project, AuditTask } from "@/shared/types";
 import { toast } from "sonner";
 import CreateTaskDialog from "@/components/audit/CreateTaskDialog";
+import TerminalProgressDialog from "@/components/audit/TerminalProgressDialog";
 
 export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
   const [project, setProject] = useState<Project | null>(null);
   const [tasks, setTasks] = useState<AuditTask[]>([]);
   const [loading, setLoading] = useState(true);
   const [scanning, setScanning] = useState(false);
   const [showCreateTaskDialog, setShowCreateTaskDialog] = useState(false);
+  const [showTerminalDialog, setShowTerminalDialog] = useState(false);
+  const [currentTaskId, setCurrentTaskId] = useState<string | null>(null);
 
   useEffect(() => {
     if (id) {
@@ -78,15 +80,12 @@ export default function ProjectDetail() {
       
       console.log('审计任务创建成功，taskId:', taskId);
       
-      // 显示详细的提示信息
-      toast.success('审计任务已启动', {
-        description: '因为网络和代码文件大小等因素，审计时长通常至少需要1分钟，请耐心等待...',
-        duration: 5000
-      });
+      // 显示终端进度窗口
+      setCurrentTaskId(taskId);
+      setShowTerminalDialog(true);
       
-      // 跳转到任务详情页面
-      console.log('准备跳转到:', `/tasks/${taskId}`);
-      navigate(`/tasks/${taskId}`);
+      // 重新加载项目数据
+      loadProjectData();
     } catch (e: any) {
       console.error('启动审计失败:', e);
       toast.error(e?.message || '启动审计失败');
@@ -484,6 +483,14 @@ export default function ProjectDetail() {
         onOpenChange={setShowCreateTaskDialog}
         onTaskCreated={handleTaskCreated}
         preselectedProjectId={id}
+      />
+
+      {/* 终端进度对话框 */}
+      <TerminalProgressDialog
+        open={showTerminalDialog}
+        onOpenChange={setShowTerminalDialog}
+        taskId={currentTaskId}
+        taskType="repository"
       />
     </div>
   );
