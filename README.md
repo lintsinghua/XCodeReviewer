@@ -453,7 +453,7 @@ VITE_LLM_BASE_URL=http://localhost:11434/v1  # Ollama API地址（可选）
    # 在 Supabase SQL 编辑器中执行
    cat supabase/migrations/full_schema.sql
    ```
-4. 如果不配置 Supabase，系统将以演示模式运行，数据不会持久化
+4. 如果不配置 Supabase，系统将以演示模式运行，仓库相关、项目管理相关的功能将无法使用，仅能使用即时分析功能，且数据不会持久化
 
 ## ✨ 核心功能
 
