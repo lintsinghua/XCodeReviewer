@@ -62,7 +62,8 @@ services:
         - VITE_OLLAMA_MODEL=${VITE_OLLAMA_MODEL:-llama3}
         - VITE_OLLAMA_BASE_URL=${VITE_OLLAMA_BASE_URL:-http://localhost:11434/v1}
         
-        # Supabase 配置
+        # 数据库配置
+        - VITE_USE_LOCAL_DB=${VITE_USE_LOCAL_DB:-true}
         - VITE_SUPABASE_URL=${VITE_SUPABASE_URL}
         - VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY}
         
@@ -74,6 +75,7 @@ services:
         - VITE_MAX_ANALYZE_FILES=${VITE_MAX_ANALYZE_FILES:-40}
         - VITE_LLM_CONCURRENCY=${VITE_LLM_CONCURRENCY:-2}
         - VITE_LLM_GAP_MS=${VITE_LLM_GAP_MS:-500}
+        - VITE_OUTPUT_LANGUAGE=${VITE_OUTPUT_LANGUAGE:-zh-CN}
     
     container_name: xcodereviewer-app
     ports:

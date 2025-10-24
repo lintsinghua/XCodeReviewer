@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { localDB } from "./localDatabase";
 import type { 
   Profile, 
   Project, 
@@ -9,10 +10,11 @@ import type {
   CreateProjectForm,
   CreateAuditTaskForm,
   InstantAnalysisForm
-} from "@/types/types";
+} from "../types/index";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const useLocalDB = import.meta.env.VITE_USE_LOCAL_DB === 'true';
 
 const isValidUuid = (value?: string): boolean => {
   if (!value) return false;
@@ -35,19 +37,21 @@ export const supabase = hasSupabaseConfig ? createClient(finalSupabaseUrl, final
   }
 }) : null;
 
-// 演示模式标识
-export const isDemoMode = !hasSupabaseConfig;
+// 数据库模式：local（本地IndexedDB）、supabase（云端）、demo（演示模式）
+export const dbMode = useLocalDB ? 'local' : (hasSupabaseConfig ? 'supabase' : 'demo');
+export const isDemoMode = dbMode === 'demo';
+export const isLocalMode = dbMode === 'local';
 
 // 演示数据
 const demoProfile: Profile = {
   id: 'demo-user',
-  phone: null,
+  phone: undefined,
   email: 'demo@xcodereviewer.com',
   full_name: 'Demo User',
-  avatar_url: null,
+  avatar_url: undefined,
   role: 'admin',
   github_username: 'demo-user',
-  gitlab_username: null,
+  gitlab_username: undefined,
   created_at: new Date().toISOString(),
   updated_at: new Date().toISOString()
 };
@@ -58,6 +62,10 @@ export const api = {
   async getProfilesById(id: string): Promise<Profile | null> {
     if (isDemoMode) {
       return demoProfile;
+    }
+    
+    if (isLocalMode) {
+      return localDB.getProfileById(id);
     }
     
     if (!supabase) return null;
@@ -77,6 +85,10 @@ export const api = {
       return 1;
     }
     
+    if (isLocalMode) {
+      return localDB.getProfilesCount();
+    }
+    
     if (!supabase) return 0;
     
     const { count, error } = await supabase
@@ -88,6 +100,12 @@ export const api = {
   },
 
   async createProfiles(profile: Partial<Profile>): Promise<Profile> {
+    if (isLocalMode) {
+      return localDB.createProfile(profile);
+    }
+    
+    if (!supabase) throw new Error('Database not available');
+    
     const { data, error } = await supabase
       .from('profiles')
       .insert([{ 
@@ -108,6 +126,12 @@ export const api = {
   },
 
   async updateProfile(id: string, updates: Partial<Profile>): Promise<Profile> {
+    if (isLocalMode) {
+      return localDB.updateProfile(id, updates);
+    }
+    
+    if (!supabase) throw new Error('Database not available');
+    
     const { data, error } = await supabase
       .from('profiles')
       .update(updates)
@@ -120,6 +144,12 @@ export const api = {
   },
 
   async getAllProfiles(): Promise<Profile[]> {
+    if (isLocalMode) {
+      return localDB.getAllProfiles();
+    }
+    
+    if (!supabase) return [];
+    
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
@@ -148,6 +178,10 @@ export const api = {
       }];
     }
     
+    if (isLocalMode) {
+      return localDB.getProjects();
+    }
+    
     if (!supabase) return [];
     
     const { data, error } = await supabase
@@ -164,6 +198,12 @@ export const api = {
   },
 
   async getProjectById(id: string): Promise<Project | null> {
+    if (isLocalMode) {
+      return localDB.getProjectById(id);
+    }
+    
+    if (!supabase) return null;
+    
     const { data, error } = await supabase
       .from('projects')
       .select(`
@@ -178,6 +218,12 @@ export const api = {
   },
 
   async createProject(project: CreateProjectForm & { owner_id?: string }): Promise<Project> {
+    if (isLocalMode) {
+      return localDB.createProject(project);
+    }
+    
+    if (!supabase) throw new Error('Database not available');
+    
     const { data, error } = await supabase
       .from('projects')
       .insert([{ 
@@ -201,6 +247,12 @@ export const api = {
   },
 
   async updateProject(id: string, updates: Partial<CreateProjectForm>): Promise<Project> {
+    if (isLocalMode) {
+      return localDB.updateProject(id, updates);
+    }
+    
+    if (!supabase) throw new Error('Database not available');
+    
     const updateData: any = { ...updates };
     if (updates.programming_languages) {
       updateData.programming_languages = JSON.stringify(updates.programming_languages);
@@ -221,6 +273,12 @@ export const api = {
   },
 
   async deleteProject(id: string): Promise<void> {
+    if (isLocalMode) {
+      return localDB.deleteProject(id);
+    }
+    
+    if (!supabase) throw new Error('Database not available');
+    
     const { error } = await supabase
       .from('projects')
       .update({ is_active: false })
@@ -231,6 +289,12 @@ export const api = {
 
   // ProjectMember相关
   async getProjectMembers(projectId: string): Promise<ProjectMember[]> {
+    if (isLocalMode) {
+      return localDB.getProjectMembers(projectId);
+    }
+    
+    if (!supabase) return [];
+    
     const { data, error } = await supabase
       .from('project_members')
       .select(`
@@ -246,6 +310,12 @@ export const api = {
   },
 
   async addProjectMember(projectId: string, userId: string, role: string = 'member'): Promise<ProjectMember> {
+    if (isLocalMode) {
+      return localDB.addProjectMember(projectId, userId, role);
+    }
+    
+    if (!supabase) throw new Error('Database not available');
+    
     const { data, error } = await supabase
       .from('project_members')
       .insert([{ 
@@ -267,6 +337,12 @@ export const api = {
 
   // AuditTask相关
   async getAuditTasks(projectId?: string): Promise<AuditTask[]> {
+    if (isLocalMode) {
+      return localDB.getAuditTasks(projectId);
+    }
+    
+    if (!supabase) return [];
+    
     let query = supabase
       .from('audit_tasks')
       .select(`
@@ -286,6 +362,12 @@ export const api = {
   },
 
   async getAuditTaskById(id: string): Promise<AuditTask | null> {
+    if (isLocalMode) {
+      return localDB.getAuditTaskById(id);
+    }
+    
+    if (!supabase) return null;
+    
     const { data, error } = await supabase
       .from('audit_tasks')
       .select(`
@@ -301,6 +383,12 @@ export const api = {
   },
 
   async createAuditTask(task: CreateAuditTaskForm & { created_by: string }): Promise<AuditTask> {
+    if (isLocalMode) {
+      return localDB.createAuditTask(task);
+    }
+    
+    if (!supabase) throw new Error('Database not available');
+    
     const { data, error } = await supabase
       .from('audit_tasks')
       .insert([{ 
@@ -324,6 +412,12 @@ export const api = {
   },
 
   async updateAuditTask(id: string, updates: Partial<AuditTask>): Promise<AuditTask> {
+    if (isLocalMode) {
+      return localDB.updateAuditTask(id, updates);
+    }
+    
+    if (!supabase) throw new Error('Database not available');
+    
     const { data, error } = await supabase
       .from('audit_tasks')
       .update(updates)
@@ -341,6 +435,12 @@ export const api = {
 
   // AuditIssue相关
   async getAuditIssues(taskId: string): Promise<AuditIssue[]> {
+    if (isLocalMode) {
+      return localDB.getAuditIssues(taskId);
+    }
+    
+    if (!supabase) return [];
+    
     const { data, error } = await supabase
       .from('audit_issues')
       .select(`
@@ -357,6 +457,12 @@ export const api = {
   },
 
   async createAuditIssue(issue: Omit<AuditIssue, 'id' | 'created_at' | 'task' | 'resolver'>): Promise<AuditIssue> {
+    if (isLocalMode) {
+      return localDB.createAuditIssue(issue);
+    }
+    
+    if (!supabase) throw new Error('Database not available');
+    
     const { data, error } = await supabase
       .from('audit_issues')
       .insert([issue])
@@ -372,6 +478,12 @@ export const api = {
   },
 
   async updateAuditIssue(id: string, updates: Partial<AuditIssue>): Promise<AuditIssue> {
+    if (isLocalMode) {
+      return localDB.updateAuditIssue(id, updates);
+    }
+    
+    if (!supabase) throw new Error('Database not available');
+    
     const { data, error } = await supabase
       .from('audit_issues')
       .update(updates)
@@ -389,6 +501,12 @@ export const api = {
 
   // InstantAnalysis相关
   async getInstantAnalyses(userId?: string): Promise<InstantAnalysis[]> {
+    if (isLocalMode) {
+      return localDB.getInstantAnalyses(userId);
+    }
+    
+    if (!supabase) return [];
+    
     let query = supabase
       .from('instant_analyses')
       .select(`
@@ -413,6 +531,12 @@ export const api = {
     quality_score?: number;
     analysis_time?: number;
   }): Promise<InstantAnalysis> {
+    if (isLocalMode) {
+      return localDB.createInstantAnalysis(analysis);
+    }
+    
+    if (!supabase) throw new Error('Database not available');
+    
     const { data, error } = await supabase
       .from('instant_analyses')
       .insert([{
@@ -446,6 +570,10 @@ export const api = {
         total_issues: 15,
         resolved_issues: 12
       };
+    }
+    
+    if (isLocalMode) {
+      return localDB.getProjectStats();
     }
     
     if (!supabase) {

@@ -140,9 +140,15 @@
     VITE_CLAUDE_API_KEY=your_claude_api_key_here
     # ... 支持10+主流平台
     
-    # Supabase 配置 (可选，用于数据持久化)
-    VITE_SUPABASE_URL=https://your-project.supabase.co
-    VITE_SUPABASE_ANON_KEY=your-anon-key-here
+    # 数据库配置 (三种模式可选)
+    # 1. 本地数据库模式（推荐）- 数据存储在浏览器 IndexedDB
+    VITE_USE_LOCAL_DB=true
+    
+    # 2. Supabase 云端模式 - 数据存储在云端
+    # VITE_SUPABASE_URL=https://your-project.supabase.co
+    # VITE_SUPABASE_ANON_KEY=your-anon-key-here
+    
+    # 3. 演示模式 - 不配置任何数据库，使用演示数据（数据不持久化）
     
     # GitHub 集成 (可选，用于仓库分析)
     VITE_GITHUB_TOKEN=your_github_token_here
@@ -154,6 +160,9 @@
     VITE_MAX_ANALYZE_FILES=40
     VITE_LLM_CONCURRENCY=2
     VITE_LLM_GAP_MS=500
+    
+    # 输出语言配置（zh-CN: 中文 | en-US: 英文）
+    VITE_OUTPUT_LANGUAGE=zh-CN
     ```
 
 4.  **启动开发服务器**
@@ -241,6 +250,69 @@ VITE_LLM_PROVIDER=baidu
 VITE_BAIDU_API_KEY=your_api_key:your_secret_key
 VITE_BAIDU_MODEL=ERNIE-3.5-8K
 ```
+</details>
+
+<details>
+<summary><b>Q: 数据库有哪些模式可选？如何选择？</b></summary>
+
+XCodeReviewer 支持三种数据库模式：
+
+**1. 本地数据库模式（推荐）**
+- 数据存储在浏览器 IndexedDB 中
+- 无需配置云端服务，开箱即用
+- 数据完全本地化，隐私安全
+- 适合个人使用和快速体验
+
+```env
+VITE_USE_LOCAL_DB=true
+```
+
+**2. Supabase 云端模式**
+- 数据存储在 Supabase 云端
+- 支持多设备同步
+- 需要注册 Supabase 账号并配置
+- 适合团队协作和跨设备使用
+
+```env
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-key-here
+```
+
+**3. 演示模式**
+- 不配置任何数据库
+- 使用内置演示数据
+- 数据不会持久化保存
+- 适合快速预览功能
+</details>
+
+<details>
+<summary><b>Q: 本地数据库的数据存储在哪里？如何备份？</b></summary>
+
+本地数据库使用浏览器的 IndexedDB 存储数据：
+
+- **存储位置**：浏览器本地存储（不同浏览器位置不同）
+- **数据安全**：数据仅存储在本地，不会上传到服务器
+- **清除数据**：清除浏览器数据会删除所有本地数据
+- **备份方法**：可以在管理界面导出数据为 JSON 文件
+- **恢复方法**：通过导入 JSON 文件恢复数据
+
+注意：本地数据库数据仅在当前浏览器可用，更换浏览器或设备需要重新导入数据。
+</details>
+
+<details>
+<summary><b>Q: 如何设置分析结果的输出语言？</b></summary>
+
+在 `.env` 文件中配置 `VITE_OUTPUT_LANGUAGE`：
+
+```env
+# 中文输出（默认）
+VITE_OUTPUT_LANGUAGE=zh-CN
+
+# 英文输出
+VITE_OUTPUT_LANGUAGE=en-US
+```
+
+重启应用后，所有 LLM 分析结果将使用指定的语言输出。
 
 可在[百度千帆平台](https://console.bce.baidu.com/qianfan/)获取API Key和Secret Key。
 </details>
@@ -430,6 +502,21 @@ VITE_LLM_BASE_URL=http://localhost:11434/v1  # Ollama API地址（可选）
 - **质量趋势分析**：通过图表展示代码质量随时间的变化趋势。
 </details>
 
+<details>
+<summary><b>💾 本地数据库管理</b></summary>
+
+- **三种数据库模式**：
+  - 🏠 **本地模式**：使用浏览器 IndexedDB，数据完全本地化，隐私安全
+  - ☁️ **云端模式**：使用 Supabase，支持多设备同步
+  - 🎭 **演示模式**：无需配置，快速体验功能
+- **数据管理功能**：
+  - 📤 **导出备份**：将数据导出为 JSON 文件
+  - 📥 **导入恢复**：从备份文件恢复数据
+  - 🗑️ **清空数据**：一键清理所有本地数据
+  - 📊 **存储监控**：实时查看存储空间使用情况
+- **智能统计**：项目、任务、问题的完整统计和可视化展示
+</details>
+
 ## 🛠️ 技术栈
 
 | 分类 | 技术 | 说明 |
@@ -440,7 +527,7 @@ VITE_LLM_BASE_URL=http://localhost:11434/v1  # Ollama API地址（可选）
 | **路由管理** | `React Router v6` | 单页应用路由解决方案 |
 | **状态管理** | `React Hooks` `Sonner` | 轻量级状态管理和通知系统 |
 | **AI 引擎** | `多平台 LLM` | 支持 Gemini、OpenAI、Claude、通义千问、DeepSeek 等 10+ 主流平台 |
-| **后端服务** | `Supabase` `PostgreSQL` | 全栈后端即服务，实时数据库 |
+| **数据存储** | `IndexedDB` `Supabase` `PostgreSQL` | 本地数据库 + 云端数据库双模式支持 |
 | **HTTP 客户端** | `Axios` `Ky` | 现代化的 HTTP 请求库 |
 | **代码质量** | `Biome` `Ast-grep` `TypeScript` | 代码格式化、静态分析和类型检查 |
 | **构建工具** | `Vite` `PostCSS` `Autoprefixer` | 快速的构建工具和 CSS 处理 |
@@ -457,23 +544,28 @@ XCodeReviewer/
 │   ├── components/         # React 组件
 │   │   ├── layout/         # 布局组件 (Header, Footer, PageMeta)
 │   │   ├── ui/             # UI 组件库 (基于 Radix UI)
+│   │   ├── database/       # 数据库管理组件
 │   │   └── debug/          # 调试组件
 │   ├── pages/              # 页面组件
 │   │   ├── Dashboard.tsx   # 仪表盘
 │   │   ├── Projects.tsx    # 项目管理
 │   │   ├── InstantAnalysis.tsx # 即时分析
 │   │   ├── AuditTasks.tsx  # 审计任务
-│   │   └── AdminDashboard.tsx # 系统管理
+│   │   └── AdminDashboard.tsx # 数据库管理
 │   ├── features/           # 功能模块
 │   │   ├── analysis/       # 分析相关服务
 │   │   │   └── services/   # AI 代码分析引擎
 │   │   └── projects/       # 项目相关服务
 │   │       └── services/   # 仓库扫描、ZIP 文件扫描
 │   ├── shared/             # 共享工具
-│   │   ├── config/         # 配置文件 (数据库、环境变量)
+│   │   ├── config/         # 配置文件
+│   │   │   ├── database.ts      # 数据库统一接口
+│   │   │   ├── localDatabase.ts # IndexedDB 实现
+│   │   │   └── env.ts           # 环境变量配置
 │   │   ├── types/          # TypeScript 类型定义
 │   │   ├── hooks/          # 自定义 React Hooks
 │   │   ├── utils/          # 工具函数
+│   │   │   └── initLocalDB.ts   # 本地数据库初始化
 │   │   └── constants/      # 常量定义
 │   └── assets/             # 静态资源
 │       └── styles/         # 样式文件

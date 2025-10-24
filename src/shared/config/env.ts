@@ -77,6 +77,9 @@ export const env = {
   MAX_ANALYZE_FILES: Number(import.meta.env.VITE_MAX_ANALYZE_FILES) || 40,
   LLM_CONCURRENCY: Number(import.meta.env.VITE_LLM_CONCURRENCY) || 2,
   LLM_GAP_MS: Number(import.meta.env.VITE_LLM_GAP_MS) || 500,
+  
+  // ==================== 语言配置 ====================
+  OUTPUT_LANGUAGE: import.meta.env.VITE_OUTPUT_LANGUAGE || 'zh-CN', // zh-CN | en-US
 
   // ==================== 开发环境标识 ====================
   isDev: import.meta.env.DEV,

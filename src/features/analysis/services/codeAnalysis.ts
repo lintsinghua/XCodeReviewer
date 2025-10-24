@@ -1,4 +1,4 @@
-import type { CodeAnalysisResult } from "@/types/types";
+import type { CodeAnalysisResult } from "@/shared/types";
 import { LLMService } from '@/shared/services/llm';
 import { getCurrentLLMApiKey, getCurrentLLMModel, env } from '@/shared/config/env';
 import type { LLMConfig } from '@/shared/services/llm/types';
@@ -37,6 +37,10 @@ export class CodeAnalysisEngine {
 
   static async analyzeCode(code: string, language: string): Promise<CodeAnalysisResult> {
     const llmService = this.createLLMService();
+    
+    // 获取输出语言配置
+    const outputLanguage = env.OUTPUT_LANGUAGE || 'zh-CN';
+    const isChineseOutput = outputLanguage === 'zh-CN';
 
     const schema = `{
       "issues": [
@@ -74,9 +78,66 @@ export class CodeAnalysisEngine {
       }
     }`;
 
-    const systemPrompt = `请严格使用中文。你是一个专业代码审计助手。请从编码规范、潜在Bug、性能问题、安全漏洞、可维护性、最佳实践等维度分析代码，并严格输出 JSON（仅 JSON）符合以下 schema：\n\n${schema}`;
-    
-    const userPrompt = `语言: ${language}\n\n代码:\n\n${code}`;
+    // 根据配置生成不同语言的提示词
+    const systemPrompt = isChineseOutput 
+      ? `你是一个专业的代码审计助手。
+
+【重要】请严格遵守以下规则：
+1. 所有文本内容（title、description、suggestion、ai_explanation、xai 等）必须使用简体中文
+2. 仅输出 JSON 格式，不要添加任何额外的文字、解释或 markdown 标记
+3. 确保 JSON 格式完全正确，所有字符串值都要正确转义
+
+请从以下维度全面分析代码：
+- 编码规范和代码风格
+- 潜在的 Bug 和逻辑错误
+- 性能问题和优化建议
+- 安全漏洞和风险
+- 可维护性和可读性
+- 最佳实践和设计模式
+
+输出格式必须严格符合以下 JSON Schema：
+
+${schema}
+
+注意：
+- title: 问题的简短标题（中文）
+- description: 详细描述问题（中文）
+- suggestion: 具体的修复建议（中文）
+- ai_explanation: AI 的深入解释（中文）
+- xai.what: 这是什么问题（中文）
+- xai.why: 为什么会有这个问题（中文）
+- xai.how: 如何修复这个问题（中文）`
+      : `You are a professional code auditing assistant.
+
+【IMPORTANT】Please strictly follow these rules:
+1. All text content (title, description, suggestion, ai_explanation, xai, etc.) MUST be in English
+2. Output ONLY valid JSON format, without any additional text, explanations, or markdown markers
+3. Ensure the JSON format is completely correct with all string values properly escaped
+
+Please comprehensively analyze the code from the following dimensions:
+- Coding standards and code style
+- Potential bugs and logical errors
+- Performance issues and optimization suggestions
+- Security vulnerabilities and risks
+- Maintainability and readability
+- Best practices and design patterns
+
+The output format MUST strictly conform to the following JSON Schema:
+
+${schema}
+
+Note:
+- title: Brief title of the issue (in English)
+- description: Detailed description of the issue (in English)
+- suggestion: Specific fix suggestions (in English)
+- ai_explanation: AI's in-depth explanation (in English)
+- xai.what: What is this issue (in English)
+- xai.why: Why does this issue exist (in English)
+- xai.how: How to fix this issue (in English)`;
+
+    const userPrompt = isChineseOutput
+      ? `编程语言: ${language}\n\n请分析以下代码:\n\n${code}`
+      : `Programming Language: ${language}\n\nPlease analyze the following code:\n\n${code}`;
 
     let text = '';
     try {
@@ -84,7 +145,7 @@ export class CodeAnalysisEngine {
       console.log(`📡 提供商: ${env.LLM_PROVIDER}`);
       console.log(`🤖 模型: ${getCurrentLLMModel()}`);
       console.log(`🔗 Base URL: ${env.LLM_BASE_URL || '(默认)'}`);
-      
+
       // 使用新的LLM服务进行分析
       const response = await llmService.complete({
         messages: [
@@ -94,17 +155,17 @@ export class CodeAnalysisEngine {
         temperature: 0.2,
       });
       text = response.content;
-      
+
       console.log('✅ LLM 响应成功');
       console.log(`📊 响应长度: ${text.length} 字符`);
       console.log(`📝 响应内容预览: ${text.substring(0, 200)}...`);
     } catch (e: any) {
       console.error('LLM分析失败:', e);
-      
+
       // 构造更友好的错误消息
       const errorMsg = e.message || '未知错误';
       const provider = env.LLM_PROVIDER;
-      
+
       // 抛出详细的错误信息给前端
       throw new Error(
         `${provider} API调用失败\n\n` +
@@ -118,15 +179,15 @@ export class CodeAnalysisEngine {
       );
     }
     const parsed = this.safeParseJson(text);
-    
+
     // 如果解析失败，抛出错误而不是返回默认值
     if (!parsed) {
       const provider = env.LLM_PROVIDER;
       const currentModel = getCurrentLLMModel();
-      
+
       let suggestions = '';
       if (provider === 'ollama') {
-        suggestions = 
+        suggestions =
           `建议解决方案：\n` +
           `1. 升级到更强的模型（推荐）：\n` +
           `   ollama pull codellama\n` +
@@ -136,7 +197,7 @@ export class CodeAnalysisEngine {
           `3. 重启应用后重试\n\n` +
           `注意：超轻量模型仅适合测试连接，实际使用需要更强的模型。`;
       } else {
-        suggestions = 
+        suggestions =
           `建议解决方案：\n` +
           `1. 尝试更换更强大的模型（在 .env 中修改 VITE_LLM_MODEL）\n` +
           `2. 检查当前模型是否支持结构化输出（JSON 格式）\n` +
@@ -148,7 +209,7 @@ export class CodeAnalysisEngine {
           `4. 如果使用代理，检查网络连接是否稳定\n` +
           `5. 增加超时时间（VITE_LLM_TIMEOUT）`;
       }
-      
+
       throw new Error(
         `LLM 响应解析失败\n\n` +
         `提供商: ${provider}\n` +
@@ -158,7 +219,7 @@ export class CodeAnalysisEngine {
         suggestions
       );
     }
-    
+
     console.log('🔍 解析结果:', {
       hasIssues: Array.isArray(parsed?.issues),
       issuesCount: parsed?.issues?.length || 0,
@@ -169,7 +230,7 @@ export class CodeAnalysisEngine {
     const issues = Array.isArray(parsed?.issues) ? parsed.issues : [];
     const metrics = parsed?.metrics ?? this.estimateMetricsFromIssues(issues);
     const qualityScore = parsed?.quality_score ?? this.calculateQualityScore(metrics, issues);
-    
+
     console.log(`📋 最终发现 ${issues.length} 个问题`);
     console.log(`⭐ 质量评分: ${qualityScore}`);
 
@@ -192,7 +253,7 @@ export class CodeAnalysisEngine {
     const fixJsonFormat = (str: string): string => {
       // 1. 去除前后空白
       str = str.trim();
-      
+
       // 2. 将 JavaScript 模板字符串（反引号）替换为双引号，并处理多行内容
       // 匹配: "key": `多行内容`  =>  "key": "转义后的内容"
       str = str.replace(/:\s*`([\s\S]*?)`/g, (match, content) => {
@@ -207,7 +268,7 @@ export class CodeAnalysisEngine {
           .replace(/\b/g, '\\b');        // 退格符
         return `: "${escaped}"`;
       });
-      
+
       // 3. 处理字符串中未转义的换行符（防御性处理）
       // 匹配双引号字符串内的实际换行符
       str = str.replace(/"([^"]*?)"/g, (match, content) => {
@@ -222,51 +283,140 @@ export class CodeAnalysisEngine {
         }
         return match;
       });
-      
+
       // 4. 修复尾部逗号（JSON 不允许）
       str = str.replace(/,(\s*[}\]])/g, '$1');
-      
+
       // 5. 修复缺少逗号的问题（两个连续的 } 或 ]）
       str = str.replace(/\}(\s*)\{/g, '},\n{');
       str = str.replace(/\](\s*)\[/g, '],\n[');
-      
+
       return str;
     };
-    
-    try {
-      // 先尝试修复后直接解析
-      const fixed = fixJsonFormat(text);
-      return JSON.parse(fixed);
-    } catch (e1) {
-      // 如果失败，尝试提取 JSON 对象
-      try {
-        const match = text.match(/\{[\s\S]*\}/);
-        if (match) {
-          const fixed = fixJsonFormat(match[0]);
-          return JSON.parse(fixed);
+
+    // 清理和修复 JSON 字符串
+    const cleanText = (str: string): string => {
+      // 移除 BOM 和零宽字符
+      let cleaned = str
+        .replace(/^\uFEFF/, '')
+        .replace(/[\u200B-\u200D\uFEFF]/g, '');
+
+      // 修复字符串值中的特殊字符
+      // 匹配所有 JSON 字符串值（包括 description, suggestion, code_snippet 等）
+      cleaned = cleaned.replace(/"([^"]+)":\s*"((?:[^"\\]|\\.)*)"/g, (match, key, value) => {
+        // 如果值已经正确转义，跳过
+        if (!value.includes('\n') && !value.includes('\r') && !value.includes('\t') && !value.match(/[^\x20-\x7E]/)) {
+          return match;
         }
-      } catch (e2) {
-        console.warn('提取 JSON 对象后解析失败:', e2);
-      }
-      
-      // 尝试去除 markdown 代码块标记
-      try {
-        const codeBlockMatch = text.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/);
+
+        // 转义特殊字符
+        let escaped = value
+          // 先处理已存在的反斜杠
+          .replace(/\\/g, '\\\\')
+          // 转义换行符
+          .replace(/\n/g, '\\n')
+          .replace(/\r/g, '\\r')
+          // 转义制表符
+          .replace(/\t/g, '\\t')
+          // 转义引号
+          .replace(/"/g, '\\"')
+          // 移除其他控制字符
+          .replace(/[\x00-\x1F\x7F]/g, '');
+
+        return `"${key}": "${escaped}"`;
+      });
+
+      return cleaned;
+    };
+
+    // 尝试多种方式解析
+    const attempts = [
+      // 1. 直接清理和修复
+      () => {
+        const cleaned = cleanText(text);
+        const fixed = fixJsonFormat(cleaned);
+        return JSON.parse(fixed);
+      },
+      // 2. 提取 JSON 对象（贪婪匹配，找到第一个完整的 JSON）
+      () => {
+        const cleaned = cleanText(text);
+        // 找到第一个 { 的位置
+        const startIdx = cleaned.indexOf('{');
+        if (startIdx === -1) throw new Error('No JSON object found');
+
+        // 从第一个 { 开始，找到匹配的 }
+        let braceCount = 0;
+        let endIdx = -1;
+        for (let i = startIdx; i < cleaned.length; i++) {
+          if (cleaned[i] === '{') braceCount++;
+          if (cleaned[i] === '}') {
+            braceCount--;
+            if (braceCount === 0) {
+              endIdx = i + 1;
+              break;
+            }
+          }
+        }
+
+        if (endIdx === -1) throw new Error('Incomplete JSON object');
+
+        const jsonStr = cleaned.substring(startIdx, endIdx);
+        const fixed = fixJsonFormat(jsonStr);
+        return JSON.parse(fixed);
+      },
+      // 3. 去除 markdown 代码块
+      () => {
+        const cleaned = cleanText(text);
+        const codeBlockMatch = cleaned.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/);
         if (codeBlockMatch) {
           const fixed = fixJsonFormat(codeBlockMatch[1]);
           return JSON.parse(fixed);
         }
-      } catch (e3) {
-        console.warn('从代码块提取 JSON 失败:', e3);
+        throw new Error('No code block found');
+      },
+      // 4. 尝试修复截断的 JSON
+      () => {
+        const cleaned = cleanText(text);
+        const startIdx = cleaned.indexOf('{');
+        if (startIdx === -1) throw new Error('Cannot fix truncated JSON');
+
+        let json = cleaned.substring(startIdx);
+        // 尝试补全未闭合的结构
+        const openBraces = (json.match(/\{/g) || []).length;
+        const closeBraces = (json.match(/\}/g) || []).length;
+        const openBrackets = (json.match(/\[/g) || []).length;
+        const closeBrackets = (json.match(/\]/g) || []).length;
+
+        // 补全缺失的闭合符号
+        json += ']'.repeat(Math.max(0, openBrackets - closeBrackets));
+        json += '}'.repeat(Math.max(0, openBraces - closeBraces));
+
+        const fixed = fixJsonFormat(json);
+        return JSON.parse(fixed);
       }
-      
-      console.error('⚠️ 无法解析 LLM 响应为 JSON');
-      console.error('原始内容（前500字符）:', text.substring(0, 500));
-      console.error('解析错误:', e1);
-      console.warn('💡 提示: 当前模型可能无法生成有效的 JSON 格式');
-      console.warn('   建议：更换更强大的模型或切换其他 LLM 提供商');
-      return null;
+    ];
+
+    let lastError: any = null;
+    for (let i = 0; i < attempts.length; i++) {
+      try {
+        return attempts[i]();
+      } catch (e) {
+        lastError = e;
+        if (i === 1) {
+          console.warn('提取 JSON 对象后解析失败:', e);
+        } else if (i === 2) {
+          console.warn('从代码块提取 JSON 失败:', e);
+        }
+      }
     }
+
+    // 所有尝试都失败
+    console.error('⚠️ 无法解析 LLM 响应为 JSON');
+    console.error('原始内容（前500字符）:', text.substring(0, 500));
+    console.error('解析错误:', lastError);
+    console.warn('💡 提示: 当前模型可能无法生成有效的 JSON 格式');
+    console.warn('   建议：更换更强大的模型或切换其他 LLM 提供商');
+    return null;
   }
 
   private static estimateMetricsFromIssues(issues: any[]) {
@@ -300,9 +450,9 @@ export class CodeAnalysisEngine {
     );
 
     const metricsScore = (
-      metrics.complexity + 
-      metrics.maintainability + 
-      metrics.security + 
+      metrics.complexity +
+      metrics.maintainability +
+      metrics.security +
       metrics.performance
     ) / 4;
 

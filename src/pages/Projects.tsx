@@ -147,7 +147,7 @@ export default function Projects() {
         projectId: project.id,
         zipFile: file,
         excludePatterns: ['node_modules/**', '.git/**', 'dist/**', 'build/**'],
-        createdBy: undefined
+        createdBy: 'local-user' // 使用默认本地用户ID
       });
 
       clearInterval(progressInterval);

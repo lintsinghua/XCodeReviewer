@@ -15,6 +15,63 @@ function isTextFile(path: string): boolean {
 }
 
 function shouldExclude(path: string, excludePatterns: string[]): boolean {
+  // 排除 Mac 系统文件
+  if (path.includes('__MACOSX/') || path.includes('/.DS_Store') || path.match(/\/\._[^/]+$/)) {
+    return true;
+  }
+  
+  // 排除 IDE 和编辑器配置目录
+  const idePatterns = [
+    '/.vscode/',
+    '/.idea/',
+    '/.vs/',
+    '/.eclipse/',
+    '/.settings/'
+  ];
+  if (idePatterns.some(pattern => path.includes(pattern))) {
+    return true;
+  }
+  
+  // 排除版本控制和依赖目录
+  const systemDirs = [
+    '/.git/',
+    '/node_modules/',
+    '/vendor/',
+    '/dist/',
+    '/build/',
+    '/.next/',
+    '/.nuxt/',
+    '/target/',
+    '/out/',
+    '/__pycache__/',
+    '/.pytest_cache/',
+    '/coverage/',
+    '/.nyc_output/'
+  ];
+  if (systemDirs.some(dir => path.includes(dir))) {
+    return true;
+  }
+  
+  // 排除其他隐藏文件（但保留 .gitignore, .env.example 等重要配置）
+  const allowedHiddenFiles = ['.gitignore', '.env.example', '.editorconfig', '.prettierrc'];
+  const fileName = path.split('/').pop() || '';
+  if (fileName.startsWith('.') && !allowedHiddenFiles.includes(fileName)) {
+    return true;
+  }
+  
+  // 排除常见的非代码文件
+  const excludeExtensions = [
+    '.lock', '.log', '.tmp', '.temp', '.cache',
+    '.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico',
+    '.pdf', '.zip', '.tar', '.gz', '.rar',
+    '.exe', '.dll', '.so', '.dylib',
+    '.min.js', '.min.css', '.map'
+  ];
+  if (excludeExtensions.some(ext => path.toLowerCase().endsWith(ext))) {
+    return true;
+  }
+  
+  // 应用用户自定义的排除模式
   return excludePatterns.some(pattern => {
     if (pattern.includes('*')) {
       const regex = new RegExp(pattern.replace(/\*/g, '.*'));
