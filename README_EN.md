@@ -57,6 +57,10 @@ In the fast-paced world of software development, ensuring code quality is crucia
 ![Project Management](public/images/example3.png)
 *Integrated GitHub/GitLab repositories, supporting multi-language project audits and batch code analysis*
 
+#### 📄 Audit Report Export
+![Audit Report Example](public/images/审计报告示例.png)
+*Support exporting professional audit reports in JSON and PDF formats, including complete issue details and fix suggestions*
+
 ## 🚀 Quick Start
 
 ### 🐳 Docker Deployment (Recommended)
