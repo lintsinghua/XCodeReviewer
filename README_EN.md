@@ -583,28 +583,47 @@ Currently, XCodeReviewer is positioned in the rapid prototype verification stage
 
 This disclaimer is intended to clarify the responsibilities and risks associated with the use of this open source project and to protect the legitimate rights and interests of project authors, contributors and maintainers. The code, tools and related content provided by this open source project are for reference and learning purposes only.
 
-#### 1. **Non-Professional Advice**
+#### 1. **Code Privacy and Security Warning**
+- ⚠️ **Important Notice**: This tool analyzes code by calling third-party LLM service provider APIs, which means **your code will be sent to the servers of the selected LLM service provider**.
+- **It is strictly prohibited to upload the following types of code**:
+  - Code containing trade secrets, proprietary algorithms, or core business logic
+  - Code involving state secrets, national defense security, or other classified information
+  - Code containing sensitive data (such as user data, keys, passwords, tokens, etc.)
+  - Code restricted by laws and regulations from being transmitted externally
+  - Proprietary code of clients or third parties (without authorization)
+- Users **must independently assess the sensitivity of their code** and bear full responsibility for uploading code and any resulting information disclosure.
+- **Recommendation**: For sensitive code, please wait for future local model deployment support in this project, or use privately deployed LLM services.
+- Project authors, contributors, and maintainers **assume no responsibility for any information disclosure, intellectual property infringement, legal disputes, or other losses resulting from users uploading sensitive code**.
+
+#### 2. **Non-Professional Advice**
 - The code analysis results and suggestions provided by this tool are **for reference only** and do not constitute professional security audits, code reviews, or legal advice.
 - Users must combine manual reviews, professional tools, and other reliable resources to thoroughly validate critical code (especially in high-risk areas such as security, finance, or healthcare).
 
-#### 2. **No Warranty and Liability Disclaimer**
+#### 3. **No Warranty and Liability Disclaimer**
 - This project is provided "as is" **without any express or implied warranties**, including but not limited to merchantability, fitness for a particular purpose, and non-infringement.
 - Authors, contributors, and maintainers **shall not be liable for any direct, indirect, incidental, special, punitive, or consequential damages**, including but not limited to data loss, system failures, security breaches, or business losses, even if advised of the possibility.
 
-#### 3. **Limitations of AI Analysis**
+#### 4. **Limitations of AI Analysis**
 - This tool relies on AI models such as Google Gemini, and results may contain **errors, omissions, or inaccuracies**, with no guarantee of completeness or reliability.
 - AI outputs **cannot replace human expert judgment**; users are solely responsible for the final code quality and any outcomes.
 
-#### 4. **Third-Party Services and Data Privacy**
-- This project integrates third-party services like Google Gemini, Supabase, and GitHub, and usage is subject to their respective terms of service.
-- Users must obtain and manage API keys independently; this project **does not store, transmit, or process user sensitive credentials**.
-- Availability, accuracy, privacy, or disruptions of third-party services are the responsibility of the providers; project authors assume no liability.
+#### 5. **Third-Party Services and Data Privacy**
+- This project integrates multiple third-party LLM services including Google Gemini, OpenAI, Claude, Qwen, DeepSeek, as well as Supabase, GitHub, and other services. Usage is subject to their respective terms of service and privacy policies.
+- **Code Transmission Notice**: User-submitted code will be sent via API to the selected LLM service provider for analysis. The transmission process and data processing follow each service provider's privacy policy.
+- Users must obtain and manage API keys independently; this project **does not store, transmit, or process user API keys and sensitive information**.
+- Availability, accuracy, privacy protection, data retention policies, or disruptions of third-party services are the responsibility of the providers; project authors assume no joint liability.
+- **Data Retention Warning**: Different LLM service providers have varying policies on API request data retention and usage. Users should carefully read the privacy policy and terms of use of their chosen service provider before use.
 
-#### 5. **User Responsibilities**
-- Users must ensure their code does not infringe third-party intellectual property rights and complies with open-source licenses and applicable laws.
+#### 6. **User Responsibilities**
+- Users must ensure their code does not infringe third-party intellectual property rights, does not contain confidential information, and complies with open-source licenses and applicable laws.
+- Users **bear full responsibility for the content, nature, and compliance of uploaded code**, including but not limited to:
+  - Ensuring code does not contain sensitive information or trade secrets
+  - Ensuring they have the right to use and analyze the code
+  - Complying with data protection and privacy laws in their country/region
+  - Adhering to confidentiality agreements and security policies of their company or organization
 - **This tool must not be used for illegal, malicious, or rights-infringing purposes**; users bear full legal and financial responsibility for all consequences. Authors, contributors, and maintainers **shall bear no responsibility** for such activities or their consequences and reserve the right to pursue abusers.
 
-#### 6. **Open Source Contributions**
+#### 7. **Open Source Contributions**
 - Code, content, or suggestions from contributors **do not represent the project's official stance**; contributors are responsible for their accuracy, security, and compliance.
 - Maintainers reserve the right to review, modify, reject, or remove any contributions.
 
