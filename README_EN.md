@@ -28,7 +28,7 @@ In the fast-paced world of software development, ensuring code quality is crucia
 - **🤖 AI-Driven Deep Analysis**: Beyond traditional static analysis, understands code intent and discovers deep logical issues.
 - **🎯 Multi-dimensional, Comprehensive Assessment**: From **security**, **performance**, **maintainability** to **code style**, providing 360-degree quality evaluation.
 - **💡 Clear, Actionable Fix Suggestions**: Innovative **What-Why-How** approach that not only tells you "what" the problem is, but also explains "why" and provides "how to fix" with specific code examples.
-- **⚡ Real-time Feedback, Instant Improvement**: Whether it's code snippets or entire repositories, get fast and accurate analysis results.
+- **✅ Multi-Platform LLM Support**: Implemented API calling functionality for 10+ mainstream platforms (Gemini, OpenAI, Claude, Qwen, DeepSeek, Zhipu AI, Kimi, ERNIE, MiniMax, Doubao), with support for free configuration and switching
 - **✨ Modern, Beautiful User Interface**: Built with React + TypeScript, providing a smooth and intuitive user experience.
 
 ## 🎬 Project Demo
