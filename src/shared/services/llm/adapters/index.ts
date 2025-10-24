@@ -12,4 +12,5 @@ export { MoonshotAdapter } from './moonshot-adapter';
 export { BaiduAdapter } from './baidu-adapter';
 export { MinimaxAdapter } from './minimax-adapter';
 export { DoubaoAdapter } from './doubao-adapter';
+export { OllamaAdapter } from './ollama-adapter';
 

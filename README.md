@@ -28,7 +28,7 @@
 - **AI 驱动的深度分析**：超越传统静态分析，理解代码意图，发现深层逻辑问题。
 - **多维度、全方位评估**：从**安全性**、**性能**、**可维护性**到**代码风格**，提供 360 度无死角的质量评估。
 - **清晰、可行的修复建议**：独创 **What-Why-How** 模式，不仅告诉您“是什么”问题，还解释“为什么”，并提供“如何修复”的具体代码示例。
-- **多平台LLM支持**: 已实现 10+ 主流平台API调用功能（Gemini、OpenAI、Claude、通义千问、DeepSeek、智谱AI、Kimi、文心一言、MiniMax、豆包），支持用户自由配置和切换。
+- **多平台LLM/本地LLM支持**: 已实现 10+ 主流平台API调用功能（Gemini、OpenAI、Claude、通义千问、DeepSeek、智谱AI、Kimi、文心一言、MiniMax、豆包、Ollama本地大模型），支持用户自由配置和切换。
 - **现代化、高颜值的用户界面**：基于 React + TypeScript 构建，提供流畅、直观的操作体验。
 
 ## 🎬 项目演示
@@ -273,6 +273,46 @@ VITE_DEEPSEEK_API_KEY=deepseek_key
 ```
 </details>
 
+<details>
+<summary><b>Q: 如何使用 Ollama 本地大模型？</b></summary>
+
+Ollama 允许您在本地运行开源大模型，无需 API Key，保护数据隐私：
+
+**1. 安装 Ollama**
+```bash
+# macOS / Linux
+curl -fsSL https://ollama.com/install.sh | sh
+
+# Windows
+# 下载并安装：https://ollama.com/download
+```
+
+**2. 拉取并运行模型**
+```bash
+# 拉取 Llama3 模型
+ollama pull llama3
+
+# 验证模型是否可用
+ollama list
+```
+
+**3. 配置 XCodeReviewer**
+```env
+VITE_LLM_PROVIDER=ollama
+VITE_LLM_API_KEY=ollama              # 填写任意值即可
+VITE_LLM_MODEL=llama3                # 使用的模型名称
+VITE_LLM_BASE_URL=http://localhost:11434/v1  # Ollama API地址
+```
+
+**推荐模型：**
+- `llama3` - Meta 的开源大模型，性能优秀
+- `codellama` - 专门针对代码优化的模型
+- `qwen2.5` - 阿里云通义千问开源版本
+- `deepseek-coder` - DeepSeek 代码专用模型
+
+更多模型请访问：https://ollama.com/library
+</details>
+
 ### 🔑 获取 API Key
 
 #### 🎯 支持的 LLM 平台
@@ -293,6 +333,9 @@ XCodeReviewer 现已支持多个主流 LLM 平台，您可以根据需求自由�
 - **MiniMax** [获取API Key](https://www.minimaxi.com/)
 - **字节豆包** [获取API Key](https://console.volcengine.com/ark)
 
+**本地部署：**
+- **Ollama** - 本地运行开源大模型，支持 Llama3、Mistral、CodeLlama 等 [安装指南](https://ollama.com/)
+
 #### 📝 配置示例
 
 在 `.env` 文件中配置您选择的平台：
@@ -308,6 +351,12 @@ VITE_GEMINI_API_KEY=your_gemini_api_key
 VITE_OPENAI_API_KEY=your_openai_api_key
 VITE_CLAUDE_API_KEY=your_claude_api_key
 # ... 其他平台配置
+
+# 使用 Ollama 本地大模型（无需 API Key）
+VITE_LLM_PROVIDER=ollama
+VITE_LLM_API_KEY=ollama              # 填写任意值即可
+VITE_LLM_MODEL=llama3                # 使用的模型名称
+VITE_LLM_BASE_URL=http://localhost:11434/v1  # Ollama API地址（可选）
 ```
 
 **快速切换平台：** 只需修改 `VITE_LLM_PROVIDER` 的值，即可在不同平台间自由切换！
@@ -559,8 +608,8 @@ pnpm lint
 
 目前 XCodeReviewer 定位为快速原型验证阶段，功能需要逐渐完善，根据项目后续发展和大家的建议，未来开发计划如下（尽快实现）：
 
-- **✅ 多平台LLM支持**: 已实现 10+ 主流平台API调用功能（Gemini、OpenAI、Claude、通义千问、DeepSeek、智谱AI、Kimi、文心一言、MiniMax、豆包），支持用户自由配置和切换
-- **本地模型支持**: 计划加入对本地大模型（如 Ollama）的调用功能，满足数据隐私需求
+- **✅ 多平台LLM支持**: 已实现 10+ 主流平台API调用功能（Gemini、OpenAI、Claude、通义千问、DeepSeek、智谱AI、Kimi、文心一言、MiniMax、豆包、Ollama本地大模型），支持用户自由配置和切换
+- **✅ 本地模型支持**: 已加入对 Ollama 本地大模型的调用功能，满足数据隐私需求
 - **Multi-Agent Collaboration**: 考虑引入多智能体协作架构，会实现`Agent+人工对话`反馈的功能，包括多轮对话流程展示，人工对话中断干涉等，以获得更清晰、透明、监督性的审计过程，提升审计质量
 - **专业报告文件生成**: 根据不同的需求生成相关格式的专业审计报告文件，支持文件报告格式定制等
 - **审计标准自定义**: 不同团队有自己的编码规范，不同项目有特定的安全要求，也正是我们这个项目想后续做的东西。当前的版本还属于一个“半黑盒模式”，项目通过 Prompt 工程来引导分析方向和定义审计标准，实际分析效果由强大的预训练AI 模型内置知识决定。后续将结合强化学习、监督学习微调等方法，开发以支持自定义规则配置，通过YAML或者JSON定义团队特定规则，提供常见框架的最佳实践模板等等，以获得更加符合需求和标准的审计结果

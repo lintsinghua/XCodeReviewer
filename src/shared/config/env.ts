@@ -1,7 +1,7 @@
 // 环境变量配置
 export const env = {
   // ==================== LLM 通用配置 ====================
-  // 当前使用的LLM提供商 (gemini|openai|claude|qwen|deepseek|zhipu|moonshot|baidu|minimax|doubao)
+  // 当前使用的LLM提供商 (gemini|openai|claude|qwen|deepseek|zhipu|moonshot|baidu|minimax|doubao|ollama)
   LLM_PROVIDER: import.meta.env.VITE_LLM_PROVIDER || 'gemini',
   // LLM API Key
   LLM_API_KEY: import.meta.env.VITE_LLM_API_KEY || '',
@@ -58,6 +58,11 @@ export const env = {
   DOUBAO_API_KEY: import.meta.env.VITE_DOUBAO_API_KEY || '',
   DOUBAO_MODEL: import.meta.env.VITE_DOUBAO_MODEL || 'doubao-pro-32k',
 
+  // ==================== Ollama 本地模型配置 ====================
+  OLLAMA_API_KEY: import.meta.env.VITE_OLLAMA_API_KEY || 'ollama',
+  OLLAMA_MODEL: import.meta.env.VITE_OLLAMA_MODEL || 'llama3',
+  OLLAMA_BASE_URL: import.meta.env.VITE_OLLAMA_BASE_URL || 'http://localhost:11434/v1',
+
   // ==================== Supabase 配置 ====================
   SUPABASE_URL: import.meta.env.VITE_SUPABASE_URL || '',
   SUPABASE_ANON_KEY: import.meta.env.VITE_SUPABASE_ANON_KEY || '',
@@ -101,6 +106,7 @@ export function getCurrentLLMApiKey(): string {
     baidu: env.BAIDU_API_KEY,
     minimax: env.MINIMAX_API_KEY,
     doubao: env.DOUBAO_API_KEY,
+    ollama: env.OLLAMA_API_KEY,
   };
 
   return providerKeyMap[provider] || '';
@@ -129,6 +135,7 @@ export function getCurrentLLMModel(): string {
     baidu: env.BAIDU_MODEL,
     minimax: env.MINIMAX_MODEL,
     doubao: env.DOUBAO_MODEL,
+    ollama: env.OLLAMA_MODEL,
   };
 
   return providerModelMap[provider] || '';

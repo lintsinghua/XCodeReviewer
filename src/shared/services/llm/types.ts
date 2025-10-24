@@ -13,7 +13,8 @@ export type LLMProvider =
   | 'moonshot'    // 月之暗面 Kimi
   | 'baidu'       // 百度文心一言
   | 'minimax'     // MiniMax
-  | 'doubao';     // 字节豆包
+  | 'doubao'      // 字节豆包
+  | 'ollama';     // Ollama 本地大模型
 
 // LLM配置接口
 export interface LLMConfig {
@@ -119,6 +120,7 @@ export const DEFAULT_MODELS: Record<LLMProvider, string> = {
   baidu: 'ERNIE-3.5-8K',
   minimax: 'abab6.5-chat',
   doubao: 'doubao-pro-32k',
+  ollama: 'llama3',
 };
 
 // 各平台API端点
@@ -131,5 +133,6 @@ export const DEFAULT_BASE_URLS: Partial<Record<LLMProvider, string>> = {
   baidu: 'https://aip.baidubce.com/rpc/2.0/ai_custom/v1',
   minimax: 'https://api.minimax.chat/v1',
   doubao: 'https://ark.cn-beijing.volces.com/api/v3',
+  ollama: 'http://localhost:11434/v1',
 };
 

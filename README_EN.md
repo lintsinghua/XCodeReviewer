@@ -28,7 +28,7 @@ In the fast-paced world of software development, ensuring code quality is crucia
 - **🤖 AI-Driven Deep Analysis**: Beyond traditional static analysis, understands code intent and discovers deep logical issues.
 - **🎯 Multi-dimensional, Comprehensive Assessment**: From **security**, **performance**, **maintainability** to **code style**, providing 360-degree quality evaluation.
 - **💡 Clear, Actionable Fix Suggestions**: Innovative **What-Why-How** approach that not only tells you "what" the problem is, but also explains "why" and provides "how to fix" with specific code examples.
-- **✅ Multi-Platform LLM Support**: Implemented API calling functionality for 10+ mainstream platforms (Gemini, OpenAI, Claude, Qwen, DeepSeek, Zhipu AI, Kimi, ERNIE, MiniMax, Doubao), with support for free configuration and switching
+- **✅ Multi-Platform LLM/Local Model Support**: Implemented API calling functionality for 10+ mainstream platforms (Gemini, OpenAI, Claude, Qwen, DeepSeek, Zhipu AI, Kimi, ERNIE, MiniMax, Doubao, Ollama Local Models), with support for free configuration and switching
 - **✨ Modern, Beautiful User Interface**: Built with React + TypeScript, providing a smooth and intuitive user experience.
 
 ## 🎬 Project Demo
@@ -280,6 +280,46 @@ VITE_DEEPSEEK_API_KEY=deepseek_key
 ```
 </details>
 
+<details>
+<summary><b>Q: How to use Ollama local models?</b></summary>
+
+Ollama allows you to run open-source models locally without an API key, protecting data privacy:
+
+**1. Install Ollama**
+```bash
+# macOS / Linux
+curl -fsSL https://ollama.com/install.sh | sh
+
+# Windows
+# Download and install: https://ollama.com/download
+```
+
+**2. Pull and run a model**
+```bash
+# Pull Llama3 model
+ollama pull llama3
+
+# Verify the model is available
+ollama list
+```
+
+**3. Configure XCodeReviewer**
+```env
+VITE_LLM_PROVIDER=ollama
+VITE_LLM_API_KEY=ollama              # Can be any value
+VITE_LLM_MODEL=llama3                # Model name to use
+VITE_LLM_BASE_URL=http://localhost:11434/v1  # Ollama API address
+```
+
+**Recommended Models:**
+- `llama3` - Meta's open-source model with excellent performance
+- `codellama` - Code-optimized model
+- `qwen2.5` - Open-source version of Alibaba Qwen
+- `deepseek-coder` - DeepSeek's code-specialized model
+
+More models available at: https://ollama.com/library
+</details>
+
 
 ### 🔑 Getting API Keys
 
@@ -301,6 +341,9 @@ XCodeReviewer now supports multiple mainstream LLM platforms. You can choose fre
 - **MiniMax** [Get API Key](https://www.minimaxi.com/)
 - **Bytedance Doubao (豆包)** [Get API Key](https://console.volcengine.com/ark)
 
+**Local Deployment:**
+- **Ollama** - Run open-source models locally, supports Llama3, Mistral, CodeLlama, etc. [Installation Guide](https://ollama.com/)
+
 #### 📝 Configuration Examples
 
 Configure your chosen platform in the `.env` file:
@@ -316,6 +359,12 @@ VITE_GEMINI_API_KEY=your_gemini_api_key
 VITE_OPENAI_API_KEY=your_openai_api_key
 VITE_CLAUDE_API_KEY=your_claude_api_key
 # ... Other platform configurations
+
+# Using Ollama Local Models (No API Key Required)
+VITE_LLM_PROVIDER=ollama
+VITE_LLM_API_KEY=ollama              # Can be any value
+VITE_LLM_MODEL=llama3                # Model name to use
+VITE_LLM_BASE_URL=http://localhost:11434/v1  # Ollama API address (optional)
 ```
 
 **Quick Platform Switch:** Simply modify the value of `VITE_LLM_PROVIDER` to switch between different platforms!
@@ -566,8 +615,8 @@ We warmly welcome all forms of contributions! Whether it's submitting issues, cr
 
 Currently, XCodeReviewer is positioned in the rapid prototype verification stage, and its functions need to be gradually improved. Based on the subsequent development of the project and everyone's suggestions, the future development plan is as follows (to be implemented as soon as possible):
 
-- **✅ Multi-Platform LLM Support**: Implemented API calling functionality for 10+ mainstream platforms (Gemini, OpenAI, Claude, Qwen, DeepSeek, Zhipu AI, Kimi, ERNIE, MiniMax, Doubao), with support for free configuration and switching
-- **Local Model Support**: Planning to add support for local large models (such as Ollama) to meet data privacy requirements
+- **✅ Multi-Platform LLM Support**: Implemented API calling functionality for 10+ mainstream platforms (Gemini, OpenAI, Claude, Qwen, DeepSeek, Zhipu AI, Kimi, ERNIE, MiniMax, Doubao, Ollama Local Models), with support for free configuration and switching
+- **✅ Local Model Support**: Added support for Ollama local large models to meet data privacy requirements
 - **Multi-Agent Collaboration**: Consider introducing a multi-agent collaboration architecture, which will implement the `Agent + Human Dialogue` feedback function, including multi-round dialogue process display, human dialogue interruption intervention, etc., to obtain a clearer, more transparent, and supervised auditing process, thereby improving audit quality.
 - **Professional Report File Generation**: Generate professional audit report files in relevant formats according to different needs, supporting customization of file report formats, etc.
 - **Custom Audit Standards**: Different teams have their own coding standards, and different projects have specific security requirements, which is exactly what we want to do next in this project. The current version is still in a "semi-black box mode", where the project guides the analysis direction and defines audit standards through Prompt engineering, and the actual analysis effect is determined by the built-in knowledge of powerful pre-trained AI models. In the future, we will combine methods such as reinforcement learning and supervised learning fine-tuning to develop support for custom rule configuration, define team-specific rules through YAML or JSON, provide best practice templates for common frameworks, etc., to obtain audit results that are more in line with requirements and standards.

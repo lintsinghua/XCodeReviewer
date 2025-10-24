@@ -72,11 +72,19 @@ export class LLMService {
       throw new Error('未配置LLM API Key，请在环境变量中设置');
     }
 
+    // 获取 baseUrl，优先使用通用配置，然后是平台专用配置
+    let baseUrl = env.LLM_BASE_URL;
+    if (!baseUrl && provider === 'openai') {
+      baseUrl = env.OPENAI_BASE_URL;
+    } else if (!baseUrl && provider === 'ollama') {
+      baseUrl = env.OLLAMA_BASE_URL;
+    }
+
     const config: LLMConfig = {
       provider,
       apiKey,
       model,
-      baseUrl: env.LLM_BASE_URL,
+      baseUrl,
       timeout: env.LLM_TIMEOUT || env.GEMINI_TIMEOUT_MS,
       temperature: env.LLM_TEMPERATURE,
       maxTokens: env.LLM_MAX_TOKENS,

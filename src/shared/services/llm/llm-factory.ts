@@ -15,6 +15,7 @@ import {
   BaiduAdapter,
   MinimaxAdapter,
   DoubaoAdapter,
+  OllamaAdapter,
 } from './adapters';
 
 /**
@@ -83,6 +84,9 @@ export class LLMFactory {
       case 'doubao':
         return new DoubaoAdapter(config);
       
+      case 'ollama':
+        return new OllamaAdapter(config);
+      
       default:
         throw new Error(`不支持的LLM提供商: ${config.provider}`);
     }
@@ -117,6 +121,7 @@ export class LLMFactory {
       'baidu',
       'minimax',
       'doubao',
+      'ollama',
     ];
   }
 
@@ -193,6 +198,17 @@ export class LLMFactory {
         'doubao-lite-32k',
         'doubao-lite-128k',
       ],
+      ollama: [
+        'llama3',
+        'llama3.1',
+        'llama3.2',
+        'mistral',
+        'codellama',
+        'qwen2.5',
+        'gemma2',
+        'phi3',
+        'deepseek-coder',
+      ],
     };
 
     return models[provider] || [];
@@ -213,6 +229,7 @@ export class LLMFactory {
       baidu: '百度文心一言',
       minimax: 'MiniMax',
       doubao: '字节豆包',
+      ollama: 'Ollama 本地大模型',
     };
 
     return names[provider] || provider;
