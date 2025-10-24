@@ -25,6 +25,11 @@
 
 In the fast-paced world of software development, ensuring code quality is crucial. Traditional code audit tools are rigid and inefficient, while manual audits are time-consuming and labor-intensive. XCodeReviewer leverages the powerful capabilities of Google Gemini AI to revolutionize the way code reviews are conducted:
 
+![System Architecture Diagram](public/diagram.svg)
+<div style="text-align: center;"><em>System Architecture Diagram of XCodeReviewer</em></div>
+
+---
+
 - **🤖 AI-Driven Deep Analysis**: Beyond traditional static analysis, understands code intent and discovers deep logical issues.
 - **🎯 Multi-dimensional, Comprehensive Assessment**: From **security**, **performance**, **maintainability** to **code style**, providing 360-degree quality evaluation.
 - **💡 Clear, Actionable Fix Suggestions**: Innovative **What-Why-How** approach that not only tells you "what" the problem is, but also explains "why" and provides "how to fix" with specific code examples.
