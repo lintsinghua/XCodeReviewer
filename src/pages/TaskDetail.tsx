@@ -26,6 +26,7 @@ import {
 import { api } from "@/shared/config/database";
 import type { AuditTask, AuditIssue } from "@/shared/types";
 import { toast } from "sonner";
+import ExportReportDialog from "@/components/reports/ExportReportDialog";
 
 // AI解释解析函数
 function parseAIExplanation(aiExplanation: string) {
@@ -319,6 +320,7 @@ export default function TaskDetail() {
   const [task, setTask] = useState<AuditTask | null>(null);
   const [issues, setIssues] = useState<AuditIssue[]>([]);
   const [loading, setLoading] = useState(true);
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -437,7 +439,11 @@ export default function TaskDetail() {
             </span>
           </Badge>
           {task.status === 'completed' && (
-            <Button size="sm" className="btn-primary">
+            <Button 
+              size="sm" 
+              className="btn-primary"
+              onClick={() => setExportDialogOpen(true)}
+            >
               <Download className="w-4 h-4 mr-2" />
               导出报告
             </Button>
@@ -638,6 +644,16 @@ export default function TaskDetail() {
             <IssuesList issues={issues} />
           </CardContent>
         </Card>
+      )}
+
+      {/* 导出报告对话框 */}
+      {task && (
+        <ExportReportDialog
+          open={exportDialogOpen}
+          onOpenChange={setExportDialogOpen}
+          task={task}
+          issues={issues}
+        />
       )}
     </div>
   );

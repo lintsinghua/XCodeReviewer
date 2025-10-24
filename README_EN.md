@@ -546,6 +546,20 @@ XCodeReviewer/
 4. Monitor task execution status
 5. View detailed issue reports
 
+### Audit Report Export
+1. Click the "Export Report" button on the task detail page
+2. Choose export format:
+   - **JSON Format**: Structured data, suitable for programmatic processing and integration
+   - **PDF Format**: Professional report, suitable for printing and sharing (via browser print function)
+3. JSON reports contain complete task information, issue details, and statistical data
+4. PDF reports provide beautiful visual presentation with full Chinese character support
+5. Report contents include: project information, audit statistics, issue details (categorized by severity), fix suggestions, etc.
+
+**PDF Export Tips:**
+- After clicking "Export PDF", the browser print dialog will appear
+- It's recommended to **uncheck the "Headers and footers" option** in print settings for a cleaner report (to avoid displaying URLs and other information)
+- Select "Save as PDF" in the print dialog to save the report file
+
 ### Build and Deploy
 ```bash
 # Development mode
