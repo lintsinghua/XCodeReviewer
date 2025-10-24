@@ -147,9 +147,15 @@ For development or custom modifications, use local deployment.
     VITE_CLAUDE_API_KEY=your_claude_api_key_here
     # ... Supports 10+ mainstream platforms
     
-    # Supabase Configuration (Optional, for data persistence)
-    VITE_SUPABASE_URL=https://your-project.supabase.co
-    VITE_SUPABASE_ANON_KEY=your-anon-key-here
+    # Database Configuration (Three modes available)
+    # 1. Local Database Mode (Recommended) - Data stored in browser IndexedDB
+    VITE_USE_LOCAL_DB=true
+    
+    # 2. Supabase Cloud Mode - Data stored in cloud
+    # VITE_SUPABASE_URL=https://your-project.supabase.co
+    # VITE_SUPABASE_ANON_KEY=your-anon-key-here
+    
+    # 3. Demo Mode - No database configuration, uses demo data (not persistent)
     
     # GitHub Integration (Optional, for repository analysis)
     VITE_GITHUB_TOKEN=your_github_token_here
@@ -161,6 +167,9 @@ For development or custom modifications, use local deployment.
     VITE_MAX_ANALYZE_FILES=40
     VITE_LLM_CONCURRENCY=2
     VITE_LLM_GAP_MS=500
+    
+    # Output Language Configuration (zh-CN: Chinese | en-US: English)
+    VITE_OUTPUT_LANGUAGE=zh-CN
     ```
 
 4.  **Start development server**
@@ -438,6 +447,21 @@ VITE_LLM_BASE_URL=http://localhost:11434/v1  # Ollama API address (optional)
 - **Quality Trend Analysis**: Display code quality changes over time through charts.
 </details>
 
+<details>
+<summary><b>💾 Local Database Management</b></summary>
+
+- **Three Database Modes**:
+  - 🏠 **Local Mode**: Uses browser IndexedDB, data is completely localized, privacy-secure
+  - ☁️ **Cloud Mode**: Uses Supabase, supports multi-device synchronization
+  - 🎭 **Demo Mode**: No configuration needed, quick feature preview
+- **Data Management Features**:
+  - 📤 **Export Backup**: Export data as JSON files
+  - 📥 **Import Recovery**: Restore data from backup files
+  - 🗑️ **Clear Data**: One-click cleanup of all local data
+  - 📊 **Storage Monitoring**: Real-time view of storage space usage
+- **Smart Statistics**: Complete statistics and visualization of projects, tasks, and issues
+</details>
+
 ## 🛠️ Tech Stack
 
 | Category | Technology | Description |
@@ -448,6 +472,7 @@ VITE_LLM_BASE_URL=http://localhost:11434/v1  # Ollama API address (optional)
 | **Routing** | `React Router v6` | Single-page application routing solution |
 | **State Management** | `React Hooks` `Sonner` | Lightweight state management and notification system |
 | **AI Engine** | `Multi-Platform LLM` | Supports 10+ mainstream platforms including Gemini, OpenAI, Claude, Qwen, DeepSeek |
+| **Data Storage** | `IndexedDB` `Supabase` `PostgreSQL` | Dual-mode support for local database + cloud database |
 | **Backend Service** | `Supabase` `PostgreSQL` | Full-stack backend-as-a-service with real-time database |
 | **HTTP Client** | `Axios` `Ky` | Modern HTTP request libraries |
 | **Code Quality** | `Biome` `Ast-grep` `TypeScript` | Code formatting, static analysis, and type checking |
@@ -465,23 +490,28 @@ XCodeReviewer/
 │   ├── components/         # React components
 │   │   ├── layout/         # Layout components (Header, Footer, PageMeta)
 │   │   ├── ui/             # UI component library (based on Radix UI)
+│   │   ├── database/       # Database management components
 │   │   └── debug/          # Debug components
 │   ├── pages/              # Page components
 │   │   ├── Dashboard.tsx   # Dashboard
 │   │   ├── Projects.tsx    # Project management
 │   │   ├── InstantAnalysis.tsx # Instant analysis
 │   │   ├── AuditTasks.tsx  # Audit tasks
-│   │   └── AdminDashboard.tsx # System management
+│   │   └── AdminDashboard.tsx # Database management
 │   ├── features/           # Feature modules
 │   │   ├── analysis/       # Analysis related services
 │   │   │   └── services/   # AI code analysis engine
 │   │   └── projects/       # Project related services
 │   │       └── services/   # Repository scanning, ZIP file scanning
 │   ├── shared/             # Shared utilities
-│   │   ├── config/         # Configuration files (database, environment)
+│   │   ├── config/         # Configuration files
+│   │   │   ├── database.ts      # Unified database interface
+│   │   │   ├── localDatabase.ts # IndexedDB implementation
+│   │   │   └── env.ts           # Environment variable configuration
 │   │   ├── types/          # TypeScript type definitions
 │   │   ├── hooks/          # Custom React Hooks
 │   │   ├── utils/          # Utility functions
+│   │   │   └── initLocalDB.ts   # Local database initialization
 │   │   └── constants/      # Constants definition
 │   └── assets/             # Static assets
 │       └── styles/         # Style files
