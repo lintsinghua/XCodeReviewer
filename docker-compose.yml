@@ -4,27 +4,80 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      # 构建参数 - 从 .env 文件或环境变量传入
+      args:
+        # LLM 通用配置
+        - VITE_LLM_PROVIDER=${VITE_LLM_PROVIDER:-gemini}
+        - VITE_LLM_API_KEY=${VITE_LLM_API_KEY}
+        - VITE_LLM_MODEL=${VITE_LLM_MODEL}
+        - VITE_LLM_BASE_URL=${VITE_LLM_BASE_URL}
+        - VITE_LLM_TIMEOUT=${VITE_LLM_TIMEOUT:-150000}
+        - VITE_LLM_TEMPERATURE=${VITE_LLM_TEMPERATURE:-0.2}
+        - VITE_LLM_MAX_TOKENS=${VITE_LLM_MAX_TOKENS:-4096}
+        
+        # Google Gemini 配置
+        - VITE_GEMINI_API_KEY=${VITE_GEMINI_API_KEY}
+        - VITE_GEMINI_MODEL=${VITE_GEMINI_MODEL:-gemini-2.5-flash}
+        - VITE_GEMINI_TIMEOUT_MS=${VITE_GEMINI_TIMEOUT_MS:-25000}
+        
+        # OpenAI 配置
+        - VITE_OPENAI_API_KEY=${VITE_OPENAI_API_KEY}
+        - VITE_OPENAI_MODEL=${VITE_OPENAI_MODEL:-gpt-4o-mini}
+        - VITE_OPENAI_BASE_URL=${VITE_OPENAI_BASE_URL}
+        
+        # Claude 配置
+        - VITE_CLAUDE_API_KEY=${VITE_CLAUDE_API_KEY}
+        - VITE_CLAUDE_MODEL=${VITE_CLAUDE_MODEL:-claude-3-5-sonnet-20241022}
+        
+        # 通义千问配置
+        - VITE_QWEN_API_KEY=${VITE_QWEN_API_KEY}
+        - VITE_QWEN_MODEL=${VITE_QWEN_MODEL:-qwen-turbo}
+        
+        # DeepSeek 配置
+        - VITE_DEEPSEEK_API_KEY=${VITE_DEEPSEEK_API_KEY}
+        - VITE_DEEPSEEK_MODEL=${VITE_DEEPSEEK_MODEL:-deepseek-chat}
+        
+        # 智谱AI 配置
+        - VITE_ZHIPU_API_KEY=${VITE_ZHIPU_API_KEY}
+        - VITE_ZHIPU_MODEL=${VITE_ZHIPU_MODEL:-glm-4-flash}
+        
+        # Moonshot 配置
+        - VITE_MOONSHOT_API_KEY=${VITE_MOONSHOT_API_KEY}
+        - VITE_MOONSHOT_MODEL=${VITE_MOONSHOT_MODEL:-moonshot-v1-8k}
+        
+        # 百度文心一言配置
+        - VITE_BAIDU_API_KEY=${VITE_BAIDU_API_KEY}
+        - VITE_BAIDU_MODEL=${VITE_BAIDU_MODEL:-ERNIE-3.5-8K}
+        
+        # MiniMax 配置
+        - VITE_MINIMAX_API_KEY=${VITE_MINIMAX_API_KEY}
+        - VITE_MINIMAX_MODEL=${VITE_MINIMAX_MODEL:-abab6.5-chat}
+        
+        # 豆包配置
+        - VITE_DOUBAO_API_KEY=${VITE_DOUBAO_API_KEY}
+        - VITE_DOUBAO_MODEL=${VITE_DOUBAO_MODEL:-doubao-pro-32k}
+        
+        # Ollama 配置
+        - VITE_OLLAMA_API_KEY=${VITE_OLLAMA_API_KEY:-ollama}
+        - VITE_OLLAMA_MODEL=${VITE_OLLAMA_MODEL:-llama3}
+        - VITE_OLLAMA_BASE_URL=${VITE_OLLAMA_BASE_URL:-http://localhost:11434/v1}
+        
+        # Supabase 配置
+        - VITE_SUPABASE_URL=${VITE_SUPABASE_URL}
+        - VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY}
+        
+        # GitHub 配置
+        - VITE_GITHUB_TOKEN=${VITE_GITHUB_TOKEN}
+        
+        # 应用配置
+        - VITE_APP_ID=${VITE_APP_ID:-xcodereviewer}
+        - VITE_MAX_ANALYZE_FILES=${VITE_MAX_ANALYZE_FILES:-40}
+        - VITE_LLM_CONCURRENCY=${VITE_LLM_CONCURRENCY:-2}
+        - VITE_LLM_GAP_MS=${VITE_LLM_GAP_MS:-500}
+    
     container_name: xcodereviewer-app
     ports:
       - "5174:80"
-    environment:
-      # Google Gemini AI 配置 (必需)
-      - VITE_GEMINI_API_KEY=${VITE_GEMINI_API_KEY}
-      - VITE_GEMINI_MODEL=${VITE_GEMINI_MODEL:-gemini-2.5-flash}
-      - VITE_GEMINI_TIMEOUT_MS=${VITE_GEMINI_TIMEOUT_MS:-25000}
-      
-      # Supabase 配置 (可选)
-      - VITE_SUPABASE_URL=${VITE_SUPABASE_URL}
-      - VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY}
-      
-      # GitHub 集成 (可选)
-      - VITE_GITHUB_TOKEN=${VITE_GITHUB_TOKEN}
-      
-      # 应用配置
-      - VITE_APP_ID=${VITE_APP_ID:-xcodereviewer}
-      - VITE_MAX_ANALYZE_FILES=${VITE_MAX_ANALYZE_FILES:-40}
-      - VITE_LLM_CONCURRENCY=${VITE_LLM_CONCURRENCY:-2}
-      - VITE_LLM_GAP_MS=${VITE_LLM_GAP_MS:-500}
     restart: unless-stopped
     networks:
       - xcodereviewer-network

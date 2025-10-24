@@ -38,7 +38,8 @@ coverage
 .nyc_output
 
 # 文档
-*.md
+README.md
+README_EN.md
 docs
 
 # 其他
