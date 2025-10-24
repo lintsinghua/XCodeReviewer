@@ -37,7 +37,7 @@ export class CodeAnalysisEngine {
 
   static async analyzeCode(code: string, language: string): Promise<CodeAnalysisResult> {
     const llmService = this.createLLMService();
-    
+
     // 获取输出语言配置
     const outputLanguage = env.OUTPUT_LANGUAGE || 'zh-CN';
     const isChineseOutput = outputLanguage === 'zh-CN';
@@ -79,7 +79,7 @@ export class CodeAnalysisEngine {
     }`;
 
     // 根据配置生成不同语言的提示词
-    const systemPrompt = isChineseOutput 
+    const systemPrompt = isChineseOutput
       ? `你是一个专业的代码审计助手。
 
 【重要】请严格遵守以下规则：
@@ -254,42 +254,20 @@ Note:
       // 1. 去除前后空白
       str = str.trim();
 
-      // 2. 将 JavaScript 模板字符串（反引号）替换为双引号，并处理多行内容
-      // 匹配: "key": `多行内容`  =>  "key": "转义后的内容"
-      str = str.replace(/:\s*`([\s\S]*?)`/g, (match, content) => {
-        // 转义所有特殊字符
-        let escaped = content
-          .replace(/\\/g, '\\\\')        // 反斜杠
-          .replace(/"/g, '\\"')          // 双引号
-          .replace(/\n/g, '\\n')         // 换行符
-          .replace(/\r/g, '\\r')         // 回车符
-          .replace(/\t/g, '\\t')         // 制表符
-          .replace(/\f/g, '\\f')         // 换页符
-          .replace(/\b/g, '\\b');        // 退格符
-        return `: "${escaped}"`;
-      });
-
-      // 3. 处理字符串中未转义的换行符（防御性处理）
-      // 匹配双引号字符串内的实际换行符
-      str = str.replace(/"([^"]*?)"/g, (match, content) => {
-        if (content.includes('\n') || content.includes('\r') || content.includes('\t')) {
-          const escaped = content
-            .replace(/\n/g, '\\n')
-            .replace(/\r/g, '\\r')
-            .replace(/\t/g, '\\t')
-            .replace(/\f/g, '\\f')
-            .replace(/\b/g, '\\b');
-          return `"${escaped}"`;
-        }
-        return match;
-      });
-
-      // 4. 修复尾部逗号（JSON 不允许）
+      // 2. 修复尾部逗号（JSON 不允许）- 必须在其他处理之前
       str = str.replace(/,(\s*[}\]])/g, '$1');
 
-      // 5. 修复缺少逗号的问题（两个连续的 } 或 ]）
+      // 3. 修复缺少逗号的问题
       str = str.replace(/\}(\s*)\{/g, '},\n{');
       str = str.replace(/\](\s*)\[/g, '],\n[');
+      str = str.replace(/\}(\s*)"([^"]+)":/g, '},\n"$2":');
+      str = str.replace(/\](\s*)"([^"]+)":/g, '],\n"$2":');
+
+      // 4. 修复对象/数组后缺少逗号的情况
+      str = str.replace(/([}\]])(\s*)(")/g, '$1,\n$3');
+
+      // 5. 移除多余的逗号
+      str = str.replace(/,+/g, ',');
 
       return str;
     };
@@ -301,27 +279,27 @@ Note:
         .replace(/^\uFEFF/, '')
         .replace(/[\u200B-\u200D\uFEFF]/g, '');
 
-      // 修复字符串值中的特殊字符
-      // 匹配所有 JSON 字符串值（包括 description, suggestion, code_snippet 等）
-      cleaned = cleaned.replace(/"([^"]+)":\s*"((?:[^"\\]|\\.)*)"/g, (match, key, value) => {
-        // 如果值已经正确转义，跳过
-        if (!value.includes('\n') && !value.includes('\r') && !value.includes('\t') && !value.match(/[^\x20-\x7E]/)) {
-          return match;
-        }
-
-        // 转义特殊字符
+      // 更激进的字符串值清理
+      // 使用更宽松的正则来匹配字符串值，包括可能包含未转义引号的情况
+      cleaned = cleaned.replace(/"([^"]+)":\s*"([^"]*)"/gs, (match, key, value) => {
+        // 转义所有特殊字符
         let escaped = value
-          // 先处理已存在的反斜杠
+          // 移除或替换所有控制字符（包括换行、制表符等）
+          .replace(/[\x00-\x1F\x7F-\x9F]/g, (char) => {
+            const code = char.charCodeAt(0);
+            if (code === 0x0A) return '\\n';  // \n
+            if (code === 0x0D) return '\\r';  // \r
+            if (code === 0x09) return '\\t';  // \t
+            return '';  // 移除其他控制字符
+          })
+          // 转义反斜杠（必须在其他转义之前）
           .replace(/\\/g, '\\\\')
-          // 转义换行符
-          .replace(/\n/g, '\\n')
-          .replace(/\r/g, '\\r')
-          // 转义制表符
-          .replace(/\t/g, '\\t')
-          // 转义引号
+          // 转义双引号
           .replace(/"/g, '\\"')
-          // 移除其他控制字符
-          .replace(/[\x00-\x1F\x7F]/g, '');
+          // 移除中文引号和其他可能导致问题的字符
+          .replace(/[""'']/g, '')
+          // 确保没有未闭合的转义序列
+          .replace(/\\(?!["\\/bfnrtu])/g, '\\\\');
 
         return `"${key}": "${escaped}"`;
       });

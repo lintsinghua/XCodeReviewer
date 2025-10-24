@@ -13,16 +13,20 @@ import {
   FileText, GitBranch, Shield, TrendingUp, Zap,
   BarChart3, Target, ArrowUpRight, Calendar
 } from "lucide-react";
-import { api } from "@/shared/config/database";
+import { api, dbMode, isDemoMode } from "@/shared/config/database";
 import type { Project, AuditTask, ProjectStats } from "@/shared/types";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Info } from "lucide-react";
 
 export default function Dashboard() {
   const [stats, setStats] = useState<ProjectStats | null>(null);
   const [recentProjects, setRecentProjects] = useState<Project[]>([]);
   const [recentTasks, setRecentTasks] = useState<AuditTask[]>([]);
   const [loading, setLoading] = useState(true);
+  const [issueTypeData, setIssueTypeData] = useState<Array<{ name: string; value: number; color: string }>>([]);
+  const [qualityTrendData, setQualityTrendData] = useState<Array<{ date: string; score: number }>>([]);
 
   useEffect(() => {
     loadDashboardData();
@@ -38,30 +42,94 @@ export default function Dashboard() {
         api.getAuditTasks()
       ]);
 
+      // 统计数据 - 使用真实数据或空数据
       if (results[0].status === 'fulfilled') {
         setStats(results[0].value);
       } else {
+        console.error('获取统计数据失败:', results[0].reason);
+        // 使用空数据而不是假数据
         setStats({
-          total_projects: 5,
-          active_projects: 4,
-          total_tasks: 8,
-          completed_tasks: 6,
-          total_issues: 64,
-          resolved_issues: 45,
-          avg_quality_score: 88.5
+          total_projects: 0,
+          active_projects: 0,
+          total_tasks: 0,
+          completed_tasks: 0,
+          total_issues: 0,
+          resolved_issues: 0,
+          avg_quality_score: 0
         });
       }
 
+      // 项目列表 - 使用真实数据
       if (results[1].status === 'fulfilled') {
         setRecentProjects(Array.isArray(results[1].value) ? results[1].value.slice(0, 5) : []);
       } else {
+        console.error('获取项目列表失败:', results[1].reason);
         setRecentProjects([]);
       }
 
+      // 任务列表 - 使用真实数据
+      let tasks: AuditTask[] = [];
       if (results[2].status === 'fulfilled') {
-        setRecentTasks(Array.isArray(results[2].value) ? results[2].value.slice(0, 10) : []);
+        tasks = Array.isArray(results[2].value) ? results[2].value : [];
+        setRecentTasks(tasks.slice(0, 10));
       } else {
+        console.error('获取任务列表失败:', results[2].reason);
         setRecentTasks([]);
+      }
+
+      // 基于真实任务数据生成质量趋势
+      if (tasks.length > 0) {
+        // 按日期分组计算平均质量分
+        const tasksByDate = tasks
+          .filter(t => t.completed_at && t.quality_score > 0)
+          .sort((a, b) => new Date(a.completed_at!).getTime() - new Date(b.completed_at!).getTime())
+          .slice(-6); // 最近6个任务
+
+        const trendData = tasksByDate.map((task, index) => ({
+          date: new Date(task.completed_at!).toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' }),
+          score: task.quality_score
+        }));
+
+        setQualityTrendData(trendData.length > 0 ? trendData : []);
+      } else {
+        setQualityTrendData([]);
+      }
+
+      // 基于真实数据生成问题类型分布
+      // 需要获取所有问题数据来统计
+      try {
+        const allIssues = await Promise.all(
+          tasks.map(task => api.getAuditIssues(task.id).catch(() => []))
+        );
+        const flatIssues = allIssues.flat();
+
+        if (flatIssues.length > 0) {
+          const typeCount: Record<string, number> = {};
+          flatIssues.forEach(issue => {
+            typeCount[issue.issue_type] = (typeCount[issue.issue_type] || 0) + 1;
+          });
+
+          const typeMap: Record<string, { name: string; color: string }> = {
+            security: { name: '安全问题', color: '#dc2626' },
+            bug: { name: '潜在Bug', color: '#7f1d1d' },
+            performance: { name: '性能问题', color: '#b91c1c' },
+            style: { name: '代码风格', color: '#991b1b' },
+            maintainability: { name: '可维护性', color: '#450a0a' }
+          };
+
+          const issueData = Object.entries(typeCount).map(([type, count]) => ({
+            name: typeMap[type]?.name || type,
+            value: count,
+            color: typeMap[type]?.color || '#6b7280'
+          }));
+
+          setIssueTypeData(issueData);
+        } else {
+          setIssueTypeData([]);
+        }
+      } catch (error) {
+        console.error('获取问题数据失败:', error);
+        setIssueTypeData([]);
       }
     } catch (error) {
       console.error('仪表盘数据加载失败:', error);
@@ -80,22 +148,7 @@ export default function Dashboard() {
     }
   };
 
-  const issueTypeData = [
-    { name: '安全问题', value: 15, color: '#dc2626' },
-    { name: '性能问题', value: 25, color: '#b91c1c' },
-    { name: '代码风格', value: 35, color: '#991b1b' },
-    { name: '潜在Bug', value: 20, color: '#7f1d1d' },
-    { name: '可维护性', value: 5, color: '#450a0a' }
-  ];
 
-  const qualityTrendData = [
-    { date: '1月', score: 75 },
-    { date: '2月', score: 78 },
-    { date: '3月', score: 82 },
-    { date: '4月', score: 85 },
-    { date: '5月', score: 88 },
-    { date: '6月', score: 90 }
-  ];
 
   if (loading) {
     return (
@@ -117,7 +170,10 @@ export default function Dashboard() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
           <h1 className="page-title">仪表盘</h1>
-          <p className="page-subtitle">实时监控项目状态，掌握代码质量动态</p>
+          <p className="page-subtitle">
+            实时监控项目状态，掌握代码质量动态
+            {isDemoMode && <Badge variant="outline" className="ml-2">演示模式</Badge>}
+          </p>
         </div>
         <div className="flex gap-3">
           <Link to="/instant-analysis">
@@ -135,6 +191,20 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* 数据库模式提示 */}
+      {isDemoMode && (
+        <Alert>
+          <Info className="h-4 w-4" />
+          <AlertDescription>
+            当前使用<strong>演示模式</strong>，显示的是模拟数据。
+            配置数据库后将显示真实数据。
+            <Link to="/admin" className="ml-2 text-primary hover:underline">
+              前往数据库管理 →
+            </Link>
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <Card className="stat-card group">
@@ -142,8 +212,8 @@ export default function Dashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="stat-label">总项目数</p>
-                <p className="stat-value">{stats?.total_projects || 5}</p>
-                <p className="text-xs text-gray-500 mt-1">活跃 {stats?.active_projects || 4} 个</p>
+                <p className="stat-value">{stats?.total_projects || 0}</p>
+                <p className="text-xs text-gray-500 mt-1">活跃 {stats?.active_projects || 0} 个</p>
               </div>
               <div className="stat-icon from-primary to-accent group-hover:scale-110 transition-transform">
                 <Code className="w-6 h-6 text-white" />
@@ -157,8 +227,8 @@ export default function Dashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="stat-label">审计任务</p>
-                <p className="stat-value">{stats?.total_tasks || 8}</p>
-                <p className="text-xs text-gray-500 mt-1">已完成 {stats?.completed_tasks || 6} 个</p>
+                <p className="stat-value">{stats?.total_tasks || 0}</p>
+                <p className="text-xs text-gray-500 mt-1">已完成 {stats?.completed_tasks || 0} 个</p>
               </div>
               <div className="stat-icon from-emerald-500 to-emerald-600 group-hover:scale-110 transition-transform">
                 <Activity className="w-6 h-6 text-white" />
@@ -172,8 +242,8 @@ export default function Dashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="stat-label">发现问题</p>
-                <p className="stat-value">{stats?.total_issues || 64}</p>
-                <p className="text-xs text-gray-500 mt-1">已解决 {stats?.resolved_issues || 45} 个</p>
+                <p className="stat-value">{stats?.total_issues || 0}</p>
+                <p className="text-xs text-gray-500 mt-1">已解决 {stats?.resolved_issues || 0} 个</p>
               </div>
               <div className="stat-icon from-orange-500 to-orange-600 group-hover:scale-110 transition-transform">
                 <AlertTriangle className="w-6 h-6 text-white" />
@@ -187,11 +257,17 @@ export default function Dashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="stat-label">平均质量分</p>
-                <p className="stat-value">{stats?.avg_quality_score?.toFixed(1) || '88.5'}</p>
-                <div className="flex items-center text-xs text-emerald-600 font-medium mt-1">
-                  <TrendingUp className="w-3 h-3 mr-1" />
-                  <span>+5.2%</span>
-                </div>
+                <p className="stat-value">
+                  {stats?.avg_quality_score ? stats.avg_quality_score.toFixed(1) : '0.0'}
+                </p>
+                {stats?.avg_quality_score ? (
+                  <div className="flex items-center text-xs text-emerald-600 font-medium mt-1">
+                    <TrendingUp className="w-3 h-3 mr-1" />
+                    <span>持续改进中</span>
+                  </div>
+                ) : (
+                  <p className="text-xs text-gray-500 mt-1">暂无数据</p>
+                )}
               </div>
               <div className="stat-icon from-purple-500 to-purple-600 group-hover:scale-110 transition-transform">
                 <Target className="w-6 h-6 text-white" />
@@ -216,29 +292,38 @@ export default function Dashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <ResponsiveContainer width="100%" height={250}>
-                  <LineChart data={qualityTrendData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                    <XAxis dataKey="date" stroke="#6b7280" fontSize={12} />
-                    <YAxis stroke="#6b7280" fontSize={12} />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: 'white',
-                        border: 'none',
-                        borderRadius: '8px',
-                        boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
-                      }}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="score"
-                      stroke="hsl(var(--primary))"
-                      strokeWidth={3}
-                      dot={{ fill: 'hsl(var(--primary))', strokeWidth: 2, r: 4 }}
-                      activeDot={{ r: 6 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
+                {qualityTrendData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={250}>
+                    <LineChart data={qualityTrendData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                      <XAxis dataKey="date" stroke="#6b7280" fontSize={12} />
+                      <YAxis stroke="#6b7280" fontSize={12} domain={[0, 100]} />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: 'white',
+                          border: 'none',
+                          borderRadius: '8px',
+                          boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
+                        }}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="score"
+                        stroke="hsl(var(--primary))"
+                        strokeWidth={3}
+                        dot={{ fill: 'hsl(var(--primary))', strokeWidth: 2, r: 4 }}
+                        activeDot={{ r: 6 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex items-center justify-center h-[250px] text-gray-400">
+                    <div className="text-center">
+                      <TrendingUp className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                      <p className="text-sm">暂无质量趋势数据</p>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -251,25 +336,34 @@ export default function Dashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <ResponsiveContainer width="100%" height={250}>
-                  <PieChart>
-                    <Pie
-                      data={issueTypeData}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {issueTypeData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
+                {issueTypeData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={250}>
+                    <PieChart>
+                      <Pie
+                        data={issueTypeData}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                        outerRadius={80}
+                        fill="#8884d8"
+                        dataKey="value"
+                      >
+                        {issueTypeData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex items-center justify-center h-[250px] text-gray-400">
+                    <div className="text-center">
+                      <BarChart3 className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                      <p className="text-sm">暂无问题分布数据</p>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -423,48 +517,113 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">服务状态</span>
-                <Badge className="bg-emerald-100 text-emerald-700">正常</Badge>
+                <span className="text-sm text-gray-600">数据库模式</span>
+                <Badge className={
+                  dbMode === 'local' ? 'bg-blue-100 text-blue-700' :
+                    dbMode === 'supabase' ? 'bg-green-100 text-green-700' :
+                      'bg-gray-100 text-gray-700'
+                }>
+                  {dbMode === 'local' ? '本地' : dbMode === 'supabase' ? '云端' : '演示'}
+                </Badge>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">API响应</span>
-                <span className="text-sm font-medium text-gray-900">45ms</span>
+                <span className="text-sm text-gray-600">活跃项目</span>
+                <span className="text-sm font-medium text-gray-900">
+                  {stats?.active_projects || 0}
+                </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">在线用户</span>
-                <span className="text-sm font-medium text-gray-900">1,234</span>
+                <span className="text-sm text-gray-600">运行中任务</span>
+                <span className="text-sm font-medium text-gray-900">
+                  {recentTasks.filter(t => t.status === 'running').length}
+                </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">今日分析</span>
-                <span className="text-sm font-medium text-gray-900">89</span>
+                <span className="text-sm text-gray-600">待解决问题</span>
+                <span className="text-sm font-medium text-gray-900">
+                  {stats ? stats.total_issues - stats.resolved_issues : 0}
+                </span>
               </div>
             </CardContent>
           </Card>
 
-          {/* 最新通知 */}
+          {/* 最新活动 */}
           <Card className="card-modern">
             <CardHeader className="pb-3">
               <CardTitle className="text-lg flex items-center">
-                <AlertTriangle className="w-5 h-5 mr-2 text-orange-600" />
-                最新通知
+                <Clock className="w-5 h-5 mr-2 text-orange-600" />
+                最新活动
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="p-3 bg-red-50 rounded-lg border border-red-200">
-                <p className="text-sm font-medium text-red-900">系统更新</p>
-                <p className="text-xs text-red-700 mt-1">新增代码安全检测功能</p>
-                <p className="text-xs text-red-600 mt-1">2小时前</p>
-              </div>
-              <div className="p-3 bg-emerald-50 rounded-lg border border-emerald-200">
-                <p className="text-sm font-medium text-emerald-900">任务完成</p>
-                <p className="text-xs text-emerald-700 mt-1">项目 "Web应用" 审计完成</p>
-                <p className="text-xs text-emerald-600 mt-1">1天前</p>
-              </div>
-              <div className="p-3 bg-orange-50 rounded-lg border border-orange-200">
-                <p className="text-sm font-medium text-orange-900">安全警告</p>
-                <p className="text-xs text-orange-700 mt-1">发现高危漏洞，请及时处理</p>
-                <p className="text-xs text-orange-600 mt-1">2天前</p>
-              </div>
+              {recentTasks.length > 0 ? (
+                recentTasks.slice(0, 3).map((task) => {
+                  const timeAgo = (() => {
+                    const now = new Date();
+                    const taskDate = new Date(task.created_at);
+                    const diffMs = now.getTime() - taskDate.getTime();
+                    const diffMins = Math.floor(diffMs / 60000);
+                    const diffHours = Math.floor(diffMs / 3600000);
+                    const diffDays = Math.floor(diffMs / 86400000);
+
+                    if (diffMins < 60) return `${diffMins}分钟前`;
+                    if (diffHours < 24) return `${diffHours}小时前`;
+                    return `${diffDays}天前`;
+                  })();
+
+                  const bgColor =
+                    task.status === 'completed' ? 'bg-emerald-50 border-emerald-200' :
+                      task.status === 'running' ? 'bg-blue-50 border-blue-200' :
+                        task.status === 'failed' ? 'bg-red-50 border-red-200' :
+                          'bg-gray-50 border-gray-200';
+
+                  const textColor =
+                    task.status === 'completed' ? 'text-emerald-900' :
+                      task.status === 'running' ? 'text-blue-900' :
+                        task.status === 'failed' ? 'text-red-900' :
+                          'text-gray-900';
+
+                  const descColor =
+                    task.status === 'completed' ? 'text-emerald-700' :
+                      task.status === 'running' ? 'text-blue-700' :
+                        task.status === 'failed' ? 'text-red-700' :
+                          'text-gray-700';
+
+                  const timeColor =
+                    task.status === 'completed' ? 'text-emerald-600' :
+                      task.status === 'running' ? 'text-blue-600' :
+                        task.status === 'failed' ? 'text-red-600' :
+                          'text-gray-600';
+
+                  const statusText =
+                    task.status === 'completed' ? '任务完成' :
+                      task.status === 'running' ? '任务运行中' :
+                        task.status === 'failed' ? '任务失败' :
+                          '任务待处理';
+
+                  return (
+                    <Link
+                      key={task.id}
+                      to={`/tasks/${task.id}`}
+                      className={`block p-3 rounded-lg border ${bgColor} hover:shadow-sm transition-shadow`}
+                    >
+                      <p className={`text-sm font-medium ${textColor}`}>{statusText}</p>
+                      <p className={`text-xs ${descColor} mt-1 line-clamp-1`}>
+                        项目 "{task.project?.name || '未知项目'}"
+                        {task.status === 'completed' && task.issues_count > 0 &&
+                          ` - 发现 ${task.issues_count} 个问题`
+                        }
+                      </p>
+                      <p className={`text-xs ${timeColor} mt-1`}>{timeAgo}</p>
+                    </Link>
+                  );
+                })
+              ) : (
+                <div className="text-center py-8 text-gray-400">
+                  <Clock className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">暂无活动记录</p>
+                </div>
+              )}
             </CardContent>
           </Card>
 

@@ -716,9 +716,11 @@ public class Example {
               </div>
               <h3 className="text-2xl font-bold text-gray-900 mb-3">AI正在分析您的代码</h3>
               <p className="text-gray-600 text-lg mb-6">请稍候，这通常需要至少30秒钟...</p>
+              <p className="text-gray-600 text-lg mb-6">分析时长取决于您的网络环境、代码长度以及使用的模型等因素</p>
               <div className="bg-red-50 rounded-lg p-6 max-w-md mx-auto">
                 <p className="text-red-700 text-sm">
-                  正在进行安全检测、性能分析、代码风格检查等多维度评估
+                  正在进行安全检测、性能分析、代码风格检查等多维度评估<br />
+                  请勿离开页面！
                 </p>
               </div>
             </div>
