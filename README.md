@@ -26,7 +26,12 @@
 在快节奏的软件开发中，保证代码质量至关重要。传统代码审计工具规则死板、效率低下，而人工审计则耗时耗力。XCodeReviewer 借助 Google Gemini AI 的强大能力，彻底改变了代码审查的方式：
 
 ![系统架构图](public/diagram.svg)
-<div style="text-align: center;"><em>XCodeReviewer系统架构图</em></div>
+
+<div div align="center">
+  <em>
+    XCodeReviewer系统架构图
+  </em>
+</div>
 
 ---
 
