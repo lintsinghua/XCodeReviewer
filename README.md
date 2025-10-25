@@ -301,22 +301,12 @@ VITE_OPENAI_API_KEY=your_openai_key
 ```
 
 #### Supabase 配置（可选）
-<<<<<<< HEAD
 
 如需云端数据同步：
 1. 访问 [Supabase](https://supabase.com/) 创建项目
 2. 获取 URL 和匿名密钥
 3. 在 Supabase SQL 编辑器执行 `supabase/migrations/full_schema.sql`
 4. 在 `.env` 中配置相关参数
-=======
-1. 访问 [Supabase](https://supabase.com/) 创建新项目
-2. 在项目设置中获取 URL 和匿名密钥
-3. 运行数据库迁移脚本：
-   ```bash
-   # 在 Supabase SQL 编辑器中执行
-   cat supabase/migrations/full_schema.sql
-   ```
->>>>>>> 8e309314665ba010993d9164489b1e22c1c40cf8
 
 ## ✨ 核心功能
 
