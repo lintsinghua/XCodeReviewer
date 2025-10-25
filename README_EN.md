@@ -402,7 +402,6 @@ VITE_LLM_BASE_URL=http://localhost:11434/v1  # Ollama API address (optional)
    # Execute in Supabase SQL Editor
    cat supabase/migrations/full_schema.sql
    ```
-4. If Supabase is not configured, functions related to warehouses and project management will be unavailable. Only the instant analysis function can be used, and data will not be persisted, and the system will run in demo mode without data persistence
 
 ## ✨ Core Features
 
