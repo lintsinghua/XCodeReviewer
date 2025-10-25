@@ -23,7 +23,7 @@
 
 ## 🌟 Why Choose XCodeReviewer?
 
-In the fast-paced world of software development, ensuring code quality is crucial. Traditional code audit tools are rigid and inefficient, while manual audits are time-consuming and labor-intensive. XCodeReviewer leverages the powerful capabilities of Google Gemini AI to revolutionize the way code reviews are conducted:
+In the fast-paced world of software development, ensuring code quality is crucial. Traditional code audit tools are rigid and inefficient, while manual audits are time-consuming and labor-intensive. XCodeReviewer leverages the powerful capabilities of LLM to revolutionize the way code reviews are conducted:
 
 ![System Architecture Diagram](public/diagram.svg)
 
