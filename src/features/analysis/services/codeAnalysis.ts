@@ -80,12 +80,20 @@ export class CodeAnalysisEngine {
 
     // 根据配置生成不同语言的提示词
     const systemPrompt = isChineseOutput
-      ? `你是一个专业的代码审计助手。
+      ? `⚠️⚠️⚠️ 只输出JSON，禁止输出其他任何格式！禁止markdown！禁止文本分析！⚠️⚠️⚠️
 
-【重要】请严格遵守以下规则：
-1. 所有文本内容（title、description、suggestion、ai_explanation、xai 等）必须使用简体中文
-2. 仅输出 JSON 格式，不要添加任何额外的文字、解释或 markdown 标记
-3. 确保 JSON 格式完全正确，所有字符串值都要正确转义
+你是一个专业的代码审计助手。你的任务是分析代码并返回严格符合JSON Schema的结果。
+
+【最重要】输出格式要求：
+1. 必须只输出纯JSON对象，从{开始，到}结束
+2. 禁止在JSON前后添加任何文字、说明、markdown标记
+3. 禁止输出\`\`\`json或###等markdown语法
+4. 如果是文档文件（如README），也必须以JSON格式输出分析结果
+
+【内容要求】：
+1. 所有文本内容必须统一使用简体中文
+2. JSON字符串值中的特殊字符必须正确转义（换行用\\n，双引号用\\"，反斜杠用\\\\）
+3. code_snippet字段必须使用\\n表示换行
 
 请从以下维度全面分析代码：
 - 编码规范和代码风格
@@ -103,16 +111,64 @@ ${schema}
 - title: 问题的简短标题（中文）
 - description: 详细描述问题（中文）
 - suggestion: 具体的修复建议（中文）
+- line: 问题所在的行号（从1开始计数，必须准确对应代码中的行号）
+- column: 问题所在的列号（从1开始计数，指向问题代码的起始位置）
+- code_snippet: 包含问题的代码片段（建议包含问题行及其前后1-2行作为上下文，保持原始缩进格式）
 - ai_explanation: AI 的深入解释（中文）
 - xai.what: 这是什么问题（中文）
 - xai.why: 为什么会有这个问题（中文）
-- xai.how: 如何修复这个问题（中文）`
-      : `You are a professional code auditing assistant.
+- xai.how: 如何修复这个问题（中文）
 
-【IMPORTANT】Please strictly follow these rules:
-1. All text content (title, description, suggestion, ai_explanation, xai, etc.) MUST be in English
-2. Output ONLY valid JSON format, without any additional text, explanations, or markdown markers
-3. Ensure the JSON format is completely correct with all string values properly escaped
+【重要】关于行号和代码片段：
+1. line 必须是问题代码的行号！！！代码左侧有"行号|"标注，例如"25| const x = 1"表示第25行，line字段必须填25
+2. column 是问题代码在该行中的起始列位置（从1开始，不包括"行号|"前缀部分）
+3. code_snippet 应该包含问题代码及其上下文（前后各1-2行），去掉"行号|"前缀，保持原始代码的缩进
+4. 如果代码片段包含多行，必须使用 \\n 表示换行符（这是JSON的要求）
+5. 如果无法确定准确的行号，不要填写line和column字段（不要填0）
+
+【严格禁止】：
+- 禁止在任何字段中使用英文，所有内容必须是简体中文
+- 禁止在JSON字符串值中使用真实换行符，必须用\\n转义
+- 禁止输出markdown代码块标记（如\`\`\`json）
+
+示例（假设代码中第25行是 "25| config[password] = user_password"）：
+{
+  "issues": [{
+    "type": "security",
+    "severity": "high",
+    "title": "密码明文存储",
+    "description": "密码以明文形式存储在配置文件中",
+    "suggestion": "使用加密算法对密码进行加密存储",
+    "line": 25,
+    "column": 5,
+    "code_snippet": "config[password] = user_password\\nconfig.save()",
+    "ai_explanation": "明文存储密码存在安全风险",
+    "xai": {
+      "what": "密码未加密直接存储",
+      "why": "容易被未授权访问获取",
+      "how": "使用AES等加密算法加密后再存储"
+    }
+  }],
+  "quality_score": 75,
+  "summary": {"total_issues": 1, "critical_issues": 0, "high_issues": 1, "medium_issues": 0, "low_issues": 0},
+  "metrics": {"complexity": 80, "maintainability": 75, "security": 70, "performance": 85}
+}
+
+⚠️ 重要提醒：line字段必须从代码左侧的行号标注中读取，不要猜测或填0！`
+      : `⚠️⚠️⚠️ OUTPUT JSON ONLY! NO OTHER FORMAT! NO MARKDOWN! NO TEXT ANALYSIS! ⚠️⚠️⚠️
+
+You are a professional code auditing assistant. Your task is to analyze code and return results in strict JSON Schema format.
+
+【MOST IMPORTANT】Output format requirements:
+1. MUST output pure JSON object only, starting with { and ending with }
+2. NO text, explanation, or markdown markers before or after JSON
+3. NO \`\`\`json or ### markdown syntax
+4. Even for document files (like README), output analysis in JSON format
+
+【Content requirements】:
+1. All text content MUST be in English ONLY
+2. Special characters in JSON strings must be properly escaped (\\n for newlines, \\" for quotes, \\\\ for backslashes)
+3. code_snippet field MUST use \\n for newlines
 
 Please comprehensively analyze the code from the following dimensions:
 - Coding standards and code style
@@ -130,14 +186,69 @@ Note:
 - title: Brief title of the issue (in English)
 - description: Detailed description of the issue (in English)
 - suggestion: Specific fix suggestions (in English)
+- line: Line number where the issue occurs (1-indexed, must accurately correspond to the line in the code)
+- column: Column number where the issue starts (1-indexed, pointing to the start position of the problematic code)
+- code_snippet: Code snippet containing the issue (should include the problem line plus 1-2 lines before and after for context, preserve original indentation)
 - ai_explanation: AI's in-depth explanation (in English)
 - xai.what: What is this issue (in English)
 - xai.why: Why does this issue exist (in English)
-- xai.how: How to fix this issue (in English)`;
+- xai.how: How to fix this issue (in English)
 
+【IMPORTANT】About line numbers and code snippets:
+1. 'line' MUST be the line number from code!!! Code has "lineNumber|" prefix, e.g. "25| const x = 1" means line 25, you MUST set line to 25
+2. 'column' is the starting column position in that line (1-indexed, excluding the "lineNumber|" prefix)
+3. 'code_snippet' should include the problematic code with context (1-2 lines before/after), remove "lineNumber|" prefix, preserve indentation
+4. If code snippet has multiple lines, use \\n for newlines (JSON requirement)
+5. If you cannot determine the exact line number, do NOT fill line and column fields (don't use 0)
+
+【STRICTLY PROHIBITED】:
+- NO Chinese characters in any field - English ONLY
+- NO real newline characters in JSON string values - must use \\n
+- NO markdown code block markers (like \`\`\`json)
+
+Example (assuming line 25 in code is "25| config[password] = user_password"):
+{
+  "issues": [{
+    "type": "security",
+    "severity": "high",
+    "title": "Plain text password storage",
+    "description": "Password is stored in plain text in config file",
+    "suggestion": "Use encryption algorithm to encrypt password before storage",
+    "line": 25,
+    "column": 5,
+    "code_snippet": "config[password] = user_password\\nconfig.save()",
+    "ai_explanation": "Storing passwords in plain text poses security risks",
+    "xai": {
+      "what": "Password stored without encryption",
+      "why": "Easy to access by unauthorized users",
+      "how": "Use AES or similar encryption before storing"
+    }
+  }],
+  "quality_score": 75,
+  "summary": {"total_issues": 1, "critical_issues": 0, "high_issues": 1, "medium_issues": 0, "low_issues": 0},
+  "metrics": {"complexity": 80, "maintainability": 75, "security": 70, "performance": 85}
+}
+
+⚠️ CRITICAL: Read line numbers from the "lineNumber|" prefix on the left of each code line. Do NOT guess or use 0!`;
+
+    // 为代码添加行号，帮助LLM准确定位问题
+    const codeWithLineNumbers = code.split('\n').map((line, idx) => `${idx + 1}| ${line}`).join('\n');
+    
     const userPrompt = isChineseOutput
-      ? `编程语言: ${language}\n\n请分析以下代码:\n\n${code}`
-      : `Programming Language: ${language}\n\nPlease analyze the following code:\n\n${code}`;
+      ? `编程语言: ${language}
+
+⚠️ 代码已标注行号（格式：行号| 代码内容），请根据行号准确填写 line 字段！
+
+请分析以下代码:
+
+${codeWithLineNumbers}`
+      : `Programming Language: ${language}
+
+⚠️ Code is annotated with line numbers (format: lineNumber| code), please fill the 'line' field accurately based on these numbers!
+
+Please analyze the following code:
+
+${codeWithLineNumbers}`;
 
     let text = '';
     try {
@@ -228,6 +339,46 @@ Note:
     });
 
     const issues = Array.isArray(parsed?.issues) ? parsed.issues : [];
+    
+    // 规范化issues，确保数据格式正确
+    issues.forEach((issue: any, index: number) => {
+      // 验证行号和列号的合理性
+      if (issue.line !== undefined) {
+        const originalLine = issue.line;
+        const parsedLine = parseInt(issue.line);
+        // 如果行号是0或无效值，设置为undefined而不是1（表示未知位置）
+        if (isNaN(parsedLine) || parsedLine <= 0) {
+          console.warn(`⚠️ 问题 #${index + 1} "${issue.title}" 的行号无效: ${originalLine}，已设置为 undefined`);
+          issue.line = undefined;
+        } else {
+          issue.line = parsedLine;
+        }
+      }
+      
+      if (issue.column !== undefined) {
+        const originalColumn = issue.column;
+        const parsedColumn = parseInt(issue.column);
+        // 如果列号是0或无效值，设置为undefined而不是1
+        if (isNaN(parsedColumn) || parsedColumn <= 0) {
+          console.warn(`⚠️ 问题 #${index + 1} "${issue.title}" 的列号无效: ${originalColumn}，已设置为 undefined`);
+          issue.column = undefined;
+        } else {
+          issue.column = parsedColumn;
+        }
+      }
+      
+      // 确保所有文本字段都存在且是字符串类型
+      const textFields = ['title', 'description', 'suggestion', 'ai_explanation'];
+      textFields.forEach(field => {
+        if (issue[field] && typeof issue[field] !== 'string') {
+          issue[field] = String(issue[field]);
+        }
+      });
+      
+      // code_snippet已经由JSON.parse正确处理，不需要额外处理
+      // JSON.parse会自动将\\n转换为真实的换行符，这正是我们想要的
+    });
+    
     const metrics = parsed?.metrics ?? this.estimateMetricsFromIssues(issues);
     const qualityScore = parsed?.quality_score ?? this.calculateQualityScore(metrics, issues);
 
@@ -279,61 +430,124 @@ Note:
         .replace(/^\uFEFF/, '')
         .replace(/[\u200B-\u200D\uFEFF]/g, '');
 
-      // 更激进的字符串值清理
-      // 使用更宽松的正则来匹配字符串值，包括可能包含未转义引号的情况
-      cleaned = cleaned.replace(/"([^"]+)":\s*"([^"]*)"/gs, (match, key, value) => {
-        // 转义所有特殊字符
-        let escaped = value
-          // 移除或替换所有控制字符（包括换行、制表符等）
-          .replace(/[\x00-\x1F\x7F-\x9F]/g, (char) => {
-            const code = char.charCodeAt(0);
-            if (code === 0x0A) return '\\n';  // \n
-            if (code === 0x0D) return '\\r';  // \r
-            if (code === 0x09) return '\\t';  // \t
-            return '';  // 移除其他控制字符
-          })
-          // 转义反斜杠（必须在其他转义之前）
-          .replace(/\\/g, '\\\\')
-          // 转义双引号
-          .replace(/"/g, '\\"')
-          // 移除中文引号和其他可能导致问题的字符
-          .replace(/[""'']/g, '')
-          // 确保没有未闭合的转义序列
-          .replace(/\\(?!["\\/bfnrtu])/g, '\\\\');
+      // 使用状态机智能处理JSON字符串值中的控制字符
+      // 这种方法可以正确处理包含换行符、引号等特殊字符的多行字符串
+      let result = '';
+      let inString = false;
+      let isKey = false;  // 是否在处理键名
+      let prevChar = '';
+      
+      for (let i = 0; i < cleaned.length; i++) {
+        const char = cleaned[i];
+        const nextChar = cleaned[i + 1] || '';
+        
+        // 检测字符串的开始和结束（检查前一个字符不是未转义的反斜杠）
+        if (char === '"' && prevChar !== '\\') {
+          if (!inString) {
+            // 字符串开始 - 判断是键还是值
+            // 简单判断：如果前面有冒号，则是值，否则是键
+            const beforeQuote = result.slice(Math.max(0, result.length - 10));
+            isKey = !beforeQuote.includes(':') || beforeQuote.lastIndexOf(':') < beforeQuote.lastIndexOf('{') || beforeQuote.lastIndexOf(':') < beforeQuote.lastIndexOf(',');
+          }
+          inString = !inString;
+          result += char;
+          prevChar = char;
+          continue;
+        }
+        
+        // 在字符串值内部（非键名）处理特殊字符
+        if (inString && !isKey) {
+          const code = char.charCodeAt(0);
+          
+          // 转义控制字符
+          if (code === 0x0A) {  // 换行符
+            result += '\\n';
+            prevChar = 'n';  // 防止被识别为转义符
+            continue;
+          } else if (code === 0x0D) {  // 回车符
+            result += '\\r';
+            prevChar = 'r';
+            continue;
+          } else if (code === 0x09) {  // 制表符
+            result += '\\t';
+            prevChar = 't';
+            continue;
+          } else if (code < 0x20 || (code >= 0x7F && code <= 0x9F)) {
+            // 其他控制字符：移除
+            prevChar = char;
+            continue;
+          }
+          
+          // 处理反斜杠
+          if (char === '\\' && nextChar && '"\\/bfnrtu'.indexOf(nextChar) === -1) {
+            // 无效的转义序列，转义反斜杠本身
+            result += '\\\\';
+            prevChar = '\\';
+            continue;
+          }
+          
+          // 移除中文引号（使用Unicode编码避免语法错误）
+          const charCode = char.charCodeAt(0);
+          if (charCode === 0x201C || charCode === 0x201D || charCode === 0x2018 || charCode === 0x2019) {
+            prevChar = char;
+            continue;
+          }
+        }
+        
+        // 默认情况：保持字符不变
+        result += char;
+        prevChar = char;
+      }
 
-        return `"${key}": "${escaped}"`;
-      });
-
-      return cleaned;
+      return result;
     };
 
     // 尝试多种方式解析
     const attempts = [
-      // 1. 直接清理和修复
+      // 1. 直接解析原始响应（如果LLM输出格式完美）
+      () => {
+        return JSON.parse(text);
+      },
+      // 2. 清理后再解析
       () => {
         const cleaned = cleanText(text);
         const fixed = fixJsonFormat(cleaned);
         return JSON.parse(fixed);
       },
-      // 2. 提取 JSON 对象（贪婪匹配，找到第一个完整的 JSON）
+      // 3. 提取 JSON 对象（智能匹配，处理字符串中的花括号）
       () => {
         const cleaned = cleanText(text);
         // 找到第一个 { 的位置
         const startIdx = cleaned.indexOf('{');
         if (startIdx === -1) throw new Error('No JSON object found');
 
-        // 从第一个 { 开始，找到匹配的 }
+        // 从第一个 { 开始，找到匹配的 }，需要考虑字符串中的引号
         let braceCount = 0;
         let endIdx = -1;
+        let inString = false;
+        let prevChar = '';
+        
         for (let i = startIdx; i < cleaned.length; i++) {
-          if (cleaned[i] === '{') braceCount++;
-          if (cleaned[i] === '}') {
-            braceCount--;
-            if (braceCount === 0) {
-              endIdx = i + 1;
-              break;
+          const char = cleaned[i];
+          
+          // 检测字符串边界（排除转义的引号）
+          if (char === '"' && prevChar !== '\\') {
+            inString = !inString;
+          }
+          
+          // 只在字符串外部统计花括号
+          if (!inString) {
+            if (char === '{') braceCount++;
+            if (char === '}') {
+              braceCount--;
+              if (braceCount === 0) {
+                endIdx = i + 1;
+                break;
+              }
             }
           }
+          
+          prevChar = char;
         }
 
         if (endIdx === -1) throw new Error('Incomplete JSON object');
@@ -342,7 +556,7 @@ Note:
         const fixed = fixJsonFormat(jsonStr);
         return JSON.parse(fixed);
       },
-      // 3. 去除 markdown 代码块
+      // 4. 去除 markdown 代码块
       () => {
         const cleaned = cleanText(text);
         const codeBlockMatch = cleaned.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/);
@@ -352,7 +566,7 @@ Note:
         }
         throw new Error('No code block found');
       },
-      // 4. 尝试修复截断的 JSON
+      // 5. 尝试修复截断的 JSON
       () => {
         const cleaned = cleanText(text);
         const startIdx = cleaned.indexOf('{');
@@ -377,12 +591,18 @@ Note:
     let lastError: any = null;
     for (let i = 0; i < attempts.length; i++) {
       try {
-        return attempts[i]();
+        const result = attempts[i]();
+        if (i > 0) {
+          console.log(`✅ JSON解析成功（方法 ${i + 1}/${attempts.length}）`);
+        }
+        return result;
       } catch (e) {
         lastError = e;
-        if (i === 1) {
-          console.warn('提取 JSON 对象后解析失败:', e);
+        if (i === 0) {
+          console.warn('直接解析失败，尝试清理后解析...', e);
         } else if (i === 2) {
+          console.warn('提取 JSON 对象后解析失败:', e);
+        } else if (i === 3) {
           console.warn('从代码块提取 JSON 失败:', e);
         }
       }

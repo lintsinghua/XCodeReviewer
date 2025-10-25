@@ -18,6 +18,7 @@ import type { AuditTask } from "@/shared/types";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import CreateTaskDialog from "@/components/audit/CreateTaskDialog";
+import { calculateTaskProgress } from "@/shared/utils/utils";
 
 export default function AuditTasks() {
   const [tasks, setTasks] = useState<AuditTask[]>([]);
@@ -29,6 +30,44 @@ export default function AuditTasks() {
   useEffect(() => {
     loadTasks();
   }, []);
+
+  // 静默更新活动任务的进度（不触发loading状态）
+  useEffect(() => {
+    const activeTasks = tasks.filter(
+      task => task.status === 'running' || task.status === 'pending'
+    );
+
+    if (activeTasks.length === 0) {
+      return;
+    }
+
+    const intervalId = setInterval(async () => {
+      try {
+        // 只获取活动任务的最新数据
+        const updatedData = await api.getAuditTasks();
+        
+        // 使用函数式更新，确保基于最新状态
+        setTasks(prevTasks => {
+          return prevTasks.map(prevTask => {
+            const updated = updatedData.find(t => t.id === prevTask.id);
+            // 只有在进度、状态或问题数真正变化时才更新
+            if (updated && (
+              updated.status !== prevTask.status ||
+              updated.scanned_files !== prevTask.scanned_files ||
+              updated.issues_count !== prevTask.issues_count
+            )) {
+              return updated;
+            }
+            return prevTask;
+          });
+        });
+      } catch (error) {
+        console.error('静默更新任务列表失败:', error);
+      }
+    }, 3000); // 每3秒静默更新一次
+
+    return () => clearInterval(intervalId);
+  }, [tasks.map(t => t.id + t.status).join(',')]);
 
   const loadTasks = async () => {
     try {
@@ -48,6 +87,7 @@ export default function AuditTasks() {
       case 'completed': return 'bg-green-100 text-green-800';
       case 'running': return 'bg-red-50 text-red-800';
       case 'failed': return 'bg-red-100 text-red-900';
+      case 'cancelled': return 'bg-gray-100 text-gray-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -57,6 +97,7 @@ export default function AuditTasks() {
       case 'completed': return <CheckCircle className="w-4 h-4" />;
       case 'running': return <Activity className="w-4 h-4" />;
       case 'failed': return <AlertTriangle className="w-4 h-4" />;
+      case 'cancelled': return <Clock className="w-4 h-4" />;
       default: return <Clock className="w-4 h-4" />;
     }
   };
@@ -233,7 +274,8 @@ export default function AuditTasks() {
                   <Badge className={getStatusColor(task.status)}>
                     {task.status === 'completed' ? '已完成' : 
                      task.status === 'running' ? '运行中' : 
-                     task.status === 'failed' ? '失败' : '等待中'}
+                     task.status === 'failed' ? '失败' :
+                     task.status === 'cancelled' ? '已取消' : '等待中'}
                   </Badge>
                 </div>
 
@@ -261,18 +303,18 @@ export default function AuditTasks() {
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm font-medium text-gray-700">扫描进度</span>
                     <span className="text-sm text-gray-500">
-                      {task.scanned_files} / {task.total_files} 文件
+                      {task.scanned_files || 0} / {task.total_files || 0} 文件
                     </span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div 
                       className="bg-gradient-to-r from-primary to-accent h-2 rounded-full transition-all duration-300"
-                      style={{ width: `${Math.round((task.scanned_files / task.total_files) * 100)}%` }}
+                      style={{ width: `${calculateTaskProgress(task.scanned_files, task.total_files)}%` }}
                     ></div>
                   </div>
                   <div className="text-right mt-1">
                     <span className="text-xs text-gray-500">
-                      {Math.round((task.scanned_files / task.total_files) * 100)}% 完成
+                      {calculateTaskProgress(task.scanned_files, task.total_files)}% 完成
                     </span>
                   </div>
                 </div>

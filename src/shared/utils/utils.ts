@@ -39,10 +39,10 @@ export function debounce<T extends (...args: any[]) => any>(
   func: T,
   wait: number
 ): (...args: Parameters<T>) => void {
-  let timeout: NodeJS.Timeout;
+  let timeout: number | undefined;
   return (...args: Parameters<T>) => {
     clearTimeout(timeout);
-    timeout = setTimeout(() => func(...args), wait);
+    timeout = setTimeout(() => func(...args), wait) as unknown as number;
   };
 }
 
@@ -161,4 +161,49 @@ export function copyToClipboard(text: string): Promise<void> {
     document.body.removeChild(textArea);
     return Promise.resolve();
   }
+}
+
+/**
+ * 计算任务扫描进度百分比
+ * @param scannedFiles 已扫描文件数
+ * @param totalFiles 总文件数
+ * @returns 进度百分比（0-100），安全处理NaN情况
+ */
+export function calculateTaskProgress(scannedFiles?: number, totalFiles?: number): number {
+  // 处理未定义或无效值
+  const scanned = scannedFiles || 0;
+  const total = totalFiles || 0;
+  
+  // 避免除以0
+  if (total === 0) {
+    return 0;
+  }
+  
+  // 计算百分比并四舍五入
+  const percentage = (scanned / total) * 100;
+  
+  // 确保返回值在0-100之间
+  return Math.min(100, Math.max(0, Math.round(percentage)));
+}
+
+/**
+ * 获取任务进度的完整信息
+ * @param scannedFiles 已扫描文件数
+ * @param totalFiles 总文件数
+ * @returns 包含百分比、显示文本等信息的对象
+ */
+export function getTaskProgressInfo(scannedFiles?: number, totalFiles?: number) {
+  const scanned = scannedFiles || 0;
+  const total = totalFiles || 0;
+  const percentage = calculateTaskProgress(scanned, total);
+  
+  return {
+    percentage,
+    scanned,
+    total,
+    text: `${scanned} / ${total} 文件`,
+    percentText: `${percentage}%`,
+    isComplete: total > 0 && scanned >= total,
+    isStarted: scanned > 0
+  };
 }

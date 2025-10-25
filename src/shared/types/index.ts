@@ -53,7 +53,7 @@ export interface AuditTask {
   id: string;
   project_id: string;
   task_type: 'repository' | 'instant';
-  status: 'pending' | 'running' | 'completed' | 'failed';
+  status: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
   branch_name?: string;
   exclude_patterns: string;
   scan_config: string;

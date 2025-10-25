@@ -21,12 +21,15 @@ import {
   Code,
   Lightbulb,
   Info,
-  Zap
+  Zap,
+  X
 } from "lucide-react";
 import { api } from "@/shared/config/database";
 import type { AuditTask, AuditIssue } from "@/shared/types";
 import { toast } from "sonner";
 import ExportReportDialog from "@/components/reports/ExportReportDialog";
+import { calculateTaskProgress } from "@/shared/utils/utils";
+import { taskControl } from "@/shared/services/taskControl";
 
 // AI解释解析函数
 function parseAIExplanation(aiExplanation: string) {
@@ -328,6 +331,40 @@ export default function TaskDetail() {
     }
   }, [id]);
 
+  // 对于运行中或等待中的任务，静默更新进度（不触发loading状态）
+  useEffect(() => {
+    if (!task || !id) {
+      return;
+    }
+
+    // 运行中或等待中的任务需要定时更新
+    if (task.status === 'running' || task.status === 'pending') {
+      const intervalId = setInterval(async () => {
+        try {
+          // 静默获取任务数据，不触发loading状态
+          const [taskData, issuesData] = await Promise.all([
+            api.getAuditTaskById(id),
+            api.getAuditIssues(id)
+          ]);
+
+          // 只有数据真正变化时才更新状态
+          if (taskData && (
+            taskData.status !== task.status ||
+            taskData.scanned_files !== task.scanned_files ||
+            taskData.issues_count !== task.issues_count
+          )) {
+            setTask(taskData);
+            setIssues(issuesData);
+          }
+        } catch (error) {
+          console.error('静默更新任务失败:', error);
+        }
+      }, 3000); // 每3秒静默更新一次
+
+      return () => clearInterval(intervalId);
+    }
+  }, [task?.status, task?.scanned_files, id]);
+
   const loadTaskDetail = async () => {
     if (!id) return;
 
@@ -353,6 +390,7 @@ export default function TaskDetail() {
       case 'completed': return 'bg-green-100 text-green-800';
       case 'running': return 'bg-red-50 text-red-800';
       case 'failed': return 'bg-red-100 text-red-900';
+      case 'cancelled': return 'bg-gray-100 text-gray-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -362,8 +400,38 @@ export default function TaskDetail() {
       case 'completed': return <CheckCircle className="w-4 h-4" />;
       case 'running': return <Activity className="w-4 h-4" />;
       case 'failed': return <AlertTriangle className="w-4 h-4" />;
+      case 'cancelled': return <Clock className="w-4 h-4" />;
       default: return <Clock className="w-4 h-4" />;
     }
+  };
+
+
+  const handleCancel = async () => {
+    if (!id || !task) return;
+    
+    if (!confirm('确定要取消此任务吗？已分析的结果将被保留。')) {
+      return;
+    }
+    
+    // 1. 标记任务为取消状态（让后台循环检测到）
+    taskControl.cancelTask(id);
+    
+    // 2. 立即更新本地状态显示
+    setTask(prev => prev ? { ...prev, status: 'cancelled' as const } : prev);
+    
+    // 3. 尝试立即更新数据库（后台也会更新，这里是双保险）
+    try {
+      await api.updateAuditTask(id, { status: 'cancelled' } as any);
+      toast.success("任务已取消");
+    } catch (error) {
+      console.error('更新取消状态失败:', error);
+      toast.warning("任务已标记取消，后台正在停止...");
+    }
+    
+    // 4. 1秒后再次刷新，确保显示最新状态
+    setTimeout(() => {
+      loadTaskDetail();
+    }, 1000);
   };
 
 
@@ -390,7 +458,7 @@ export default function TaskDetail() {
     return (
       <div className="space-y-6 animate-fade-in">
         <div className="flex items-center space-x-4">
-          <Link to="/tasks">
+          <Link to="/audit-tasks">
             <Button variant="outline" size="sm">
               <ArrowLeft className="w-4 h-4 mr-2" />
               返回任务列表
@@ -410,14 +478,15 @@ export default function TaskDetail() {
     );
   }
 
-  const progressPercentage = Math.round((task.scanned_files / task.total_files) * 100);
+  // 使用公共函数计算进度百分比
+  const progressPercentage = calculateTaskProgress(task.scanned_files, task.total_files);
 
   return (
     <div className="space-y-6 animate-fade-in">
       {/* 页面标题 */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
-          <Link to="/tasks">
+          <Link to="/audit-tasks">
             <Button variant="outline" size="sm">
               <ArrowLeft className="w-4 h-4 mr-2" />
               返回任务列表
@@ -435,9 +504,25 @@ export default function TaskDetail() {
             <span className="ml-2">
               {task.status === 'completed' ? '已完成' :
                 task.status === 'running' ? '运行中' :
-                  task.status === 'failed' ? '失败' : '等待中'}
+                  task.status === 'failed' ? '失败' :
+                    task.status === 'cancelled' ? '已取消' : '等待中'}
             </span>
           </Badge>
+          
+          {/* 运行中或等待中的任务显示取消按钮 */}
+          {(task.status === 'running' || task.status === 'pending') && (
+            <Button 
+              size="sm" 
+              variant="outline"
+              onClick={handleCancel}
+              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+            >
+              <X className="w-4 h-4 mr-2" />
+              取消任务
+            </Button>
+          )}
+          
+          {/* 已完成的任务显示导出按钮 */}
           {task.status === 'completed' && (
             <Button 
               size="sm" 

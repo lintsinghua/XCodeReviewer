@@ -39,6 +39,7 @@ export const TASK_STATUS = {
   RUNNING: 'running',
   COMPLETED: 'completed',
   FAILED: 'failed',
+  CANCELLED: 'cancelled',
 } as const;
 
 // 用户角色

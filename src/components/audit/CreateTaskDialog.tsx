@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +22,8 @@ import { api } from "@/shared/config/database";
 import type { Project, CreateAuditTaskForm } from "@/shared/types";
 import { toast } from "sonner";
 import TerminalProgressDialog from "./TerminalProgressDialog";
+import { runRepositoryAudit } from "@/features/projects/services/repoScan";
+import { scanZipFile, validateZipFile } from "@/features/projects/services/repoZipScan";
 
 interface CreateTaskDialogProps {
   open: boolean;
@@ -32,13 +33,13 @@ interface CreateTaskDialogProps {
 }
 
 export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, preselectedProjectId }: CreateTaskDialogProps) {
-  const navigate = useNavigate();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [showTerminalDialog, setShowTerminalDialog] = useState(false);
   const [currentTaskId, setCurrentTaskId] = useState<string | null>(null);
+  const [zipFile, setZipFile] = useState<File | null>(null);
   
   const [taskForm, setTaskForm] = useState<CreateAuditTaskForm>({
     project_id: "",
@@ -98,15 +99,52 @@ export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, pr
       return;
     }
 
+    const project = selectedProject;
+    if (!project) {
+      toast.error("未找到选中的项目");
+      return;
+    }
+
     try {
       setCreating(true);
       
-      const task = await api.createAuditTask({
-        ...taskForm,
-        created_by: null // 无登录场景下设置为null
-      } as any);
+      console.log('🎯 开始创建审计任务...', { 
+        projectId: project.id, 
+        projectName: project.name,
+        repositoryType: project.repository_type 
+      });
+
+      let taskId: string;
+
+      // 根据项目是否有repository_url判断使用哪种扫描方式
+      if (!project.repository_url || project.repository_url.trim() === '') {
+        // ZIP上传的项目：需要有ZIP文件才能扫描
+        if (!zipFile) {
+          toast.error("请上传ZIP文件进行扫描");
+          return;
+        }
+        
+        console.log('📦 调用 scanZipFile...');
+        taskId = await scanZipFile({
+          projectId: project.id,
+          zipFile: zipFile,
+          excludePatterns: taskForm.exclude_patterns,
+          createdBy: 'local-user'
+        });
+      } else {
+        // GitHub/GitLab等远程仓库
+        console.log('📡 调用 runRepositoryAudit...');
+        taskId = await runRepositoryAudit({
+          projectId: project.id,
+          repoUrl: project.repository_url!,
+          branch: taskForm.branch_name || project.default_branch || 'main',
+          exclude: taskForm.exclude_patterns,
+          githubToken: undefined,
+          createdBy: 'local-user'
+        });
+      }
       
-      const taskId = (task as any).id;
+      console.log('✅ 任务创建成功:', taskId);
       
       // 关闭创建对话框
       onOpenChange(false);
@@ -116,9 +154,11 @@ export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, pr
       // 显示终端进度窗口
       setCurrentTaskId(taskId);
       setShowTerminalDialog(true);
+      
+      toast.success("审计任务已创建并启动");
     } catch (error) {
-      console.error('Failed to create task:', error);
-      toast.error("创建任务失败");
+      console.error('❌ 创建任务失败:', error);
+      toast.error("创建任务失败: " + (error as Error).message);
     } finally {
       setCreating(false);
     }
@@ -278,6 +318,71 @@ export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, pr
               </TabsList>
 
               <TabsContent value="basic" className="space-y-4 mt-6">
+                {/* ZIP项目文件上传 */}
+                {(!selectedProject.repository_url || selectedProject.repository_url.trim() === '') && (
+                  <Card className="bg-amber-50 border-amber-200">
+                    <CardContent className="p-4">
+                      <div className="space-y-3">
+                        <div className="flex items-start space-x-3">
+                          <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5" />
+                          <div>
+                            <p className="font-medium text-amber-900 text-sm">ZIP项目需要上传文件</p>
+                            <p className="text-xs text-amber-700 mt-1">
+                              该项目是通过ZIP上传创建的，请重新上传ZIP文件进行扫描
+                            </p>
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="zipFile">上传ZIP文件</Label>
+                          <Input
+                            id="zipFile"
+                            type="file"
+                            accept=".zip"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                console.log('📁 选择的文件:', {
+                                  name: file.name,
+                                  size: file.size,
+                                  type: file.type,
+                                  sizeMB: (file.size / 1024 / 1024).toFixed(2)
+                                });
+                                
+                                const validation = validateZipFile(file);
+                                if (!validation.valid) {
+                                  toast.error(validation.error || "文件无效");
+                                  e.target.value = '';
+                                  return;
+                                }
+                                setZipFile(file);
+                                
+                                const sizeMB = (file.size / 1024 / 1024).toFixed(2);
+                                const sizeKB = (file.size / 1024).toFixed(2);
+                                const sizeText = file.size >= 1024 * 1024 ? `${sizeMB} MB` : `${sizeKB} KB`;
+                                
+                                toast.success(`已选择文件: ${file.name} (${sizeText})`);
+                              }
+                            }}
+                            className="cursor-pointer"
+                          />
+                          {zipFile && (
+                            <p className="text-xs text-green-600">
+                              ✓ 已选择: {zipFile.name} (
+                              {zipFile.size >= 1024 * 1024 
+                                ? `${(zipFile.size / 1024 / 1024).toFixed(2)} MB`
+                                : zipFile.size >= 1024
+                                ? `${(zipFile.size / 1024).toFixed(2)} KB`
+                                : `${zipFile.size} B`
+                              })
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="task_type">任务类型</Label>
@@ -305,7 +410,7 @@ export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, pr
                     </Select>
                   </div>
 
-                  {taskForm.task_type === "repository" && (
+                  {taskForm.task_type === "repository" && (selectedProject.repository_url) && (
                     <div className="space-y-2">
                       <Label htmlFor="branch_name">目标分支</Label>
                       <Input

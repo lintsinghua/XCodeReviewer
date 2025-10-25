@@ -1,9 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { Dialog, DialogOverlay, DialogPortal } from "@/components/ui/dialog";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
-import { Terminal, CheckCircle, XCircle, Loader2 } from "lucide-react";
-import { cn } from "@/shared/utils/utils";
+import { Terminal, CheckCircle, XCircle, Loader2, X as XIcon } from "lucide-react";
+import { cn, calculateTaskProgress } from "@/shared/utils/utils";
 import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
+import { taskControl } from "@/shared/services/taskControl";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 interface TerminalProgressDialogProps {
     open: boolean;
@@ -27,6 +30,7 @@ export default function TerminalProgressDialog({
     const [logs, setLogs] = useState<LogEntry[]>([]);
     const [isCompleted, setIsCompleted] = useState(false);
     const [isFailed, setIsFailed] = useState(false);
+    const [isCancelled, setIsCancelled] = useState(false);
     const [currentTime, setCurrentTime] = useState(new Date().toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", second: "2-digit" }));
     const logsEndRef = useRef<HTMLDivElement>(null);
     const pollIntervalRef = useRef<number | null>(null);
@@ -42,6 +46,31 @@ export default function TerminalProgressDialog({
         setLogs(prev => [...prev, { timestamp, message, type }]);
     };
 
+    // 取消任务处理
+    const handleCancel = async () => {
+        if (!taskId) return;
+        
+        if (!confirm('确定要取消此任务吗？已分析的结果将被保留。')) {
+            return;
+        }
+        
+        // 1. 标记任务为取消状态
+        taskControl.cancelTask(taskId);
+        setIsCancelled(true);
+        addLog("🛑 用户取消任务，正在停止...", "error");
+        
+        // 2. 立即更新数据库状态
+        try {
+            const { api } = await import("@/shared/config/database");
+            await api.updateAuditTask(taskId, { status: 'cancelled' } as any);
+            addLog("✓ 任务状态已更新为已取消", "warning");
+            toast.success("任务已取消");
+        } catch (error) {
+            console.error('更新取消状态失败:', error);
+            toast.warning("任务已标记取消，后台正在停止...");
+        }
+    };
+
     // 自动滚动到底部
     useEffect(() => {
         logsEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -49,7 +78,7 @@ export default function TerminalProgressDialog({
 
     // 实时更新光标处的时间
     useEffect(() => {
-        if (!open || isCompleted || isFailed) {
+        if (!open || isCompleted || isFailed || isCancelled) {
             return;
         }
 
@@ -171,12 +200,10 @@ export default function TerminalProgressDialog({
 
                     // 显示进度更新（仅在有变化时）
                     if (filesChanged && task.scanned_files > lastScannedFiles) {
-                        const progress = task.total_files > 0
-                            ? Math.round((task.scanned_files / task.total_files) * 100)
-                            : 0;
+                        const progress = calculateTaskProgress(task.scanned_files, task.total_files);
                         const filesProcessed = task.scanned_files - lastScannedFiles;
                         addLog(
-                            `📊 扫描进度: ${task.scanned_files}/${task.total_files} 文件 (${progress}%) [+${filesProcessed}]`,
+                            `📊 扫描进度: ${task.scanned_files || 0}/${task.total_files || 0} 文件 (${progress}%) [+${filesProcessed}]`,
                             "info"
                         );
                         lastScannedFiles = task.scanned_files;
@@ -247,6 +274,25 @@ export default function TerminalProgressDialog({
                         }
 
                         setIsCompleted(true);
+                        if (pollIntervalRef.current) {
+                            clearInterval(pollIntervalRef.current);
+                            pollIntervalRef.current = null;
+                        }
+                    }
+                } else if (task.status === "cancelled") {
+                    // 任务被取消
+                    if (!isCancelled) {
+                        addLog("", "info"); // 空行分隔
+                        addLog("🛑 任务已被用户取消", "warning");
+                        addLog("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━", "warning");
+                        addLog(`📊 完成统计:`, "info");
+                        addLog(`  • 已分析文件: ${task.scanned_files}/${task.total_files}`, "info");
+                        addLog(`  • 发现问题: ${task.issues_count} 个`, "info");
+                        addLog(`  • 代码行数: ${task.total_lines.toLocaleString()} 行`, "info");
+                        addLog("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━", "warning");
+                        addLog("✓ 已分析的结果已保存到数据库", "success");
+
+                        setIsCancelled(true);
                         if (pollIntervalRef.current) {
                             clearInterval(pollIntervalRef.current);
                             pollIntervalRef.current = null;
@@ -436,22 +482,40 @@ export default function TerminalProgressDialog({
                         </div>
                     </div>
 
-                    {/* 底部提示 */}
+                    {/* 底部控制和提示 */}
                     <div className="px-4 py-3 bg-gradient-to-r from-red-950/50 to-gray-900/80 border-t border-red-900/30 backdrop-blur-sm">
                         <div className="flex items-center justify-between text-xs">
                             <span className="text-gray-300">
-                                {isCompleted ? "✅ 任务已完成，可以关闭此窗口" :
+                                {isCancelled ? "🛑 任务已取消，已分析的结果已保存" :
+                                    isCompleted ? "✅ 任务已完成，可以关闭此窗口" :
                                     isFailed ? "❌ 任务失败，请检查配置后重试" :
                                         "⏳ 审计进行中，请勿关闭窗口，过程可能较慢，请耐心等待......"}
                             </span>
-                            {(isCompleted || isFailed) && (
-                                <button
-                                    onClick={() => onOpenChange(false)}
-                                    className="px-4 py-1.5 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white rounded text-xs transition-all shadow-lg shadow-rose-900/50 font-medium"
-                                >
-                                    关闭
-                                </button>
-                            )}
+                            
+                            <div className="flex items-center space-x-2">
+                                {/* 运行中显示取消按钮 */}
+                                {!isCompleted && !isFailed && !isCancelled && (
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={handleCancel}
+                                        className="h-7 text-xs bg-gray-800 border-red-600 text-red-400 hover:bg-red-900 hover:text-red-200"
+                                    >
+                                        <XIcon className="w-3 h-3 mr-1" />
+                                        取消任务
+                                    </Button>
+                                )}
+                                
+                                {/* 已完成/失败/取消显示关闭按钮 */}
+                                {(isCompleted || isFailed || isCancelled) && (
+                                    <button
+                                        onClick={() => onOpenChange(false)}
+                                        className="px-4 py-1.5 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white rounded text-xs transition-all shadow-lg shadow-rose-900/50 font-medium"
+                                    >
+                                        关闭
+                                    </button>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </DialogPrimitive.Content>

@@ -19,12 +19,14 @@ import {
   TrendingUp,
   Upload,
   Zap,
-  X
+  X,
+  Download
 } from "lucide-react";
 import { CodeAnalysisEngine } from "@/features/analysis/services";
 import { api } from "@/shared/config/database";
-import type { CodeAnalysisResult } from "@/shared/types";
+import type { CodeAnalysisResult, AuditTask, AuditIssue } from "@/shared/types";
 import { toast } from "sonner";
+import ExportReportDialog from "@/components/reports/ExportReportDialog";
 
 // AI解释解析函数
 function parseAIExplanation(aiExplanation: string) {
@@ -53,6 +55,7 @@ export default function InstantAnalysis() {
   const [analyzing, setAnalyzing] = useState(false);
   const [result, setResult] = useState<CodeAnalysisResult | null>(null);
   const [analysisTime, setAnalysisTime] = useState(0);
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const loadingCardRef = useRef<HTMLDivElement>(null);
 
@@ -270,6 +273,64 @@ public class Example {
     setLanguage("");
     setResult(null);
     setAnalysisTime(0);
+  };
+
+  // 构造临时任务和问题数据用于导出
+  const getTempTaskAndIssues = () => {
+    if (!result) return null;
+    
+    const tempTask: AuditTask = {
+      id: 'instant-' + Date.now(),
+      project_id: 'instant-analysis',
+      task_type: 'instant',
+      status: 'completed',
+      branch_name: undefined,
+      exclude_patterns: '[]',
+      scan_config: JSON.stringify({ language }),
+      total_files: 1,
+      scanned_files: 1,
+      total_lines: code.split('\n').length,
+      issues_count: result.issues.length,
+      quality_score: result.quality_score,
+      started_at: undefined,
+      completed_at: new Date().toISOString(),
+      created_by: 'local-user',
+      created_at: new Date().toISOString(),
+      project: {
+        id: 'instant',
+        owner_id: 'local-user',
+        name: '即时分析',
+        description: `${language} 代码即时分析`,
+        repository_type: 'other',
+        repository_url: undefined,
+        default_branch: 'instant',
+        programming_languages: JSON.stringify([language]),
+        is_active: true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }
+    };
+    
+    const tempIssues: AuditIssue[] = result.issues.map((issue, index) => ({
+      id: `instant-issue-${index}`,
+      task_id: tempTask.id,
+      file_path: `instant-analysis.${language}`,
+      line_number: issue.line || undefined,
+      column_number: issue.column || undefined,
+      issue_type: issue.type as any,
+      severity: issue.severity as any,
+      title: issue.title,
+      description: issue.description || undefined,
+      suggestion: issue.suggestion || undefined,
+      code_snippet: issue.code_snippet || undefined,
+      ai_explanation: issue.ai_explanation || (issue.xai ? JSON.stringify(issue.xai) : undefined),
+      status: 'open',
+      resolved_by: undefined,
+      resolved_at: undefined,
+      created_at: new Date().toISOString()
+    }));
+    
+    return { task: tempTask, issues: tempIssues };
   };
 
   // 渲染问题的函数，使用紧凑样式
@@ -554,6 +615,16 @@ public class Example {
                   <Badge variant="outline" className="text-xs">
                     {language.charAt(0).toUpperCase() + language.slice(1)}
                   </Badge>
+                  
+                  {/* 导出按钮 */}
+                  <Button 
+                    size="sm" 
+                    onClick={() => setExportDialogOpen(true)}
+                    className="btn-primary"
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    导出报告
+                  </Button>
                 </div>
               </div>
             </CardHeader>
@@ -727,6 +798,19 @@ public class Example {
           </CardContent>
         </Card>
       )}
+      
+      {/* 导出报告对话框 */}
+      {result && (() => {
+        const data = getTempTaskAndIssues();
+        return data ? (
+          <ExportReportDialog
+            open={exportDialogOpen}
+            onOpenChange={setExportDialogOpen}
+            task={data.task}
+            issues={data.issues}
+          />
+        ) : null;
+      })()}
     </div>
   );
 }
