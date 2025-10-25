@@ -302,6 +302,7 @@ VITE_OPENAI_API_KEY=your_openai_key
 ```
 
 #### Supabase Configuration (Optional)
+<<<<<<< HEAD
 
 For cloud data sync:
 1. Visit [Supabase](https://supabase.com/) to create a project
@@ -310,6 +311,15 @@ For cloud data sync:
 4. Configure in `.env`
 
 > 💡 Without Supabase, system uses local database or demo mode
+=======
+1. Visit [Supabase](https://supabase.com/) to create a new project
+2. Get the URL and anonymous key from project settings
+3. Run database migration scripts:
+   ```bash
+   # Execute in Supabase SQL Editor
+   cat supabase/migrations/full_schema.sql
+   ```
+>>>>>>> 8e309314665ba010993d9164489b1e22c1c40cf8
 
 ## ✨ Core Features
 
