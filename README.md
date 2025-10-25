@@ -59,405 +59,254 @@
 
 #### 审计报告导出
 ![审计报告示例](public/images/审计报告示例.png)
-*支持导出 JSON 和 PDF 格式的专业审计报告，包含完整的问题详情和
+*支持导出 JSON 和 PDF 格式的专业审计报告，包含完整的问题详情和修复建议*
 
 ## 🚀 快速开始
 
 ### 🐳 Docker 部署（推荐）
 
-使用 Docker 可以快速部署应用，无需配置 Node.js 环境。
+使用 Docker 一键部署，无需配置 Node.js 环境：
 
-1. **克隆项目**
-   ```bash
-   git clone https://github.com/lintsinghua/XCodeReviewer.git
-   cd XCodeReviewer
-   ```
+```bash
+# 1. 克隆项目
+git clone https://github.com/lintsinghua/XCodeReviewer.git
+cd XCodeReviewer
 
-2. **配置环境变量**
-   ```bash
-   cp .env.example .env
-   # 编辑 .env 文件，配置LLM提供商和API Key
-   # 方式一：使用通用配置（推荐）
-   # VITE_LLM_PROVIDER=gemini
-   # VITE_LLM_API_KEY=your_api_key
-   # 
-   # 方式二：使用平台专用配置
-   # VITE_GEMINI_API_KEY=your_gemini_api_key
-   ```
+# 2. 配置环境变量
+cp .env.example .env
+# 编辑 .env 文件，至少配置以下内容：
+# VITE_LLM_PROVIDER=gemini
+# VITE_LLM_API_KEY=your_api_key_here
 
-3. **构建并启动**
-   ```bash
-   docker-compose build
-   docker-compose up -d
-   ```
+# 3. 构建并启动
+docker-compose up -d
 
-4. **访问应用**
-   
-   在浏览器中打开 `http://localhost:5174`
+# 4. 访问应用
+# 浏览器打开 http://localhost:5174
+```
 
 ### 💻 本地开发部署
 
-如果需要进行开发或自定义修改，可以使用本地部署方式。
+适合需要开发或自定义修改的场景。
 
 #### 环境要求
+- Node.js 18+
+- pnpm 8+ (推荐) 或 npm/yarn
 
-- **Node.js**: `18+`
-- **pnpm**: `8+` (推荐) 或 `npm` / `yarn`
-- **Google Gemini API Key**: 用于 AI 代码分析
+#### 快速启动
 
-#### 安装与启动
+```bash
+# 1. 克隆项目
+git clone https://github.com/lintsinghua/XCodeReviewer.git
+cd XCodeReviewer
 
-1.  **克隆项目**
-    ```bash
-    git clone https://github.com/lintsinghua/XCodeReviewer.git
-    cd XCodeReviewer
-    ```
+# 2. 安装依赖
+pnpm install  # 或 npm install / yarn install
 
-2.  **安装依赖**
-    ```bash
-    # 使用 pnpm (推荐)
-    pnpm install
-    
-    # 或使用 npm
-    npm install
-    
-    # 或使用 yarn
-    yarn install
-    ```
+# 3. 配置环境变量
+cp .env.example .env
+# 编辑 .env 文件，配置必要参数（见下方配置说明）
 
-3.  **配置环境变量**
-    ```bash
-    # 复制环境变量模板
-    cp .env.example .env
-    ```
-    
-    编辑 `.env` 文件，配置必要的环境变量：
-    ```env
-    # LLM 通用配置 (推荐方式)
-    VITE_LLM_PROVIDER=gemini              # 选择提供商 (gemini|openai|claude|qwen|deepseek等)
-    VITE_LLM_API_KEY=your_api_key_here    # 对应的API Key
-    VITE_LLM_MODEL=gemini-2.5-flash       # 模型名称 (可选)
-    
-    # 或使用平台专用配置
-    VITE_GEMINI_API_KEY=your_gemini_api_key_here
-    VITE_OPENAI_API_KEY=your_openai_api_key_here
-    VITE_CLAUDE_API_KEY=your_claude_api_key_here
-    # ... 支持10+主流平台
-    
-    # 数据库配置 (三种模式可选)
-    # 1. 本地数据库模式（推荐）- 数据存储在浏览器 IndexedDB
-    VITE_USE_LOCAL_DB=true
-    
-    # 2. Supabase 云端模式 - 数据存储在云端
-    # VITE_SUPABASE_URL=https://your-project.supabase.co
-    # VITE_SUPABASE_ANON_KEY=your-anon-key-here
-    
-    # 3. 演示模式 - 不配置任何数据库，使用演示数据（数据不持久化）
-    
-    # GitHub 集成 (可选，用于仓库分析)
-    VITE_GITHUB_TOKEN=your_github_token_here
-    
-    # 应用配置
-    VITE_APP_ID=xcodereviewer
-    
-    # 分析配置
-    VITE_MAX_ANALYZE_FILES=40
-    VITE_LLM_CONCURRENCY=2
-    VITE_LLM_GAP_MS=500
-    
-    # 输出语言配置（zh-CN: 中文 | en-US: 英文）
-    VITE_OUTPUT_LANGUAGE=zh-CN
-    ```
+# 4. 启动开发服务器
+pnpm dev
 
-4.  **启动开发服务器**
-    ```bash
-    pnpm dev
-    ```
-
-5.  **访问应用**
-    在浏览器中打开 `http://localhost:5173`
-
-#### ⚙️ 高级配置（可选）
-
-如果遇到超时或连接问题，可以调整以下配置：
-
-```env
-# 增加超时时间（默认150000ms）
-VITE_LLM_TIMEOUT=150000
-
-# 使用自定义API端点（适用于代理或私有部署）
-VITE_LLM_BASE_URL=https://your-proxy-url.com
-
-# 降低并发数和增加请求间隔（避免频率限制）
-VITE_LLM_CONCURRENCY=1
-VITE_LLM_GAP_MS=1000
+# 5. 访问应用
+# 浏览器打开 http://localhost:5173
 ```
 
-#### 🔧 常见问题
+#### 核心配置说明
 
-<details>
-<summary><b>Q: 如何快速切换LLM平台？</b></summary>
-
-只需修改 `VITE_LLM_PROVIDER` 的值即可：
+编辑 `.env` 文件，配置以下必需参数：
 
 ```env
-# 切换到OpenAI
-VITE_LLM_PROVIDER=openai
-VITE_OPENAI_API_KEY=your_openai_key
+# ========== 必需配置 ==========
+# LLM 提供商选择 (gemini|openai|claude|qwen|deepseek|zhipu|moonshot|baidu|minimax|doubao|ollama)
+VITE_LLM_PROVIDER=gemini
+# 对应的 API Key
+VITE_LLM_API_KEY=your_api_key_here
 
-# 切换到Claude
-VITE_LLM_PROVIDER=claude
-VITE_CLAUDE_API_KEY=your_claude_key
+# ========== 数据库配置（三选一）==========
+# 方式1：本地数据库（推荐，开箱即用）
+VITE_USE_LOCAL_DB=true
+
+# 方式2：Supabase 云端数据库（支持多设备同步）
+# VITE_SUPABASE_URL=https://your-project.supabase.co
+# VITE_SUPABASE_ANON_KEY=your_anon_key
+
+# 方式3：演示模式（不配置任何数据库，数据不持久化）
+
+# ========== 可选配置 ==========
+# GitHub 集成（用于仓库分析）
+# VITE_GITHUB_TOKEN=your_github_token
+
+# 输出语言（zh-CN: 中文 | en-US: 英文）
+VITE_OUTPUT_LANGUAGE=zh-CN
+
+# 分析参数调优
+VITE_MAX_ANALYZE_FILES=40    # 单次最大分析文件数
+VITE_LLM_CONCURRENCY=2       # 并发请求数
+VITE_LLM_GAP_MS=500          # 请求间隔(ms)
+```
+
+#### 高级配置
+
+遇到超时或连接问题时，可调整以下参数：
+
+```env
+VITE_LLM_TIMEOUT=300000                      # 增加超时时间
+VITE_LLM_BASE_URL=https://your-proxy.com    # 使用代理或中转服务
+VITE_LLM_CONCURRENCY=1                       # 降低并发数
+VITE_LLM_GAP_MS=1000                         # 增加请求间隔
+```
+
+### 常见问题
+
+<details>
+<summary><b>如何快速切换 LLM 平台？</b></summary>
+
+只需修改 `.env` 中的 `VITE_LLM_PROVIDER` 和对应的 API Key：
+
+```env
+# 切换到 OpenAI
+VITE_LLM_PROVIDER=openai
+VITE_OPENAI_API_KEY=your_key
 
 # 切换到通义千问
 VITE_LLM_PROVIDER=qwen
-VITE_QWEN_API_KEY=your_qwen_key
+VITE_QWEN_API_KEY=your_key
 ```
 </details>
 
 <details>
-<summary><b>Q: 遇到"请求超时"错误怎么办？</b></summary>
+<summary><b>遇到请求超时怎么办？</b></summary>
 
-1. **增加超时时间**：在 `.env` 中设置 `VITE_LLM_TIMEOUT=300000`
-2. **检查网络连接**：确保能访问对应的API端点
-3. **使用代理**：如果API被墙，配置 `VITE_LLM_BASE_URL` 使用代理
-4. **切换平台**：尝试其他LLM提供商，如 DeepSeek（国内访问快）
+1. 增加超时时间：`VITE_LLM_TIMEOUT=300000`
+2. 使用代理：配置 `VITE_LLM_BASE_URL`
+3. 切换到国内平台：通义千问、DeepSeek、智谱AI 等
+4. 降低并发：`VITE_LLM_CONCURRENCY=1`
 </details>
 
 <details>
-<summary><b>Q: 如何使用国内平台避免网络问题？</b></summary>
+<summary><b>数据库模式如何选择？</b></summary>
 
-推荐使用国内平台，访问速度更快：
-
-```env
-# 使用通义千问（推荐）
-VITE_LLM_PROVIDER=qwen
-VITE_QWEN_API_KEY=your_qwen_key
-
-# 或使用DeepSeek（性价比高）
-VITE_LLM_PROVIDER=deepseek
-VITE_DEEPSEEK_API_KEY=your_deepseek_key
-
-# 或使用智谱AI
-VITE_LLM_PROVIDER=zhipu
-VITE_ZHIPU_API_KEY=your_zhipu_key
-```
-</details>
-
-<details>
-<summary><b>Q: 百度文心一言的API Key格式是什么？</b></summary>
-
-百度API Key格式特殊，需要同时提供API Key和Secret Key，用冒号分隔：
-
-```env
-VITE_LLM_PROVIDER=baidu
-VITE_BAIDU_API_KEY=your_api_key:your_secret_key
-VITE_BAIDU_MODEL=ERNIE-3.5-8K
-```
-</details>
-
-<details>
-<summary><b>Q: 数据库有哪些模式可选？如何选择？</b></summary>
-
-XCodeReviewer 支持三种数据库模式：
-
-**1. 本地数据库模式（推荐）**
-- 数据存储在浏览器 IndexedDB 中
-- 无需配置云端服务，开箱即用
-- 数据完全本地化，隐私安全
-- 适合个人使用和快速体验
-
+**本地模式（推荐）**：数据存储在浏览器 IndexedDB，开箱即用，隐私安全
 ```env
 VITE_USE_LOCAL_DB=true
 ```
 
-**2. Supabase 云端模式**
-- 数据存储在 Supabase 云端
-- 支持多设备同步
-- 需要注册 Supabase 账号并配置
-- 适合团队协作和跨设备使用
-
+**云端模式**：数据存储在 Supabase，支持多设备同步
 ```env
 VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_ANON_KEY=your-anon-key-here
+VITE_SUPABASE_ANON_KEY=your_key
 ```
 
-**3. 演示模式**
-- 不配置任何数据库
-- 使用内置演示数据
-- 数据不会持久化保存
-- 适合快速预览功能
+**演示模式**：不配置任何数据库，数据不持久化
 </details>
 
 <details>
-<summary><b>Q: 本地数据库的数据存储在哪里？如何备份？</b></summary>
+<summary><b>如何使用 Ollama 本地大模型？</b></summary>
 
-本地数据库使用浏览器的 IndexedDB 存储数据：
+```bash
+# 1. 安装 Ollama
+curl -fsSL https://ollama.com/install.sh | sh  # macOS/Linux
+# Windows: 访问 https://ollama.com/download
 
-- **存储位置**：浏览器本地存储（不同浏览器位置不同）
-- **数据安全**：数据仅存储在本地，不会上传到服务器
-- **清除数据**：清除浏览器数据会删除所有本地数据
-- **备份方法**：可以在管理界面导出数据为 JSON 文件
-- **恢复方法**：通过导入 JSON 文件恢复数据
+# 2. 拉取模型
+ollama pull llama3  # 或 codellama、qwen2.5、deepseek-coder
 
-注意：本地数据库数据仅在当前浏览器可用，更换浏览器或设备需要重新导入数据。
-</details>
-
-<details>
-<summary><b>Q: 如何设置分析结果的输出语言？</b></summary>
-
-在 `.env` 文件中配置 `VITE_OUTPUT_LANGUAGE`：
-
-```env
-# 中文输出（默认）
-VITE_OUTPUT_LANGUAGE=zh-CN
-
-# 英文输出
-VITE_OUTPUT_LANGUAGE=en-US
+# 3. 配置 XCodeReviewer
+# 在 .env 中设置：
+VITE_LLM_PROVIDER=ollama
+VITE_LLM_MODEL=llama3
+VITE_LLM_BASE_URL=http://localhost:11434/v1
 ```
 
-重启应用后，所有 LLM 分析结果将使用指定的语言输出。
-
-可在[百度千帆平台](https://console.bce.baidu.com/qianfan/)获取API Key和Secret Key。
+推荐模型：`llama3`（综合）、`codellama`（代码专用）、`qwen2.5`（中文）
 </details>
 
 <details>
-<summary><b>Q: 如何配置代理或中转服务？</b></summary>
+<summary><b>百度文心一言的 API Key 格式？</b></summary>
 
-使用 `VITE_LLM_BASE_URL` 配置自定义端点：
+百度需要同时提供 API Key 和 Secret Key，用冒号分隔：
+```env
+VITE_LLM_PROVIDER=baidu
+VITE_BAIDU_API_KEY=your_api_key:your_secret_key
+```
+获取地址：https://console.bce.baidu.com/qianfan/
+</details>
+
+<details>
+<summary><b>如何备份本地数据库？</b></summary>
+
+本地数据存储在浏览器 IndexedDB 中：
+- 在应用的"数据库管理"页面导出为 JSON 文件
+- 通过导入 JSON 文件恢复数据
+- 注意：清除浏览器数据会删除所有本地数据
+</details>
+
+<details>
+<summary><b>如何设置输出语言？</b></summary>
 
 ```env
-# OpenAI中转示例
-VITE_LLM_PROVIDER=openai
-VITE_OPENAI_API_KEY=your_key
-VITE_OPENAI_BASE_URL=https://api.your-proxy.com/v1
-
-# 或使用通用配置
-VITE_LLM_PROVIDER=openai
-VITE_LLM_API_KEY=your_key
-VITE_LLM_BASE_URL=https://api.your-proxy.com/v1
+VITE_OUTPUT_LANGUAGE=zh-CN  # 中文（默认）
+VITE_OUTPUT_LANGUAGE=en-US  # 英文
 ```
 </details>
 
 <details>
-<summary><b>Q: 如何同时配置多个平台并快速切换？</b></summary>
+<summary><b>如何配置多个平台并快速切换？</b></summary>
 
-在 `.env` 中配置所有平台的Key，然后通过修改 `VITE_LLM_PROVIDER` 切换：
-
+在 `.env` 中预配置所有平台的 Key，切换时只需修改 `VITE_LLM_PROVIDER`：
 ```env
-# 当前使用的平台
-VITE_LLM_PROVIDER=gemini
+VITE_LLM_PROVIDER=gemini  # 当前使用的平台
 
 # 预配置所有平台
-VITE_GEMINI_API_KEY=gemini_key
-VITE_OPENAI_API_KEY=openai_key
-VITE_CLAUDE_API_KEY=claude_key
-VITE_QWEN_API_KEY=qwen_key
-VITE_DEEPSEEK_API_KEY=deepseek_key
-
-# 切换时只需修改第一行的provider值即可
+VITE_GEMINI_API_KEY=key1
+VITE_OPENAI_API_KEY=key2
+VITE_QWEN_API_KEY=key3
 ```
-</details>
-
-<details>
-<summary><b>Q: 如何使用 Ollama 本地大模型？</b></summary>
-
-Ollama 允许您在本地运行开源大模型，无需 API Key，保护数据隐私：
-
-**1. 安装 Ollama**
-```bash
-# macOS / Linux
-curl -fsSL https://ollama.com/install.sh | sh
-
-# Windows
-# 下载并安装：https://ollama.com/download
-```
-
-**2. 拉取并运行模型**
-```bash
-# 拉取 Llama3 模型
-ollama pull llama3
-
-# 验证模型是否可用
-ollama list
-```
-
-**3. 配置 XCodeReviewer**
-```env
-VITE_LLM_PROVIDER=ollama
-VITE_LLM_API_KEY=ollama              # 填写任意值即可
-VITE_LLM_MODEL=llama3                # 使用的模型名称
-VITE_LLM_BASE_URL=http://localhost:11434/v1  # Ollama API地址
-```
-
-**推荐模型：**
-- `llama3` - Meta 的开源大模型，性能优秀
-- `codellama` - 专门针对代码优化的模型
-- `qwen2.5` - 阿里云通义千问开源版本
-- `deepseek-coder` - DeepSeek 代码专用模型
-
-更多模型请访问：https://ollama.com/library
 </details>
 
 ### 🔑 获取 API Key
 
-#### 🎯 支持的 LLM 平台
+#### 支持的 LLM 平台
 
-XCodeReviewer 现已支持多个主流 LLM 平台，您可以根据需求自由选择：
+XCodeReviewer 支持 10+ 主流 LLM 平台，可根据需求自由选择：
 
-**国际平台：**
-- **Google Gemini** - 推荐用于代码分析，免费配额充足 [获取API Key](https://makersuite.google.com/app/apikey)
-- **OpenAI GPT** - 稳定可靠，综合性能最佳 [获取API Key](https://platform.openai.com/api-keys)
-- **Anthropic Claude** - 代码理解能力强 [获取API Key](https://console.anthropic.com/)
-- **DeepSeek** - 性价比高 [获取API Key](https://platform.deepseek.com/)
+| 平台类型 | 平台名称 | 特点 | 获取地址 |
+|---------|---------|------|---------|
+| **国际平台** | Google Gemini | 免费配额充足，推荐 | [获取](https://makersuite.google.com/app/apikey) |
+| | OpenAI GPT | 稳定可靠，性能最佳 | [获取](https://platform.openai.com/api-keys) |
+| | Anthropic Claude | 代码理解能力强 | [获取](https://console.anthropic.com/) |
+| | DeepSeek | 性价比高 | [获取](https://platform.deepseek.com/) |
+| **国内平台** | 阿里云通义千问 | 国内访问快 | [获取](https://dashscope.console.aliyun.com/) |
+| | 智谱AI (GLM) | 中文支持好 | [获取](https://open.bigmodel.cn/) |
+| | 月之暗面 Kimi | 长文本处理 | [获取](https://platform.moonshot.cn/) |
+| | 百度文心一言 | 企业级服务 | [获取](https://console.bce.baidu.com/qianfan/) |
+| | MiniMax | 多模态能力 | [获取](https://www.minimaxi.com/) |
+| | 字节豆包 | 高性价比 | [获取](https://console.volcengine.com/ark) |
+| **本地部署** | Ollama | 完全本地化，隐私安全 | [安装](https://ollama.com/) |
 
-**国内平台：**
-- **阿里云通义千问** [获取API Key](https://dashscope.console.aliyun.com/)
-- **智谱AI (GLM)** [获取API Key](https://open.bigmodel.cn/)
-- **月之暗面 Kimi** [获取API Key](https://platform.moonshot.cn/)
-- **百度文心一言** [获取API Key](https://console.bce.baidu.com/qianfan/)
-- **MiniMax** [获取API Key](https://www.minimaxi.com/)
-- **字节豆包** [获取API Key](https://console.volcengine.com/ark)
-
-**本地部署：**
-- **Ollama** - 本地运行开源大模型，支持 Llama3、Mistral、CodeLlama 等 [安装指南](https://ollama.com/)
-
-#### 📝 配置示例
-
-在 `.env` 文件中配置您选择的平台：
+#### 配置示例
 
 ```env
-# 方式一：使用通用配置（推荐）
-VITE_LLM_PROVIDER=gemini          # 选择提供商
-VITE_LLM_API_KEY=your_api_key     # 对应的API Key
-VITE_LLM_MODEL=gemini-2.5-flash   # 模型名称（可选）
+# 通用配置（推荐）
+VITE_LLM_PROVIDER=gemini
+VITE_LLM_API_KEY=your_api_key_here
 
-# 方式二：使用平台专用配置
-VITE_GEMINI_API_KEY=your_gemini_api_key
-VITE_OPENAI_API_KEY=your_openai_api_key
-VITE_CLAUDE_API_KEY=your_claude_api_key
-# ... 其他平台配置
-
-# 使用 Ollama 本地大模型（无需 API Key）
-VITE_LLM_PROVIDER=ollama
-VITE_LLM_API_KEY=ollama              # 填写任意值即可
-VITE_LLM_MODEL=llama3                # 使用的模型名称
-VITE_LLM_BASE_URL=http://localhost:11434/v1  # Ollama API地址（可选）
+# 或使用平台专用配置
+VITE_GEMINI_API_KEY=your_gemini_key
+VITE_OPENAI_API_KEY=your_openai_key
+# ... 更多平台配置见 .env.example
 ```
 
-**快速切换平台：** 只需修改 `VITE_LLM_PROVIDER` 的值，即可在不同平台间自由切换！
-
-> 💡 **提示：** 详细的配置说明请参考 `.env.example` 文件
-
 #### Supabase 配置（可选）
-1. 访问 [Supabase](https://supabase.com/) 创建新项目
-2. 在项目设置中获取 URL 和匿名密钥
-3. 运行数据库迁移脚本：
-   ```bash
-   # 在 Supabase SQL 编辑器中执行
-   cat supabase/migrations/full_schema.sql
-   ```
-4. 如果不配置 Supabase，系统将以演示模式运行，仓库相关、项目管理相关的功能将无法使用，仅能使用即时分析功能，且数据不会持久化
+
+如需云端数据同步：
+1. 访问 [Supabase](https://supabase.com/) 创建项目
+2. 获取 URL 和匿名密钥
+3. 在 Supabase SQL 编辑器执行 `supabase/migrations/full_schema.sql`
+4. 在 `.env` 中配置相关参数
 
 ## ✨ 核心功能
 
@@ -731,7 +580,7 @@ pnpm lint
 - **✅ 多平台LLM支持**: 已实现 10+ 主流平台API调用功能（Gemini、OpenAI、Claude、通义千问、DeepSeek、智谱AI、Kimi、文心一言、MiniMax、豆包、Ollama本地大模型），支持用户自由配置和切换
 - **✅ 本地模型支持**: 已加入对 Ollama 本地大模型的调用功能，满足数据隐私需求
 - **Multi-Agent Collaboration**: 考虑引入多智能体协作架构，会实现`Agent+人工对话`反馈的功能，包括多轮对话流程展示，人工对话中断干涉等，以获得更清晰、透明、监督性的审计过程，提升审计质量
-- **专业报告文件生成**: 根据不同的需求生成相关格式的专业审计报告文件，支持文件报告格式定制等
+- **✅ 专业报告文件生成**: 根据不同的需求生成相关格式的专业审计报告文件，支持文件报告格式定制等
 - **审计标准自定义**: 不同团队有自己的编码规范，不同项目有特定的安全要求，也正是我们这个项目想后续做的东西。当前的版本还属于一个“半黑盒模式”，项目通过 Prompt 工程来引导分析方向和定义审计标准，实际分析效果由强大的预训练AI 模型内置知识决定。后续将结合强化学习、监督学习微调等方法，开发以支持自定义规则配置，通过YAML或者JSON定义团队特定规则，提供常见框架的最佳实践模板等等，以获得更加符合需求和标准的审计结果
 ---
 

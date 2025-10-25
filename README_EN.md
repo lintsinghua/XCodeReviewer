@@ -65,344 +65,251 @@ In the fast-paced world of software development, ensuring code quality is crucia
 
 ### 🐳 Docker Deployment (Recommended)
 
-Deploy quickly using Docker without Node.js environment setup.
+One-click deployment with Docker, no Node.js environment required:
 
-1. **Clone the project**
-   ```bash
-   git clone https://github.com/lintsinghua/XCodeReviewer.git
-   cd XCodeReviewer
-   ```
-
-2. **Configure environment variables**
-   ```bash
-   cp .env.example .env
-   # Edit .env file and configure LLM provider and API Key
-   # Method 1: Using Universal Configuration (Recommended)
-   # VITE_LLM_PROVIDER=gemini
-   # VITE_LLM_API_KEY=your_api_key
-   # 
-   # Method 2: Using Platform-Specific Configuration
-   # VITE_GEMINI_API_KEY=your_gemini_api_key
-   ```
-
-3. **Build and start**
-   ```bash
-   docker-compose build
-   docker-compose up -d
-   ```
-
-4. **Access the application**
-   
-   Open `http://localhost:5174` in your browser
-
-**Common commands:**
 ```bash
-docker-compose logs -f      # View logs
-docker-compose restart      # Restart service
-docker-compose down         # Stop service
+# 1. Clone the project
+git clone https://github.com/lintsinghua/XCodeReviewer.git
+cd XCodeReviewer
+
+# 2. Configure environment variables
+cp .env.example .env
+# Edit .env file, configure at least:
+# VITE_LLM_PROVIDER=gemini
+# VITE_LLM_API_KEY=your_api_key_here
+
+# 3. Build and start
+docker-compose up -d
+
+# 4. Access the application
+# Open http://localhost:5174 in your browser
 ```
 
 ### 💻 Local Development Deployment
 
-For development or custom modifications, use local deployment.
+Suitable for development or custom modifications.
 
 #### Requirements
+- Node.js 18+
+- pnpm 8+ (recommended) or npm/yarn
 
-- **Node.js**: `18+`
-- **pnpm**: `8+` (recommended) or `npm` / `yarn`
-- **Google Gemini API Key**: For AI code analysis
+#### Quick Setup
 
-#### Installation & Setup
+```bash
+# 1. Clone the project
+git clone https://github.com/lintsinghua/XCodeReviewer.git
+cd XCodeReviewer
 
-1.  **Clone the project**
-    ```bash
-    git clone https://github.com/lintsinghua/XCodeReviewer.git
-    cd XCodeReviewer
-    ```
+# 2. Install dependencies
+pnpm install  # or npm install / yarn install
 
-2.  **Install dependencies**
-    ```bash
-    # Using pnpm (recommended)
-    pnpm install
-    
-    # Or using npm
-    npm install
-    
-    # Or using yarn
-    yarn install
-    ```
+# 3. Configure environment variables
+cp .env.example .env
+# Edit .env file, configure required parameters (see configuration guide below)
 
-3.  **Configure environment variables**
-    ```bash
-    # Copy environment template
-    cp .env.example .env
-    ```
-    
-    Edit the `.env` file and configure the necessary environment variables:
-    ```env
-    # LLM Universal Configuration (Recommended)
-    VITE_LLM_PROVIDER=gemini              # Choose provider (gemini|openai|claude|qwen|deepseek, etc.)
-    VITE_LLM_API_KEY=your_api_key_here    # Corresponding API Key
-    VITE_LLM_MODEL=gemini-2.5-flash       # Model name (optional)
-    
-    # Or use platform-specific configuration
-    VITE_GEMINI_API_KEY=your_gemini_api_key_here
-    VITE_OPENAI_API_KEY=your_openai_api_key_here
-    VITE_CLAUDE_API_KEY=your_claude_api_key_here
-    # ... Supports 10+ mainstream platforms
-    
-    # Database Configuration (Three modes available)
-    # 1. Local Database Mode (Recommended) - Data stored in browser IndexedDB
-    VITE_USE_LOCAL_DB=true
-    
-    # 2. Supabase Cloud Mode - Data stored in cloud
-    # VITE_SUPABASE_URL=https://your-project.supabase.co
-    # VITE_SUPABASE_ANON_KEY=your-anon-key-here
-    
-    # 3. Demo Mode - No database configuration, uses demo data (not persistent)
-    
-    # GitHub Integration (Optional, for repository analysis)
-    VITE_GITHUB_TOKEN=your_github_token_here
-    
-    # Application Configuration
-    VITE_APP_ID=xcodereviewer
-    
-    # Analysis Configuration
-    VITE_MAX_ANALYZE_FILES=40
-    VITE_LLM_CONCURRENCY=2
-    VITE_LLM_GAP_MS=500
-    
-    # Output Language Configuration (zh-CN: Chinese | en-US: English)
-    VITE_OUTPUT_LANGUAGE=zh-CN
-    ```
+# 4. Start development server
+pnpm dev
 
-4.  **Start development server**
-    ```bash
-    pnpm dev
-    ```
-
-5.  **Access the application**
-    Open `http://localhost:5174` in your browser
-
-#### ⚙️ Advanced Configuration (Optional)
-
-If you encounter timeout or connection issues, adjust these settings:
-
-```env
-# Increase timeout (default 150000ms)
-VITE_LLM_TIMEOUT=150000
-
-# Use custom API endpoint (for proxy or private deployment)
-VITE_LLM_BASE_URL=https://your-proxy-url.com
-
-# Reduce concurrency and increase request gap (to avoid rate limiting)
-VITE_LLM_CONCURRENCY=1
-VITE_LLM_GAP_MS=1000
+# 5. Access the application
+# Open http://localhost:5173 in your browser
 ```
 
-#### 🔧 FAQ
+#### Core Configuration
+
+Edit `.env` file and configure the following required parameters:
+
+```env
+# ========== Required Configuration ==========
+# LLM Provider (gemini|openai|claude|qwen|deepseek|zhipu|moonshot|baidu|minimax|doubao|ollama)
+VITE_LLM_PROVIDER=gemini
+# Corresponding API Key
+VITE_LLM_API_KEY=your_api_key_here
+
+# ========== Database Configuration (Choose One) ==========
+# Option 1: Local Database (Recommended, ready to use)
+VITE_USE_LOCAL_DB=true
+
+# Option 2: Supabase Cloud Database (Multi-device sync)
+# VITE_SUPABASE_URL=https://your-project.supabase.co
+# VITE_SUPABASE_ANON_KEY=your_anon_key
+
+# Option 3: Demo Mode (No database, data not persistent)
+
+# ========== Optional Configuration ==========
+# GitHub Integration (for repository analysis)
+# VITE_GITHUB_TOKEN=your_github_token
+
+# Output Language (zh-CN: Chinese | en-US: English)
+VITE_OUTPUT_LANGUAGE=en-US
+
+# Analysis Parameters
+VITE_MAX_ANALYZE_FILES=40    # Max files per analysis
+VITE_LLM_CONCURRENCY=2       # Concurrent requests
+VITE_LLM_GAP_MS=500          # Request interval (ms)
+```
+
+#### Advanced Configuration
+
+For timeout or connection issues, adjust these parameters:
+
+```env
+VITE_LLM_TIMEOUT=300000                      # Increase timeout
+VITE_LLM_BASE_URL=https://your-proxy.com    # Use proxy or relay service
+VITE_LLM_CONCURRENCY=1                       # Reduce concurrency
+VITE_LLM_GAP_MS=1000                         # Increase request interval
+```
+
+### FAQ
 
 <details>
-<summary><b>Q: How to quickly switch between LLM platforms?</b></summary>
+<summary><b>How to quickly switch LLM platforms?</b></summary>
 
-Simply modify the `VITE_LLM_PROVIDER` value:
+Simply modify `VITE_LLM_PROVIDER` and the corresponding API Key in `.env`:
 
 ```env
 # Switch to OpenAI
 VITE_LLM_PROVIDER=openai
-VITE_OPENAI_API_KEY=your_openai_key
-
-# Switch to Claude
-VITE_LLM_PROVIDER=claude
-VITE_CLAUDE_API_KEY=your_claude_key
+VITE_OPENAI_API_KEY=your_key
 
 # Switch to Qwen
 VITE_LLM_PROVIDER=qwen
-VITE_QWEN_API_KEY=your_qwen_key
+VITE_QWEN_API_KEY=your_key
 ```
 </details>
 
 <details>
-<summary><b>Q: What to do when encountering "Request Timeout" error?</b></summary>
+<summary><b>What to do about request timeouts?</b></summary>
 
-1. **Increase timeout**: Set `VITE_LLM_TIMEOUT=300000` in `.env` (5 minutes)
-2. **Check network connection**: Ensure you can access the API endpoint
-3. **Use proxy**: Configure `VITE_LLM_BASE_URL` if API is blocked
-4. **Switch platform**: Try other LLM providers, such as DeepSeek (good for China)
+1. Increase timeout: `VITE_LLM_TIMEOUT=300000`
+2. Use proxy: Configure `VITE_LLM_BASE_URL`
+3. Switch to Chinese platforms: Qwen, DeepSeek, Zhipu AI, etc.
+4. Reduce concurrency: `VITE_LLM_CONCURRENCY=1`
 </details>
 
 <details>
-<summary><b>Q: How to use Chinese platforms to avoid network issues?</b></summary>
+<summary><b>How to choose database mode?</b></summary>
 
-Recommended Chinese platforms for faster access:
-
+**Local Mode (Recommended)**: Data stored in browser IndexedDB, ready to use, privacy-secure
 ```env
-# Use Qwen (Recommended)
-VITE_LLM_PROVIDER=qwen
-VITE_QWEN_API_KEY=your_qwen_key
-
-# Or use DeepSeek (Cost-effective)
-VITE_LLM_PROVIDER=deepseek
-VITE_DEEPSEEK_API_KEY=your_deepseek_key
-
-# Or use Zhipu AI
-VITE_LLM_PROVIDER=zhipu
-VITE_ZHIPU_API_KEY=your_zhipu_key
+VITE_USE_LOCAL_DB=true
 ```
+
+**Cloud Mode**: Data stored in Supabase, multi-device sync
+```env
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your_key
+```
+
+**Demo Mode**: No database configuration, data not persistent
 </details>
 
 <details>
-<summary><b>Q: What's the API Key format for Baidu ERNIE?</b></summary>
+<summary><b>How to use Ollama local models?</b></summary>
 
-Baidu API Key requires both API Key and Secret Key, separated by colon:
+```bash
+# 1. Install Ollama
+curl -fsSL https://ollama.com/install.sh | sh  # macOS/Linux
+# Windows: Visit https://ollama.com/download
 
+# 2. Pull model
+ollama pull llama3  # or codellama, qwen2.5, deepseek-coder
+
+# 3. Configure XCodeReviewer
+# In .env:
+VITE_LLM_PROVIDER=ollama
+VITE_LLM_MODEL=llama3
+VITE_LLM_BASE_URL=http://localhost:11434/v1
+```
+
+Recommended models: `llama3` (general), `codellama` (code-specific), `qwen2.5` (Chinese)
+</details>
+
+<details>
+<summary><b>Baidu ERNIE API Key format?</b></summary>
+
+Baidu requires both API Key and Secret Key, separated by colon:
 ```env
 VITE_LLM_PROVIDER=baidu
 VITE_BAIDU_API_KEY=your_api_key:your_secret_key
-VITE_BAIDU_MODEL=ERNIE-3.5-8K
 ```
-
-Get API Key and Secret Key from [Baidu Qianfan Platform](https://console.bce.baidu.com/qianfan/).
+Get from: https://console.bce.baidu.com/qianfan/
 </details>
 
 <details>
-<summary><b>Q: How to configure proxy or relay service?</b></summary>
+<summary><b>How to backup local database?</b></summary>
 
-Use `VITE_LLM_BASE_URL` to configure custom endpoint:
+Local data is stored in browser IndexedDB:
+- Export as JSON file from "Database Management" page
+- Import JSON file to restore data
+- Note: Clearing browser data will delete all local data
+</details>
+
+<details>
+<summary><b>How to set output language?</b></summary>
 
 ```env
-# OpenAI relay example
-VITE_LLM_PROVIDER=openai
-VITE_OPENAI_API_KEY=your_key
-VITE_OPENAI_BASE_URL=https://api.your-proxy.com/v1
-
-# Or use universal config
-VITE_LLM_PROVIDER=openai
-VITE_LLM_API_KEY=your_key
-VITE_LLM_BASE_URL=https://api.your-proxy.com/v1
+VITE_OUTPUT_LANGUAGE=zh-CN  # Chinese (default)
+VITE_OUTPUT_LANGUAGE=en-US  # English
 ```
 </details>
 
 <details>
-<summary><b>Q: How to configure multiple platforms and switch quickly?</b></summary>
+<summary><b>How to configure multiple platforms and switch quickly?</b></summary>
 
-Configure all platform keys in `.env`, then switch by modifying `VITE_LLM_PROVIDER`:
-
+Pre-configure all platform keys in `.env`, then just modify `VITE_LLM_PROVIDER` to switch:
 ```env
-# Currently active platform
-VITE_LLM_PROVIDER=gemini
+VITE_LLM_PROVIDER=gemini  # Currently active platform
 
 # Pre-configure all platforms
-VITE_GEMINI_API_KEY=gemini_key
-VITE_OPENAI_API_KEY=openai_key
-VITE_CLAUDE_API_KEY=claude_key
-VITE_QWEN_API_KEY=qwen_key
-VITE_DEEPSEEK_API_KEY=deepseek_key
-
-# Just modify the first line's provider value to switch
+VITE_GEMINI_API_KEY=key1
+VITE_OPENAI_API_KEY=key2
+VITE_QWEN_API_KEY=key3
 ```
-</details>
-
-<details>
-<summary><b>Q: How to use Ollama local models?</b></summary>
-
-Ollama allows you to run open-source models locally without an API key, protecting data privacy:
-
-**1. Install Ollama**
-```bash
-# macOS / Linux
-curl -fsSL https://ollama.com/install.sh | sh
-
-# Windows
-# Download and install: https://ollama.com/download
-```
-
-**2. Pull and run a model**
-```bash
-# Pull Llama3 model
-ollama pull llama3
-
-# Verify the model is available
-ollama list
-```
-
-**3. Configure XCodeReviewer**
-```env
-VITE_LLM_PROVIDER=ollama
-VITE_LLM_API_KEY=ollama              # Can be any value
-VITE_LLM_MODEL=llama3                # Model name to use
-VITE_LLM_BASE_URL=http://localhost:11434/v1  # Ollama API address
-```
-
-**Recommended Models:**
-- `llama3` - Meta's open-source model with excellent performance
-- `codellama` - Code-optimized model
-- `qwen2.5` - Open-source version of Alibaba Qwen
-- `deepseek-coder` - DeepSeek's code-specialized model
-
-More models available at: https://ollama.com/library
 </details>
 
 
 ### 🔑 Getting API Keys
 
-#### 🎯 Supported LLM Platforms
+#### Supported LLM Platforms
 
-XCodeReviewer now supports multiple mainstream LLM platforms. You can choose freely based on your needs:
+XCodeReviewer supports 10+ mainstream LLM platforms, choose freely based on your needs:
 
-**International Platforms:**
-- **Google Gemini** - Recommended for code analysis, generous free tier [Get API Key](https://makersuite.google.com/app/apikey)
-- **OpenAI GPT** - Stable and reliable, best overall performance [Get API Key](https://platform.openai.com/api-keys)
-- **Anthropic Claude** - Strong code understanding capabilities [Get API Key](https://console.anthropic.com/)
-- **DeepSeek** - Cost-effective [Get API Key](https://platform.deepseek.com/)
+| Platform Type | Platform Name | Features | Get API Key |
+|--------------|---------------|----------|-------------|
+| **International** | Google Gemini | Generous free tier, recommended | [Get](https://makersuite.google.com/app/apikey) |
+| | OpenAI GPT | Stable, best performance | [Get](https://platform.openai.com/api-keys) |
+| | Anthropic Claude | Strong code understanding | [Get](https://console.anthropic.com/) |
+| | DeepSeek | Cost-effective | [Get](https://platform.deepseek.com/) |
+| **Chinese** | Alibaba Qwen | Fast domestic access | [Get](https://dashscope.console.aliyun.com/) |
+| | Zhipu AI (GLM) | Good Chinese support | [Get](https://open.bigmodel.cn/) |
+| | Moonshot (Kimi) | Long context | [Get](https://platform.moonshot.cn/) |
+| | Baidu ERNIE | Enterprise service | [Get](https://console.bce.baidu.com/qianfan/) |
+| | MiniMax | Multimodal | [Get](https://www.minimaxi.com/) |
+| | Bytedance Doubao | Cost-effective | [Get](https://console.volcengine.com/ark) |
+| **Local** | Ollama | Fully local, privacy-secure | [Install](https://ollama.com/) |
 
-**Chinese Platforms:**
-- **Alibaba Qwen (通义千问)** [Get API Key](https://dashscope.console.aliyun.com/)
-- **Zhipu AI (GLM)** [Get API Key](https://open.bigmodel.cn/)
-- **Moonshot (Kimi)** [Get API Key](https://platform.moonshot.cn/)
-- **Baidu ERNIE (文心一言)** [Get API Key](https://console.bce.baidu.com/qianfan/)
-- **MiniMax** [Get API Key](https://www.minimaxi.com/)
-- **Bytedance Doubao (豆包)** [Get API Key](https://console.volcengine.com/ark)
-
-**Local Deployment:**
-- **Ollama** - Run open-source models locally, supports Llama3, Mistral, CodeLlama, etc. [Installation Guide](https://ollama.com/)
-
-#### 📝 Configuration Examples
-
-Configure your chosen platform in the `.env` file:
+#### Configuration Example
 
 ```env
-# Method 1: Using Universal Configuration (Recommended)
-VITE_LLM_PROVIDER=gemini          # Choose provider
-VITE_LLM_API_KEY=your_api_key     # Corresponding API Key
-VITE_LLM_MODEL=gemini-2.5-flash   # Model name (optional)
+# Universal configuration (recommended)
+VITE_LLM_PROVIDER=gemini
+VITE_LLM_API_KEY=your_api_key_here
 
-# Method 2: Using Platform-Specific Configuration
-VITE_GEMINI_API_KEY=your_gemini_api_key
-VITE_OPENAI_API_KEY=your_openai_api_key
-VITE_CLAUDE_API_KEY=your_claude_api_key
-# ... Other platform configurations
-
-# Using Ollama Local Models (No API Key Required)
-VITE_LLM_PROVIDER=ollama
-VITE_LLM_API_KEY=ollama              # Can be any value
-VITE_LLM_MODEL=llama3                # Model name to use
-VITE_LLM_BASE_URL=http://localhost:11434/v1  # Ollama API address (optional)
+# Or use platform-specific configuration
+VITE_GEMINI_API_KEY=your_gemini_key
+VITE_OPENAI_API_KEY=your_openai_key
+# ... More platforms in .env.example
 ```
 
-**Quick Platform Switch:** Simply modify the value of `VITE_LLM_PROVIDER` to switch between different platforms!
-
-> 💡 **Tip:** For detailed configuration instructions, please refer to the `.env.example` file
-
 #### Supabase Configuration (Optional)
-1. Visit [Supabase](https://supabase.com/) to create a new project
-2. Get the URL and anonymous key from project settings
-3. Run database migration scripts:
-   ```bash
-   # Execute in Supabase SQL Editor
-   cat supabase/migrations/full_schema.sql
-   ```
-4. If Supabase is not configured, functions related to warehouses and project management will be unavailable. Only the instant analysis function can be used, and data will not be persisted, and the system will run in demo mode without data persistence
+
+For cloud data sync:
+1. Visit [Supabase](https://supabase.com/) to create a project
+2. Get URL and anonymous key
+3. Execute `supabase/migrations/full_schema.sql` in Supabase SQL Editor
+4. Configure in `.env`
+
+> 💡 Without Supabase, system uses local database or demo mode
 
 ## ✨ Core Features
 
@@ -671,13 +578,14 @@ We warmly welcome all forms of contributions! Whether it's submitting issues, cr
  
 ## 🎯 Future Plans
 
-Currently, XCodeReviewer is positioned in the rapid prototype verification stage, and its functions need to be gradually improved. Based on the subsequent development of the project and everyone's suggestions, the future development plan is as follows (to be implemented as soon as possible):
+Currently, XCodeReviewer is in rapid prototype validation stage. Based on project development and community feedback, our roadmap includes:
 
-- **✅ Multi-Platform LLM Support**: Implemented API calling functionality for 10+ mainstream platforms (Gemini, OpenAI, Claude, Qwen, DeepSeek, Zhipu AI, Kimi, ERNIE, MiniMax, Doubao, Ollama Local Models), with support for free configuration and switching
-- **✅ Local Model Support**: Added support for Ollama local large models to meet data privacy requirements
-- **Multi-Agent Collaboration**: Consider introducing a multi-agent collaboration architecture, which will implement the `Agent + Human Dialogue` feedback function, including multi-round dialogue process display, human dialogue interruption intervention, etc., to obtain a clearer, more transparent, and supervised auditing process, thereby improving audit quality.
-- **Professional Report File Generation**: Generate professional audit report files in relevant formats according to different needs, supporting customization of file report formats, etc.
-- **Custom Audit Standards**: Different teams have their own coding standards, and different projects have specific security requirements, which is exactly what we want to do next in this project. The current version is still in a "semi-black box mode", where the project guides the analysis direction and defines audit standards through Prompt engineering, and the actual analysis effect is determined by the built-in knowledge of powerful pre-trained AI models. In the future, we will combine methods such as reinforcement learning and supervised learning fine-tuning to develop support for custom rule configuration, define team-specific rules through YAML or JSON, provide best practice templates for common frameworks, etc., to obtain audit results that are more in line with requirements and standards.
+- ✅ **Multi-Platform LLM Support**: Implemented API integration for 10+ mainstream platforms (Gemini, OpenAI, Claude, Qwen, DeepSeek, Zhipu AI, Kimi, ERNIE, MiniMax, Doubao, Ollama), with flexible configuration and switching
+- ✅ **Local Model Support**: Added Ollama local model integration to meet data privacy requirements
+- ✅ **Local Database Support**: Implemented IndexedDB-based local database for fully localized data storage and privacy protection
+- **Multi-Agent Collaboration**: Introduce multi-agent architecture with `Agent + Human Dialogue` feedback, including multi-round dialogue visualization and human intervention for clearer, transparent, and supervised audit processes
+- ✅ **Professional Report Generation**: Generate professional audit reports in various formats based on different needs, with customizable templates and format configurations
+- **Custom Audit Standards**: Support custom audit rule configuration via YAML/JSON, provide best practice templates for common frameworks, and leverage reinforcement learning and supervised fi
 
 ---
 
