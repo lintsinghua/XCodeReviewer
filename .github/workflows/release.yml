@@ -150,8 +150,8 @@ jobs:
           context: .
           push: true
           tags: |
-            ghcr.io/${{ github.repository }}:${{ steps.version.outputs.VERSION }}
-            ghcr.io/${{ github.repository }}:latest
+            ghcr.io/${{ github.repository_owner }}/xcodereviewer:${{ steps.version.outputs.VERSION }}
+            ghcr.io/${{ github.repository_owner }}/xcodereviewer:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args: |
