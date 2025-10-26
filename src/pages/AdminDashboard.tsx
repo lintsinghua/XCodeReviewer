@@ -16,11 +16,13 @@ import {
   Clock,
   AlertTriangle,
   TrendingUp,
-  Package
+  Package,
+  Settings
 } from "lucide-react";
 import { api, dbMode, isLocalMode } from "@/shared/config/database";
 import { DatabaseManager } from "@/components/database/DatabaseManager";
 import { DatabaseStatusDetail } from "@/components/database/DatabaseStatus";
+import { SystemConfig } from "@/components/system/SystemConfig";
 import { toast } from "sonner";
 
 export default function AdminDashboard() {
@@ -112,11 +114,11 @@ export default function AdminDashboard() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-            <Database className="h-8 w-8 text-primary" />
-            数据库管理
+            <Settings className="h-8 w-8 text-primary" />
+            系统管理
           </h1>
           <p className="text-gray-600 mt-2">
-            管理和监控本地数据库，查看存储使用情况和数据统计
+            管理系统配置、LLM设置、数据库和存储使用情况
           </p>
         </div>
         <Button variant="outline" onClick={loadStats}>
@@ -212,13 +214,19 @@ export default function AdminDashboard() {
       </div>
 
       {/* 主要内容标签页 */}
-      <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+      <Tabs defaultValue="config" className="w-full">
+        <TabsList className="grid w-full grid-cols-5">
+          <TabsTrigger value="config">系统配置</TabsTrigger>
           <TabsTrigger value="overview">数据概览</TabsTrigger>
           <TabsTrigger value="storage">存储管理</TabsTrigger>
           <TabsTrigger value="operations">数据操作</TabsTrigger>
-          <TabsTrigger value="settings">设置</TabsTrigger>
+          <TabsTrigger value="settings">高级设置</TabsTrigger>
         </TabsList>
+
+        {/* 系统配置 */}
+        <TabsContent value="config" className="space-y-6">
+          <SystemConfig />
+        </TabsContent>
 
         {/* 数据概览 */}
         <TabsContent value="overview" className="space-y-6">

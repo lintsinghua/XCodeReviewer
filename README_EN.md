@@ -39,6 +39,7 @@ In the fast-paced world of software development, ensuring code quality is crucia
 - **🎯 Multi-dimensional, Comprehensive Assessment**: From **security**, **performance**, **maintainability** to **code style**, providing 360-degree quality evaluation.
 - **💡 Clear, Actionable Fix Suggestions**: Innovative **What-Why-How** approach that not only tells you "what" the problem is, but also explains "why" and provides "how to fix" with specific code examples.
 - **✅ Multi-Platform LLM/Local Model Support**: Implemented API calling functionality for 10+ mainstream platforms (Gemini, OpenAI, Claude, Qwen, DeepSeek, Zhipu AI, Kimi, ERNIE, MiniMax, Doubao, Ollama Local Models), with support for free configuration and switching
+- **⚙️ Visual Runtime Configuration**: Configure all LLM parameters and API Keys directly in the browser without rebuilding images. Supports API relay services, with configurations saved locally in the browser for security and convenience.
 - **✨ Modern, Beautiful User Interface**: Built with React + TypeScript, providing a smooth and intuitive user experience.
 
 ## 🎬 Project Demo
@@ -72,18 +73,28 @@ One-click deployment with Docker, no Node.js environment required:
 git clone https://github.com/lintsinghua/XCodeReviewer.git
 cd XCodeReviewer
 
-# 2. Configure environment variables
-cp .env.example .env
-# Edit .env file, configure at least:
-# VITE_LLM_PROVIDER=gemini
-# VITE_LLM_API_KEY=your_api_key_here
-
-# 3. Build and start
+# 2. Build and start (no pre-configuration needed)
 docker-compose up -d
 
-# 4. Access the application
+# 3. Access the application
 # Open http://localhost:5174 in your browser
 ```
+
+**✨ New Feature: Runtime Configuration**
+
+After Docker deployment, you can configure all settings directly in the browser without rebuilding the image:
+
+1. Visit `http://localhost:5174/admin` (System Management page)
+2. Configure LLM API Keys and other parameters in the "System Configuration" tab
+3. Click save and refresh the page to use
+
+Benefits:
+- ✅ No need to hardcode API Keys in Docker images (more secure)
+- ✅ Modify configuration anytime without rebuilding
+- ✅ Support for API relay services
+- ✅ Quickly switch between different LLM platforms
+
+> 📖 **For detailed configuration instructions, see**: [System Configuration Guide](#system-configuration-first-time-setup)
 
 ### 💻 Local Development Deployment
 
@@ -164,7 +175,16 @@ VITE_LLM_GAP_MS=1000                         # Increase request interval
 <details>
 <summary><b>How to quickly switch LLM platforms?</b></summary>
 
-Simply modify `VITE_LLM_PROVIDER` and the corresponding API Key in `.env`:
+**Method 1: Browser Configuration (Recommended)**
+
+1. Visit `http://localhost:5174/admin` System Management page
+2. Select different LLM provider in the "System Configuration" tab
+3. Enter the corresponding API Key
+4. Save and refresh the page
+
+**Method 2: Environment Variable Configuration**
+
+Modify configuration in `.env`:
 
 ```env
 # Switch to OpenAI
@@ -236,10 +256,28 @@ Get from: https://console.bce.baidu.com/qianfan/
 </details>
 
 <details>
+<summary><b>How to use API relay services?</b></summary>
+
+Many users use API relay services to access LLMs (more stable and cheaper). Configuration method:
+
+1. Visit System Management page (`/admin`)
+2. In the "System Configuration" tab:
+   - Select LLM provider (e.g., OpenAI)
+   - **API Base URL**: Enter relay service address (e.g., `https://your-proxy.com/v1`)
+   - **API Key**: Enter the key provided by the relay service (not the official key)
+3. Save and refresh the page
+
+**Notes**:
+- Relay service URLs usually end with `/v1` (OpenAI-compatible format)
+- Use the relay service's API Key, not the official one
+- Confirm that the relay service supports your chosen AI model
+</details>
+
+<details>
 <summary><b>How to backup local database?</b></summary>
 
 Local data is stored in browser IndexedDB:
-- Export as JSON file from "Database Management" page
+- Export as JSON file from "System Management" page
 - Import JSON file to restore data
 - Note: Clearing browser data will delete all local data
 </details>
@@ -357,18 +395,28 @@ For cloud data sync:
 </details>
 
 <details>
-<summary><b>💾 Local Database Management</b></summary>
+<summary><b>⚙️ System Management</b></summary>
 
-- **Three Database Modes**:
-  - 🏠 **Local Mode**: Uses browser IndexedDB, data is completely localized, privacy-secure
-  - ☁️ **Cloud Mode**: Uses Supabase, supports multi-device synchronization
-  - 🎭 **Demo Mode**: No configuration needed, quick feature preview
-- **Data Management Features**:
+Visit `/admin` page for complete system configuration and data management features:
+
+- **🔧 Visual Configuration Management** (Runtime Configuration):
+  - 🎯 **LLM Configuration**: Configure API Keys, models, timeout, and other parameters directly in the browser
+  - 🔑 **Platform Keys**: Manage API Keys for 10+ LLM platforms with quick switching support
+  - ⚡ **Analysis Parameters**: Adjust concurrency, interval time, max files, etc.
+  - 🌐 **API Relay Support**: Easily configure third-party API relay services
+  - 💾 **Configuration Priority**: Runtime config > Build-time config, no need to rebuild images
+  
+- **💾 Database Management**:
+  - 🏠 **Three Modes**: Local IndexedDB / Supabase Cloud / Demo Mode
   - 📤 **Export Backup**: Export data as JSON files
   - 📥 **Import Recovery**: Restore data from backup files
   - 🗑️ **Clear Data**: One-click cleanup of all local data
   - 📊 **Storage Monitoring**: Real-time view of storage space usage
-- **Smart Statistics**: Complete statistics and visualization of projects, tasks, and issues
+  
+- **📈 Data Overview**:
+  - Complete statistics for projects, tasks, and issues
+  - Visual charts showing quality trends
+  - Storage usage analysis
 </details>
 
 ## 🛠️ Tech Stack
@@ -399,6 +447,7 @@ XCodeReviewer/
 │   ├── components/         # React components
 │   │   ├── layout/         # Layout components (Header, Footer, PageMeta)
 │   │   ├── ui/             # UI component library (based on Radix UI)
+│   │   ├── system/         # System configuration components
 │   │   ├── database/       # Database management components
 │   │   └── debug/          # Debug components
 │   ├── pages/              # Page components
@@ -406,7 +455,7 @@ XCodeReviewer/
 │   │   ├── Projects.tsx    # Project management
 │   │   ├── InstantAnalysis.tsx # Instant analysis
 │   │   ├── AuditTasks.tsx  # Audit tasks
-│   │   └── AdminDashboard.tsx # Database management
+│   │   └── AdminDashboard.tsx # System management
 │   ├── features/           # Feature modules
 │   │   ├── analysis/       # Analysis related services
 │   │   │   └── services/   # AI code analysis engine
@@ -433,6 +482,26 @@ XCodeReviewer/
 ```
 
 ## 🎯 Usage Guide
+
+### System Configuration (First-Time Setup)
+
+Visit `/admin` System Management page and configure in the "System Configuration" tab:
+
+#### 1. **Configure LLM Provider**
+- Select the LLM platform you want to use (Gemini, OpenAI, Claude, etc.)
+- Enter API Key (supports universal Key or platform-specific Key)
+- Optional: Configure model name, API base URL (for relay services)
+
+#### 2. **Configure API Relay Service** (if using)
+- Enter relay service address in "API Base URL" (e.g., `https://your-proxy.com/v1`)
+- Enter the API Key provided by the relay service
+- Save configuration
+
+#### 3. **Adjust Analysis Parameters** (optional)
+- Max analyze files, concurrent requests, request interval
+- Output language (Chinese/English)
+
+**After configuration, click "Save All Changes" and refresh the page to use.**
 
 ### Instant Code Analysis
 1. Visit the `/instant-analysis` page
@@ -580,10 +649,10 @@ Currently, XCodeReviewer is in rapid prototype validation stage. Based on projec
 
 - ✅ **Multi-Platform LLM Support**: Implemented API integration for 10+ mainstream platforms (Gemini, OpenAI, Claude, Qwen, DeepSeek, Zhipu AI, Kimi, ERNIE, MiniMax, Doubao, Ollama), with flexible configuration and switching
 - ✅ **Local Model Support**: Added Ollama local model integration to meet data privacy requirements
-- ✅ **Local Database Support**: Implemented IndexedDB-based local database for fully localized data storage and privacy protection
-- **Multi-Agent Collaboration**: Introduce multi-agent architecture with `Agent + Human Dialogue` feedback, including multi-round dialogue visualization and human intervention for clearer, transparent, and supervised audit processes
+- ✅ **Visual Configuration Management**: Implemented runtime configuration system supporting browser-based configuration of all LLM parameters and API Keys, API relay service support, no need to rebuild images
 - ✅ **Professional Report Generation**: Generate professional audit reports in various formats based on different needs, with customizable templates and format configurations
-- **Custom Audit Standards**: Support custom audit rule configuration via YAML/JSON, provide best practice templates for common frameworks, and leverage reinforcement learning and supervised fi
+- **Multi-Agent Collaboration**: Introduce multi-agent architecture with `Agent + Human Dialogue` feedback, including multi-round dialogue visualization and human intervention for clearer, transparent, and supervised audit processes
+- **Custom Audit Standards**: Support custom audit rule configuration via YAML/JSON, provide best practice templates for common frameworks, and leverage reinforcement learning and supervised fine-tuning for more targeted and standards-compliant audit results
 
 ---
 

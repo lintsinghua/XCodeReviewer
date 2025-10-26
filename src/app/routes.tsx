@@ -52,7 +52,7 @@ const routes: RouteConfig[] = [
     visible: false,
   },
   {
-    name: "数据库管理",
+    name: "系统管理",
     path: "/admin",
     element: <AdminDashboard />,
     visible: true,
