@@ -139,16 +139,21 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       
-      # 11. 设置 Docker Buildx
+      # 11. 设置 QEMU（用于多架构构建）
+      - name: 设置 QEMU
+        uses: docker/setup-qemu-action@v3
+      
+      # 12. 设置 Docker Buildx
       - name: 设置 Docker Buildx
         uses: docker/setup-buildx-action@v3
       
-      # 12. 构建并推送 Docker 镜像
+      # 13. 构建并推送 Docker 镜像（多架构）
       - name: 构建并推送 Docker 镜像
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
+          platforms: linux/amd64,linux/arm64,linux/arm/v7
           tags: |
             ghcr.io/${{ github.repository_owner }}/xcodereviewer:${{ steps.version.outputs.VERSION }}
             ghcr.io/${{ github.repository_owner }}/xcodereviewer:latest
@@ -157,7 +162,7 @@ jobs:
           build-args: |
             VITE_USE_LOCAL_DB=true
       
-      # 13. 更新 package.json 版本号（可选）
+      # 14. 更新 package.json 版本号（可选）
       - name: 更新 package.json 版本
         if: github.event_name == 'workflow_dispatch'
         run: |
