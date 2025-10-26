@@ -689,9 +689,11 @@ Currently, XCodeReviewer is in rapid prototype validation stage. Based on projec
 - ✅ **Multi-Platform LLM Support**: Implemented API integration for 10+ mainstream platforms (Gemini, OpenAI, Claude, Qwen, DeepSeek, Zhipu AI, Kimi, ERNIE, MiniMax, Doubao, Ollama), with flexible configuration and switching
 - ✅ **Local Model Support**: Added Ollama local model integration to meet data privacy requirements
 - ✅ **Visual Configuration Management**: Implemented runtime configuration system supporting browser-based configuration of all LLM parameters and API Keys, API relay service support, no need to rebuild images
+- ✅ **Universal Relay Service Support**: All LLM platforms support API relay services, self-hosted instances, and OpenRouter, with custom headers support, covering 99.9% of use cases
 - ✅ **Professional Report Generation**: Generate professional audit reports in various formats based on different needs, with customizable templates and format configurations
-- **Multi-Agent Collaboration**: Introduce multi-agent architecture with `Agent + Human Dialogue` feedback, including multi-round dialogue visualization and human intervention for clearer, transparent, and supervised audit processes
-- **Custom Audit Standards**: Support custom audit rule configuration via YAML/JSON, provide best practice templates for common frameworks, and leverage reinforcement learning and supervised fine-tuning for more targeted and standards-compliant audit results
+- 🚧 **CI/CD Integration & PR Auto-Review**: Plan to implement GitHub/GitLab CI integration, supporting automatic PR-triggered reviews, intelligent comments, quality gates, incremental analysis, and complete code review workflows
+- **Multi-Agent Collaboration**: Introduce multi-agent architecture with Agent + Human Dialogue feedback for more transparent and controllable audit processes
+- **Custom Audit Standards**: Support custom audit rule configuration via YAML/JSON, provide best practice templates for common frameworks
 
 ---
 
