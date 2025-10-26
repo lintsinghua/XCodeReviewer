@@ -66,33 +66,57 @@ In the fast-paced world of software development, ensuring code quality is crucia
 
 ### 🐳 Docker Deployment (Recommended)
 
-One-click deployment with Docker, no Node.js environment required:
+#### Method 1: Use Published Image (Easiest) ⭐
+
+Directly use the latest published Docker image, supports x86, ARM64 (Mac M-series), and ARMv7 architectures:
+
+```bash
+# 1. Pull the latest image
+docker pull ghcr.io/lintsinghua/xcodereviewer:latest
+
+# 2. Run container
+docker run -d \
+  -p 8888:80 \
+  --name xcodereviewer \
+  --restart unless-stopped \
+  ghcr.io/lintsinghua/xcodereviewer:latest
+
+# 3. Access the application
+# Open http://localhost:8888 in your browser
+```
+
+**Use specific version**:
+```bash
+# Pull specific version (e.g., v1.1.0)
+docker pull ghcr.io/lintsinghua/xcodereviewer:v1.1.0
+
+# Run
+docker run -d -p 8888:80 --name xcodereviewer ghcr.io/lintsinghua/xcodereviewer:v1.1.0
+```
+
+#### Method 2: Local Build (Optional)
+
+If you need custom build:
 
 ```bash
 # 1. Clone the project
 git clone https://github.com/lintsinghua/XCodeReviewer.git
 cd XCodeReviewer
 
-# 2. Build and start (no pre-configuration needed)
+# 2. Build and start with Docker Compose
 docker-compose up -d
 
 # 3. Access the application
-# Open http://localhost:5174 in your browser
+# Open http://localhost:8888 in your browser
 ```
 
-**✨ New Feature: Runtime Configuration**
+**✨ Runtime Configuration (Recommended)**
 
 After Docker deployment, you can configure all settings directly in the browser without rebuilding the image:
 
-1. Visit `http://localhost:5174/admin` (System Management page)
+1. Visit `http://localhost:8888/admin` (System Management page)
 2. Configure LLM API Keys and other parameters in the "System Configuration" tab
 3. Click save and refresh the page to use
-
-Benefits:
-- ✅ No need to hardcode API Keys in Docker images (more secure)
-- ✅ Modify configuration anytime without rebuilding
-- ✅ Support for API relay services
-- ✅ Quickly switch between different LLM platforms
 
 > 📖 **For detailed configuration instructions, see**: [System Configuration Guide](#system-configuration-first-time-setup)
 
@@ -177,7 +201,7 @@ VITE_LLM_GAP_MS=1000                         # Increase request interval
 
 **Method 1: Browser Configuration (Recommended)**
 
-1. Visit `http://localhost:5174/admin` System Management page
+1. Visit `http://localhost:8888/admin` System Management page
 2. Select different LLM provider in the "System Configuration" tab
 3. Enter the corresponding API Key
 4. Save and refresh the page

@@ -66,25 +66,55 @@
 
 ### 🐳 Docker 部署（推荐）
 
-使用 Docker 一键部署，无需配置 Node.js 环境：
+#### 方式一：使用发布的镜像（最简单）⭐
+
+直接使用最新发布的 Docker 镜像，支持 x86、ARM64（Mac M系列）、ARMv7 架构：
+
+```bash
+# 1. 拉取最新版本镜像
+docker pull ghcr.io/lintsinghua/xcodereviewer:latest
+
+# 2. 运行容器
+docker run -d \
+  -p 8888:80 \
+  --name xcodereviewer \
+  --restart unless-stopped \
+  ghcr.io/lintsinghua/xcodereviewer:latest
+
+# 3. 访问应用
+# 浏览器打开 http://localhost:8888
+```
+
+**使用特定版本**：
+```bash
+# 拉取指定版本（如 v1.1.0）
+docker pull ghcr.io/lintsinghua/xcodereviewer:v1.1.0
+
+# 运行
+docker run -d -p 8888:80 --name xcodereviewer ghcr.io/lintsinghua/xcodereviewer:v1.1.0
+```
+
+#### 方式二：本地构建（可选）
+
+如果需要自定义构建：
 
 ```bash
 # 1. 克隆项目
 git clone https://github.com/lintsinghua/XCodeReviewer.git
 cd XCodeReviewer
 
-# 2. 构建并启动（无需预先配置）
+# 2. 使用 Docker Compose 构建并启动
 docker-compose up -d
 
 # 3. 访问应用
-# 浏览器打开 http://localhost:5174
+# 浏览器打开 http://localhost:8888
 ```
 
-**✨ 运行时配置**
+**✨ 运行时配置（推荐）**
 
 Docker 部署后，您可以直接在浏览器中配置所有设置，无需重新构建镜像：
 
-1. 访问 `http://localhost:5174/admin`（系统管理页面）
+1. 访问 `http://localhost:8888/admin`（系统管理页面）
 2. 在"系统配置"标签页中配置 LLM API Keys 和其他参数
 3. 点击保存并刷新页面即可使用
 
@@ -171,7 +201,7 @@ VITE_LLM_GAP_MS=1000                         # 增加请求间隔
 
 **方式一：浏览器配置（推荐）**
 
-1. 访问 `http://localhost:5174/admin` 系统管理页面
+1. 访问 `http://localhost:8888/admin` 系统管理页面
 2. 在"系统配置"标签页选择不同的 LLM 提供商
 3. 填入对应的 API Key
 4. 保存并刷新页面
