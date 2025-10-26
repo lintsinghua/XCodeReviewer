@@ -1,0 +1,174 @@
+name: Release
+
+# 触发条件
+on:
+  # 手动触发
+  workflow_dispatch:
+    inputs:
+      version:
+        description: '版本号 (例如: v1.0.0)'
+        required: true
+        type: string
+      prerelease:
+        description: '是否为预发布版本'
+        required: false
+        type: boolean
+        default: false
+  
+  # 当推送 tag 时自动触发（格式：v*.*.* ）
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  build-and-release:
+    name: 构建并发布
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: write
+      packages: write
+    
+    steps:
+      # 1. 检出代码
+      - name: 检出代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      # 2. 设置 Node.js 环境
+      - name: 设置 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+      
+      # 3. 安装 pnpm
+      - name: 安装 pnpm
+        run: npm install -g pnpm
+      
+      # 4. 安装依赖
+      - name: 安装依赖
+        run: pnpm install --no-frozen-lockfile
+      
+      # 5. 构建前端项目
+      - name: 构建项目
+        run: pnpm build
+        env:
+          # 这里可以添加构建时需要的环境变量
+          VITE_USE_LOCAL_DB: 'true'
+      
+      # 6. 确定版本号
+      - name: 确定版本号
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+            echo "IS_PRERELEASE=${{ github.event.inputs.prerelease }}" >> $GITHUB_OUTPUT
+          else
+            echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+            echo "IS_PRERELEASE=false" >> $GITHUB_OUTPUT
+          fi
+      
+      # 7. 打包构建产物
+      - name: 打包构建产物
+        run: |
+          # 创建发布目录
+          mkdir -p release
+          
+          # 打包前端构建产物
+          tar -czf release/xcode-reviewer-frontend-${{ steps.version.outputs.VERSION }}.tar.gz -C dist .
+          
+          # 打包完整源码（包括配置文件）
+          tar -czf release/xcode-reviewer-source-${{ steps.version.outputs.VERSION }}.tar.gz \
+            --exclude=node_modules \
+            --exclude=dist \
+            --exclude=.git \
+            --exclude=release \
+            .
+          
+          # 创建 checksums
+          cd release
+          sha256sum * > checksums.txt
+          cd ..
+      
+      # 8. 生成更新日志
+      - name: 生成更新日志
+        id: changelog
+        run: |
+          # 获取上一个 tag
+          PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          
+          if [ -z "$PREVIOUS_TAG" ]; then
+            echo "这是第一个发布版本" > CHANGELOG.md
+            git log --pretty=format:"- %s (%h)" >> CHANGELOG.md
+          else
+            echo "自 $PREVIOUS_TAG 以来的变更：" > CHANGELOG.md
+            echo "" >> CHANGELOG.md
+            git log $PREVIOUS_TAG..HEAD --pretty=format:"- %s (%h)" >> CHANGELOG.md
+          fi
+          
+          echo "" >> CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          echo "## 下载说明" >> CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          echo "- \`xcode-reviewer-frontend-*.tar.gz\`: 前端构建产物（用于部署）" >> CHANGELOG.md
+          echo "- \`xcode-reviewer-source-*.tar.gz\`: 完整源码包" >> CHANGELOG.md
+          echo "- \`checksums.txt\`: 文件校验和" >> CHANGELOG.md
+      
+      # 9. 创建 GitHub Release
+      - name: 创建 Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.version.outputs.VERSION }}
+          name: Release ${{ steps.version.outputs.VERSION }}
+          body_path: CHANGELOG.md
+          draft: false
+          prerelease: ${{ steps.version.outputs.IS_PRERELEASE }}
+          files: |
+            release/*
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      # 10. 登录 GitHub Container Registry
+      - name: 登录到 GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      
+      # 11. 设置 Docker Buildx
+      - name: 设置 Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      # 12. 构建并推送 Docker 镜像
+      - name: 构建并推送 Docker 镜像
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}:${{ steps.version.outputs.VERSION }}
+            ghcr.io/${{ github.repository }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            VITE_USE_LOCAL_DB=true
+      
+      # 13. 更新 package.json 版本号（可选）
+      - name: 更新 package.json 版本
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          VERSION="${{ steps.version.outputs.VERSION }}"
+          VERSION_NO_V="${VERSION#v}"
+          npm version $VERSION_NO_V --no-git-tag-version
+          
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add package.json
+          git commit -m "chore: bump version to $VERSION" || true
+          git push origin HEAD:main || true
+
+
