@@ -226,6 +226,9 @@ public class Example {
         'rs': 'rust',
         'cpp': 'cpp',
         'c': 'cpp',
+        'cc': 'cpp',
+        'h': 'cpp',
+        'hh': 'cpp',
         'cs': 'csharp',
         'php': 'php',
         'rb': 'ruby'
@@ -523,7 +526,7 @@ public class Example {
             <input
               ref={fileInputRef}
               type="file"
-              accept=".js,.jsx,.ts,.tsx,.py,.java,.go,.rs,.cpp,.c,.cs,.php,.rb"
+              accept=".js,.jsx,.ts,.tsx,.py,.java,.go,.rs,.cpp,.c,.cc,.h,.hh,.cs,.php,.rb"
               onChange={handleFileUpload}
               className="hidden"
             />

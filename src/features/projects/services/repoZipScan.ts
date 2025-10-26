@@ -4,7 +4,7 @@ import { api } from "@/shared/config/database";
 import { taskControl } from "@/shared/services/taskControl";
 
 const TEXT_EXTENSIONS = [
-  ".js", ".ts", ".tsx", ".jsx", ".py", ".java", ".go", ".rs", ".cpp", ".c", ".h", 
+  ".js", ".ts", ".tsx", ".jsx", ".py", ".java", ".go", ".rs", ".cpp", ".c", ".h", ".cc", ".hh",
   ".cs", ".php", ".rb", ".kt", ".swift", ".sql", ".sh", ".json", ".yml", ".yaml"
   // 注意：已移除 .md，因为文档文件会导致LLM返回非JSON格式
 ];
@@ -99,6 +99,9 @@ function getLanguageFromPath(path: string): string {
     'rs': 'rust',
     'cpp': 'cpp',
     'c': 'cpp',
+    'cc': 'cpp',
+    'h': 'cpp',
+    'hh': 'cpp',
     'cs': 'csharp',
     'php': 'php',
     'rb': 'ruby',

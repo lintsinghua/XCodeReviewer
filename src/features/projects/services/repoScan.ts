@@ -5,7 +5,7 @@ import { taskControl } from "@/shared/services/taskControl";
 type GithubTreeItem = { path: string; type: "blob" | "tree"; size?: number; url: string; sha: string };
 
 const TEXT_EXTENSIONS = [
-  ".js", ".ts", ".tsx", ".jsx", ".py", ".java", ".go", ".rs", ".cpp", ".c", ".h", ".cs", ".php", ".rb", ".kt", ".swift", ".sql", ".sh", ".json", ".yml", ".yaml"
+  ".js", ".ts", ".tsx", ".jsx", ".py", ".java", ".go", ".rs", ".cpp", ".c", ".h", ".cc", ".hh", ".cs", ".php", ".rb", ".kt", ".swift", ".sql", ".sh", ".json", ".yml", ".yaml"
   // 注意：已移除 .md，因为文档文件会导致LLM返回非JSON格式
 ];
 const MAX_FILE_SIZE_BYTES = 200 * 1024;
