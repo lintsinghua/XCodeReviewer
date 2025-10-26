@@ -40,7 +40,7 @@ const LLM_PROVIDERS = [
 
 // 默认模型配置
 const DEFAULT_MODELS = {
-  gemini: 'gemini-2.5-flash',
+  gemini: 'gemini-1.5-flash',
   openai: 'gpt-4o-mini',
   claude: 'claude-3-5-sonnet-20241022',
   qwen: 'qwen-turbo',
@@ -62,6 +62,7 @@ interface SystemConfigData {
   llmTimeout: number;
   llmTemperature: number;
   llmMaxTokens: number;
+  llmCustomHeaders: string;
   
   // 平台专用配置
   geminiApiKey: string;
@@ -97,6 +98,7 @@ export function SystemConfig() {
     llmTimeout: 150000,
     llmTemperature: 0.2,
     llmMaxTokens: 4096,
+    llmCustomHeaders: '',
     geminiApiKey: '',
     openaiApiKey: '',
     claudeApiKey: '',
@@ -155,6 +157,7 @@ export function SystemConfig() {
       llmTimeout: Number(import.meta.env.VITE_LLM_TIMEOUT) || 150000,
       llmTemperature: Number(import.meta.env.VITE_LLM_TEMPERATURE) || 0.2,
       llmMaxTokens: Number(import.meta.env.VITE_LLM_MAX_TOKENS) || 4096,
+      llmCustomHeaders: import.meta.env.VITE_LLM_CUSTOM_HEADERS || '',
       geminiApiKey: import.meta.env.VITE_GEMINI_API_KEY || '',
       openaiApiKey: import.meta.env.VITE_OPENAI_API_KEY || '',
       claudeApiKey: import.meta.env.VITE_CLAUDE_API_KEY || '',
@@ -422,6 +425,18 @@ export function SystemConfig() {
                     onChange={(e) => updateConfig('llmMaxTokens', Number(e.target.value))}
                   />
                 </div>
+              </div>
+
+              <div className="space-y-2 pt-4 border-t">
+                <Label>自定义请求头（高级，可选）</Label>
+                <Input
+                  value={config.llmCustomHeaders}
+                  onChange={(e) => updateConfig('llmCustomHeaders', e.target.value)}
+                  placeholder='{"X-Custom-Header": "value", "Another-Header": "value2"}'
+                />
+                <p className="text-xs text-muted-foreground">
+                  JSON 格式，用于某些中转站或自建服务的特殊要求。例如：<code className="bg-muted px-1 py-0.5 rounded">&#123;"X-API-Version": "v1"&#125;</code>
+                </p>
               </div>
             </CardContent>
           </Card>

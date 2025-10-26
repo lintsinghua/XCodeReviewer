@@ -189,9 +189,16 @@ VITE_LLM_GAP_MS=500          # 请求间隔(ms)
 
 ```env
 VITE_LLM_TIMEOUT=300000                      # 增加超时时间
-VITE_LLM_BASE_URL=https://your-proxy.com    # 使用代理或中转服务
+VITE_LLM_BASE_URL=https://your-proxy.com/v1 # 使用代理或中转服务
 VITE_LLM_CONCURRENCY=1                       # 降低并发数
 VITE_LLM_GAP_MS=1000                         # 增加请求间隔
+```
+
+**自定义请求头示例**（针对特殊中转站）：
+
+```env
+# JSON 格式字符串
+VITE_LLM_CUSTOM_HEADERS='{"X-API-Version":"v1","X-Custom-Auth":"token123"}'
 ```
 
 ### 常见问题
@@ -581,19 +588,27 @@ pnpm lint
 #### 核心LLM配置
 | 变量名 | 必需 | 默认值 | 说明 |
 |--------|------|--------|------|
-| `VITE_LLM_PROVIDER` | ✅ | `gemini` | LLM提供商：`gemini`\|`openai`\|`claude`\|`qwen`\|`deepseek`\|`zhipu`\|`moonshot`\|`baidu`\|`minimax`\|`doubao` |
+| `VITE_LLM_PROVIDER` | ✅ | `gemini` | LLM提供商：`gemini`\|`openai`\|`claude`\|`qwen`\|`deepseek`\|`zhipu`\|`moonshot`\|`baidu`\|`minimax`\|`doubao`\|`ollama` |
 | `VITE_LLM_API_KEY` | ✅ | - | 通用API Key（优先级高于平台专用配置） |
 | `VITE_LLM_MODEL` | ❌ | 自动 | 模型名称（不指定则使用各平台默认模型） |
-| `VITE_LLM_BASE_URL` | ❌ | - | 自定义API端点（用于代理、中转或私有部署） |
+| `VITE_LLM_BASE_URL` | ❌ | - | 自定义API端点（**支持所有平台的中转站**、代理或私有部署） |
 | `VITE_LLM_TIMEOUT` | ❌ | `150000` | 请求超时时间（毫秒） |
 | `VITE_LLM_TEMPERATURE` | ❌ | `0.2` | 温度参数（0.0-2.0），控制输出随机性 |
 | `VITE_LLM_MAX_TOKENS` | ❌ | `4096` | 最大输出token数 |
+| `VITE_LLM_CUSTOM_HEADERS` | ❌ | - | 自定义HTTP请求头（JSON格式字符串），用于特殊中转站或自建服务 |
+
+> 💡 **API 格式支持**：XCodeReviewer 支持三种主流 API 格式：
+> - **OpenAI 兼容格式**（最常见）：适用于大多数中转站和 OpenRouter
+> - **Gemini 格式**：Google Gemini 官方及兼容服务
+> - **Claude 格式**：Anthropic Claude 官方及兼容服务
+> 
+> 配置时只需选择对应的 LLM 提供商，填入中转站地址和 Key 即可。自定义请求头功能可满足特殊中转站的额外要求。
 
 #### 平台专用API Key配置（可选）
 | 变量名 | 说明 | 特殊要求 |
 |--------|------|---------|
 | `VITE_GEMINI_API_KEY` | Google Gemini API Key | - |
-| `VITE_GEMINI_MODEL` | Gemini模型 (默认: gemini-2.5-flash) | - |
+| `VITE_GEMINI_MODEL` | Gemini模型 (默认: gemini-1.5-flash) | - |
 | `VITE_OPENAI_API_KEY` | OpenAI API Key | - |
 | `VITE_OPENAI_MODEL` | OpenAI模型 (默认: gpt-4o-mini) | - |
 | `VITE_OPENAI_BASE_URL` | OpenAI自定义端点 | 用于中转服务 |

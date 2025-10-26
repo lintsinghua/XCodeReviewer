@@ -27,11 +27,14 @@ export class ZhipuAdapter extends BaseLLMAdapter {
 
   private async _sendRequest(request: LLMRequest): Promise<LLMResponse> {
     // 智谱AI API兼容OpenAI格式
+    const headers: Record<string, string> = {
+      'Authorization': `Bearer ${this.config.apiKey}`,
+    };
+    if (this.config.customHeaders) Object.assign(headers, this.config.customHeaders);
+
     const response = await fetch(`${this.baseUrl}/chat/completions`, {
       method: 'POST',
-      headers: this.buildHeaders({
-        'Authorization': `Bearer ${this.config.apiKey}`,
-      }),
+      headers: this.buildHeaders(headers),
       body: JSON.stringify({
         model: this.config.model,
         messages: request.messages,

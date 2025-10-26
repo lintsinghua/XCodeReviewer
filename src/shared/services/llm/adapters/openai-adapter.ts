@@ -26,11 +26,19 @@ export class OpenAIAdapter extends BaseLLMAdapter {
   }
 
   private async _sendRequest(request: LLMRequest): Promise<LLMResponse> {
+    // 构建请求头
+    const headers: Record<string, string> = {
+      'Authorization': `Bearer ${this.config.apiKey}`,
+    };
+
+    // 合并自定义请求头
+    if (this.config.customHeaders) {
+      Object.assign(headers, this.config.customHeaders);
+    }
+
     const response = await fetch(`${this.baseUrl}/chat/completions`, {
       method: 'POST',
-      headers: this.buildHeaders({
-        'Authorization': `Bearer ${this.config.apiKey}`,
-      }),
+      headers: this.buildHeaders(headers),
       body: JSON.stringify({
         model: this.config.model,
         messages: request.messages,

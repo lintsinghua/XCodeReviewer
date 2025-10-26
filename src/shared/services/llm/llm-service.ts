@@ -80,6 +80,16 @@ export class LLMService {
       baseUrl = env.OLLAMA_BASE_URL;
     }
 
+    // 解析自定义请求头
+    let customHeaders: Record<string, string> | undefined;
+    if (env.LLM_CUSTOM_HEADERS) {
+      try {
+        customHeaders = JSON.parse(env.LLM_CUSTOM_HEADERS);
+      } catch (e) {
+        console.warn('Invalid LLM_CUSTOM_HEADERS format, should be JSON string');
+      }
+    }
+
     const config: LLMConfig = {
       provider,
       apiKey,
@@ -88,6 +98,7 @@ export class LLMService {
       timeout: env.LLM_TIMEOUT || env.GEMINI_TIMEOUT_MS,
       temperature: env.LLM_TEMPERATURE,
       maxTokens: env.LLM_MAX_TOKENS,
+      customHeaders,
     };
 
     return new LLMService(config);

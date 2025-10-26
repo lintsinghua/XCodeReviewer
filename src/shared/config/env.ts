@@ -28,10 +28,12 @@ export const env = {
   LLM_TEMPERATURE: runtimeConfig?.llmTemperature !== undefined ? runtimeConfig.llmTemperature : (Number(import.meta.env.VITE_LLM_TEMPERATURE) || 0.2),
   // LLM 最大token数
   LLM_MAX_TOKENS: runtimeConfig?.llmMaxTokens || Number(import.meta.env.VITE_LLM_MAX_TOKENS) || 4096,
+  // LLM 自定义请求头 (JSON字符串格式)
+  LLM_CUSTOM_HEADERS: runtimeConfig?.llmCustomHeaders || import.meta.env.VITE_LLM_CUSTOM_HEADERS || '',
 
   // ==================== Gemini AI 配置 (兼容旧配置) ====================
   GEMINI_API_KEY: runtimeConfig?.geminiApiKey || import.meta.env.VITE_GEMINI_API_KEY || '',
-  GEMINI_MODEL: import.meta.env.VITE_GEMINI_MODEL || 'gemini-2.5-flash',
+  GEMINI_MODEL: import.meta.env.VITE_GEMINI_MODEL || 'gemini-1.5-flash',
   GEMINI_TIMEOUT_MS: Number(import.meta.env.VITE_GEMINI_TIMEOUT_MS) || 25000,
 
   // ==================== OpenAI 配置 ====================

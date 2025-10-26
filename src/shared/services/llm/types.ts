@@ -28,6 +28,7 @@ export interface LLMConfig {
   topP?: number;            // Top-p采样
   frequencyPenalty?: number; // 频率惩罚
   presencePenalty?: number;  // 存在惩罚
+  customHeaders?: Record<string, string>; // 自定义请求头
 }
 
 // LLM请求消息

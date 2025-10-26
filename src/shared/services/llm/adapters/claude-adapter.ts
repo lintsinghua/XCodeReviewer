@@ -47,12 +47,20 @@ export class ClaudeAdapter extends BaseLLMAdapter {
       requestBody.system = systemMessage.content;
     }
 
+    // 构建请求头
+    const headers: Record<string, string> = {
+      'x-api-key': this.config.apiKey,
+      'anthropic-version': '2023-06-01',
+    };
+
+    // 合并自定义请求头
+    if (this.config.customHeaders) {
+      Object.assign(headers, this.config.customHeaders);
+    }
+
     const response = await fetch(`${this.baseUrl}/messages`, {
       method: 'POST',
-      headers: this.buildHeaders({
-        'x-api-key': this.config.apiKey,
-        'anthropic-version': '2023-06-01',
-      }),
+      headers: this.buildHeaders(headers),
       body: JSON.stringify(requestBody),
     });
 

@@ -26,12 +26,15 @@ export class QwenAdapter extends BaseLLMAdapter {
   }
 
   private async _sendRequest(request: LLMRequest): Promise<LLMResponse> {
+    const headers: Record<string, string> = {
+      'Authorization': `Bearer ${this.config.apiKey}`,
+      'X-DashScope-SSE': 'disable',
+    };
+    if (this.config.customHeaders) Object.assign(headers, this.config.customHeaders);
+
     const response = await fetch(`${this.baseUrl}/services/aigc/text-generation/generation`, {
       method: 'POST',
-      headers: this.buildHeaders({
-        'Authorization': `Bearer ${this.config.apiKey}`,
-        'X-DashScope-SSE': 'disable',
-      }),
+      headers: this.buildHeaders(headers),
       body: JSON.stringify({
         model: this.config.model,
         input: {

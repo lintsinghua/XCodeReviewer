@@ -37,9 +37,14 @@ export class OllamaAdapter extends BaseLLMAdapter {
       headers['Authorization'] = `Bearer ${this.config.apiKey}`;
     }
 
+    // 合并自定义请求头
+    if (this.config.customHeaders) {
+      Object.assign(headers, this.config.customHeaders);
+    }
+
     const response = await fetch(`${this.baseUrl}/chat/completions`, {
       method: 'POST',
-      headers,
+      headers: this.buildHeaders(headers),
       body: JSON.stringify({
         model: this.config.model,
         messages: request.messages,

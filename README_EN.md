@@ -189,9 +189,16 @@ For timeout or connection issues, adjust these parameters:
 
 ```env
 VITE_LLM_TIMEOUT=300000                      # Increase timeout
-VITE_LLM_BASE_URL=https://your-proxy.com    # Use proxy or relay service
+VITE_LLM_BASE_URL=https://your-proxy.com/v1 # Use proxy or relay service
 VITE_LLM_CONCURRENCY=1                       # Reduce concurrency
 VITE_LLM_GAP_MS=1000                         # Increase request interval
+```
+
+**Custom Headers Example** (for special relay services):
+
+```env
+# JSON format string
+VITE_LLM_CUSTOM_HEADERS='{"X-API-Version":"v1","X-Custom-Auth":"token123"}'
 ```
 
 ### FAQ
@@ -582,19 +589,27 @@ pnpm lint
 #### Core LLM Configuration
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `VITE_LLM_PROVIDER` | ✅ | `gemini` | LLM provider: `gemini`\|`openai`\|`claude`\|`qwen`\|`deepseek`\|`zhipu`\|`moonshot`\|`baidu`\|`minimax`\|`doubao` |
+| `VITE_LLM_PROVIDER` | ✅ | `gemini` | LLM provider: `gemini`\|`openai`\|`claude`\|`qwen`\|`deepseek`\|`zhipu`\|`moonshot`\|`baidu`\|`minimax`\|`doubao`\|`ollama` |
 | `VITE_LLM_API_KEY` | ✅ | - | Universal API Key (higher priority than platform-specific config) |
 | `VITE_LLM_MODEL` | ❌ | Auto | Model name (uses platform default if not specified) |
-| `VITE_LLM_BASE_URL` | ❌ | - | Custom API endpoint (for proxy, relay, or private deployment) |
+| `VITE_LLM_BASE_URL` | ❌ | - | Custom API endpoint (**supports relay services for all platforms**, proxy, or private deployment) |
 | `VITE_LLM_TIMEOUT` | ❌ | `150000` | Request timeout (milliseconds) |
 | `VITE_LLM_TEMPERATURE` | ❌ | `0.2` | Temperature parameter (0.0-2.0), controls output randomness |
 | `VITE_LLM_MAX_TOKENS` | ❌ | `4096` | Maximum output tokens |
+| `VITE_LLM_CUSTOM_HEADERS` | ❌ | - | Custom HTTP headers (JSON string format), for special relay services or self-hosted instances |
+
+> 💡 **API Format Support**: XCodeReviewer supports 3 mainstream API formats:
+> - **OpenAI-Compatible Format** (Most Common): Works with most relay services and OpenRouter
+> - **Gemini Format**: Google Gemini official and compatible services
+> - **Claude Format**: Anthropic Claude official and compatible services
+> 
+> Simply select the corresponding LLM provider, enter the relay service address and Key. The custom headers feature can meet additional requirements of special relay services.
 
 #### Platform-Specific API Key Configuration (Optional)
 | Variable | Description | Special Requirements |
 |----------|-------------|---------------------|
 | `VITE_GEMINI_API_KEY` | Google Gemini API Key | - |
-| `VITE_GEMINI_MODEL` | Gemini model (default: gemini-2.5-flash) | - |
+| `VITE_GEMINI_MODEL` | Gemini model (default: gemini-1.5-flash) | - |
 | `VITE_OPENAI_API_KEY` | OpenAI API Key | - |
 | `VITE_OPENAI_MODEL` | OpenAI model (default: gpt-4o-mini) | - |
 | `VITE_OPENAI_BASE_URL` | OpenAI custom endpoint | For relay services |
