@@ -19,6 +19,12 @@
 [![Supabase](https://img.shields.io/badge/Supabase-3ECF8E.svg)](https://supabase.com/)
 [![Google Gemini](https://img.shields.io/badge/Google%20Gemini-4285F4.svg)](https://ai.google.dev/)
 
+<div align="center">
+  <a href="https://github.com/lintsinghua/XCodeReviewer">
+    <img src="public/star-me-cn.svg" alt="Star this project" />
+  </a>
+</div>
+
 **XCodeReviewer** 是一个由大型语言模型（LLM）驱动的现代化代码审计平台，旨在为开发者提供智能、全面且极具深度的代码质量分析和审查服务。
 
 ## 🌟 为什么选择 XCodeReviewer？

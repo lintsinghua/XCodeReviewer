@@ -19,6 +19,12 @@
 [![Supabase](https://img.shields.io/badge/Supabase-3ECF8E.svg)](https://supabase.com/)
 [![Google Gemini](https://img.shields.io/badge/Google%20Gemini-4285F4.svg)](https://ai.google.dev/)
 
+<div align="center">
+  <a href="https://github.com/lintsinghua/XCodeReviewer">
+    <img src="public/star-me.svg" alt="Star this project" />
+  </a>
+</div>
+
 **XCodeReviewer** is a modern code audit platform powered by Large Language Models (LLM), designed to provide developers with intelligent, comprehensive, and in-depth code quality analysis and review services.
 
 ## 🌟 Why Choose XCodeReviewer?

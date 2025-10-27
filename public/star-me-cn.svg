@@ -1,0 +1,54 @@
+<svg width="800" height="100" xmlns="http://www.w3.org/2000/svg">
+  <!-- 背景渐变 -->
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#1a1a1a;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#2d1a1f;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1a1a1a;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- 星星闪烁效果 -->
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- 背景 -->
+  <rect width="800" height="100" rx="12" fill="url(#bgGradient)" />
+  
+  <!-- 边框 -->
+  <rect width="800" height="100" rx="12" fill="none" stroke="#dc2626" stroke-width="2" opacity="0.6"/>
+  
+  <!-- 左侧星星图标 -->
+  <g transform="translate(50, 50)">
+    <circle cx="0" cy="0" r="32" fill="#dc2626" opacity="0.15"/>
+    <path d="M 0,-20 L 4.7,-6.2 L 19.4,-6.2 L 7.8,3.8 L 12.4,17.6 L 0,7.6 L -12.4,17.6 L -7.8,3.8 L -19.4,-6.2 L -4.7,-6.2 Z" 
+          fill="#dc2626" filter="url(#glow)"/>
+  </g>
+  
+  <!-- 主文字 -->
+  <text x="110" y="45" font-family="'PingFang SC', 'Microsoft YaHei', Arial, sans-serif" font-size="32" font-weight="bold" fill="#ffffff">
+    ⭐ 如果喜欢，请给个 Star 吧！
+  </text>
+  
+  <!-- 副文字 -->
+  <text x="110" y="75" font-family="'PingFang SC', 'Microsoft YaHei', Arial, sans-serif" font-size="17" fill="#dc2626" font-weight="600">
+    您的支持是我们持续改进 XCodeReviewer 的最大动力
+  </text>
+  
+  <!-- 右侧装饰星星 -->
+  <g transform="translate(760, 30)">
+    <path d="M 0,-8 L 2,-2.5 L 8,-2.5 L 3.2,1.5 L 5.2,7 L 0,3 L -5.2,7 L -3.2,1.5 L -8,-2.5 L -2,-2.5 Z" 
+          fill="#dc2626" opacity="0.6"/>
+  </g>
+  
+  <g transform="translate(740, 75)">
+    <path d="M 0,-6 L 1.5,-2 L 6,-2 L 2.5,1 L 4,5 L 0,2.5 L -4,5 L -2.5,1 L -6,-2 L -1.5,-2 Z" 
+          fill="#dc2626" opacity="0.4"/>
+  </g>
+</svg>
+
