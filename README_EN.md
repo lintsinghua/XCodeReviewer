@@ -681,11 +681,36 @@ We warmly welcome all forms of contributions! Whether it's submitting issues, cr
 
 ## 🙏 Acknowledgments
 
-- **[Google Gemini AI](https://ai.google.dev/)**: Providing powerful AI analysis capabilities
-- **[Supabase](https://supabase.com/)**: Providing convenient backend-as-a-service support
-- **[Radix UI](https://www.radix-ui.com/)**: Providing accessible UI components
-- **[Tailwind CSS](https://tailwindcss.com/)**: Providing modern CSS framework
-- **[Recharts](https://recharts.org/)**: Providing professional chart components
+### Core Technology
+- **[React](https://reactjs.org/)** & **[Vite](https://vitejs.dev/)**: Modern frontend development experience
+- **[TypeScript](https://www.typescriptlang.org/)**: Type safety guarantee
+- **[Tailwind CSS](https://tailwindcss.com/)**: Modern CSS framework
+- **[Radix UI](https://www.radix-ui.com/)**: Accessible UI component library
+
+### AI Platform Support
+- **[Google Gemini AI](https://ai.google.dev/)**: Powerful AI analysis capabilities
+- **[OpenAI](https://openai.com/)**: GPT series models support
+- **[Anthropic Claude](https://www.anthropic.com/)**: Claude models support
+- **[DeepSeek](https://www.deepseek.com/)**: Domestic AI model support
+- **[Alibaba Qwen](https://tongyi.aliyun.com/)**: Enterprise AI service
+- **[Zhipu AI](https://www.zhipuai.cn/)**: GLM series models
+- **[Moonshot AI](https://www.moonshot.cn/)**: Kimi model support
+- **[Ollama](https://ollama.com/)**: Local model deployment solution
+
+### Data Storage
+- **[Supabase](https://supabase.com/)**: Convenient backend-as-a-service support
+- **[IndexedDB](https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API)**: Browser local storage solution
+
+### Functional Components
+- **[Recharts](https://recharts.org/)**: Professional chart components
+- **[Lucide Icons](https://lucide.dev/)**: Beautiful icon library
+- **[Sonner](https://sonner.emilkowal.ski/)**: Elegant notification component
+- **[fflate](https://github.com/101arrowz/fflate)**: ZIP file processing
+
+### Special Thanks
+- Thanks to all contributors who submitted Issues and Pull Requests
+- Thanks to all developers who starred this project
+- Thanks to the open source community for their selfless sharing
 - And all the authors of open source software used in this project!
 
 ## 📞 Contact Us

@@ -680,11 +680,36 @@ pnpm lint
 
 ## 🙏 致谢
 
-- **[Google Gemini AI](https://ai.google.dev/)**: 提供强大的 AI 分析能力
-- **[Supabase](https://supabase.com/)**: 提供便捷的后端即服务支持
-- **[Radix UI](https://www.radix-ui.com/)**: 提供无障碍的 UI 组件
+### 核心技术支持
+- **[React](https://reactjs.org/)** & **[Vite](https://vitejs.dev/)**: 提供现代化的前端开发体验
+- **[TypeScript](https://www.typescriptlang.org/)**: 提供类型安全保障
 - **[Tailwind CSS](https://tailwindcss.com/)**: 提供现代化的 CSS 框架
+- **[Radix UI](https://www.radix-ui.com/)**: 提供无障碍的 UI 组件库
+
+### AI 平台支持
+- **[Google Gemini AI](https://ai.google.dev/)**: 提供强大的 AI 分析能力
+- **[OpenAI](https://openai.com/)**: GPT系列模型支持
+- **[Anthropic Claude](https://www.anthropic.com/)**: Claude模型支持
+- **[DeepSeek](https://www.deepseek.com/)**: 国产AI大模型支持
+- **[阿里云通义千问](https://tongyi.aliyun.com/)**: 企业级AI服务
+- **[智谱AI](https://www.zhipuai.cn/)**: GLM系列模型
+- **[Moonshot AI](https://www.moonshot.cn/)**: Kimi模型支持
+- **[Ollama](https://ollama.com/)**: 本地模型部署方案
+
+### 数据存储
+- **[Supabase](https://supabase.com/)**: 提供便捷的后端即服务支持
+- **[IndexedDB](https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API)**: 浏览器本地存储方案
+
+### 功能组件
 - **[Recharts](https://recharts.org/)**: 提供专业的图表组件
+- **[Lucide Icons](https://lucide.dev/)**: 提供精美的图标库
+- **[Sonner](https://sonner.emilkowal.ski/)**: 提供优雅的通知组件
+- **[fflate](https://github.com/101arrowz/fflate)**: ZIP文件处理
+
+### 特别感谢
+- 感谢所有为本项目提交 Issue 和 Pull Request 的贡献者
+- 感谢所有 Star 本项目的开发者
+- 感谢开源社区的无私分享精神
 - 以及所有本项目所使用的开源软件的作者们！
 
 ## 📞 联系我们
