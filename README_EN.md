@@ -740,19 +740,6 @@ Currently, XCodeReviewer is in rapid prototype validation stage. Based on projec
 
 ---
 
-## 🚀 Open Source Journey Reflection:
-
-As an undergraduate student, this is my first time seriously maintaining and open-sourcing a project. Throughout the project's development, I encountered numerous challenges. I'm especially grateful to the technical mentors from the [Linux.do](https://linux.do) community for their attention and support, which helped the project gain recognition with over 500 stars.
-
-When the project first took shape, it had many issues, but it also helped many people. As attention grew, more and more experts provided valuable suggestions through issues and private messages. This motivated me to approach the project with a more rigorous attitude. I tried to deeply analyze user needs and problem scenarios, promptly fixing various edge cases and bugs after suggestions were made, while continuously optimizing the project architecture and feature design throughout this process. I hope this project can help more people, and I will persist in optimizing and updating the project content. Thank you all for your support and attention!
-
-Everyone is welcome to exchange technical knowledge with me anytime, which also gives me the opportunity to learn from technical experts!
-
-This open source journey has given me a profound appreciation for the power of community collaboration, and it motivates me and my team to continuously improve our technical capabilities and project quality.
-
-<div align="right">———@lintsinghua</div>
-
----
 
 ## 📄 Disclaimer
 
