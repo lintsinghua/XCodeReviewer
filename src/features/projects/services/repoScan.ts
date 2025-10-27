@@ -79,16 +79,8 @@ export async function runRepositoryAudit(params: {
   (async () => {
     console.log(`🎬 后台扫描任务开始执行: ${taskId}`);
     try {
-      // 更新任务状态为运行中
-      console.log(`📋 任务 ${taskId}: 开始更新状态为 running`);
-      await api.updateAuditTask(taskId, {
-        status: "running",
-        started_at: new Date().toISOString(),
-        total_files: 0,
-        scanned_files: 0
-      } as any);
-      console.log(`✅ 任务 ${taskId}: 状态已更新为 running`);
-
+      console.log(`📡 任务 ${taskId}: 正在获取仓库文件列表...`);
+      
       let files: { path: string; url?: string }[] = [];
 
       if (isGitHub) {
@@ -135,16 +127,23 @@ export async function runRepositoryAudit(params: {
         .sort((a, b) => (a.path.length - b.path.length))
         .slice(0, MAX_ANALYZE_FILES);
 
-      // 初始化进度，设置总文件数
-      console.log(`📊 任务 ${taskId}: 设置总文件数 ${files.length}`);
+      // 立即更新状态为 running 并设置总文件数，让用户看到进度
+      console.log(`📊 任务 ${taskId}: 获取到 ${files.length} 个文件，开始分析`);
       await api.updateAuditTask(taskId, {
         status: "running",
+        started_at: new Date().toISOString(),
         total_files: files.length,
         scanned_files: 0
       } as any);
+      console.log(`✅ 任务 ${taskId}: 状态已更新为 running，total_files=${files.length}`);
 
       let totalFiles = 0, totalLines = 0, createdIssues = 0;
       let index = 0;
+      let failedCount = 0;  // 失败计数器
+      let consecutiveFailures = 0;  // 连续失败计数
+      const MAX_CONSECUTIVE_FAILURES = 5;  // 最大连续失败次数
+      const MAX_TOTAL_FAILURES_RATIO = 0.5;  // 最大失败率（50%）
+      
       const worker = async () => {
         while (true) {
           const current = index++;
@@ -154,6 +153,18 @@ export async function runRepositoryAudit(params: {
           if (taskControl.isCancelled(taskId)) {
             console.log(`🛑 [检查点1] 任务 ${taskId} 已被用户取消，停止分析（在文件 ${current}/${files.length} 前）`);
             return;
+          }
+          
+          // ✓ 检查连续失败次数
+          if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
+            console.error(`❌ 任务 ${taskId}: 连续失败 ${consecutiveFailures} 次，停止分析`);
+            throw new Error(`连续失败 ${consecutiveFailures} 次，可能是 LLM API 服务异常`);
+          }
+          
+          // ✓ 检查总失败率
+          if (totalFiles > 10 && failedCount / totalFiles > MAX_TOTAL_FAILURES_RATIO) {
+            console.error(`❌ 任务 ${taskId}: 失败率过高 (${Math.round(failedCount / totalFiles * 100)}%)，停止分析`);
+            throw new Error(`失败率过高 (${failedCount}/${totalFiles})，建议检查 LLM 配置或切换其他提供商`);
           }
 
           const f = files[current];
@@ -204,6 +215,9 @@ export async function runRepositoryAudit(params: {
               } as any);
             }
             
+            // 成功：重置连续失败计数
+            consecutiveFailures = 0;
+            
             // 每分析一个文件都更新进度，确保实时性
             console.log(`📈 ${repoType}任务 ${taskId}: 进度 ${totalFiles}/${files.length} (${Math.round(totalFiles/files.length*100)}%)`);
             await api.updateAuditTask(taskId, { 
@@ -214,14 +228,32 @@ export async function runRepositoryAudit(params: {
               issues_count: createdIssues 
             } as any);
           } catch (fileError) {
-            console.error(`分析文件失败:`, fileError);
+            failedCount++;
+            consecutiveFailures++;
+            console.error(`❌ 分析文件失败 (${f.path}): [连续失败${consecutiveFailures}次, 总失败${failedCount}/${totalFiles}]`, fileError);
           }
           await new Promise(r=>setTimeout(r, LLM_GAP_MS));
         }
       };
 
       const pool = Array.from({ length: Math.min(LLM_CONCURRENCY, files.length) }, () => worker());
-      await Promise.all(pool);
+      
+      try {
+        await Promise.all(pool);
+      } catch (workerError: any) {
+        // Worker 抛出错误（连续失败或失败率过高）
+        console.error(`❌ 任务 ${taskId} 因错误终止:`, workerError);
+        await api.updateAuditTask(taskId, { 
+          status: "failed",
+          total_files: files.length,
+          scanned_files: totalFiles,
+          total_lines: totalLines,
+          issues_count: createdIssues,
+          completed_at: new Date().toISOString()
+        } as any);
+        taskControl.cleanupTask(taskId);
+        return;
+      }
 
       // 再次检查是否被取消
       if (taskControl.isCancelled(taskId)) {

@@ -166,8 +166,8 @@ export default function TerminalProgressDialog({
                     isFirstPoll = false;
                 }
 
-                // 只在有变化时显示请求/响应信息
-                if (hasDataChange) {
+                // 只在有变化时显示请求/响应信息（跳过 pending 状态）
+                if (hasDataChange && task.status !== "pending") {
                     addLog(`🔄 正在获取任务状态...`, "info");
                     addLog(
                         `✓ 状态: ${task.status} | 文件: ${task.scanned_files}/${task.total_files} | 问题: ${task.issues_count} (${requestDuration}ms)`,
@@ -182,10 +182,7 @@ export default function TerminalProgressDialog({
 
                 // 检查任务状态
                 if (task.status === "pending") {
-                    // 任务待处理（只在状态变化时显示）
-                    if (statusChanged && logs.filter(l => l.message.includes("等待开始执行")).length === 0) {
-                        addLog("⏳ 任务已创建，等待开始执行...", "info");
-                    }
+                    // 静默跳过 pending 状态，不显示任何日志
                 } else if (task.status === "running") {
                     // 首次进入运行状态
                     if (statusChanged && logs.filter(l => l.message.includes("开始扫描")).length === 0) {
