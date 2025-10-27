@@ -638,11 +638,11 @@ pnpm lint
 
 > 💡 **Note**: Without Supabase config, system runs in demo mode without data persistence
 
-#### Git Repository Integration Configuration (Optional)
+#### Git Repository Integration Configuration
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `VITE_GITHUB_TOKEN` | ❌ | GitHub Personal Access Token (for accessing private GitHub repositories) |
-| `VITE_GITLAB_TOKEN` | ❌ | GitLab Personal Access Token (for accessing private GitLab repositories) |
+| `VITE_GITHUB_TOKEN` | ✅ | GitHub Personal Access Token |
+| `VITE_GITLAB_TOKEN` | ✅ | GitLab Personal Access Token |
 
 #### Analysis Behavior Configuration
 | Variable | Default | Description |
