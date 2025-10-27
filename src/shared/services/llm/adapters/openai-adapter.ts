@@ -36,18 +36,32 @@ export class OpenAIAdapter extends BaseLLMAdapter {
       Object.assign(headers, this.config.customHeaders);
     }
 
+    // 检测是否为推理模型（GPT-5 或 o1 系列，但排除 gpt-5-chat 等非推理模型）
+    const modelName = this.config.model.toLowerCase();
+    const isReasoningModel = (modelName.includes('o1') || modelName.includes('o3')) || 
+                             (modelName.includes('gpt-5') && !modelName.includes('chat'));
+
+    // 构建请求体
+    const requestBody: any = {
+      model: this.config.model,
+      messages: request.messages,
+      temperature: request.temperature ?? this.config.temperature,
+      top_p: request.topP ?? this.config.topP,
+      frequency_penalty: this.config.frequencyPenalty,
+      presence_penalty: this.config.presencePenalty,
+    };
+
+    // GPT-5 推理模型使用 max_completion_tokens，其他模型使用 max_tokens
+    if (isReasoningModel) {
+      requestBody.max_completion_tokens = request.maxTokens ?? this.config.maxTokens;
+    } else {
+      requestBody.max_tokens = request.maxTokens ?? this.config.maxTokens;
+    }
+
     const response = await fetch(`${this.baseUrl}/chat/completions`, {
       method: 'POST',
       headers: this.buildHeaders(headers),
-      body: JSON.stringify({
-        model: this.config.model,
-        messages: request.messages,
-        temperature: request.temperature ?? this.config.temperature,
-        max_tokens: request.maxTokens ?? this.config.maxTokens,
-        top_p: request.topP ?? this.config.topP,
-        frequency_penalty: this.config.frequencyPenalty,
-        presence_penalty: this.config.presencePenalty,
-      }),
+      body: JSON.stringify(requestBody),
     });
 
     if (!response.ok) {
