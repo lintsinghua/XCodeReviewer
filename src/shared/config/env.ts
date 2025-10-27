@@ -85,6 +85,9 @@ export const env = {
   // ==================== GitHub 配置 ====================
   GITHUB_TOKEN: runtimeConfig?.githubToken || import.meta.env.VITE_GITHUB_TOKEN || '',
 
+  // ==================== GitLab 配置 ====================
+  GITLAB_TOKEN: runtimeConfig?.gitlabToken || import.meta.env.VITE_GITLAB_TOKEN || '',
+
   // ==================== 应用配置 ====================
   APP_ID: import.meta.env.VITE_APP_ID || 'xcodereviewer',
 

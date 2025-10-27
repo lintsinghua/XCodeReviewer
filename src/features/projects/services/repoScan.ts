@@ -28,12 +28,26 @@ async function githubApi<T>(url: string, token?: string): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+async function gitlabApi<T>(url: string, token?: string): Promise<T> {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  const t = token || (import.meta.env.VITE_GITLAB_TOKEN as string | undefined);
+  if (t) headers["PRIVATE-TOKEN"] = t;
+  const res = await fetch(url, { headers });
+  if (!res.ok) {
+    if (res.status === 401) throw new Error("GitLab API 401：请配置 VITE_GITLAB_TOKEN 或确认仓库权限");
+    if (res.status === 403) throw new Error("GitLab API 403：请确认仓库权限/频率限制");
+    throw new Error(`GitLab API ${res.status}: ${url}`);
+  }
+  return res.json() as Promise<T>;
+}
+
 export async function runRepositoryAudit(params: {
   projectId: string;
   repoUrl: string;
   branch?: string;
   exclude?: string[];
   githubToken?: string;
+  gitlabToken?: string;
   createdBy?: string;
 }) {
   const branch = params.branch || "main";
@@ -54,7 +68,12 @@ export async function runRepositoryAudit(params: {
 
   const taskId = (task as any).id as string;
 
-  console.log(`🚀 GitHub任务已创建: ${taskId}，准备启动后台扫描...`);
+  // 检测仓库类型
+  const isGitHub = /github\.com/i.test(params.repoUrl);
+  const isGitLab = /gitlab\.com|gitlab\./i.test(params.repoUrl);
+  const repoType = isGitHub ? "GitHub" : isGitLab ? "GitLab" : "Git";
+
+  console.log(`🚀 ${repoType}任务已创建: ${taskId}，准备启动后台扫描...`);
 
   // 启动后台审计任务，不阻塞返回
   (async () => {
@@ -70,14 +89,47 @@ export async function runRepositoryAudit(params: {
       } as any);
       console.log(`✅ 任务 ${taskId}: 状态已更新为 running`);
 
-      const m = params.repoUrl.match(/github\.com\/(.+?)\/(.+?)(?:\.git)?$/i);
-      if (!m) throw new Error("仅支持 GitHub 仓库 URL，例如 https://github.com/owner/repo");
-      const owner = m[1];
-      const repo = m[2];
+      let files: { path: string; url?: string }[] = [];
 
-      const treeUrl = `https://api.github.com/repos/${owner}/${repo}/git/trees/${encodeURIComponent(branch)}?recursive=1`;
-      const tree = await githubApi<{ tree: GithubTreeItem[] }>(treeUrl, params.githubToken);
-      let files = (tree.tree || []).filter(i => i.type === "blob" && isTextFile(i.path) && !matchExclude(i.path, excludes));
+      if (isGitHub) {
+        // GitHub 仓库处理
+        const m = params.repoUrl.match(/github\.com\/(.+?)\/(.+?)(?:\.git)?$/i);
+        if (!m) throw new Error("GitHub 仓库 URL 格式错误，例如 https://github.com/owner/repo");
+        const owner = m[1];
+        const repo = m[2];
+
+        const treeUrl = `https://api.github.com/repos/${owner}/${repo}/git/trees/${encodeURIComponent(branch)}?recursive=1`;
+        const tree = await githubApi<{ tree: GithubTreeItem[] }>(treeUrl, params.githubToken);
+        files = (tree.tree || [])
+          .filter(i => i.type === "blob" && isTextFile(i.path) && !matchExclude(i.path, excludes))
+          .map(i => ({ path: i.path, url: `https://raw.githubusercontent.com/${owner}/${repo}/${encodeURIComponent(branch)}/${i.path}` }));
+      } else if (isGitLab) {
+        // GitLab 仓库处理
+        const m = params.repoUrl.match(/gitlab\.com\/(.+?)\/(.+?)(?:\.git)?$/i);
+        if (!m) throw new Error("GitLab 仓库 URL 格式错误，例如 https://gitlab.com/owner/repo");
+        const projectPath = encodeURIComponent(`${m[1]}/${m[2]}`);
+        
+        const treeUrl = `https://gitlab.com/api/v4/projects/${projectPath}/repository/tree?ref=${encodeURIComponent(branch)}&recursive=true&per_page=100`;
+        console.log(`📡 GitLab API: 获取仓库文件树 - ${treeUrl}`);
+        const tree = await gitlabApi<Array<{ path: string; type: string }>>(treeUrl, params.gitlabToken);
+        console.log(`✅ GitLab API: 获取到 ${tree.length} 个项目`);
+        
+        files = tree
+          .filter(i => i.type === "blob" && isTextFile(i.path) && !matchExclude(i.path, excludes))
+          .map(i => ({ 
+            path: i.path, 
+            // GitLab 文件 API 路径需要完整的 URL 编码（包括斜杠）
+            url: `https://gitlab.com/api/v4/projects/${projectPath}/repository/files/${encodeURIComponent(i.path)}/raw?ref=${encodeURIComponent(branch)}` 
+          }));
+        
+        console.log(`📝 GitLab: 过滤后可分析文件 ${files.length} 个`);
+        if (tree.length >= 100) {
+          console.warn(`⚠️ GitLab: 文件数量达到API限制(100)，可能有文件未被扫描。建议使用排除模式减少文件数。`);
+        }
+      } else {
+        throw new Error("不支持的仓库类型，仅支持 GitHub 和 GitLab 仓库");
+      }
+
       // 采样限制，优先分析较小文件与常见语言
       files = files
         .sort((a, b) => (a.path.length - b.path.length))
@@ -107,8 +159,17 @@ export async function runRepositoryAudit(params: {
           const f = files[current];
           totalFiles++;
           try {
-            const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${encodeURIComponent(branch)}/${f.path}`;
-            const contentRes = await fetch(rawUrl);
+            // 使用预先构建的 URL（支持 GitHub 和 GitLab）
+            const rawUrl = f.url!;
+            const headers: Record<string, string> = {};
+            // 为 GitLab 添加认证 Token
+            if (isGitLab) {
+              const token = params.gitlabToken || (import.meta.env.VITE_GITLAB_TOKEN as string | undefined);
+              if (token) {
+                headers["PRIVATE-TOKEN"] = token;
+              }
+            }
+            const contentRes = await fetch(rawUrl, { headers });
             if (!contentRes.ok) { await new Promise(r=>setTimeout(r, LLM_GAP_MS)); continue; }
             const content = await contentRes.text();
             if (content.length > MAX_FILE_SIZE_BYTES) { await new Promise(r=>setTimeout(r, LLM_GAP_MS)); continue; }
@@ -144,7 +205,7 @@ export async function runRepositoryAudit(params: {
             }
             
             // 每分析一个文件都更新进度，确保实时性
-            console.log(`📈 GitHub任务 ${taskId}: 进度 ${totalFiles}/${files.length} (${Math.round(totalFiles/files.length*100)}%)`);
+            console.log(`📈 ${repoType}任务 ${taskId}: 进度 ${totalFiles}/${files.length} (${Math.round(totalFiles/files.length*100)}%)`);
             await api.updateAuditTask(taskId, { 
               status: "running", 
               total_files: files.length,

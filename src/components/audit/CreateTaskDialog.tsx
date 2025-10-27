@@ -134,12 +134,27 @@ export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, pr
       } else {
         // GitHub/GitLab等远程仓库
         console.log('📡 调用 runRepositoryAudit...');
+        
+        // 从运行时配置中获取 Token
+        const getRuntimeConfig = () => {
+          try {
+            const saved = localStorage.getItem('xcodereviewer_runtime_config');
+            return saved ? JSON.parse(saved) : null;
+          } catch {
+            return null;
+          }
+        };
+        const runtimeConfig = getRuntimeConfig();
+        const githubToken = runtimeConfig?.githubToken || (import.meta.env.VITE_GITHUB_TOKEN as string | undefined);
+        const gitlabToken = runtimeConfig?.gitlabToken || (import.meta.env.VITE_GITLAB_TOKEN as string | undefined);
+        
         taskId = await runRepositoryAudit({
           projectId: project.id,
           repoUrl: project.repository_url!,
           branch: taskForm.branch_name || project.default_branch || 'main',
           exclude: taskForm.exclude_patterns,
-          githubToken: undefined,
+          githubToken,
+          gitlabToken,
           createdBy: 'local-user'
         });
       }

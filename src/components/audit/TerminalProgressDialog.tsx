@@ -306,11 +306,11 @@ export default function TerminalProgressDialog({
                         addLog("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━", "error");
                         addLog("可能的原因:", "error");
                         addLog("  • 网络连接问题", "error");
-                        addLog("  • 仓库访问权限不足", "error");
-                        addLog("  • GitHub API 限流", "error");
+                        addLog("  • 仓库访问权限不足（私有仓库需配置 Token）", "error");
+                        addLog("  • GitHub/GitLab API 限流", "error");
                         addLog("  • 代码文件格式错误", "error");
                         addLog("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━", "error");
-                        addLog("💡 建议: 检查网络连接和仓库配置后重试", "warning");
+                        addLog("💡 建议: 检查网络连接、仓库配置和 Token 设置后重试", "warning");
 
                         setIsFailed(true);
                         if (pollIntervalRef.current) {

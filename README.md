@@ -637,10 +637,11 @@ pnpm lint
 
 > 💡 **提示**：不配置Supabase时，系统以演示模式运行，数据不持久化
 
-#### GitHub集成配置（可选）
+#### Git仓库集成配置（可选）
 | 变量名 | 必需 | 说明 |
 |--------|------|------|
-| `VITE_GITHUB_TOKEN` | ❌ | GitHub Personal Access Token（用于仓库分析功能） |
+| `VITE_GITHUB_TOKEN` | ❌ | GitHub Personal Access Token（用于访问私有GitHub仓库） |
+| `VITE_GITLAB_TOKEN` | ❌ | GitLab Personal Access Token（用于访问私有GitLab仓库） |
 
 #### 分析行为配置
 | 变量名 | 默认值 | 说明 |

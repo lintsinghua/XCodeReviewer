@@ -80,6 +80,9 @@ interface SystemConfigData {
   // GitHub 配置
   githubToken: string;
   
+  // GitLab 配置
+  gitlabToken: string;
+  
   // 分析配置
   maxAnalyzeFiles: number;
   llmConcurrency: number;
@@ -111,6 +114,7 @@ export function SystemConfig() {
     doubaoApiKey: '',
     ollamaBaseUrl: 'http://localhost:11434/v1',
     githubToken: '',
+    gitlabToken: '',
     maxAnalyzeFiles: 40,
     llmConcurrency: 2,
     llmGapMs: 500,
@@ -170,6 +174,7 @@ export function SystemConfig() {
       doubaoApiKey: import.meta.env.VITE_DOUBAO_API_KEY || '',
       ollamaBaseUrl: import.meta.env.VITE_OLLAMA_BASE_URL || 'http://localhost:11434/v1',
       githubToken: import.meta.env.VITE_GITHUB_TOKEN || '',
+      gitlabToken: import.meta.env.VITE_GITLAB_TOKEN || '',
       maxAnalyzeFiles: Number(import.meta.env.VITE_MAX_ANALYZE_FILES) || 40,
       llmConcurrency: Number(import.meta.env.VITE_LLM_CONCURRENCY) || 2,
       llmGapMs: Number(import.meta.env.VITE_LLM_GAP_MS) || 500,
@@ -606,6 +611,36 @@ export function SystemConfig() {
                 </div>
                 <p className="text-xs text-muted-foreground">
                   获取：https://github.com/settings/tokens
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>GitLab 集成</CardTitle>
+              <CardDescription>配置 GitLab Personal Access Token 以访问私有仓库</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <Label>GitLab Token（可选）</Label>
+                <div className="flex gap-2">
+                  <Input
+                    type={showApiKeys['gitlab'] ? 'text' : 'password'}
+                    value={config.gitlabToken}
+                    onChange={(e) => updateConfig('gitlabToken', e.target.value)}
+                    placeholder="glpat-xxxxxxxxxxxx"
+                  />
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => toggleShowApiKey('gitlab')}
+                  >
+                    {showApiKeys['gitlab'] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  获取：https://gitlab.com/-/profile/personal_access_tokens
                 </p>
               </div>
             </CardContent>
