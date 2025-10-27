@@ -24,9 +24,9 @@
 
 </div>
 
-<div align="center">
+<div style="width: 100%; max-width: 600px; margin: 0 auto;">
   <a href="https://github.com/lintsinghua/XCodeReviewer">
-    <img src="public/star-me.svg" alt="Star this project" />
+    <img src="public/star-me.svg" alt="Star this project" style="width: 100%; height: auto; display: block; margin: 0 auto;" />
   </a>
 </div>
 
