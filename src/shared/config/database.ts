@@ -287,6 +287,60 @@ export const api = {
     if (error) throw error;
   },
 
+  async getDeletedProjects(): Promise<Project[]> {
+    if (isDemoMode) {
+      return [];
+    }
+    
+    if (isLocalMode) {
+      return localDB.getDeletedProjects();
+    }
+    
+    if (!supabase) return [];
+    
+    const { data, error } = await supabase
+      .from('projects')
+      .select(`
+        *,
+        owner:profiles!projects_owner_id_fkey(*)
+      `)
+      .eq('is_active', false)
+      .order('updated_at', { ascending: false });
+    
+    if (error) throw error;
+    return Array.isArray(data) ? data : [];
+  },
+
+  async restoreProject(id: string): Promise<void> {
+    if (isLocalMode) {
+      return localDB.restoreProject(id);
+    }
+    
+    if (!supabase) throw new Error('Database not available');
+    
+    const { error } = await supabase
+      .from('projects')
+      .update({ is_active: true, updated_at: new Date().toISOString() })
+      .eq('id', id);
+    
+    if (error) throw error;
+  },
+
+  async permanentlyDeleteProject(id: string): Promise<void> {
+    if (isLocalMode) {
+      return localDB.permanentlyDeleteProject(id);
+    }
+    
+    if (!supabase) throw new Error('Database not available');
+    
+    const { error } = await supabase
+      .from('projects')
+      .delete()
+      .eq('id', id);
+    
+    if (error) throw error;
+  },
+
   // ProjectMember相关
   async getProjectMembers(projectId: string): Promise<ProjectMember[]> {
     if (isLocalMode) {

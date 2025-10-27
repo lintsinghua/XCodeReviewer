@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -22,7 +23,10 @@ import {
   Activity,
   Upload,
   FileText,
-  AlertCircle
+  AlertCircle,
+  Trash2,
+  Edit,
+  CheckCircle
 } from "lucide-react";
 import { api } from "@/shared/config/database";
 import { scanZipFile, validateZipFile } from "@/features/projects/services";
@@ -44,6 +48,18 @@ export default function Projects() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showTerminalDialog, setShowTerminalDialog] = useState(false);
   const [currentTaskId, setCurrentTaskId] = useState<string | null>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [projectToEdit, setProjectToEdit] = useState<Project | null>(null);
+  const [editForm, setEditForm] = useState<CreateProjectForm>({
+    name: "",
+    description: "",
+    repository_url: "",
+    repository_type: "github",
+    default_branch: "main",
+    programming_languages: []
+  });
   const [createForm, setCreateForm] = useState<CreateProjectForm>({
     name: "",
     description: "",
@@ -197,6 +213,71 @@ export default function Projects() {
   const handleCreateTask = (projectId: string) => {
     setSelectedProjectForTask(projectId);
     setShowCreateTaskDialog(true);
+  };
+
+  const handleEditClick = (project: Project) => {
+    setProjectToEdit(project);
+    setEditForm({
+      name: project.name,
+      description: project.description || "",
+      repository_url: project.repository_url || "",
+      repository_type: project.repository_type || "github",
+      default_branch: project.default_branch || "main",
+      programming_languages: project.programming_languages ? JSON.parse(project.programming_languages) : []
+    });
+    setShowEditDialog(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!projectToEdit) return;
+
+    if (!editForm.name.trim()) {
+      toast.error("项目名称不能为空");
+      return;
+    }
+
+    try {
+      await api.updateProject(projectToEdit.id, editForm);
+      toast.success(`项目 "${editForm.name}" 已更新`);
+      setShowEditDialog(false);
+      setProjectToEdit(null);
+      loadProjects();
+    } catch (error) {
+      console.error('Failed to update project:', error);
+      toast.error("更新项目失败");
+    }
+  };
+
+  const handleToggleLanguage = (lang: string) => {
+    const currentLanguages = editForm.programming_languages || [];
+    const newLanguages = currentLanguages.includes(lang)
+      ? currentLanguages.filter(l => l !== lang)
+      : [...currentLanguages, lang];
+    
+    setEditForm({ ...editForm, programming_languages: newLanguages });
+  };
+
+  const handleDeleteClick = (project: Project) => {
+    setProjectToDelete(project);
+    setShowDeleteDialog(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!projectToDelete) return;
+
+    try {
+      await api.deleteProject(projectToDelete.id);
+      toast.success(`项目 "${projectToDelete.name}" 已移到回收站`, {
+        description: '您可以在回收站中恢复此项目',
+        duration: 4000
+      });
+      setShowDeleteDialog(false);
+      setProjectToDelete(null);
+      loadProjects();
+    } catch (error) {
+      console.error('Failed to delete project:', error);
+      toast.error("删除项目失败");
+    }
   };
 
   const handleTaskCreated = () => {
@@ -571,6 +652,22 @@ export default function Projects() {
                     <Shield className="w-4 h-4 mr-2" />
                     新建任务
                   </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                    onClick={() => handleEditClick(project)}
+                  >
+                    <Edit className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    onClick={() => handleDeleteClick(project)}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -676,6 +773,157 @@ export default function Projects() {
         taskId={currentTaskId}
         taskType="zip"
       />
+
+      {/* 编辑项目对话框 */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>编辑项目</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-6 py-4">
+            {/* 基本信息 */}
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="edit-name">项目名称 *</Label>
+                <Input
+                  id="edit-name"
+                  value={editForm.name}
+                  onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                  placeholder="输入项目名称"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="edit-description">项目描述</Label>
+                <Textarea
+                  id="edit-description"
+                  value={editForm.description}
+                  onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                  placeholder="输入项目描述"
+                  rows={3}
+                />
+              </div>
+            </div>
+
+            {/* 仓库信息 */}
+            <div className="space-y-4">
+              <h3 className="text-sm font-semibold text-gray-900">仓库信息</h3>
+              
+              <div>
+                <Label htmlFor="edit-repo-url">仓库地址</Label>
+                <Input
+                  id="edit-repo-url"
+                  value={editForm.repository_url}
+                  onChange={(e) => setEditForm({ ...editForm, repository_url: e.target.value })}
+                  placeholder="https://github.com/username/repo"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="edit-repo-type">仓库类型</Label>
+                  <Select
+                    value={editForm.repository_type}
+                    onValueChange={(value: any) => setEditForm({ ...editForm, repository_type: value })}
+                  >
+                    <SelectTrigger id="edit-repo-type">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="github">GitHub</SelectItem>
+                      <SelectItem value="gitlab">GitLab</SelectItem>
+                      <SelectItem value="other">其他</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="edit-branch">默认分支</Label>
+                  <Input
+                    id="edit-branch"
+                    value={editForm.default_branch}
+                    onChange={(e) => setEditForm({ ...editForm, default_branch: e.target.value })}
+                    placeholder="main"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* 编程语言 */}
+            <div className="space-y-4">
+              <h3 className="text-sm font-semibold text-gray-900">编程语言</h3>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {supportedLanguages.map((lang) => (
+                  <div
+                    key={lang}
+                    className={`flex items-center space-x-2 p-3 rounded-lg border cursor-pointer transition-all ${
+                      editForm.programming_languages?.includes(lang)
+                        ? 'border-primary bg-red-50'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                    onClick={() => handleToggleLanguage(lang)}
+                  >
+                    <div
+                      className={`w-4 h-4 rounded border flex items-center justify-center ${
+                        editForm.programming_languages?.includes(lang)
+                          ? 'bg-primary border-primary'
+                          : 'border-gray-300'
+                      }`}
+                    >
+                      {editForm.programming_languages?.includes(lang) && (
+                        <CheckCircle className="w-3 h-3 text-white" />
+                      )}
+                    </div>
+                    <span className="text-sm font-medium">{lang}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end space-x-3 pt-4 border-t">
+            <Button variant="outline" onClick={() => setShowEditDialog(false)}>
+              取消
+            </Button>
+            <Button onClick={handleSaveEdit}>
+              保存修改
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* 删除确认对话框 */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>移到回收站</AlertDialogTitle>
+            <AlertDialogDescription>
+              您确定要删除项目 <span className="font-semibold text-gray-900">"{projectToDelete?.name}"</span> 吗？
+              <br />
+              <br />
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 my-3">
+                <p className="text-blue-800 font-semibold mb-2">💡 温馨提示</p>
+                <ul className="list-disc list-inside text-blue-700 space-y-1 text-sm">
+                  <li>项目将被移到<span className="font-semibold">回收站</span>，不会立即删除</li>
+                  <li>您可以在回收站中随时恢复此项目</li>
+                  <li>相关的审计任务和报告将会保留</li>
+                  <li>如需永久删除，请在回收站中操作</li>
+                </ul>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              className="bg-orange-600 hover:bg-orange-700 focus:ring-orange-600"
+            >
+              移到回收站
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import Dashboard from "@/pages/Dashboard";
 import Projects from "@/pages/Projects";
 import ProjectDetail from "@/pages/ProjectDetail";
+import RecycleBin from "@/pages/RecycleBin";
 import InstantAnalysis from "@/pages/InstantAnalysis";
 import AuditTasks from "@/pages/AuditTasks";
 import TaskDetail from "@/pages/TaskDetail";
@@ -55,6 +56,12 @@ const routes: RouteConfig[] = [
     name: "系统管理",
     path: "/admin",
     element: <AdminDashboard />,
+    visible: true,
+  },
+  {
+    name: "回收站",
+    path: "/recycle-bin",
+    element: <RecycleBin />,
     visible: true,
   },
 ];

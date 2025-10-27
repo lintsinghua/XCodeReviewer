@@ -327,6 +327,43 @@ class LocalDatabase {
     await this.put(STORES.PROJECTS, updated);
   }
 
+  async getDeletedProjects(): Promise<Project[]> {
+    const projects = await this.getAll<Project>(STORES.PROJECTS);
+    const deletedProjects = projects.filter(p => !p.is_active);
+    
+    // 关联 owner 信息
+    const projectsWithOwner = await Promise.all(
+      deletedProjects.map(async (project) => {
+        const owner = project.owner_id ? await this.getProfileById(project.owner_id) : null;
+        return { ...project, owner: owner || undefined };
+      })
+    );
+    
+    return projectsWithOwner.sort((a, b) => 
+      new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+    );
+  }
+
+  async restoreProject(id: string): Promise<void> {
+    const existing = await this.getById<Project>(STORES.PROJECTS, id);
+    if (!existing) throw new Error('Project not found');
+    
+    const updated: Project = {
+      ...existing,
+      is_active: true,
+      updated_at: new Date().toISOString(),
+    };
+    
+    await this.put(STORES.PROJECTS, updated);
+  }
+
+  async permanentlyDeleteProject(id: string): Promise<void> {
+    const existing = await this.getById<Project>(STORES.PROJECTS, id);
+    if (!existing) throw new Error('Project not found');
+    
+    await this.deleteRecord(STORES.PROJECTS, id);
+  }
+
   // ==================== ProjectMember 相关方法 ====================
 
   async getProjectMembers(projectId: string): Promise<ProjectMember[]> {
