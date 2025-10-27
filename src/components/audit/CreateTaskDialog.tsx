@@ -24,6 +24,7 @@ import { toast } from "sonner";
 import TerminalProgressDialog from "./TerminalProgressDialog";
 import { runRepositoryAudit } from "@/features/projects/services/repoScan";
 import { scanZipFile, validateZipFile } from "@/features/projects/services/repoZipScan";
+import { loadZipFile } from "@/shared/utils/zipStorage";
 
 interface CreateTaskDialogProps {
   open: boolean;
@@ -40,6 +41,8 @@ export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, pr
   const [showTerminalDialog, setShowTerminalDialog] = useState(false);
   const [currentTaskId, setCurrentTaskId] = useState<string | null>(null);
   const [zipFile, setZipFile] = useState<File | null>(null);
+  const [loadingZipFile, setLoadingZipFile] = useState(false);
+  const [hasLoadedZip, setHasLoadedZip] = useState(false);
   
   const [taskForm, setTaskForm] = useState<CreateAuditTaskForm>({
     project_id: "",
@@ -72,8 +75,39 @@ export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, pr
       if (preselectedProjectId) {
         setTaskForm(prev => ({ ...prev, project_id: preselectedProjectId }));
       }
+      // 重置ZIP文件状态
+      setZipFile(null);
+      setHasLoadedZip(false);
     }
   }, [open, preselectedProjectId]);
+
+  // 当项目ID变化时，尝试自动加载保存的ZIP文件
+  useEffect(() => {
+    const autoLoadZipFile = async () => {
+      if (!taskForm.project_id || hasLoadedZip) return;
+      
+      const project = projects.find(p => p.id === taskForm.project_id);
+      if (!project || project.repository_type !== 'other') return;
+      
+      try {
+        setLoadingZipFile(true);
+        const savedFile = await loadZipFile(taskForm.project_id);
+        
+        if (savedFile) {
+          setZipFile(savedFile);
+          setHasLoadedZip(true);
+          console.log('✓ 已自动加载保存的ZIP文件:', savedFile.name);
+          toast.success(`已加载保存的ZIP文件: ${savedFile.name}`);
+        }
+      } catch (error) {
+        console.error('自动加载ZIP文件失败:', error);
+      } finally {
+        setLoadingZipFile(false);
+      }
+    };
+
+    autoLoadZipFile();
+  }, [taskForm.project_id, projects, hasLoadedZip]);
 
   const loadProjects = async () => {
     try {
@@ -338,61 +372,86 @@ export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, pr
                   <Card className="bg-amber-50 border-amber-200">
                     <CardContent className="p-4">
                       <div className="space-y-3">
-                        <div className="flex items-start space-x-3">
-                          <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5" />
-                          <div>
-                            <p className="font-medium text-amber-900 text-sm">ZIP项目需要上传文件</p>
-                            <p className="text-xs text-amber-700 mt-1">
-                              该项目是通过ZIP上传创建的，请重新上传ZIP文件进行扫描
-                            </p>
+                        {loadingZipFile ? (
+                          <div className="flex items-center space-x-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+                            <p className="text-sm text-blue-800">正在加载保存的ZIP文件...</p>
                           </div>
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <Label htmlFor="zipFile">上传ZIP文件</Label>
-                          <Input
-                            id="zipFile"
-                            type="file"
-                            accept=".zip"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) {
-                                console.log('📁 选择的文件:', {
-                                  name: file.name,
-                                  size: file.size,
-                                  type: file.type,
-                                  sizeMB: (file.size / 1024 / 1024).toFixed(2)
-                                });
-                                
-                                const validation = validateZipFile(file);
-                                if (!validation.valid) {
-                                  toast.error(validation.error || "文件无效");
-                                  e.target.value = '';
-                                  return;
-                                }
-                                setZipFile(file);
-                                
-                                const sizeMB = (file.size / 1024 / 1024).toFixed(2);
-                                const sizeKB = (file.size / 1024).toFixed(2);
-                                const sizeText = file.size >= 1024 * 1024 ? `${sizeMB} MB` : `${sizeKB} KB`;
-                                
-                                toast.success(`已选择文件: ${file.name} (${sizeText})`);
-                              }
-                            }}
-                            className="cursor-pointer"
-                          />
-                          {zipFile && (
-                            <p className="text-xs text-green-600">
-                              ✓ 已选择: {zipFile.name} (
-                              {zipFile.size >= 1024 * 1024 
-                                ? `${(zipFile.size / 1024 / 1024).toFixed(2)} MB`
-                                : zipFile.size >= 1024
-                                ? `${(zipFile.size / 1024).toFixed(2)} KB`
-                                : `${zipFile.size} B`
-                              })
-                            </p>
-                          )}
-                        </div>
+                        ) : zipFile ? (
+                          <div className="flex items-start space-x-3 p-4 bg-green-50 border border-green-200 rounded-lg">
+                            <Info className="w-5 h-5 text-green-600 mt-0.5" />
+                            <div className="flex-1">
+                              <p className="font-medium text-green-900 text-sm">已准备就绪</p>
+                              <p className="text-xs text-green-700 mt-1">
+                                使用保存的ZIP文件: {zipFile.name} (
+                                {zipFile.size >= 1024 * 1024 
+                                  ? `${(zipFile.size / 1024 / 1024).toFixed(2)} MB`
+                                  : zipFile.size >= 1024
+                                  ? `${(zipFile.size / 1024).toFixed(2)} KB`
+                                  : `${zipFile.size} B`
+                                })
+                              </p>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setZipFile(null);
+                                setHasLoadedZip(false);
+                              }}
+                            >
+                              更换文件
+                            </Button>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="flex items-start space-x-3">
+                              <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5" />
+                              <div>
+                                <p className="font-medium text-amber-900 text-sm">需要上传ZIP文件</p>
+                                <p className="text-xs text-amber-700 mt-1">
+                                  未找到保存的ZIP文件，请上传文件进行扫描
+                                </p>
+                              </div>
+                            </div>
+                            
+                            <div className="space-y-2">
+                              <Label htmlFor="zipFile">上传ZIP文件</Label>
+                              <Input
+                                id="zipFile"
+                                type="file"
+                                accept=".zip"
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) {
+                                    console.log('📁 选择的文件:', {
+                                      name: file.name,
+                                      size: file.size,
+                                      type: file.type,
+                                      sizeMB: (file.size / 1024 / 1024).toFixed(2)
+                                    });
+                                    
+                                    const validation = validateZipFile(file);
+                                    if (!validation.valid) {
+                                      toast.error(validation.error || "文件无效");
+                                      e.target.value = '';
+                                      return;
+                                    }
+                                    setZipFile(file);
+                                    setHasLoadedZip(true);
+                                    
+                                    const sizeMB = (file.size / 1024 / 1024).toFixed(2);
+                                    const sizeKB = (file.size / 1024).toFixed(2);
+                                    const sizeText = file.size >= 1024 * 1024 ? `${sizeMB} MB` : `${sizeKB} KB`;
+                                    
+                                    toast.success(`已选择文件: ${file.name} (${sizeText})`);
+                                  }
+                                }}
+                                className="cursor-pointer"
+                              />
+                            </div>
+                          </>
+                        )}
                       </div>
                     </CardContent>
                   </Card>

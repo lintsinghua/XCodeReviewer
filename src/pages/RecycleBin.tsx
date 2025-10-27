@@ -18,6 +18,7 @@ import {
 import { api } from "@/shared/config/database";
 import type { Project } from "@/shared/types";
 import { toast } from "sonner";
+import { deleteZipFile } from "@/shared/utils/zipStorage";
 
 export default function RecycleBin() {
   const [deletedProjects, setDeletedProjects] = useState<Project[]>([]);
@@ -73,7 +74,16 @@ export default function RecycleBin() {
     if (!selectedProject) return;
 
     try {
+      // 删除项目数据
       await api.permanentlyDeleteProject(selectedProject.id);
+      
+      // 删除保存的ZIP文件（如果有）
+      try {
+        await deleteZipFile(selectedProject.id);
+      } catch (error) {
+        console.error('删除ZIP文件失败:', error);
+      }
+      
       toast.success(`项目 "${selectedProject.name}" 已永久删除`);
       setShowPermanentDeleteDialog(false);
       setSelectedProject(null);

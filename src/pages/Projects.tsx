@@ -29,12 +29,12 @@ import {
   CheckCircle
 } from "lucide-react";
 import { api } from "@/shared/config/database";
-import { scanZipFile, validateZipFile } from "@/features/projects/services";
+import { validateZipFile } from "@/features/projects/services";
 import type { Project, CreateProjectForm } from "@/shared/types";
+import { saveZipFile } from "@/shared/utils/zipStorage";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import CreateTaskDialog from "@/components/audit/CreateTaskDialog";
-import TerminalProgressDialog from "@/components/audit/TerminalProgressDialog";
 
 export default function Projects() {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -46,8 +46,6 @@ export default function Projects() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [showTerminalDialog, setShowTerminalDialog] = useState(false);
-  const [currentTaskId, setCurrentTaskId] = useState<string | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
@@ -144,30 +142,29 @@ export default function Projects() {
       setUploading(true);
       setUploadProgress(0);
 
+      // 模拟上传进度
+      const progressInterval = setInterval(() => {
+        setUploadProgress(prev => {
+          if (prev >= 100) {
+            clearInterval(progressInterval);
+            return 100;
+          }
+          return prev + 20;
+        });
+      }, 100);
+
       // 创建项目
       const project = await api.createProject({
         ...createForm,
         repository_type: "other"
       } as any);
 
-      // 模拟上传进度
-      const progressInterval = setInterval(() => {
-        setUploadProgress(prev => {
-          if (prev >= 90) {
-            clearInterval(progressInterval);
-            return 90;
-          }
-          return prev + 10;
-        });
-      }, 200);
-
-      // 扫描ZIP文件
-      const taskId = await scanZipFile({
-        projectId: project.id,
-        zipFile: file,
-        excludePatterns: ['node_modules/**', '.git/**', 'dist/**', 'build/**'],
-        createdBy: 'local-user' // 使用默认本地用户ID
-      });
+      // 保存ZIP文件到IndexedDB（使用项目ID作为key）
+      try {
+        await saveZipFile(project.id, file);
+      } catch (error) {
+        console.error('保存ZIP文件失败:', error);
+      }
 
       clearInterval(progressInterval);
       setUploadProgress(100);
@@ -177,9 +174,10 @@ export default function Projects() {
       resetCreateForm();
       loadProjects();
 
-      // 显示终端进度窗口
-      setCurrentTaskId(taskId);
-      setShowTerminalDialog(true);
+      toast.success(`项目 "${project.name}" 已创建`, {
+        description: 'ZIP文件已保存，您可以启动代码审计',
+        duration: 4000
+      });
 
     } catch (error: any) {
       console.error('Upload failed:', error);
@@ -520,8 +518,8 @@ export default function Projects() {
                         <ul className="space-y-1 text-xs">
                           <li>• 请确保 ZIP 文件包含完整的项目代码</li>
                           <li>• 系统会自动排除 node_modules、.git 等目录</li>
-                          <li>• 上传后将立即开始代码分析</li>
-                          <li>• 分析完成后可在任务详情页查看结果</li>
+                          <li>• ZIP 文件会保存，只需上传一次</li>
+                          <li>• 创建后可在项目详情页启动多次审计</li>
                         </ul>
                       </div>
                     </div>
@@ -764,14 +762,6 @@ export default function Projects() {
         onOpenChange={setShowCreateTaskDialog}
         onTaskCreated={handleTaskCreated}
         preselectedProjectId={selectedProjectForTask}
-      />
-
-      {/* 终端进度对话框 */}
-      <TerminalProgressDialog
-        open={showTerminalDialog}
-        onOpenChange={setShowTerminalDialog}
-        taskId={currentTaskId}
-        taskType="zip"
       />
 
       {/* 编辑项目对话框 */}

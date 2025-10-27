@@ -139,7 +139,7 @@ export function SystemConfig() {
         const parsedConfig = JSON.parse(savedConfig);
         setConfig(parsedConfig);
         setConfigSource('runtime');
-        toast.success("已加载运行时配置");
+        console.log('已加载运行时配置');
       } else {
         // 使用构建时配置
         loadFromEnv();

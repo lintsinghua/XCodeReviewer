@@ -24,8 +24,9 @@ import {
   FileText
 } from "lucide-react";
 import { api } from "@/shared/config/database";
-import { runRepositoryAudit } from "@/features/projects/services";
+import { runRepositoryAudit, scanZipFile } from "@/features/projects/services";
 import type { Project, AuditTask, CreateProjectForm } from "@/shared/types";
+import { loadZipFile } from "@/shared/utils/zipStorage";
 import { toast } from "sonner";
 import CreateTaskDialog from "@/components/audit/CreateTaskDialog";
 import TerminalProgressDialog from "@/components/audit/TerminalProgressDialog";
@@ -81,34 +82,76 @@ export default function ProjectDetail() {
 
   const handleRunAudit = async () => {
     if (!project || !id) return;
-    if (!project.repository_url || project.repository_type !== 'github') {
-      toast.error('请在项目中配置 GitHub 仓库地址');
-      return;
-    }
-    try {
-      setScanning(true);
-      console.log('开始启动审计任务...');
-      const taskId = await runRepositoryAudit({
-        projectId: id,
-        repoUrl: project.repository_url,
-        branch: project.default_branch || 'main',
-        githubToken: undefined,
-        createdBy: undefined
-      });
-      
-      console.log('审计任务创建成功，taskId:', taskId);
-      
-      // 显示终端进度窗口
-      setCurrentTaskId(taskId);
-      setShowTerminalDialog(true);
-      
-      // 重新加载项目数据
-      loadProjectData();
-    } catch (e: any) {
-      console.error('启动审计失败:', e);
-      toast.error(e?.message || '启动审计失败');
-    } finally {
-      setScanning(false);
+    
+    // 如果是GitHub项目且有仓库地址，直接启动审计
+    if (project.repository_type === 'github' && project.repository_url) {
+      try {
+        setScanning(true);
+        console.log('开始启动审计任务...');
+        const taskId = await runRepositoryAudit({
+          projectId: id,
+          repoUrl: project.repository_url,
+          branch: project.default_branch || 'main',
+          githubToken: undefined,
+          createdBy: undefined
+        });
+        
+        console.log('审计任务创建成功，taskId:', taskId);
+        
+        // 显示终端进度窗口
+        setCurrentTaskId(taskId);
+        setShowTerminalDialog(true);
+        
+        // 重新加载项目数据
+        loadProjectData();
+      } catch (e: any) {
+        console.error('启动审计失败:', e);
+        toast.error(e?.message || '启动审计失败');
+      } finally {
+        setScanning(false);
+      }
+    } else {
+      // 对于ZIP项目，尝试从IndexedDB加载保存的文件
+      try {
+        setScanning(true);
+        const file = await loadZipFile(id);
+        
+        if (file) {
+          console.log('找到保存的ZIP文件，开始启动审计...');
+          try {
+            // 启动ZIP文件审计
+            const taskId = await scanZipFile({
+              projectId: id,
+              zipFile: file,
+              excludePatterns: ['node_modules/**', '.git/**', 'dist/**', 'build/**'],
+              createdBy: 'local-user'
+            });
+            
+            console.log('审计任务创建成功，taskId:', taskId);
+            
+            // 显示终端进度窗口
+            setCurrentTaskId(taskId);
+            setShowTerminalDialog(true);
+            
+            // 重新加载项目数据
+            loadProjectData();
+          } catch (e: any) {
+            console.error('启动审计失败:', e);
+            toast.error(e?.message || '启动审计失败');
+          } finally {
+            setScanning(false);
+          }
+        } else {
+          setScanning(false);
+          toast.error('未找到保存的ZIP文件，请通过"新建任务"上传');
+          setShowCreateTaskDialog(true);
+        }
+      } catch (error) {
+        console.error('启动审计失败:', error);
+        setScanning(false);
+        toast.error('读取ZIP文件失败，请通过"新建任务"重新上传');
+        setShowCreateTaskDialog(true);
+      }
     }
   };
 
