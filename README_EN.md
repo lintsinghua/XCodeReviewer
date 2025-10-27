@@ -11,13 +11,18 @@
   </p>
 </div>
 
+<div align="center">
+
 [![Version](https://img.shields.io/badge/version-1.1.3-blue.svg)](https://github.com/lintsinghua/XCodeReviewer/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![React](https://img.shields.io/badge/React-18-61dafb.svg)](https://reactjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178c6.svg)](https://www.typescriptlang.org/)
 [![Vite](https://img.shields.io/badge/Vite-5.1-646cff.svg)](https://vitejs.dev/)
+
 [![Stars](https://img.shields.io/github/stars/lintsinghua/XCodeReviewer?style=social)](https://github.com/lintsinghua/XCodeReviewer/stargazers)
 [![Forks](https://img.shields.io/github/forks/lintsinghua/XCodeReviewer?style=social)](https://github.com/lintsinghua/XCodeReviewer/network/members)
+
+</div>
 
 <div align="center">
   <a href="https://github.com/lintsinghua/XCodeReviewer">
