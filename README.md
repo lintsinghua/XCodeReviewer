@@ -716,7 +716,7 @@ pnpm lint
 
 - **项目链接**: [https://github.com/lintsinghua/XCodeReviewer](https://github.com/lintsinghua/XCodeReviewer)
 - **问题反馈**: [Issues](https://github.com/lintsinghua/XCodeReviewer/issues)
-- **作者邮箱**: lintsinghua@qq.com
+- **作者邮箱**: lintsinghua@qq.com（合作请注明来意）
 
 ## 🎯 未来计划（正在加急中）
 
