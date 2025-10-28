@@ -717,7 +717,7 @@ We warmly welcome all forms of contributions! Whether it's submitting issues, cr
 
 - **Project Link**: [https://github.com/lintsinghua/XCodeReviewer](https://github.com/lintsinghua/XCodeReviewer)
 - **Issue Reports**: [Issues](https://github.com/lintsinghua/XCodeReviewer/issues)
-- **Author Email**: tsinghuaiiilove@gmail.com
+- **Author Email**: lintsinghua@qq.com
  
 ## 🎯 Future Plans
 
