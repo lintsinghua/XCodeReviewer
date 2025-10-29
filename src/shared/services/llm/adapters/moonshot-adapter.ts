@@ -32,7 +32,7 @@ export class MoonshotAdapter extends BaseLLMAdapter {
     };
     if (this.config.customHeaders) Object.assign(headers, this.config.customHeaders);
 
-    const response = await fetch(`${this.baseUrl}/chat/completions`, {
+    const response = await fetch(`${this.baseUrl.replace(/\/$/, '')}/chat/completions`, {
       method: 'POST',
       headers: this.buildHeaders(headers),
       body: JSON.stringify({
@@ -73,11 +73,11 @@ export class MoonshotAdapter extends BaseLLMAdapter {
 
   async validateConfig(): Promise<boolean> {
     await super.validateConfig();
-    
+
     if (!this.config.model.startsWith('moonshot-')) {
       throw new Error(`无效的Moonshot模型: ${this.config.model}`);
     }
-    
+
     return true;
   }
 }

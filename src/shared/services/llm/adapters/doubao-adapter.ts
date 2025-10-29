@@ -32,7 +32,7 @@ export class DoubaoAdapter extends BaseLLMAdapter {
     };
     if (this.config.customHeaders) Object.assign(headers, this.config.customHeaders);
 
-    const response = await fetch(`${this.baseUrl}/chat/completions`, {
+    const response = await fetch(`${this.baseUrl.replace(/\/$/, '')}/chat/completions`, {
       method: 'POST',
       headers: this.buildHeaders(headers),
       body: JSON.stringify({

@@ -32,7 +32,7 @@ export class MinimaxAdapter extends BaseLLMAdapter {
     };
     if (this.config.customHeaders) Object.assign(headers, this.config.customHeaders);
 
-    const response = await fetch(`${this.baseUrl}/text/chatcompletion_v2`, {
+    const response = await fetch(`${this.baseUrl.replace(/\/$/, '')}/text/chatcompletion_v2`, {
       method: 'POST',
       headers: this.buildHeaders(headers),
       body: JSON.stringify({

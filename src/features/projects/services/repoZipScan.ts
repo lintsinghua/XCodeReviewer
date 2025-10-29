@@ -139,6 +139,16 @@ export async function scanZipFile(params: {
 
   console.log(`🚀 ZIP任务已创建: ${taskId}，准备启动后台扫描...`);
 
+  // 记录审计任务开始
+  import('@/shared/utils/logger').then(({ logger, LogCategory }) => {
+    logger.info(LogCategory.SYSTEM, `开始ZIP文件审计: ${taskId}`, {
+      taskId,
+      projectId,
+      fileName: zipFile.name,
+      fileSize: zipFile.size,
+    });
+  });
+
   // 启动后台扫描任务，不阻塞返回
   (async () => {
     console.log(`🎬 后台扫描任务开始执行: ${taskId}`);
@@ -344,9 +354,30 @@ export async function scanZipFile(params: {
               completed_at: new Date().toISOString()
             } as any);
 
+            // 记录审计完成
+            import('@/shared/utils/logger').then(({ logger, LogCategory }) => {
+              logger.info(LogCategory.SYSTEM, `ZIP审计任务完成: ${taskId}`, {
+                taskId,
+                status: taskStatus,
+                totalFiles,
+                scannedFiles,
+                failedFiles,
+                totalLines,
+                issuesCount: totalIssues,
+                qualityScore: avgQualityScore,
+                successRate: successRate.toFixed(1) + '%',
+              });
+            });
+
             resolve();
           } catch (processingError) {
             await api.updateAuditTask(taskId, { status: "failed" } as any);
+            
+            // 记录处理错误
+            import('@/shared/utils/errorHandler').then(({ handleError }) => {
+              handleError(processingError, `ZIP审计任务处理失败: ${taskId}`);
+            });
+            
             reject(processingError);
           }
         });

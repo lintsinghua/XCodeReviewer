@@ -75,6 +75,17 @@ export async function runRepositoryAudit(params: {
 
   console.log(`🚀 ${repoType}任务已创建: ${taskId}，准备启动后台扫描...`);
 
+  // 记录审计任务开始
+  import('@/shared/utils/logger').then(({ logger, LogCategory }) => {
+    logger.info(LogCategory.SYSTEM, `开始审计任务: ${taskId}`, {
+      taskId,
+      projectId: params.projectId,
+      repoUrl: params.repoUrl,
+      branch,
+      repoType,
+    });
+  });
+
   // 启动后台审计任务，不阻塞返回
   (async () => {
     console.log(`🎬 后台扫描任务开始执行: ${taskId}`);
@@ -283,10 +294,29 @@ export async function runRepositoryAudit(params: {
         completed_at: new Date().toISOString()
       } as any);
       
+      // 记录审计完成
+      import('@/shared/utils/logger').then(({ logger, LogCategory }) => {
+        logger.info(LogCategory.SYSTEM, `审计任务完成: ${taskId}`, {
+          taskId,
+          totalFiles: files.length,
+          scannedFiles: totalFiles,
+          totalLines,
+          issuesCount: createdIssues,
+          qualityScore,
+          failedCount,
+        });
+      });
+      
       taskControl.cleanupTask(taskId);
     } catch (e) {
       console.error('❌ GitHub审计任务执行失败:', e);
       console.error('错误详情:', e);
+      
+      // 记录审计失败
+      import('@/shared/utils/errorHandler').then(({ handleError }) => {
+        handleError(e, `审计任务失败: ${taskId}`);
+      });
+      
       try {
         await api.updateAuditTask(taskId, { status: "failed" } as any);
       } catch (updateError) {

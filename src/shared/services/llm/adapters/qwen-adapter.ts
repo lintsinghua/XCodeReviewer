@@ -32,7 +32,7 @@ export class QwenAdapter extends BaseLLMAdapter {
     };
     if (this.config.customHeaders) Object.assign(headers, this.config.customHeaders);
 
-    const response = await fetch(`${this.baseUrl}/services/aigc/text-generation/generation`, {
+    const response = await fetch(`${this.baseUrl.replace(/\/$/, '')}/services/aigc/text-generation/generation`, {
       method: 'POST',
       headers: this.buildHeaders(headers),
       body: JSON.stringify({

@@ -100,13 +100,29 @@ export default function Projects() {
         // 无登录场景下不传 owner_id，由后端置为 null
       } as any);
 
+      // 记录用户操作
+      import('@/shared/utils/logger').then(({ logger, LogCategory }) => {
+        logger.logUserAction('创建项目', {
+          projectName: createForm.name,
+          repositoryType: createForm.repository_type,
+          languages: createForm.programming_languages,
+        });
+      });
+
       toast.success("项目创建成功");
       setShowCreateDialog(false);
       resetCreateForm();
       loadProjects();
     } catch (error) {
       console.error('Failed to create project:', error);
-      toast.error("创建项目失败");
+      
+      // 记录错误并显示详细信息
+      import('@/shared/utils/errorHandler').then(({ handleError }) => {
+        handleError(error, '创建项目失败');
+      });
+      
+      const errorMessage = error instanceof Error ? error.message : '未知错误';
+      toast.error(`创建项目失败: ${errorMessage}`);
     }
   };
 
@@ -169,6 +185,15 @@ export default function Projects() {
       clearInterval(progressInterval);
       setUploadProgress(100);
 
+      // 记录用户操作
+      import('@/shared/utils/logger').then(({ logger, LogCategory }) => {
+        logger.logUserAction('上传ZIP文件创建项目', {
+          projectName: project.name,
+          fileName: file.name,
+          fileSize: file.size,
+        });
+      });
+
       // 关闭创建对话框
       setShowCreateDialog(false);
       resetCreateForm();
@@ -181,7 +206,14 @@ export default function Projects() {
 
     } catch (error: any) {
       console.error('Upload failed:', error);
-      toast.error(error.message || "上传失败");
+      
+      // 记录错误并显示详细信息
+      import('@/shared/utils/errorHandler').then(({ handleError }) => {
+        handleError(error, '上传ZIP文件失败');
+      });
+      
+      const errorMessage = error?.message || '未知错误';
+      toast.error(`上传失败: ${errorMessage}`);
     } finally {
       setUploading(false);
       setUploadProgress(0);
@@ -265,6 +297,15 @@ export default function Projects() {
 
     try {
       await api.deleteProject(projectToDelete.id);
+      
+      // 记录用户操作
+      import('@/shared/utils/logger').then(({ logger, LogCategory }) => {
+        logger.logUserAction('删除项目', {
+          projectId: projectToDelete.id,
+          projectName: projectToDelete.name,
+        });
+      });
+      
       toast.success(`项目 "${projectToDelete.name}" 已移到回收站`, {
         description: '您可以在回收站中恢复此项目',
         duration: 4000
@@ -274,7 +315,14 @@ export default function Projects() {
       loadProjects();
     } catch (error) {
       console.error('Failed to delete project:', error);
-      toast.error("删除项目失败");
+      
+      // 记录错误并显示详细信息
+      import('@/shared/utils/errorHandler').then(({ handleError }) => {
+        handleError(error, '删除项目失败');
+      });
+      
+      const errorMessage = error instanceof Error ? error.message : '未知错误';
+      toast.error(`删除项目失败: ${errorMessage}`);
     }
   };
 

@@ -281,7 +281,7 @@ public class Example {
   // 构造临时任务和问题数据用于导出
   const getTempTaskAndIssues = () => {
     if (!result) return null;
-    
+
     const tempTask: AuditTask = {
       id: 'instant-' + Date.now(),
       project_id: 'instant-analysis',
@@ -313,7 +313,7 @@ public class Example {
         updated_at: new Date().toISOString()
       }
     };
-    
+
     const tempIssues: AuditIssue[] = result.issues.map((issue, index) => ({
       id: `instant-issue-${index}`,
       task_id: tempTask.id,
@@ -332,7 +332,7 @@ public class Example {
       resolved_at: undefined,
       created_at: new Date().toISOString()
     }));
-    
+
     return { task: tempTask, issues: tempIssues };
   };
 
@@ -618,10 +618,10 @@ public class Example {
                   <Badge variant="outline" className="text-xs">
                     {language.charAt(0).toUpperCase() + language.slice(1)}
                   </Badge>
-                  
+
                   {/* 导出按钮 */}
-                  <Button 
-                    size="sm" 
+                  <Button
+                    size="sm"
                     onClick={() => setExportDialogOpen(true)}
                     className="btn-primary"
                   >
@@ -782,9 +782,9 @@ public class Example {
 
       {/* 分析进行中状态 */}
       {analyzing && (
-        <Card ref={loadingCardRef} className="card-modern">
+        <Card className="card-modern">
           <CardContent className="py-16">
-            <div className="text-center">
+            <div ref={loadingCardRef} className="text-center">
               <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6">
                 <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent"></div>
               </div>
@@ -801,7 +801,7 @@ public class Example {
           </CardContent>
         </Card>
       )}
-      
+
       {/* 导出报告对话框 */}
       {result && (() => {
         const data = getTempTaskAndIssues();

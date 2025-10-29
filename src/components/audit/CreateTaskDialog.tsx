@@ -195,6 +195,18 @@ export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, pr
       
       console.log('✅ 任务创建成功:', taskId);
       
+      // 记录用户操作
+      import('@/shared/utils/logger').then(({ logger, LogCategory }) => {
+        logger.logUserAction('创建审计任务', {
+          taskId,
+          projectId: project.id,
+          projectName: project.name,
+          taskType: taskForm.task_type,
+          branch: taskForm.branch_name,
+          hasZipFile: !!zipFile,
+        });
+      });
+      
       // 关闭创建对话框
       onOpenChange(false);
       resetForm();
@@ -207,7 +219,14 @@ export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, pr
       toast.success("审计任务已创建并启动");
     } catch (error) {
       console.error('❌ 创建任务失败:', error);
-      toast.error("创建任务失败: " + (error as Error).message);
+      
+      // 记录错误并显示详细信息
+      import('@/shared/utils/errorHandler').then(({ handleError }) => {
+        handleError(error, '创建审计任务失败');
+      });
+      
+      const errorMessage = error instanceof Error ? error.message : '未知错误';
+      toast.error(`创建任务失败: ${errorMessage}`);
     } finally {
       setCreating(false);
     }

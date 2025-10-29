@@ -63,7 +63,7 @@ interface SystemConfigData {
   llmTemperature: number;
   llmMaxTokens: number;
   llmCustomHeaders: string;
-  
+
   // 平台专用配置
   geminiApiKey: string;
   openaiApiKey: string;
@@ -76,13 +76,13 @@ interface SystemConfigData {
   minimaxApiKey: string;
   doubaoApiKey: string;
   ollamaBaseUrl: string;
-  
+
   // GitHub 配置
   githubToken: string;
-  
+
   // GitLab 配置
   gitlabToken: string;
-  
+
   // 分析配置
   maxAnalyzeFiles: number;
   llmConcurrency: number;
@@ -134,7 +134,7 @@ export function SystemConfig() {
     try {
       // 尝试从 localStorage 加载运行时配置
       const savedConfig = localStorage.getItem(STORAGE_KEY);
-      
+
       if (savedConfig) {
         const parsedConfig = JSON.parse(savedConfig);
         setConfig(parsedConfig);
@@ -188,8 +188,20 @@ export function SystemConfig() {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
       setHasChanges(false);
       setConfigSource('runtime');
+
+      // 记录用户操作
+      import('@/shared/utils/logger').then(({ logger, LogCategory }) => {
+        logger.logUserAction('保存系统配置', {
+          provider: config.llmProvider,
+          hasApiKey: !!config.llmApiKey,
+          maxFiles: config.maxAnalyzeFiles,
+          concurrency: config.llmConcurrency,
+          language: config.outputLanguage,
+        });
+      });
+
       toast.success("配置已保存！刷新页面后生效");
-      
+
       // 提示用户刷新页面
       setTimeout(() => {
         if (window.confirm("配置已保存。是否立即刷新页面使配置生效？")) {
@@ -198,17 +210,42 @@ export function SystemConfig() {
       }, 1000);
     } catch (error) {
       console.error('Failed to save config:', error);
-      toast.error("保存配置失败");
+
+      // 记录错误并显示详细信息
+      import('@/shared/utils/errorHandler').then(({ handleError }) => {
+        handleError(error, '保存系统配置失败');
+      });
+
+      const errorMessage = error instanceof Error ? error.message : '未知错误';
+      toast.error(`保存配置失败: ${errorMessage}`);
     }
   };
 
   const resetConfig = () => {
     if (window.confirm("确定要重置为构建时配置吗？这将清除所有运行时配置。")) {
-      localStorage.removeItem(STORAGE_KEY);
-      loadFromEnv();
-      setHasChanges(false);
-      setConfigSource('build');
-      toast.success("已重置为构建时配置");
+      try {
+        localStorage.removeItem(STORAGE_KEY);
+        loadFromEnv();
+        setHasChanges(false);
+        setConfigSource('build');
+
+        // 记录用户操作
+        import('@/shared/utils/logger').then(({ logger, LogCategory }) => {
+          logger.logUserAction('重置系统配置', { action: 'reset_to_build_config' });
+        });
+
+        toast.success("已重置为构建时配置");
+      } catch (error) {
+        console.error('Failed to reset config:', error);
+
+        // 记录错误并显示详细信息
+        import('@/shared/utils/errorHandler').then(({ handleError }) => {
+          handleError(error, '重置系统配置失败');
+        });
+
+        const errorMessage = error instanceof Error ? error.message : '未知错误';
+        toast.error(`重置配置失败: ${errorMessage}`);
+      }
     }
   };
 
@@ -236,7 +273,7 @@ export function SystemConfig() {
       doubao: config.doubaoApiKey,
       ollama: 'ollama',
     };
-    
+
     return config.llmApiKey || keyMap[provider] || '';
   };
 
@@ -386,7 +423,7 @@ export function SystemConfig() {
                   placeholder="例如：https://api.example.com/v1"
                 />
                 <div className="text-xs text-muted-foreground space-y-1">
-                  <p>💡 <strong>使用 API 中转站？</strong>在这里填入中转站地址</p>
+                  <p>💡 <strong>使用 API 中转站？</strong>在这里填入中转站地址。配置保存后会在实际使用时自动验证。</p>
                   <details className="cursor-pointer">
                     <summary className="text-primary hover:underline">查看常见 API 中转示例</summary>
                     <div className="mt-2 p-3 bg-muted rounded space-y-1 text-xs">

@@ -13,7 +13,7 @@
 
 <div align="center">
 
-[![Version](https://img.shields.io/badge/version-1.2.0-blue.svg)](https://github.com/lintsinghua/XCodeReviewer/releases)
+[![Version](https://img.shields.io/badge/version-1.3.0-blue.svg)](https://github.com/lintsinghua/XCodeReviewer/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![React](https://img.shields.io/badge/React-18-61dafb.svg)](https://reactjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178c6.svg)](https://www.typescriptlang.org/)
@@ -347,6 +347,37 @@ VITE_QWEN_API_KEY=key3
 ```
 </details>
 
+<details>
+<summary><b>How to view system logs and debug information?</b></summary>
+
+XCodeReviewer has a built-in logging system that records core operations and errors:
+
+**View Logs**:
+- Navigation bar -> System Logs
+- Or visit: `http://localhost:5173/logs` (dev) / `http://localhost:8888/logs` (prod)
+
+**Recorded Content**:
+- ✅ Core user operations (create project, audit tasks, config changes, etc.)
+- ✅ Failed API requests and errors
+- ✅ Console errors (auto-captured)
+- ✅ Unhandled exceptions
+
+**Features**:
+- Log filtering and search
+- Export logs (JSON/CSV)
+- View error details
+
+**Manual Logging**:
+```typescript
+import { logger, LogCategory } from '@/shared/utils/logger';
+
+// Log user actions
+logger.logUserAction('Create Project', { projectName, projectType });
+logger.logUserAction('Start Audit', { taskId, fileCount });
+```
+
+For details, see: [LOGGING_README.md](LOGGING_README.md)
+</details>
 
 ### 🔑 Getting API Keys
 

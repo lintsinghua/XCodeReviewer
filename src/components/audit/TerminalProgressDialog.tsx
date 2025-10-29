@@ -49,16 +49,16 @@ export default function TerminalProgressDialog({
     // 取消任务处理
     const handleCancel = async () => {
         if (!taskId) return;
-        
+
         if (!confirm('确定要取消此任务吗？已分析的结果将被保留。')) {
             return;
         }
-        
+
         // 1. 标记任务为取消状态
         taskControl.cancelTask(taskId);
         setIsCancelled(true);
         addLog("🛑 用户取消任务，正在停止...", "error");
-        
+
         // 2. 立即更新数据库状态
         try {
             const { api } = await import("@/shared/config/database");
@@ -301,13 +301,55 @@ export default function TerminalProgressDialog({
                         addLog("", "info"); // 空行分隔
                         addLog("❌ 审计任务执行失败", "error");
                         addLog("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━", "error");
-                        addLog("可能的原因:", "error");
-                        addLog("  • 网络连接问题", "error");
-                        addLog("  • 仓库访问权限不足（私有仓库需配置 Token）", "error");
-                        addLog("  • GitHub/GitLab API 限流", "error");
-                        addLog("  • 代码文件格式错误", "error");
+
+                        // 尝试从日志系统获取具体错误信息
+                        try {
+                            const { logger } = await import("@/shared/utils/logger");
+                            const recentLogs = logger.getLogs({
+                                startTime: Date.now() - 60000, // 最近1分钟
+                            });
+
+                            // 查找与当前任务相关的错误
+                            const taskErrors = recentLogs
+                                .filter(log =>
+                                    log.level === 'ERROR' &&
+                                    (log.message.includes(taskId) ||
+                                        log.message.includes('审计') ||
+                                        log.message.includes('API'))
+                                )
+                                .slice(-3); // 最近3条错误
+
+                            if (taskErrors.length > 0) {
+                                addLog("具体错误信息:", "error");
+                                taskErrors.forEach(log => {
+                                    addLog(`  • ${log.message}`, "error");
+                                    if (log.data?.error) {
+                                        const errorMsg = typeof log.data.error === 'string'
+                                            ? log.data.error
+                                            : log.data.error.message || JSON.stringify(log.data.error);
+                                        addLog(`    ${errorMsg}`, "error");
+                                    }
+                                });
+                            } else {
+                                // 如果没有找到具体错误，显示常见原因
+                                addLog("可能的原因:", "error");
+                                addLog("  • 网络连接问题", "error");
+                                addLog("  • 仓库访问权限不足（私有仓库需配置 Token）", "error");
+                                addLog("  • GitHub/GitLab API 限流", "error");
+                                addLog("  • LLM API 配置错误或额度不足", "error");
+                            }
+                        } catch (e) {
+                            // 如果获取日志失败，显示常见原因
+                            addLog("可能的原因:", "error");
+                            addLog("  • 网络连接问题", "error");
+                            addLog("  • 仓库访问权限不足（私有仓库需配置 Token）", "error");
+                            addLog("  • GitHub/GitLab API 限流", "error");
+                            addLog("  • LLM API 配置错误或额度不足", "error");
+                        }
+
                         addLog("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━", "error");
-                        addLog("💡 建议: 检查网络连接、仓库配置和 Token 设置后重试", "warning");
+                        addLog("💡 建议: 检查系统配置和网络连接后重试", "warning");
+                        addLog("📋 查看完整日志: 导航栏 -> 系统日志", "warning");
 
                         setIsFailed(true);
                         if (pollIntervalRef.current) {
@@ -485,10 +527,10 @@ export default function TerminalProgressDialog({
                             <span className="text-gray-300">
                                 {isCancelled ? "🛑 任务已取消，已分析的结果已保存" :
                                     isCompleted ? "✅ 任务已完成，可以关闭此窗口" :
-                                    isFailed ? "❌ 任务失败，请检查配置后重试" :
-                                        "⏳ 审计进行中，请勿关闭窗口，过程可能较慢，请耐心等待......"}
+                                        isFailed ? "❌ 任务失败，请检查配置后重试" :
+                                            "⏳ 审计进行中，请勿关闭窗口，过程可能较慢，请耐心等待......"}
                             </span>
-                            
+
                             <div className="flex items-center space-x-2">
                                 {/* 运行中显示取消按钮 */}
                                 {!isCompleted && !isFailed && !isCancelled && (
@@ -502,7 +544,19 @@ export default function TerminalProgressDialog({
                                         取消任务
                                     </Button>
                                 )}
-                                
+
+                                {/* 失败时显示查看日志按钮 */}
+                                {isFailed && (
+                                    <button
+                                        onClick={() => {
+                                            window.open('/logs', '_blank');
+                                        }}
+                                        className="px-4 py-1.5 bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-500 hover:to-orange-500 text-white rounded text-xs transition-all shadow-lg shadow-yellow-900/50 font-medium"
+                                    >
+                                        📋 查看日志
+                                    </button>
+                                )}
+
                                 {/* 已完成/失败/取消显示关闭按钮 */}
                                 {(isCompleted || isFailed || isCancelled) && (
                                     <button

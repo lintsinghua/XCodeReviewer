@@ -58,7 +58,7 @@ export class OpenAIAdapter extends BaseLLMAdapter {
       requestBody.max_tokens = request.maxTokens ?? this.config.maxTokens;
     }
 
-    const response = await fetch(`${this.baseUrl}/chat/completions`, {
+    const response = await fetch(`${this.baseUrl.replace(/\/$/, '')}/chat/completions`, {
       method: 'POST',
       headers: this.buildHeaders(headers),
       body: JSON.stringify(requestBody),

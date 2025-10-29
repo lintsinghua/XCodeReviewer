@@ -6,6 +6,7 @@ import InstantAnalysis from "@/pages/InstantAnalysis";
 import AuditTasks from "@/pages/AuditTasks";
 import TaskDetail from "@/pages/TaskDetail";
 import AdminDashboard from "@/pages/AdminDashboard";
+import LogsPage from "@/pages/LogsPage";
 import type { ReactNode } from 'react';
 
 export interface RouteConfig {
@@ -62,6 +63,12 @@ const routes: RouteConfig[] = [
     name: "回收站",
     path: "/recycle-bin",
     element: <RecycleBin />,
+    visible: true,
+  },
+  {
+    name: "系统日志",
+    path: "/logs",
+    element: <LogsPage />,
     visible: true,
   },
 ];

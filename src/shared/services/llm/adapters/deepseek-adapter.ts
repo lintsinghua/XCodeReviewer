@@ -37,7 +37,7 @@ export class DeepSeekAdapter extends BaseLLMAdapter {
       Object.assign(headers, this.config.customHeaders);
     }
 
-    const response = await fetch(`${this.baseUrl}/v1/chat/completions`, {
+    const response = await fetch(`${this.baseUrl.replace(/\/$/, '')}/v1/chat/completions`, {
       method: 'POST',
       headers: this.buildHeaders(headers),
       body: JSON.stringify({

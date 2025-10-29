@@ -347,6 +347,38 @@ VITE_QWEN_API_KEY=key3
 ```
 </details>
 
+<details>
+<summary><b>如何查看系统日志和调试信息？</b></summary>
+
+XCodeReviewer 内置了日志系统，记录核心操作和错误：
+
+**查看日志**：
+- 导航栏 -> 系统日志
+- 或访问：`http://localhost:5173/logs` (开发) / `http://localhost:8888/logs` (生产)
+
+**记录内容**：
+- ✅ 用户核心操作（创建项目、审计任务、修改配置等）
+- ✅ API 请求失败和错误
+- ✅ 控制台错误（自动捕获）
+- ✅ 未处理的异常
+
+**功能特性**：
+- 日志筛选、搜索
+- 导出日志（JSON/CSV）
+- 错误详情查看
+
+**手动记录用户操作**：
+```typescript
+import { logger, LogCategory } from '@/shared/utils/logger';
+
+// 记录用户操作
+logger.logUserAction('创建项目', { projectName, projectType });
+logger.logUserAction('开始审计', { taskId, fileCount });
+```
+
+详细说明请参考：[LOGGING_README.md](LOGGING_README.md)
+</details>
+
 ### 🔑 获取 API Key
 
 #### 支持的 LLM 平台

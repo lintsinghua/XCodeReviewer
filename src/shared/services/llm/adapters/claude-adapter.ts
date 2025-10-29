@@ -58,7 +58,7 @@ export class ClaudeAdapter extends BaseLLMAdapter {
       Object.assign(headers, this.config.customHeaders);
     }
 
-    const response = await fetch(`${this.baseUrl}/messages`, {
+    const response = await fetch(`${this.baseUrl.replace(/\/$/, '')}/messages`, {
       method: 'POST',
       headers: this.buildHeaders(headers),
       body: JSON.stringify(requestBody),
