@@ -376,7 +376,6 @@ logger.logUserAction('Create Project', { projectName, projectType });
 logger.logUserAction('Start Audit', { taskId, fileCount });
 ```
 
-For details, see: [LOGGING_README.md](LOGGING_README.md)
 </details>
 
 ### 🔑 Getting API Keys
