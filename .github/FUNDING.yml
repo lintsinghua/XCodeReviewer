@@ -1,0 +1,15 @@
+# These are supported funding model platforms
+github: # 中国大陆暂不支持，留空或忽略
+patreon: # 如果有 Patreon，可替换为用户名
+open_collective: # 如果有 Open Collective，可替换为用户名
+ko_fi: # 如果有 Ko-fi，可替换为用户名
+tidelift: # 如果有 Tidelift，可替换为 platform-name/package-name
+community_bridge: # 如果有 Community Bridge，可替换为 project-name
+liberapay: # 如果有 Liberapay，可替换为用户名
+issuehunt: # 如果有 IssueHunt，可替换为用户名
+lfx_crowdfunding: # 如果有 LFX Crowdfunding，可替换为 project-name
+polar: # 如果有 Polar，可替换为用户名
+buy_me_a_coffee: # 如果有 Buy Me a Coffee，可替换为用户名
+thanks_dev: # 如果有 thanks.dev，可替换为用户名
+custom: 
+  - "https://private-user-images.githubusercontent.com/129816813/507128956-bb339a9c-c9c1-4ab8-b5ac-de3cb2cdedf3.jpg?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3NjE3NDY5OTEsIm5iZiI6MTc2MTc0NjY5MSwicGF0aCI6Ii8xMjk4MTY4MTMvNTA3MTI4OTU2LWJiMzM5YTljLWM5YzEtNGFiOC1iNWFjLWRlM2NiMmNkZWRmMy5qcGc_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjUxMDI5JTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI1MTAyOVQxNDA0NTFaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT1kMmExMGUwNWQyNDQ5MDU1YzY5YjAxZDEwZjA4MmI0OTI2ZmQ0MDdlODJkN2Y1YjI2NTQzMjEyOWVjMzViNjZlJlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCJ9.viYzhzitjziXsa0dUBoRdb6NoUrX2Z1awOrPRUllt20"
