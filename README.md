@@ -376,7 +376,6 @@ logger.logUserAction('创建项目', { projectName, projectType });
 logger.logUserAction('开始审计', { taskId, fileCount });
 ```
 
-详细说明请参考：[LOGGING_README.md](LOGGING_README.md)
 </details>
 
 ### 🔑 获取 API Key
