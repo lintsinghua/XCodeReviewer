@@ -744,6 +744,12 @@ pnpm lint
 - 感谢开源社区的无私分享精神
 - 以及所有本项目所使用的开源软件的作者们！
 
+## � 贡献者
+
+感谢以下优秀的贡献者们，他们让 XCodeReviewer 更强大！
+
+[<image-card alt="Contributors" src="https://github.com/lintsinghua/XCodeReviewer/graphs/contributors" ></image-card>](https://github.com/lintsinghua/XCodeReviewer/graphs/contributors)
+
 ## 📞 联系我们
 
 - **项目链接**: [https://github.com/lintsinghua/XCodeReviewer](https://github.com/lintsinghua/XCodeReviewer)
