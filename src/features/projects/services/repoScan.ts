@@ -67,10 +67,13 @@ export async function runRepositoryAudit(params: {
   } as any);
 
   const taskId = (task as any).id as string;
-
-  // 检测仓库类型
-  const isGitHub = /github\.com/i.test(params.repoUrl);
-  const isGitLab = /gitlab\.com|gitlab\./i.test(params.repoUrl);
+  // 基于项目的 repository_type 决定仓库类型，不再使用正则
+  const project = await api.getProjectById(params.projectId);
+  const repoUrl = params.repoUrl || project?.repository_url || '';
+  if (!repoUrl) throw new Error('仓库地址为空，请在项目中填写 repository_url');
+  const repoTypeKey = project?.repository_type;
+  const isGitHub = repoTypeKey === 'github';
+  const isGitLab = repoTypeKey === 'gitlab';
   const repoType = isGitHub ? "GitHub" : isGitLab ? "GitLab" : "Git";
 
   console.log(`🚀 ${repoType}任务已创建: ${taskId}，准备启动后台扫描...`);
@@ -80,7 +83,7 @@ export async function runRepositoryAudit(params: {
     logger.info(LogCategory.SYSTEM, `开始审计任务: ${taskId}`, {
       taskId,
       projectId: params.projectId,
-      repoUrl: params.repoUrl,
+      repoUrl,
       branch,
       repoType,
     });
@@ -96,7 +99,7 @@ export async function runRepositoryAudit(params: {
 
       if (isGitHub) {
         // GitHub 仓库处理
-        const m = params.repoUrl.match(/github\.com\/(.+?)\/(.+?)(?:\.git)?$/i);
+        const m = repoUrl.match(/github\.com\/(.+?)\/(.+?)(?:\.git)?$/i);
         if (!m) throw new Error("GitHub 仓库 URL 格式错误，例如 https://github.com/owner/repo");
         const owner = m[1];
         const repo = m[2];
@@ -107,24 +110,29 @@ export async function runRepositoryAudit(params: {
           .filter(i => i.type === "blob" && isTextFile(i.path) && !matchExclude(i.path, excludes))
           .map(i => ({ path: i.path, url: `https://raw.githubusercontent.com/${owner}/${repo}/${encodeURIComponent(branch)}/${i.path}` }));
       } else if (isGitLab) {
-        // GitLab 仓库处理
-        const m = params.repoUrl.match(/gitlab\.com\/(.+?)\/(.+?)(?:\.git)?$/i);
-        if (!m) throw new Error("GitLab 仓库 URL 格式错误，例如 https://gitlab.com/owner/repo");
-        const projectPath = encodeURIComponent(`${m[1]}/${m[2]}`);
-        
-        const treeUrl = `https://gitlab.com/api/v4/projects/${projectPath}/repository/tree?ref=${encodeURIComponent(branch)}&recursive=true&per_page=100`;
+        // GitLab 仓库处理（支持自定义域名/IP）：基于仓库 URL 动态构建 API 基地址
+        const u = new URL(repoUrl);
+        const base = `${u.protocol}//${u.host}`; // 例如 https://git.dev-rs.com 或 http://192.168.1.10
+        // 解析项目路径，支持多级 group/subgroup，去除开头/结尾斜杠与 .git 后缀
+        const path = u.pathname.replace(/^\/+|\/+$/g, '').replace(/\.git$/i, '');
+        if (!path) {
+          throw new Error("GitLab 仓库 URL 格式错误，例如 https://<your-gitlab-host>/<group>/<project>");
+        }
+        const projectPath = encodeURIComponent(path);
+
+        const treeUrl = `${base}/api/v4/projects/${projectPath}/repository/tree?ref=${encodeURIComponent(branch)}&recursive=true&per_page=100`;
         console.log(`📡 GitLab API: 获取仓库文件树 - ${treeUrl}`);
         const tree = await gitlabApi<Array<{ path: string; type: string }>>(treeUrl, params.gitlabToken);
         console.log(`✅ GitLab API: 获取到 ${tree.length} 个项目`);
-        
+
         files = tree
           .filter(i => i.type === "blob" && isTextFile(i.path) && !matchExclude(i.path, excludes))
           .map(i => ({ 
             path: i.path, 
             // GitLab 文件 API 路径需要完整的 URL 编码（包括斜杠）
-            url: `https://gitlab.com/api/v4/projects/${projectPath}/repository/files/${encodeURIComponent(i.path)}/raw?ref=${encodeURIComponent(branch)}` 
+            url: `${base}/api/v4/projects/${projectPath}/repository/files/${encodeURIComponent(i.path)}/raw?ref=${encodeURIComponent(branch)}` 
           }));
-        
+
         console.log(`📝 GitLab: 过滤后可分析文件 ${files.length} 个`);
         if (tree.length >= 100) {
           console.warn(`⚠️ GitLab: 文件数量达到API限制(100)，可能有文件未被扫描。建议使用排除模式减少文件数。`);
