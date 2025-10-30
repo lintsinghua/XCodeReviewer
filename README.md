@@ -684,7 +684,7 @@ pnpm lint
 | 变量名 | 必需 | 说明 |
 |--------|------|------|
 | `VITE_GITHUB_TOKEN` | ✅ | GitHub Personal Access Token |
-| `VITE_GITLAB_TOKEN` | ✅ | GitLab Personal Access Token |
+| `VITE_GITLAB_TOKEN` | ✅ | GitLab Personal Access Token 或 Project Access Token |
 
 #### 分析行为配置
 | 变量名 | 默认值 | 说明 |
@@ -743,6 +743,12 @@ pnpm lint
 - 感谢所有 Star 本项目的开发者
 - 感谢开源社区的无私分享精神
 - 以及所有本项目所使用的开源软件的作者们！
+
+## 👥 贡献者
+
+感谢以下优秀的贡献者们，他们让 XCodeReviewer 更强大！
+
+[![Contributors](https://contrib.rocks/image?repo=lintsinghua/XCodeReviewer)](https://github.com/lintsinghua/XCodeReviewer/graphs/contributors)
 
 ## 📞 联系我们
 
