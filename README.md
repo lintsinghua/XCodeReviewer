@@ -748,7 +748,7 @@ pnpm lint
 
 感谢以下优秀的贡献者们，他们让 XCodeReviewer 更强大！
 
-[<image-card alt="Contributors" src="https://github.com/lintsinghua/XCodeReviewer/graphs/contributors" ></image-card>](https://github.com/lintsinghua/XCodeReviewer/graphs/contributors)
+[![Contributors](https://contrib.rocks/image?repo=lintsinghua/XCodeReviewer)](https://github.com/lintsinghua/XCodeReviewer/graphs/contributors)
 
 ## 📞 联系我们
 

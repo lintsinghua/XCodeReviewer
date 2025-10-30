@@ -749,7 +749,7 @@ We warmly welcome all forms of contributions! Whether it's submitting issues, cr
 
 Thanks to these amazing contributors who make XCodeReviewer better!
 
-[<image-card alt="Contributors" src="https://github.com/lintsinghua/XCodeReviewer/graphs/contributors" ></image-card>](https://github.com/lintsinghua/XCodeReviewer/graphs/contributors)
+[![Contributors](https://contrib.rocks/image?repo=lintsinghua/XCodeReviewer)](https://github.com/lintsinghua/XCodeReviewer/graphs/contributors)
 
 ## 📞 Contact Us
 
