@@ -31,7 +31,12 @@ async function githubApi<T>(url: string, token?: string): Promise<T> {
 async function gitlabApi<T>(url: string, token?: string): Promise<T> {
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   const t = token || (import.meta.env.VITE_GITLAB_TOKEN as string | undefined);
-  if (t) headers["PRIVATE-TOKEN"] = t;
+  if (t) {
+    // 支持两种 token 格式：
+    // 1. 标准 Personal Access Token (glpat-xxx)
+    // 2. OAuth2 token (从 URL 中提取的纯 token)
+    headers["PRIVATE-TOKEN"] = t;
+  }
   const res = await fetch(url, { headers });
   if (!res.ok) {
     if (res.status === 401) throw new Error("GitLab API 401：请配置 VITE_GITLAB_TOKEN 或确认仓库权限");
@@ -112,6 +117,21 @@ export async function runRepositoryAudit(params: {
       } else if (isGitLab) {
         // GitLab 仓库处理（支持自定义域名/IP）：基于仓库 URL 动态构建 API 基地址
         const u = new URL(repoUrl);
+        
+        // 从 URL 中提取 OAuth2 token（如果存在）
+        // 格式：https://oauth2:TOKEN@host/path 或 https://TOKEN@host/path
+        let extractedToken = params.gitlabToken;
+        if (u.username) {
+          // 如果 username 是 oauth2，token 在 password 中
+          if (u.username === 'oauth2' && u.password) {
+            extractedToken = u.password;
+          } 
+          // 如果直接使用 token 作为 username
+          else if (u.username && !u.password) {
+            extractedToken = u.username;
+          }
+        }
+        
         const base = `${u.protocol}//${u.host}`; // 例如 https://git.dev-rs.com 或 http://192.168.1.10
         // 解析项目路径，支持多级 group/subgroup，去除开头/结尾斜杠与 .git 后缀
         const path = u.pathname.replace(/^\/+|\/+$/g, '').replace(/\.git$/i, '');
@@ -122,7 +142,7 @@ export async function runRepositoryAudit(params: {
 
         const treeUrl = `${base}/api/v4/projects/${projectPath}/repository/tree?ref=${encodeURIComponent(branch)}&recursive=true&per_page=100`;
         console.log(`📡 GitLab API: 获取仓库文件树 - ${treeUrl}`);
-        const tree = await gitlabApi<Array<{ path: string; type: string }>>(treeUrl, params.gitlabToken);
+        const tree = await gitlabApi<Array<{ path: string; type: string }>>(treeUrl, extractedToken);
         console.log(`✅ GitLab API: 获取到 ${tree.length} 个项目`);
 
         files = tree
@@ -194,7 +214,23 @@ export async function runRepositoryAudit(params: {
             const headers: Record<string, string> = {};
             // 为 GitLab 添加认证 Token
             if (isGitLab) {
-              const token = params.gitlabToken || (import.meta.env.VITE_GITLAB_TOKEN as string | undefined);
+              // 优先使用从 URL 提取的 token，否则使用配置的 token
+              let token = params.gitlabToken || (import.meta.env.VITE_GITLAB_TOKEN as string | undefined);
+              
+              // 如果 URL 中包含 OAuth2 token，提取它
+              if (repoUrl.includes('@')) {
+                try {
+                  const urlObj = new URL(repoUrl);
+                  if (urlObj.username === 'oauth2' && urlObj.password) {
+                    token = urlObj.password;
+                  } else if (urlObj.username && !urlObj.password) {
+                    token = urlObj.username;
+                  }
+                } catch (e) {
+                  // URL 解析失败，使用原有 token
+                }
+              }
+              
               if (token) {
                 headers["PRIVATE-TOKEN"] = token;
               }
