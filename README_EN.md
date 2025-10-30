@@ -745,13 +745,7 @@ We warmly welcome all forms of contributions! Whether it's submitting issues, cr
 - Thanks to the open source community for their selfless sharing
 - And all the authors of open source software used in this project!
 
-## 👥 Contributors
-
-Thanks to these amazing contributors who make XCodeReviewer better!
-
-[![Contributors](https://contrib.rocks/image?repo=lintsinghua/XCodeReviewer)](https://github.com/lintsinghua/XCodeReviewer/graphs/contributors)
-
-## 📞 Contact Us
+## � Conntact Us
 
 - **Project Link**: [https://github.com/lintsinghua/XCodeReviewer](https://github.com/lintsinghua/XCodeReviewer)
 - **Issue Reports**: [Issues](https://github.com/lintsinghua/XCodeReviewer/issues)
