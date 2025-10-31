@@ -30,6 +30,7 @@ import { loadZipFile } from "@/shared/utils/zipStorage";
 import { toast } from "sonner";
 import CreateTaskDialog from "@/components/audit/CreateTaskDialog";
 import TerminalProgressDialog from "@/components/audit/TerminalProgressDialog";
+import { SUPPORTED_LANGUAGES } from "@/shared/constants";
 
 export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
@@ -50,9 +51,26 @@ export default function ProjectDetail() {
     programming_languages: []
   });
 
-  const supportedLanguages = [
-    'JavaScript', 'TypeScript', 'Python', 'Java', 'Go', 'Rust', 'C++', 'C#', 'PHP', 'Ruby'
-  ];
+  // 将小写语言名转换为显示格式
+  const formatLanguageName = (lang: string): string => {
+    const nameMap: Record<string, string> = {
+      'javascript': 'JavaScript',
+      'typescript': 'TypeScript',
+      'python': 'Python',
+      'java': 'Java',
+      'go': 'Go',
+      'rust': 'Rust',
+      'cpp': 'C++',
+      'csharp': 'C#',
+      'php': 'PHP',
+      'ruby': 'Ruby',
+      'swift': 'Swift',
+      'kotlin': 'Kotlin'
+    };
+    return nameMap[lang] || lang.charAt(0).toUpperCase() + lang.slice(1);
+  };
+
+  const supportedLanguages = SUPPORTED_LANGUAGES.map(formatLanguageName);
 
   useEffect(() => {
     if (id) {
@@ -83,16 +101,18 @@ export default function ProjectDetail() {
   const handleRunAudit = async () => {
     if (!project || !id) return;
     
-    // 如果是GitHub项目且有仓库地址，直接启动审计
-    if (project.repository_type === 'github' && project.repository_url) {
+    // 检查是否有仓库地址
+    if (project.repository_url) {
+      // 有仓库地址，启动仓库审计
       try {
         setScanning(true);
-        console.log('开始启动审计任务...');
+        console.log('开始启动仓库审计任务...');
         const taskId = await runRepositoryAudit({
           projectId: id,
           repoUrl: project.repository_url,
           branch: project.default_branch || 'main',
           githubToken: undefined,
+          gitlabToken: undefined,
           createdBy: undefined
         });
         
@@ -111,7 +131,7 @@ export default function ProjectDetail() {
         setScanning(false);
       }
     } else {
-      // 对于ZIP项目，尝试从IndexedDB加载保存的文件
+      // 没有仓库地址，尝试从IndexedDB加载保存的ZIP文件
       try {
         setScanning(true);
         const file = await loadZipFile(id);
@@ -143,14 +163,13 @@ export default function ProjectDetail() {
           }
         } else {
           setScanning(false);
-          toast.error('未找到保存的ZIP文件，请通过"新建任务"上传');
-          setShowCreateTaskDialog(true);
+          toast.warning('此项目未配置仓库地址，也未上传ZIP文件。请先在项目设置中配置仓库地址，或通过"新建任务"上传ZIP文件。');
+          // 不自动打开对话框，让用户自己选择
         }
       } catch (error) {
         console.error('启动审计失败:', error);
         setScanning(false);
-        toast.error('读取ZIP文件失败，请通过"新建任务"重新上传');
-        setShowCreateTaskDialog(true);
+        toast.error('读取ZIP文件失败，请检查项目配置');
       }
     }
   };

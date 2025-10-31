@@ -2,15 +2,12 @@ import type { CodeAnalysisResult } from "@/shared/types";
 import { LLMService } from '@/shared/services/llm';
 import { getCurrentLLMApiKey, getCurrentLLMModel, env } from '@/shared/config/env';
 import type { LLMConfig } from '@/shared/services/llm/types';
+import { SUPPORTED_LANGUAGES } from '@/shared/constants';
 
 // 基于 LLM 的代码分析引擎
 export class CodeAnalysisEngine {
-  private static readonly SUPPORTED_LANGUAGES = [
-    'javascript', 'typescript', 'python', 'java', 'go', 'rust', 'cpp', 'csharp', 'php', 'ruby'
-  ];
-
   static getSupportedLanguages(): string[] {
-    return [...this.SUPPORTED_LANGUAGES];
+    return [...SUPPORTED_LANGUAGES];
   }
 
   /**

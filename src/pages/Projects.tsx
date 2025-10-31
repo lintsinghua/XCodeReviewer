@@ -35,6 +35,7 @@ import { saveZipFile } from "@/shared/utils/zipStorage";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import CreateTaskDialog from "@/components/audit/CreateTaskDialog";
+import { SUPPORTED_LANGUAGES } from "@/shared/constants";
 
 export default function Projects() {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -67,9 +68,26 @@ export default function Projects() {
     programming_languages: []
   });
 
-  const supportedLanguages = [
-    'JavaScript', 'TypeScript', 'Python', 'Java', 'Go', 'Rust', 'C++', 'C#', 'PHP', 'Ruby'
-  ];
+  // 将小写语言名转换为显示格式
+  const formatLanguageName = (lang: string): string => {
+    const nameMap: Record<string, string> = {
+      'javascript': 'JavaScript',
+      'typescript': 'TypeScript',
+      'python': 'Python',
+      'java': 'Java',
+      'go': 'Go',
+      'rust': 'Rust',
+      'cpp': 'C++',
+      'csharp': 'C#',
+      'php': 'PHP',
+      'ruby': 'Ruby',
+      'swift': 'Swift',
+      'kotlin': 'Kotlin'
+    };
+    return nameMap[lang] || lang.charAt(0).toUpperCase() + lang.slice(1);
+  };
+
+  const supportedLanguages = SUPPORTED_LANGUAGES.map(formatLanguageName);
 
   useEffect(() => {
     loadProjects();
