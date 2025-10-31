@@ -146,6 +146,65 @@ public class Example {
     private String getData() {
         return "data";
     }
+}`,
+    swift: `// 示例Swift代码 - 包含多种问题
+import Foundation
+
+class UserManager {
+    var password = "admin123" // 硬编码密码
+    
+    func validateUser(input: String) -> Bool {
+        if input == password { // 直接比较密码
+            print("User validated") // 使用print而非日志
+            return true
+        }
+        return false
+    }
+    
+    // 强制解包可能导致崩溃
+    func processData(data: [String]?) {
+        let items = data! // 强制解包
+        for item in items {
+            print(item)
+        }
+    }
+    
+    // 内存泄漏风险：循环引用
+    var closure: (() -> Void)?
+    func setupClosure() {
+        closure = {
+            print(self.password) // 未使用 [weak self]
+        }
+    }
+}`,
+    kotlin: `// 示例Kotlin代码 - 包含多种问题
+class UserManager {
+    private val password = "admin123" // 硬编码密码
+    
+    fun validateUser(input: String): Boolean {
+        if (input == password) { // 直接比较密码
+            println("User validated") // 使用println而非日志
+            return true
+        }
+        return false
+    }
+    
+    // 空指针风险
+    fun processData(data: List<String>?) {
+        val items = data!! // 强制非空断言
+        for (item in items) {
+            println(item)
+        }
+    }
+    
+    // 性能问题：循环中重复计算
+    fun inefficientLoop(items: List<String>) {
+        for (i in 0 until items.size) {
+            for (j in 0 until items.size) { // O(n²) 复杂度
+                println(items[i] + items[j])
+            }
+        }
+    }
 }`
   };
 
@@ -231,7 +290,9 @@ public class Example {
         'hh': 'cpp',
         'cs': 'csharp',
         'php': 'php',
-        'rb': 'ruby'
+        'rb': 'ruby',
+        'swift': 'swift',
+        'kt': 'kotlin'
       };
 
       if (extension && languageMap[extension]) {
@@ -526,7 +587,7 @@ public class Example {
             <input
               ref={fileInputRef}
               type="file"
-              accept=".js,.jsx,.ts,.tsx,.py,.java,.go,.rs,.cpp,.c,.cc,.h,.hh,.cs,.php,.rb"
+              accept=".js,.jsx,.ts,.tsx,.py,.java,.go,.rs,.cpp,.c,.cc,.h,.hh,.cs,.php,.rb,.swift,.kt"
               onChange={handleFileUpload}
               className="hidden"
             />
@@ -561,6 +622,24 @@ public class Example {
               className="h-7 px-2 text-xs"
             >
               Java
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => loadExampleCode('swift')}
+              disabled={analyzing}
+              className="h-7 px-2 text-xs"
+            >
+              Swift
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => loadExampleCode('kotlin')}
+              disabled={analyzing}
+              className="h-7 px-2 text-xs"
+            >
+              Kotlin
             </Button>
           </div>
 

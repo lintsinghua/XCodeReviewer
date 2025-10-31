@@ -10,7 +10,11 @@ export class QwenAdapter extends BaseLLMAdapter {
 
   constructor(config: any) {
     super(config);
-    this.baseUrl = config.baseUrl || 'https://dashscope.aliyuncs.com/api/v1';
+    if (import.meta.env.DEV) {
+      this.baseUrl = '/dashscope-proxy/api/v1';
+    } else {
+      this.baseUrl = config.baseUrl || 'https://dashscope.aliyuncs.com/api/v1';
+    }
   }
 
   async complete(request: LLMRequest): Promise<LLMResponse> {
