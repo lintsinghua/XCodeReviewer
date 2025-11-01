@@ -1,0 +1,59 @@
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: xcodereview-backend
+  labels:
+    app: xcodereview-backend
+    component: autoscaling
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: xcodereview-backend
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+    # CPU-based scaling
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    # Memory-based scaling
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+    # Custom metric: Request rate (requires metrics-server and custom metrics)
+    # - type: Pods
+    #   pods:
+    #     metric:
+    #       name: http_requests_per_second
+    #     target:
+    #       type: AverageValue
+    #       averageValue: "1000"
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300  # Wait 5 minutes before scaling down
+      policies:
+        - type: Percent
+          value: 50  # Scale down by max 50% of current pods
+          periodSeconds: 60
+        - type: Pods
+          value: 2  # Scale down by max 2 pods
+          periodSeconds: 60
+      selectPolicy: Min  # Use the policy that scales down the least
+    scaleUp:
+      stabilizationWindowSeconds: 0  # Scale up immediately
+      policies:
+        - type: Percent
+          value: 100  # Scale up by max 100% of current pods
+          periodSeconds: 30
+        - type: Pods
+          value: 4  # Scale up by max 4 pods
+          periodSeconds: 30
+      selectPolicy: Max  # Use the policy that scales up the most

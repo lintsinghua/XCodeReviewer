@@ -1,0 +1,78 @@
+# Alertmanager Configuration for XCodeReviewer Backend
+
+global:
+  resolve_timeout: 5m
+
+# Route configuration
+route:
+  group_by: ['alertname', 'service']
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 12h
+  receiver: 'default'
+  
+  routes:
+    # Critical alerts go to PagerDuty/on-call
+    - match:
+        severity: critical
+      receiver: 'critical-alerts'
+      continue: true
+    
+    # Warning alerts go to Slack
+    - match:
+        severity: warning
+      receiver: 'warning-alerts'
+
+# Receivers configuration
+receivers:
+  - name: 'default'
+    webhook_configs:
+      - url: 'http://localhost:5001/webhook'
+        send_resolved: true
+
+  - name: 'critical-alerts'
+    # PagerDuty configuration (example)
+    # pagerduty_configs:
+    #   - service_key: '<your-pagerduty-service-key>'
+    #     description: '{{ .GroupLabels.alertname }}: {{ .CommonAnnotations.summary }}'
+    
+    # Email configuration (example)
+    email_configs:
+      - to: 'oncall@example.com'
+        from: 'alertmanager@example.com'
+        smarthost: 'smtp.example.com:587'
+        auth_username: 'alertmanager@example.com'
+        auth_password: '<your-smtp-password>'
+        headers:
+          Subject: '[CRITICAL] {{ .GroupLabels.alertname }}'
+        text: |
+          {{ range .Alerts }}
+          Alert: {{ .Labels.alertname }}
+          Severity: {{ .Labels.severity }}
+          Summary: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          {{ end }}
+
+  - name: 'warning-alerts'
+    # Slack configuration (example)
+    slack_configs:
+      - api_url: '<your-slack-webhook-url>'
+        channel: '#alerts'
+        title: '{{ .GroupLabels.alertname }}'
+        text: |
+          {{ range .Alerts }}
+          *Alert:* {{ .Labels.alertname }}
+          *Severity:* {{ .Labels.severity }}
+          *Summary:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          {{ end }}
+        send_resolved: true
+
+# Inhibition rules
+inhibit_rules:
+  # Inhibit warning if critical is firing
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'service']

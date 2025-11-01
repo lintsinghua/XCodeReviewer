@@ -1,0 +1,114 @@
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: xcodereview-backend
+  labels:
+    app: xcodereview-backend
+    component: ingress
+  annotations:
+    # Nginx Ingress Controller annotations
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    
+    # Rate limiting
+    nginx.ingress.kubernetes.io/limit-rps: "100"
+    nginx.ingress.kubernetes.io/limit-connections: "50"
+    
+    # Timeouts
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+    
+    # Body size limit (for file uploads)
+    nginx.ingress.kubernetes.io/proxy-body-size: "100m"
+    
+    # CORS (if needed)
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, OPTIONS"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "https://xcodereview.example.com"
+    
+    # Security headers
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      more_set_headers "X-Frame-Options: DENY";
+      more_set_headers "X-Content-Type-Options: nosniff";
+      more_set_headers "X-XSS-Protection: 1; mode=block";
+      more_set_headers "Referrer-Policy: strict-origin-when-cross-origin";
+    
+    # Certificate management (cert-manager)
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    
+    # Alternative: AWS ALB annotations
+    # kubernetes.io/ingress.class: alb
+    # alb.ingress.kubernetes.io/scheme: internet-facing
+    # alb.ingress.kubernetes.io/target-type: ip
+    # alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:region:account:certificate/xxx
+    # alb.ingress.kubernetes.io/ssl-policy: ELBSecurityPolicy-TLS-1-2-2017-01
+    # alb.ingress.kubernetes.io/healthcheck-path: /health
+    # alb.ingress.kubernetes.io/healthcheck-interval-seconds: '15'
+    # alb.ingress.kubernetes.io/healthcheck-timeout-seconds: '5'
+    # alb.ingress.kubernetes.io/success-codes: '200'
+    # alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
+    # alb.ingress.kubernetes.io/actions.ssl-redirect: '{"Type": "redirect", "RedirectConfig": { "Protocol": "HTTPS", "Port": "443", "StatusCode": "HTTP_301"}}'
+spec:
+  ingressClassName: nginx  # or 'alb' for AWS ALB
+  tls:
+    - hosts:
+        - api.xcodereview.example.com
+      secretName: xcodereview-tls-cert
+  rules:
+    - host: api.xcodereview.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: xcodereview-backend
+                port:
+                  number: 80
+
+---
+# Alternative: Multiple hosts/paths configuration
+# apiVersion: networking.k8s.io/v1
+# kind: Ingress
+# metadata:
+#   name: xcodereview-backend-multi
+# spec:
+#   ingressClassName: nginx
+#   tls:
+#     - hosts:
+#         - api.xcodereview.example.com
+#         - api-staging.xcodereview.example.com
+#       secretName: xcodereview-tls-cert
+#   rules:
+#     # Production API
+#     - host: api.xcodereview.example.com
+#       http:
+#         paths:
+#           - path: /api
+#             pathType: Prefix
+#             backend:
+#               service:
+#                 name: xcodereview-backend
+#                 port:
+#                   number: 80
+#           - path: /docs
+#             pathType: Prefix
+#             backend:
+#               service:
+#                 name: xcodereview-backend
+#                 port:
+#                   number: 80
+#     # Staging API
+#     - host: api-staging.xcodereview.example.com
+#       http:
+#         paths:
+#           - path: /
+#             pathType: Prefix
+#             backend:
+#               service:
+#                 name: xcodereview-backend-staging
+#                 port:
+#                   number: 80

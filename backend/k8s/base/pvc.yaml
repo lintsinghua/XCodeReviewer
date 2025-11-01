@@ -1,0 +1,72 @@
+---
+# PersistentVolumeClaim for application logs
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: xcodereview-logs-pvc
+  labels:
+    app: xcodereview-backend
+    component: storage
+spec:
+  accessModes:
+    - ReadWriteMany  # Multiple pods can read/write
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: standard  # Change based on your cluster's storage class
+
+---
+# PersistentVolumeClaim for file uploads
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: xcodereview-uploads-pvc
+  labels:
+    app: xcodereview-backend
+    component: storage
+spec:
+  accessModes:
+    - ReadWriteMany  # Multiple pods can read/write
+  resources:
+    requests:
+      storage: 50Gi
+  storageClassName: standard  # Change based on your cluster's storage class
+
+---
+# PersistentVolumeClaim for temporary files
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: xcodereview-temp-pvc
+  labels:
+    app: xcodereview-backend
+    component: storage
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 20Gi
+  storageClassName: standard
+
+---
+# Notes:
+# 1. Storage Class:
+#    - AWS EKS: gp2, gp3, efs-sc (for ReadWriteMany)
+#    - GKE: standard, standard-rwo, filestore (for ReadWriteMany)
+#    - Azure AKS: default, managed-premium, azurefile (for ReadWriteMany)
+#    - On-premise: nfs, ceph-rbd, local-path
+#
+# 2. Access Modes:
+#    - ReadWriteOnce (RWO): Single node read-write
+#    - ReadWriteMany (RWM): Multiple nodes read-write (required for multi-pod deployments)
+#    - ReadOnlyMany (ROX): Multiple nodes read-only
+#
+# 3. For production with multiple replicas, use ReadWriteMany with:
+#    - AWS EFS
+#    - GCP Filestore
+#    - Azure Files
+#    - NFS server
+#    - Ceph FS
+#
+# 4. Alternative: Use object storage (S3, GCS, Azure Blob) instead of PVCs for uploads

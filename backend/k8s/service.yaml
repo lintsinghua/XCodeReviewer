@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: xcodereviewer-backend
+  namespace: xcodereviewer
+  labels:
+    app: xcodereviewer
+    component: backend
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8000
+    targetPort: 8000
+    protocol: TCP
+    name: http
+  selector:
+    app: xcodereviewer
+    component: backend
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: xcodereviewer-redis
+  namespace: xcodereviewer
+spec:
+  type: ClusterIP
+  ports:
+  - port: 6379
+    targetPort: 6379
+  selector:
+    app: redis

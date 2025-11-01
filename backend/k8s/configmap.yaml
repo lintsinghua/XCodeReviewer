@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: xcodereviewer-config
+  namespace: xcodereviewer
+data:
+  redis-url: "redis://xcodereviewer-redis:6379/0"
+  celery-broker-url: "redis://xcodereviewer-redis:6379/1"
+  celery-result-backend: "redis://xcodereviewer-redis:6379/2"
+  log-level: "INFO"
+  workers: "4"

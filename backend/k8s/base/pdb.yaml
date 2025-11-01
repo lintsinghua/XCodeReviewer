@@ -1,0 +1,27 @@
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: xcodereview-backend
+  labels:
+    app: xcodereview-backend
+    component: availability
+spec:
+  minAvailable: 2  # Always keep at least 2 pods running
+  selector:
+    matchLabels:
+      app: xcodereview-backend
+      component: api
+  unhealthyPodEvictionPolicy: AlwaysAllow
+
+---
+# Alternative: Use maxUnavailable instead
+# apiVersion: policy/v1
+# kind: PodDisruptionBudget
+# metadata:
+#   name: xcodereview-backend
+# spec:
+#   maxUnavailable: 1  # Allow max 1 pod to be unavailable
+#   selector:
+#     matchLabels:
+#       app: xcodereview-backend

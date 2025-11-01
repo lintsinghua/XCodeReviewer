@@ -1,0 +1,228 @@
+# Prometheus Alerting Rules for XCodeReviewer Backend
+groups:
+  - name: xcodereview_api
+    rules:
+      # High error rate
+      - alert: HighErrorRate
+        expr: |
+          (
+            sum(rate(http_requests_total{status_code=~"5.."}[5m])) /
+            sum(rate(http_requests_total[5m]))
+          ) > 0.05
+        for: 2m
+        labels:
+          severity: warning
+          service: xcodereview-backend
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is {{ $value | humanizePercentage }} for the last 5 minutes"
+
+      # Very high error rate
+      - alert: VeryHighErrorRate
+        expr: |
+          (
+            sum(rate(http_requests_total{status_code=~"5.."}[5m])) /
+            sum(rate(http_requests_total[5m]))
+          ) > 0.20
+        for: 1m
+        labels:
+          severity: critical
+          service: xcodereview-backend
+        annotations:
+          summary: "Very high error rate detected"
+          description: "Error rate is {{ $value | humanizePercentage }} for the last 5 minutes"
+
+      # High response time
+      - alert: HighResponseTime
+        expr: |
+          histogram_quantile(0.95, 
+            sum(rate(http_request_duration_seconds_bucket[5m])) by (le)
+          ) > 2.0
+        for: 5m
+        labels:
+          severity: warning
+          service: xcodereview-backend
+        annotations:
+          summary: "High response time detected"
+          description: "95th percentile response time is {{ $value }}s"
+
+      # Very high response time
+      - alert: VeryHighResponseTime
+        expr: |
+          histogram_quantile(0.95, 
+            sum(rate(http_request_duration_seconds_bucket[5m])) by (le)
+          ) > 5.0
+        for: 2m
+        labels:
+          severity: critical
+          service: xcodereview-backend
+        annotations:
+          summary: "Very high response time detected"
+          description: "95th percentile response time is {{ $value }}s"
+
+      # Low request rate (possible downtime)
+      - alert: LowRequestRate
+        expr: sum(rate(http_requests_total[5m])) < 0.1
+        for: 5m
+        labels:
+          severity: warning
+          service: xcodereview-backend
+        annotations:
+          summary: "Low request rate detected"
+          description: "Request rate is {{ $value }} requests/second"
+
+  - name: xcodereview_agents
+    rules:
+      # Agent failure rate
+      - alert: HighAgentFailureRate
+        expr: |
+          (
+            sum(rate(agent_calls_total{status="error"}[5m])) by (agent_name) /
+            sum(rate(agent_calls_total[5m])) by (agent_name)
+          ) > 0.10
+        for: 3m
+        labels:
+          severity: warning
+          service: xcodereview-backend
+        annotations:
+          summary: "High agent failure rate"
+          description: "Agent {{ $labels.agent_name }} failure rate is {{ $value | humanizePercentage }}"
+
+      # Agent response time
+      - alert: SlowAgentResponse
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(agent_call_duration_seconds_bucket[5m])) by (agent_name, le)
+          ) > 30.0
+        for: 5m
+        labels:
+          severity: warning
+          service: xcodereview-backend
+        annotations:
+          summary: "Slow agent response time"
+          description: "Agent {{ $labels.agent_name }} 95th percentile response time is {{ $value }}s"
+
+  - name: xcodereview_llm
+    rules:
+      # LLM API failure rate
+      - alert: HighLLMFailureRate
+        expr: |
+          (
+            sum(rate(llm_calls_total{status="error"}[5m])) by (provider) /
+            sum(rate(llm_calls_total[5m])) by (provider)
+          ) > 0.15
+        for: 3m
+        labels:
+          severity: warning
+          service: xcodereview-backend
+        annotations:
+          summary: "High LLM API failure rate"
+          description: "LLM provider {{ $labels.provider }} failure rate is {{ $value | humanizePercentage }}"
+
+      # High LLM cost
+      - alert: HighLLMCost
+        expr: |
+          sum(increase(llm_cost_total[1h])) by (provider) > 10.0
+        for: 5m
+        labels:
+          severity: warning
+          service: xcodereview-backend
+        annotations:
+          summary: "High LLM cost detected"
+          description: "LLM provider {{ $labels.provider }} cost is ${{ $value }} in the last hour"
+
+      # Very high LLM cost
+      - alert: VeryHighLLMCost
+        expr: |
+          sum(increase(llm_cost_total[1h])) by (provider) > 50.0
+        for: 1m
+        labels:
+          severity: critical
+          service: xcodereview-backend
+        annotations:
+          summary: "Very high LLM cost detected"
+          description: "LLM provider {{ $labels.provider }} cost is ${{ $value }} in the last hour"
+
+  - name: xcodereview_circuit_breaker
+    rules:
+      # Circuit breaker open
+      - alert: CircuitBreakerOpen
+        expr: circuit_breaker_state{state="open"} == 1
+        for: 2m
+        labels:
+          severity: warning
+          service: xcodereview-backend
+        annotations:
+          summary: "Circuit breaker is open"
+          description: "Circuit breaker {{ $labels.name }} has been open for 2 minutes"
+
+      # High circuit breaker failure rate
+      - alert: HighCircuitBreakerFailures
+        expr: |
+          rate(circuit_breaker_failures_total[5m]) > 1.0
+        for: 3m
+        labels:
+          severity: warning
+          service: xcodereview-backend
+        annotations:
+          summary: "High circuit breaker failure rate"
+          description: "Circuit breaker {{ $labels.name }} failure rate is {{ $value }} failures/second"
+
+  - name: xcodereview_database
+    rules:
+      # High database connection usage
+      - alert: HighDatabaseConnections
+        expr: database_connections_active > 25
+        for: 5m
+        labels:
+          severity: warning
+          service: xcodereview-backend
+        annotations:
+          summary: "High database connection usage"
+          description: "Active database connections: {{ $value }}"
+
+      # Slow database queries
+      - alert: SlowDatabaseQueries
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(database_query_duration_seconds_bucket[5m])) by (operation, le)
+          ) > 1.0
+        for: 5m
+        labels:
+          severity: warning
+          service: xcodereview-backend
+        annotations:
+          summary: "Slow database queries detected"
+          description: "95th percentile query time for {{ $labels.operation }} is {{ $value }}s"
+
+  - name: xcodereview_cache
+    rules:
+      # Low cache hit rate
+      - alert: LowCacheHitRate
+        expr: |
+          (
+            sum(rate(cache_operations_total{operation="get",status="hit"}[5m])) /
+            sum(rate(cache_operations_total{operation="get"}[5m]))
+          ) < 0.5
+        for: 10m
+        labels:
+          severity: warning
+          service: xcodereview-backend
+        annotations:
+          summary: "Low cache hit rate"
+          description: "Cache hit rate is {{ $value | humanizePercentage }}"
+
+      # High cache error rate
+      - alert: HighCacheErrorRate
+        expr: |
+          (
+            sum(rate(cache_operations_total{status="error"}[5m])) /
+            sum(rate(cache_operations_total[5m]))
+          ) > 0.05
+        for: 3m
+        labels:
+          severity: warning
+          service: xcodereview-backend
+        annotations:
+          summary: "High cache error rate"
+          description: "Cache error rate is {{ $value | humanizePercentage }}"

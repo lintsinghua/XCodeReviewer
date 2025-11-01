@@ -1,0 +1,21 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: xcodereview-staging
+
+bases:
+  - ../../base
+
+commonLabels:
+  environment: staging
+
+patchesStrategicMerge:
+  - configmap.yaml
+
+replicas:
+  - name: xcodereview-backend
+    count: 2
+
+images:
+  - name: xcodereview/backend
+    newTag: staging-latest
