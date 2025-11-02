@@ -18,7 +18,7 @@ import {
   Shield,
   Search
 } from "lucide-react";
-import { api } from "@/shared/config/database";
+import { api } from "@/shared/services/unified-api";
 import type { Project, CreateAuditTaskForm } from "@/shared/types";
 import { toast } from "sonner";
 import TerminalProgressDialog from "./TerminalProgressDialog";

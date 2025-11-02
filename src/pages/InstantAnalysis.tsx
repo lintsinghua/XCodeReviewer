@@ -23,7 +23,7 @@ import {
   Download
 } from "lucide-react";
 import { CodeAnalysisEngine } from "@/features/analysis/services";
-import { api } from "@/shared/config/database";
+import { api } from "@/shared/services/unified-api";
 import type { CodeAnalysisResult, AuditTask, AuditIssue } from "@/shared/types";
 import { toast } from "sonner";
 import ExportReportDialog from "@/components/reports/ExportReportDialog";

@@ -1,5 +1,5 @@
 import { LoginPanel } from "miaoda-auth-react";
-import { api } from "@/shared/config/database";
+import { api } from "@/shared/services/unified-api";
 
 const login_config = {
   title: 'XCodeReviewer',

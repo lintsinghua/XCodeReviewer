@@ -63,6 +63,19 @@ export default defineConfig({
       ],
     },
     proxy: {
+      // 后端API代理
+      "/api": {
+        target: "http://localhost:8000",
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path,
+      },
+      // WebSocket代理
+      "/ws": {
+        target: "ws://localhost:8000",
+        changeOrigin: true,
+        ws: true,
+      },
       "/dashscope-proxy": {
         target: "https://dashscope.aliyuncs.com",
         changeOrigin: true,

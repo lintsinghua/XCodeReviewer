@@ -15,7 +15,7 @@ import {
   AlertTriangle,
   Inbox
 } from "lucide-react";
-import { api } from "@/shared/config/database";
+import { api } from "@/shared/services/unified-api";
 import type { Project } from "@/shared/types";
 import { toast } from "sonner";
 import { deleteZipFile } from "@/shared/utils/zipStorage";

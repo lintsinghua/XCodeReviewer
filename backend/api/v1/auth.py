@@ -8,7 +8,7 @@ from sqlalchemy import select
 from datetime import timedelta
 
 from db.session import get_db
-from models.user import User
+from models.user import User, UserRole
 from schemas.auth import (
     UserRegister,
     UserResponse,
@@ -25,6 +25,7 @@ from core.security import (
     verify_token
 )
 from app.config import settings
+from api.dependencies import get_current_user
 
 router = APIRouter()
 
@@ -73,8 +74,8 @@ async def register(
         email=user_data.email,
         username=user_data.username,
         full_name=user_data.full_name,
-        hashed_password=get_password_hash(user_data.password),
-        role="user",
+        password_hash=get_password_hash(user_data.password),
+        role=UserRole.USER,
         is_active=True
     )
     
@@ -110,7 +111,7 @@ async def login(
     user = result.scalar_one_or_none()
     
     # Verify user exists and password is correct
-    if not user or not verify_password(form_data.password, user.hashed_password):
+    if not user or not verify_password(form_data.password, user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
@@ -283,7 +284,25 @@ async def reset_password(
         )
     
     # Update password
-    user.hashed_password = get_password_hash(reset_data.new_password)
+    user.password_hash = get_password_hash(reset_data.new_password)
     await db.commit()
     
     return {"message": "Password reset successful"}
+
+
+@router.get(
+    "/me",
+    response_model=UserResponse,
+    summary="Get current user",
+    description="Get current authenticated user information"
+)
+async def get_current_user_info(
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get current user information.
+    
+    Requires authentication via Bearer token.
+    Returns the authenticated user's profile information.
+    """
+    return current_user

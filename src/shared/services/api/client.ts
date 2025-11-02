@@ -4,7 +4,8 @@
  */
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+// 使用代理模式，开发环境直接访问 /api，生产环境使用完整URL
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.DEV ? '/api/v1' : 'http://localhost:8000/api/v1');
 
 export interface ApiError {
   message: string;

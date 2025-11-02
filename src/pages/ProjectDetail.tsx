@@ -23,7 +23,7 @@ import {
   Play,
   FileText
 } from "lucide-react";
-import { api } from "@/shared/config/database";
+import { api } from "@/shared/services/unified-api";
 import { runRepositoryAudit, scanZipFile } from "@/features/projects/services";
 import type { Project, AuditTask, CreateProjectForm } from "@/shared/types";
 import { loadZipFile } from "@/shared/utils/zipStorage";

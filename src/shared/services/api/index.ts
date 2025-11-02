@@ -46,16 +46,46 @@ export const authApi = {
   /**
    * Register a new user
    */
-  register: (data: RegisterRequest) =>
-    apiClient.post<User>('/api/v1/auth/register', data),
+  register: async (data: RegisterRequest): Promise<User> => {
+    return await apiClient.post<User>('/auth/register', data);
+  },
 
   /**
-   * Login user
+   * Login user (使用 form data 格式)
    */
-  login: async (data: LoginRequest): Promise<AuthResponse> => {
-    const response = await apiClient.post<AuthResponse>('/api/v1/auth/login', data);
+  login: async (username: string, password: string): Promise<AuthResponse> => {
+    // 后端使用 OAuth2PasswordRequestForm，需要 form data 格式
+    const formData = new FormData();
+    formData.append('username', username);
+    formData.append('password', password);
+    
+    const response = await apiClient.post<AuthResponse>('/auth/login', formData, {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+    });
+    
     // Store tokens
-    apiClient.setTokens(response.access_token, response.refresh_token);
+    if (response.access_token && response.refresh_token) {
+      apiClient.setTokens(response.access_token, response.refresh_token);
+    }
+    
+    return response;
+  },
+
+  /**
+   * Refresh access token
+   */
+  refreshToken: async (refreshToken: string): Promise<AuthResponse> => {
+    const response = await apiClient.post<AuthResponse>('/auth/refresh', {
+      refresh_token: refreshToken
+    });
+    
+    // Update tokens
+    if (response.access_token && response.refresh_token) {
+      apiClient.setTokens(response.access_token, response.refresh_token);
+    }
+    
     return response;
   },
 
@@ -64,7 +94,7 @@ export const authApi = {
    */
   logout: async (): Promise<void> => {
     try {
-      await apiClient.post('/api/v1/auth/logout');
+      await apiClient.post('/auth/logout');
     } finally {
       apiClient.clearTokens();
     }
@@ -74,19 +104,19 @@ export const authApi = {
    * Request password reset
    */
   requestPasswordReset: (data: PasswordResetRequest) =>
-    apiClient.post('/api/v1/auth/forgot-password', data),
+    apiClient.post('/auth/forgot-password', data),
 
   /**
    * Reset password with token
    */
   resetPassword: (data: PasswordResetConfirm) =>
-    apiClient.post('/api/v1/auth/reset-password', data),
+    apiClient.post('/auth/reset-password', data),
 
   /**
    * Get current user
    */
   getCurrentUser: () =>
-    apiClient.get<User>('/api/v1/auth/me'),
+    apiClient.get<User>('/auth/me'),
 };
 
 // ============================================================================
@@ -98,37 +128,37 @@ export const projectApi = {
    * Create a new project
    */
   create: (data: ProjectCreate) =>
-    apiClient.post<Project>('/api/v1/projects', data),
+    apiClient.post<Project>('/projects', data),
 
   /**
    * List projects with pagination
    */
   list: (params?: { page?: number; page_size?: number; search?: string }) =>
-    apiClient.get<PaginatedResponse<Project>>('/api/v1/projects', { params }),
+    apiClient.get<PaginatedResponse<Project>>('/projects', { params }),
 
   /**
    * Get project by ID
    */
   get: (id: number) =>
-    apiClient.get<Project>(`/api/v1/projects/${id}`),
+    apiClient.get<Project>(`/projects/${id}`),
 
   /**
    * Update project
    */
   update: (id: number, data: ProjectUpdate) =>
-    apiClient.put<Project>(`/api/v1/projects/${id}`, data),
+    apiClient.put<Project>(`/projects/${id}`, data),
 
   /**
    * Delete project
    */
   delete: (id: number) =>
-    apiClient.delete(`/api/v1/projects/${id}`),
+    apiClient.delete(`/projects/${id}`),
 
   /**
    * Get project statistics
    */
   getStats: (id: number) =>
-    apiClient.get(`/api/v1/projects/${id}/stats`),
+    apiClient.get(`/projects/${id}/stats`),
 };
 
 // ============================================================================
@@ -140,7 +170,7 @@ export const taskApi = {
    * Create a new task
    */
   create: (data: TaskCreate) =>
-    apiClient.post<AuditTask>('/api/v1/tasks', data),
+    apiClient.post<AuditTask>('/tasks', data),
 
   /**
    * List tasks with pagination and filters
@@ -152,37 +182,37 @@ export const taskApi = {
     status?: string;
     priority?: string;
   }) =>
-    apiClient.get<PaginatedResponse<AuditTask>>('/api/v1/tasks', { params }),
+    apiClient.get<PaginatedResponse<AuditTask>>('/tasks', { params }),
 
   /**
    * Get task by ID
    */
   get: (id: number) =>
-    apiClient.get<AuditTask>(`/api/v1/tasks/${id}`),
+    apiClient.get<AuditTask>(`/tasks/${id}`),
 
   /**
    * Update task
    */
   update: (id: number, data: TaskUpdate) =>
-    apiClient.put<AuditTask>(`/api/v1/tasks/${id}`, data),
+    apiClient.put<AuditTask>(`/tasks/${id}`, data),
 
   /**
    * Cancel task
    */
   cancel: (id: number) =>
-    apiClient.put(`/api/v1/tasks/${id}/cancel`),
+    apiClient.put(`/tasks/${id}/cancel`),
 
   /**
    * Get task results
    */
   getResults: (id: number) =>
-    apiClient.get(`/api/v1/tasks/${id}/results`),
+    apiClient.get(`/tasks/${id}/results`),
 
   /**
    * Retry failed task
    */
   retry: (id: number) =>
-    apiClient.post(`/api/v1/tasks/${id}/retry`),
+    apiClient.post(`/tasks/${id}/retry`),
 };
 
 // ============================================================================
@@ -201,31 +231,31 @@ export const issueApi = {
     category?: string;
     status?: string;
   }) =>
-    apiClient.get<PaginatedResponse<AuditIssue>>('/api/v1/issues', { params }),
+    apiClient.get<PaginatedResponse<AuditIssue>>('/issues', { params }),
 
   /**
    * Get issue by ID
    */
   get: (id: number) =>
-    apiClient.get<AuditIssue>(`/api/v1/issues/${id}`),
+    apiClient.get<AuditIssue>(`/issues/${id}`),
 
   /**
    * Update issue
    */
   update: (id: number, data: IssueUpdate) =>
-    apiClient.put<AuditIssue>(`/api/v1/issues/${id}`, data),
+    apiClient.put<AuditIssue>(`/issues/${id}`, data),
 
   /**
    * Add comment to issue
    */
   addComment: (id: number, data: IssueComment) =>
-    apiClient.post(`/api/v1/issues/${id}/comments`, data),
+    apiClient.post(`/issues/${id}/comments`, data),
 
   /**
    * Bulk update issues
    */
   bulkUpdate: (issueIds: number[], data: IssueUpdate) =>
-    apiClient.post('/api/v1/issues/bulk-update', { issue_ids: issueIds, ...data }),
+    apiClient.post('/issues/bulk-update', { issue_ids: issueIds, ...data }),
 };
 
 // ============================================================================
@@ -237,7 +267,7 @@ export const reportApi = {
    * Generate a new report
    */
   create: (data: ReportCreate) =>
-    apiClient.post<Report>('/api/v1/reports', data),
+    apiClient.post<Report>('/reports', data),
 
   /**
    * List reports with pagination and filters
@@ -249,25 +279,25 @@ export const reportApi = {
     format?: string;
     status?: string;
   }) =>
-    apiClient.get<PaginatedResponse<Report>>('/api/v1/reports', { params }),
+    apiClient.get<PaginatedResponse<Report>>('/reports', { params }),
 
   /**
    * Get report by ID
    */
   get: (id: number) =>
-    apiClient.get<Report>(`/api/v1/reports/${id}`),
+    apiClient.get<Report>(`/reports/${id}`),
 
   /**
    * Download report
    */
   download: (id: number, filename?: string) =>
-    apiClient.download(`/api/v1/reports/${id}/download`, filename),
+    apiClient.download(`/reports/${id}/download`, filename),
 
   /**
    * Delete report
    */
   delete: (id: number) =>
-    apiClient.delete(`/api/v1/reports/${id}`),
+    apiClient.delete(`/reports/${id}`),
 };
 
 // ============================================================================
@@ -279,19 +309,19 @@ export const statisticsApi = {
    * Get overview statistics
    */
   getOverview: () =>
-    apiClient.get<OverviewStats>('/api/v1/statistics/overview'),
+    apiClient.get<OverviewStats>('/statistics/overview'),
 
   /**
    * Get trend statistics
    */
   getTrends: (params?: { days?: number }) =>
-    apiClient.get<TrendStats>('/api/v1/statistics/trends', { params }),
+    apiClient.get<TrendStats>('/statistics/trends', { params }),
 
   /**
    * Get quality metrics for a project
    */
   getQualityMetrics: (projectId: number) =>
-    apiClient.get<QualityMetrics>(`/api/v1/statistics/quality/${projectId}`),
+    apiClient.get<QualityMetrics>(`/statistics/quality/${projectId}`),
 };
 
 // ============================================================================
@@ -303,19 +333,19 @@ export const migrationApi = {
    * Export user data
    */
   exportData: () =>
-    apiClient.get<ExportData>('/api/v1/migration/export'),
+    apiClient.get<ExportData>('/migration/export'),
 
   /**
    * Import user data
    */
   importData: (data: ExportData) =>
-    apiClient.post<ImportResult>('/api/v1/migration/import', data),
+    apiClient.post<ImportResult>('/migration/import', data),
 
   /**
    * Validate import data
    */
   validateImport: (data: ExportData) =>
-    apiClient.post('/api/v1/migration/validate', data),
+    apiClient.post('/migration/validate', data),
 };
 
 // ============================================================================
@@ -327,7 +357,7 @@ export const fileApi = {
    * Upload ZIP file for scanning
    */
   uploadZip: (file: File, onProgress?: (progress: number) => void) =>
-    apiClient.upload('/api/v1/projects/upload', file, onProgress),
+    apiClient.upload('/projects/upload', file, onProgress),
 };
 
 // Export all APIs

@@ -7,69 +7,89 @@ import AuditTasks from "@/pages/AuditTasks";
 import TaskDetail from "@/pages/TaskDetail";
 import AdminDashboard from "@/pages/AdminDashboard";
 import LogsPage from "@/pages/LogsPage";
-import type { ReactNode } from 'react';
+import Auth from "@/pages/Auth";
+import type { ComponentType } from 'react';
 
 export interface RouteConfig {
   name: string;
   path: string;
-  element: ReactNode;
+  component: ComponentType<any>;
   visible?: boolean;
+  protected?: boolean;
 }
 
 const routes: RouteConfig[] = [
+  // 认证页面（不需要保护）
+  {
+    name: "登录",
+    path: "/auth",
+    component: Auth,
+    visible: false,
+    protected: false,
+  },
+  // 以下页面需要登录才能访问
   {
     name: "仪表盘",
     path: "/",
-    element: <Dashboard />,
+    component: Dashboard,
     visible: true,
+    protected: true,
   },
   {
     name: "项目管理",
     path: "/projects",
-    element: <Projects />,
+    component: Projects,
     visible: true,
+    protected: true,
   },
   {
     name: "项目详情",
     path: "/projects/:id",
-    element: <ProjectDetail />,
+    component: ProjectDetail,
     visible: false,
+    protected: true,
   },
   {
     name: "即时分析",
     path: "/instant-analysis",
-    element: <InstantAnalysis />,
+    component: InstantAnalysis,
     visible: true,
+    protected: true,
   },
   {
     name: "审计任务",
     path: "/audit-tasks",
-    element: <AuditTasks />,
+    component: AuditTasks,
     visible: true,
+    protected: true,
   },
   {
     name: "任务详情",
     path: "/tasks/:id",
-    element: <TaskDetail />,
+    component: TaskDetail,
     visible: false,
+    protected: true,
   },
   {
     name: "系统管理",
     path: "/admin",
-    element: <AdminDashboard />,
+    component: AdminDashboard,
     visible: true,
+    protected: true,
   },
   {
     name: "回收站",
     path: "/recycle-bin",
-    element: <RecycleBin />,
+    component: RecycleBin,
     visible: true,
+    protected: true,
   },
   {
     name: "系统日志",
     path: "/logs",
-    element: <LogsPage />,
+    component: LogsPage,
     visible: true,
+    protected: true,
   },
 ];
 

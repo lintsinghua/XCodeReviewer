@@ -28,7 +28,7 @@ import {
   Edit,
   CheckCircle
 } from "lucide-react";
-import { api } from "@/shared/config/database";
+import { api } from "@/shared/services/unified-api";
 import { validateZipFile } from "@/features/projects/services";
 import type { Project, CreateProjectForm } from "@/shared/types";
 import { saveZipFile } from "@/shared/utils/zipStorage";

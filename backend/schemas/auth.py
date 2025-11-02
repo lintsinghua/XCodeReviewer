@@ -40,7 +40,7 @@ class UserRegister(BaseModel):
 
 class UserResponse(BaseModel):
     """User response schema"""
-    id: str
+    id: int  # 修改为 int，因为数据库使用整数ID
     email: str
     username: str
     full_name: Optional[str]

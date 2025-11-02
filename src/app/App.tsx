@@ -1,26 +1,82 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { Toaster } from "sonner";
+import { lazy, Suspense } from "react";
 import Header from "@/components/layout/Header";
-import routes from "./routes";
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 
-function App() {
+// 懒加载页面组件
+const Auth = lazy(() => import("@/pages/Auth"));
+const Dashboard = lazy(() => import("@/pages/Dashboard"));
+const Projects = lazy(() => import("@/pages/Projects"));
+const ProjectDetail = lazy(() => import("@/pages/ProjectDetail"));
+const RecycleBin = lazy(() => import("@/pages/RecycleBin"));
+const InstantAnalysis = lazy(() => import("@/pages/InstantAnalysis"));
+const AuditTasks = lazy(() => import("@/pages/AuditTasks"));
+const TaskDetail = lazy(() => import("@/pages/TaskDetail"));
+const AdminDashboard = lazy(() => import("@/pages/AdminDashboard"));
+const LogsPage = lazy(() => import("@/pages/LogsPage"));
+
+// Loading 组件
+function LoadingFallback() {
   return (
-    <BrowserRouter>
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      minHeight: '100vh',
+      fontSize: '18px',
+      color: '#666'
+    }}>
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ marginBottom: '10px', fontSize: '24px' }}>⏳</div>
+        <div>加载中...</div>
+      </div>
+    </div>
+  );
+}
+
+// App 内容组件
+function AppContent() {
+  const location = useLocation();
+  const isAuthPage = location.pathname === '/auth';
+
+  return (
+    <>
       <Toaster position="top-right" />
-      <div className="min-h-screen gradient-bg">
-        <Header />
-        <main className="container-responsive py-4 md:py-6">
+      {!isAuthPage && <Header />}
+      <main className={isAuthPage ? '' : 'container-responsive py-4 md:py-6'}>
+        <Suspense fallback={<LoadingFallback />}>
           <Routes>
-            {routes.map((route) => (
-              <Route
-                key={route.path}
-                path={route.path}
-                element={route.element}
-              />
-            ))}
+            {/* 认证页面 - 公开访问 */}
+            <Route path="/auth" element={<Auth />} />
+            
+            {/* 受保护的页面 */}
+            <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            <Route path="/projects" element={<ProtectedRoute><Projects /></ProtectedRoute>} />
+            <Route path="/projects/:id" element={<ProtectedRoute><ProjectDetail /></ProtectedRoute>} />
+            <Route path="/instant-analysis" element={<ProtectedRoute><InstantAnalysis /></ProtectedRoute>} />
+            <Route path="/audit-tasks" element={<ProtectedRoute><AuditTasks /></ProtectedRoute>} />
+            <Route path="/tasks/:id" element={<ProtectedRoute><TaskDetail /></ProtectedRoute>} />
+            <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
+            <Route path="/recycle-bin" element={<ProtectedRoute><RecycleBin /></ProtectedRoute>} />
+            <Route path="/logs" element={<ProtectedRoute><LogsPage /></ProtectedRoute>} />
+            
+            {/* 404 重定向 */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
-        </main>
+        </Suspense>
+      </main>
+    </>
+  );
+}
+
+function App() {
+  console.log('🚀 App 启动 - XCodeReviewer 认证系统已集成');
+  
+  return (
+    <BrowserRouter>
+      <div className="min-h-screen gradient-bg">
+        <AppContent />
       </div>
     </BrowserRouter>
   );

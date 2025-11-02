@@ -13,7 +13,7 @@ import {
   Calendar,
   Plus
 } from "lucide-react";
-import { api } from "@/shared/config/database";
+import { api } from "@/shared/services/unified-api";
 import type { AuditTask } from "@/shared/types";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";

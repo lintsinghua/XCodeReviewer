@@ -56,6 +56,9 @@ async def get_current_user(
     Raises:
         AuthenticationError: If token is invalid or user not found
     """
+    from models.user import User
+    from sqlalchemy import select
+    
     token = credentials.credentials
     
     try:
@@ -63,7 +66,7 @@ async def get_current_user(
         payload = jwt.decode(
             token,
             settings.SECRET_KEY,
-            algorithms=[settings.JWT_ALGORITHM]
+            algorithms=[settings.ALGORITHM]
         )
         
         user_id: str = payload.get("sub")
@@ -74,30 +77,18 @@ async def get_current_user(
         raise AuthenticationError(f"Invalid token: {str(e)}")
     
     # Query user from database
-    # Note: This assumes a User model exists. Uncomment when model is created.
-    # from models.user import User
-    # from sqlalchemy import select
-    # 
-    # result = await db.execute(
-    #     select(User).where(User.id == user_id)
-    # )
-    # user = result.scalar_one_or_none()
-    # 
-    # if user is None:
-    #     raise AuthenticationError("User not found")
-    # 
-    # if not user.is_active:
-    #     raise AuthenticationError("User account is inactive")
-    # 
-    # return user
+    result = await db.execute(
+        select(User).where(User.id == int(user_id))
+    )
+    user = result.scalar_one_or_none()
     
-    # Temporary placeholder until User model is implemented
-    return {
-        "id": user_id,
-        "email": "user@example.com",
-        "role": "user",
-        "is_active": True
-    }
+    if user is None:
+        raise AuthenticationError("User not found")
+    
+    if not user.is_active:
+        raise AuthenticationError("User account is inactive")
+    
+    return user
 
 
 async def get_current_admin_user(
