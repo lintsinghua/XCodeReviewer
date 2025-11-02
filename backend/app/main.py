@@ -4,10 +4,6 @@ FastAPI Application Entry Point
 Main application setup with middleware, exception handlers, and lifecycle management.
 """
 
-import warnings
-# Suppress pkg_resources deprecation warning from OpenTelemetry
-warnings.filterwarnings("ignore", category=UserWarning, module="opentelemetry.instrumentation.dependencies")
-
 from fastapi import FastAPI, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
@@ -20,8 +16,6 @@ from loguru import logger
 from app.config import settings
 from app.middleware import RequestLoggingMiddleware, RateLimitMiddleware
 from core.exceptions import XCodeReviewerException
-from core.tracing import init_tracing
-from core.metrics_middleware import MetricsMiddleware
 from db.session import get_db
 
 
@@ -35,11 +29,6 @@ async def lifespan(app: FastAPI):
     if not settings.validate_secret_key():
         logger.warning("SECRET_KEY is using default or too short. Generating secure key...")
         settings.generate_secret_key_if_needed()
-    
-    # Initialize distributed tracing
-    # Note: Tracing instrumentation is done before app startup
-    # init_tracing is called after app creation but before lifespan
-    logger.info("Tracing initialized")
     
     # Initialize default admin user on first run
     # Note: Uncomment when User model is implemented
@@ -69,14 +58,6 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Initialize distributed tracing (must be done before adding other middleware)
-init_tracing(
-    app,
-    service_name=settings.APP_NAME,
-    service_version=settings.APP_VERSION,
-    enabled=settings.TRACING_ENABLED
-)
-
 # CORS Middleware
 app.add_middleware(
     CORSMiddleware,
@@ -88,9 +69,6 @@ app.add_middleware(
 
 # Gzip Compression
 app.add_middleware(GZipMiddleware, minimum_size=1000)
-
-# Metrics Middleware
-app.add_middleware(MetricsMiddleware)
 
 # Rate Limiting Middleware
 app.add_middleware(RateLimitMiddleware)

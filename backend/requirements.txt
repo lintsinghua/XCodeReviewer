@@ -3,6 +3,7 @@ fastapi==0.104.1
 uvicorn[standard]==0.24.0
 pydantic==2.5.0
 pydantic-settings==2.1.0
+email-validator==2.1.0
 
 # Database
 sqlalchemy==2.0.23
@@ -43,19 +44,6 @@ tenacity==8.2.3
 python-slugify==8.0.1
 requests==2.31.0
 python-magic==0.4.27
-
-# Monitoring
-prometheus-client==0.19.0
-sentry-sdk[fastapi]==1.38.0
-
-# Distributed Tracing
-opentelemetry-api==1.21.0
-opentelemetry-sdk==1.21.0
-opentelemetry-instrumentation-fastapi==0.42b0
-opentelemetry-instrumentation-sqlalchemy==0.42b0
-opentelemetry-instrumentation-redis==0.42b0
-opentelemetry-instrumentation-requests==0.42b0
-opentelemetry-exporter-otlp-proto-grpc==1.21.0
 
 # Structured Logging
 structlog==23.2.0
