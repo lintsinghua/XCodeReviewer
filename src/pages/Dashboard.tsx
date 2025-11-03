@@ -13,7 +13,8 @@ import {
   FileText, GitBranch, Shield, TrendingUp, Zap,
   BarChart3, Target, ArrowUpRight, Calendar
 } from "lucide-react";
-import { api, dbMode, isDemoMode } from "@/shared/config/database";
+import { api } from "@/shared/services/unified-api";
+import { dbMode, isDemoMode } from "@/shared/config/database";
 import type { Project, AuditTask, ProjectStats } from "@/shared/types";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";

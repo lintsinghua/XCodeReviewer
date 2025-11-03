@@ -24,7 +24,7 @@ import {
   Zap,
   X
 } from "lucide-react";
-import { api } from "@/shared/config/database";
+import { api } from "@/shared/services/unified-api";
 import type { AuditTask, AuditIssue } from "@/shared/types";
 import { toast } from "sonner";
 import ExportReportDialog from "@/components/reports/ExportReportDialog";
@@ -572,7 +572,7 @@ export default function TaskDetail() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="stat-label">质量评分</p>
-                <p className="stat-value text-xl text-primary">{task.quality_score.toFixed(1)}</p>
+                <p className="stat-value text-xl text-primary">{(task.quality_score || 0).toFixed(1)}</p>
               </div>
               <div className="stat-icon from-emerald-500 to-emerald-600">
                 <TrendingUp className="w-5 h-5 text-white" />
@@ -586,7 +586,7 @@ export default function TaskDetail() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="stat-label">代码行数</p>
-                <p className="stat-value text-xl">{task.total_lines.toLocaleString()}</p>
+                <p className="stat-value text-xl">{(task.total_lines || 0).toLocaleString()}</p>
               </div>
               <div className="stat-icon from-purple-500 to-purple-600">
                 <FileText className="w-5 h-5 text-white" />

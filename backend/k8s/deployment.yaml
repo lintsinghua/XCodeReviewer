@@ -1,0 +1,119 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: xcodereviewer-backend
+  namespace: xcodereviewer
+  labels:
+    app: xcodereviewer
+    component: backend
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: xcodereviewer
+      component: backend
+  template:
+    metadata:
+      labels:
+        app: xcodereviewer
+        component: backend
+    spec:
+      containers:
+      - name: backend
+        image: xcodereviewer/backend:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8000
+          name: http
+        env:
+        - name: APP_ENV
+          value: "production"
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: xcodereviewer-secrets
+              key: database-url
+        - name: REDIS_URL
+          valueFrom:
+            configMapKeyRef:
+              name: xcodereviewer-config
+              key: redis-url
+        - name: SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: xcodereviewer-secrets
+              key: secret-key
+        - name: JWT_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: xcodereviewer-secrets
+              key: jwt-secret-key
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 5
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: xcodereviewer-celery-worker
+  namespace: xcodereviewer
+  labels:
+    app: xcodereviewer
+    component: celery-worker
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: xcodereviewer
+      component: celery-worker
+  template:
+    metadata:
+      labels:
+        app: xcodereviewer
+        component: celery-worker
+    spec:
+      containers:
+      - name: celery-worker
+        image: xcodereviewer/backend:latest
+        command: ["celery", "-A", "tasks.celery_app", "worker", "--loglevel=info"]
+        env:
+        - name: APP_ENV
+          value: "production"
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: xcodereviewer-secrets
+              key: database-url
+        - name: REDIS_URL
+          valueFrom:
+            configMapKeyRef:
+              name: xcodereviewer-config
+              key: redis-url
+        - name: CELERY_BROKER_URL
+          valueFrom:
+            configMapKeyRef:
+              name: xcodereviewer-config
+              key: celery-broker-url
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"

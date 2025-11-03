@@ -1,0 +1,27 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: xcodereview-backend-config
+  labels:
+    app: xcodereview-backend
+    component: config
+    environment: production
+data:
+  # Production-specific configuration
+  DEBUG: "false"
+  LOG_LEVEL: "INFO"
+  
+  # Production CORS
+  CORS_ORIGINS: '["https://xcodereview.example.com","https://app.xcodereview.example.com"]'
+  
+  # Production rate limits
+  RATE_LIMIT_PER_MINUTE: "60"
+  RATE_LIMIT_PER_HOUR: "1000"
+  
+  # Production workers
+  WORKERS: "8"
+  
+  # Production database pool
+  DATABASE_POOL_SIZE: "30"
+  DATABASE_MAX_OVERFLOW: "20"

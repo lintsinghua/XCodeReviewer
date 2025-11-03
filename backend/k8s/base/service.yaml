@@ -1,0 +1,40 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: xcodereview-backend
+  labels:
+    app: xcodereview-backend
+    component: api
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app: xcodereview-backend
+    component: api
+  sessionAffinity: None
+
+---
+# Headless service for StatefulSet (if needed for Celery workers)
+apiVersion: v1
+kind: Service
+metadata:
+  name: xcodereview-backend-headless
+  labels:
+    app: xcodereview-backend
+    component: api
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+    - port: 80
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app: xcodereview-backend
+    component: api

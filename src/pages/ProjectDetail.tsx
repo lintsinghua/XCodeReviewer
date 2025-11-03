@@ -23,7 +23,7 @@ import {
   Play,
   FileText
 } from "lucide-react";
-import { api } from "@/shared/config/database";
+import { api } from "@/shared/services/unified-api";
 import { runRepositoryAudit, scanZipFile } from "@/features/projects/services";
 import type { Project, AuditTask, CreateProjectForm } from "@/shared/types";
 import { loadZipFile } from "@/shared/utils/zipStorage";
@@ -538,11 +538,11 @@ export default function ProjectDetail() {
                         <p className="text-sm text-muted-foreground">代码行数</p>
                       </div>
                       <div className="text-center">
-                        <p className="text-2xl font-bold">{task.issues_count}</p>
+                        <p className="text-2xl font-bold">{task.issues_count || 0}</p>
                         <p className="text-sm text-muted-foreground">发现问题</p>
                       </div>
                       <div className="text-center">
-                        <p className="text-2xl font-bold">{task.quality_score.toFixed(1)}</p>
+                        <p className="text-2xl font-bold">{(task.quality_score || 0).toFixed(1)}</p>
                         <p className="text-sm text-muted-foreground">质量评分</p>
                       </div>
                     </div>
@@ -551,9 +551,9 @@ export default function ProjectDetail() {
                       <div className="space-y-2">
                         <div className="flex items-center justify-between text-sm">
                           <span>质量评分</span>
-                          <span>{task.quality_score.toFixed(1)}/100</span>
+                          <span>{(task.quality_score || 0).toFixed(1)}/100</span>
                         </div>
-                        <Progress value={task.quality_score} />
+                        <Progress value={task.quality_score || 0} />
                       </div>
                     )}
 

@@ -13,7 +13,7 @@ import {
   Calendar,
   Plus
 } from "lucide-react";
-import { api } from "@/shared/config/database";
+import { api } from "@/shared/services/unified-api";
 import type { AuditTask } from "@/shared/types";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
@@ -102,14 +102,19 @@ export default function AuditTasks() {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('zh-CN', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+  const formatDate = (dateString: string | undefined | null) => {
+    if (!dateString) return '-';
+    try {
+      return new Date(dateString).toLocaleDateString('zh-CN', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch (error) {
+      return '-';
+    }
   };
 
   const filteredTasks = tasks.filter(task => {
@@ -281,19 +286,19 @@ export default function AuditTasks() {
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                   <div className="text-center p-4 bg-gradient-to-br from-blue-50 to-blue-100/30 rounded-xl border border-blue-200">
-                    <div className="text-2xl font-bold text-blue-600 mb-1">{task.total_files}</div>
+                    <div className="text-2xl font-bold text-blue-600 mb-1">{task.total_files || 0}</div>
                     <p className="text-xs text-blue-700 font-medium">文件数</p>
                   </div>
                   <div className="text-center p-4 bg-gradient-to-br from-purple-50 to-purple-100/30 rounded-xl border border-purple-200">
-                    <div className="text-2xl font-bold text-purple-600 mb-1">{task.total_lines.toLocaleString()}</div>
+                    <div className="text-2xl font-bold text-purple-600 mb-1">{(task.total_lines || 0).toLocaleString()}</div>
                     <p className="text-xs text-purple-700 font-medium">代码行数</p>
                   </div>
                   <div className="text-center p-4 bg-gradient-to-br from-orange-50 to-orange-100/30 rounded-xl border border-orange-200">
-                    <div className="text-2xl font-bold text-orange-600 mb-1">{task.issues_count}</div>
+                    <div className="text-2xl font-bold text-orange-600 mb-1">{task.issues_count || 0}</div>
                     <p className="text-xs text-orange-700 font-medium">发现问题</p>
                   </div>
                   <div className="text-center p-4 bg-gradient-to-br from-green-50 to-green-100/30 rounded-xl border border-green-200">
-                    <div className="text-2xl font-bold text-green-600 mb-1">{task.quality_score.toFixed(1)}</div>
+                    <div className="text-2xl font-bold text-green-600 mb-1">{(task.quality_score || 0).toFixed(1)}</div>
                     <p className="text-xs text-green-700 font-medium">质量评分</p>
                   </div>
                 </div>

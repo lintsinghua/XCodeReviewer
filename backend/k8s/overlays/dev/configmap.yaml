@@ -1,0 +1,23 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: xcodereview-backend-config
+  labels:
+    app: xcodereview-backend
+    component: config
+    environment: development
+data:
+  # Development-specific configuration
+  DEBUG: "true"
+  LOG_LEVEL: "DEBUG"
+  
+  # Use local SQLite for development
+  USE_LOCAL_DB: "true"
+  
+  # Relaxed rate limits for development
+  RATE_LIMIT_PER_MINUTE: "1000"
+  RATE_LIMIT_PER_HOUR: "10000"
+  
+  # Development CORS - allow all origins
+  CORS_ORIGINS: '["*"]'

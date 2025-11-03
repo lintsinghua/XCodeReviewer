@@ -214,10 +214,10 @@ export default function TerminalProgressDialog({
                     }
 
                     // 显示代码行数（仅在有变化时）
-                    if (linesChanged && task.total_lines > lastTotalLines) {
-                        const newLines = task.total_lines - lastTotalLines;
-                        addLog(`📝 已分析 ${task.total_lines.toLocaleString()} 行代码 [+${newLines.toLocaleString()}]`, "info");
-                        lastTotalLines = task.total_lines;
+                    if (linesChanged && (task.total_lines || 0) > lastTotalLines) {
+                        const newLines = (task.total_lines || 0) - lastTotalLines;
+                        addLog(`📝 已分析 ${(task.total_lines || 0).toLocaleString()} 行代码 [+${newLines.toLocaleString()}]`, "info");
+                        lastTotalLines = task.total_lines || 0;
                     }
                 } else if (task.status === "completed") {
                     // 任务完成
@@ -225,9 +225,9 @@ export default function TerminalProgressDialog({
                         addLog("", "info"); // 空行分隔
                         addLog("✅ 代码扫描完成", "success");
                         addLog("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━", "info");
-                        addLog(`📊 总计扫描: ${task.total_files} 个文件`, "success");
-                        addLog(`📝 总计分析: ${task.total_lines.toLocaleString()} 行代码`, "success");
-                        addLog(`⚠️  发现问题: ${task.issues_count} 个`, task.issues_count > 0 ? "warning" : "success");
+                        addLog(`📊 总计扫描: ${task.total_files || 0} 个文件`, "success");
+                        addLog(`📝 总计分析: ${(task.total_lines || 0).toLocaleString()} 行代码`, "success");
+                        addLog(`⚠️  发现问题: ${task.issues_count || 0} 个`, (task.issues_count || 0) > 0 ? "warning" : "success");
 
                         // 解析问题类型分布
                         if (task.issues_count > 0) {
@@ -259,7 +259,7 @@ export default function TerminalProgressDialog({
                             }
                         }
 
-                        addLog(`⭐ 质量评分: ${task.quality_score.toFixed(1)}/100`, "success");
+                        addLog(`⭐ 质量评分: ${(task.quality_score || 0).toFixed(1)}/100`, "success");
                         addLog("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━", "info");
                         addLog("🎉 审计任务已完成！", "success");
 
@@ -283,9 +283,9 @@ export default function TerminalProgressDialog({
                         addLog("🛑 任务已被用户取消", "warning");
                         addLog("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━", "warning");
                         addLog(`📊 完成统计:`, "info");
-                        addLog(`  • 已分析文件: ${task.scanned_files}/${task.total_files}`, "info");
-                        addLog(`  • 发现问题: ${task.issues_count} 个`, "info");
-                        addLog(`  • 代码行数: ${task.total_lines.toLocaleString()} 行`, "info");
+                        addLog(`  • 已分析文件: ${task.scanned_files || 0}/${task.total_files || 0}`, "info");
+                        addLog(`  • 发现问题: ${task.issues_count || 0} 个`, "info");
+                        addLog(`  • 代码行数: ${(task.total_lines || 0).toLocaleString()} 行`, "info");
                         addLog("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━", "warning");
                         addLog("✓ 已分析的结果已保存到数据库", "success");
 

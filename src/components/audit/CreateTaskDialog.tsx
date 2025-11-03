@@ -18,7 +18,7 @@ import {
   Shield,
   Search
 } from "lucide-react";
-import { api } from "@/shared/config/database";
+import { api } from "@/shared/services/unified-api";
 import type { Project, CreateAuditTaskForm } from "@/shared/types";
 import { toast } from "sonner";
 import TerminalProgressDialog from "./TerminalProgressDialog";
@@ -142,68 +142,32 @@ export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, pr
     try {
       setCreating(true);
       
-      console.log('🎯 开始创建审计任务...', { 
+      console.log('🎯 开始创建审计任务（通过后端API）...', { 
         projectId: project.id, 
         projectName: project.name,
         repositoryType: project.repository_type 
       });
 
-      let taskId: string;
-
-      // 根据项目是否有repository_url判断使用哪种扫描方式
-      if (!project.repository_url || project.repository_url.trim() === '') {
-        // ZIP上传的项目：需要有ZIP文件才能扫描
-        if (!zipFile) {
-          toast.error("请上传ZIP文件进行扫描");
-          return;
-        }
-        
-        console.log('📦 调用 scanZipFile...');
-        taskId = await scanZipFile({
-          projectId: project.id,
-          zipFile: zipFile,
-          excludePatterns: taskForm.exclude_patterns,
-          createdBy: 'local-user'
-        });
-      } else {
-        // GitHub/GitLab等远程仓库
-        console.log('📡 调用 runRepositoryAudit...');
-        
-        // 从运行时配置中获取 Token
-        const getRuntimeConfig = () => {
-          try {
-            const saved = localStorage.getItem('xcodereviewer_runtime_config');
-            return saved ? JSON.parse(saved) : null;
-          } catch {
-            return null;
-          }
-        };
-        const runtimeConfig = getRuntimeConfig();
-        const githubToken = runtimeConfig?.githubToken || (import.meta.env.VITE_GITHUB_TOKEN as string | undefined);
-        const gitlabToken = runtimeConfig?.gitlabToken || (import.meta.env.VITE_GITLAB_TOKEN as string | undefined);
-        
-        taskId = await runRepositoryAudit({
-          projectId: project.id,
-          repoUrl: project.repository_url!,
-          branch: taskForm.branch_name || project.default_branch || 'main',
-          exclude: taskForm.exclude_patterns,
-          githubToken,
-          gitlabToken,
-          createdBy: 'local-user'
-        });
-      }
+      // 使用统一的API接口创建任务（会根据配置自动选择后端或前端）
+      const task = await api.createAuditTask({
+        project_id: project.id,
+        task_type: taskForm.task_type,
+        branch_name: taskForm.branch_name || project.default_branch || 'main',
+        exclude_patterns: taskForm.exclude_patterns,
+        scan_config: taskForm.scan_config,
+        created_by: 'local-user' // TODO: 使用实际用户ID
+      });
       
-      console.log('✅ 任务创建成功:', taskId);
+      console.log('✅ 任务创建成功:', task.id);
       
       // 记录用户操作
       import('@/shared/utils/logger').then(({ logger, LogCategory }) => {
         logger.logUserAction('创建审计任务', {
-          taskId,
+          taskId: task.id,
           projectId: project.id,
           projectName: project.name,
           taskType: taskForm.task_type,
           branch: taskForm.branch_name,
-          hasZipFile: !!zipFile,
         });
       });
       
@@ -213,10 +177,13 @@ export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, pr
       onTaskCreated();
       
       // 显示终端进度窗口
-      setCurrentTaskId(taskId);
+      setCurrentTaskId(task.id);
       setShowTerminalDialog(true);
       
-      toast.success("审计任务已创建并启动");
+      toast.success("审计任务已创建并启动", {
+        description: '任务正在后台处理，请稍后查看结果',
+        duration: 4000
+      });
     } catch (error) {
       console.error('❌ 创建任务失败:', error);
       

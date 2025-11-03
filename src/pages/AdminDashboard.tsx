@@ -19,7 +19,8 @@ import {
   Package,
   Settings
 } from "lucide-react";
-import { api, dbMode, isLocalMode } from "@/shared/config/database";
+import { api } from "@/shared/services/unified-api";
+import { dbMode, isLocalMode } from "@/shared/config/database";
 import { DatabaseManager } from "@/components/database/DatabaseManager";
 import { DatabaseStatusDetail } from "@/components/database/DatabaseStatus";
 import { SystemConfig } from "@/components/system/SystemConfig";

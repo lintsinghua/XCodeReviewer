@@ -1,0 +1,20 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: xcodereview-backend-config
+  labels:
+    app: xcodereview-backend
+    component: config
+    environment: staging
+data:
+  # Staging-specific configuration
+  DEBUG: "false"
+  LOG_LEVEL: "INFO"
+  
+  # Staging CORS
+  CORS_ORIGINS: '["https://staging.xcodereview.example.com"]'
+  
+  # Moderate rate limits for staging
+  RATE_LIMIT_PER_MINUTE: "100"
+  RATE_LIMIT_PER_HOUR: "2000"

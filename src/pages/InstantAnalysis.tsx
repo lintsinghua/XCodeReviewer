@@ -23,10 +23,13 @@ import {
   Download
 } from "lucide-react";
 import { CodeAnalysisEngine } from "@/features/analysis/services";
-import { api } from "@/shared/config/database";
+import { api } from "@/shared/services/unified-api";
 import type { CodeAnalysisResult, AuditTask, AuditIssue } from "@/shared/types";
 import { toast } from "sonner";
 import ExportReportDialog from "@/components/reports/ExportReportDialog";
+
+// 检查是否使用后端API（即时分析始终使用后端）
+const USE_BACKEND_FOR_INSTANT_ANALYSIS = import.meta.env.VITE_USE_BACKEND_API === 'true';
 
 // AI解释解析函数
 function parseAIExplanation(aiExplanation: string) {
@@ -231,7 +234,17 @@ class UserManager {
 
       const startTime = Date.now();
 
-      const analysisResult = await CodeAnalysisEngine.analyzeCode(code, language);
+      let analysisResult: CodeAnalysisResult;
+      
+      // 根据配置选择使用后端API还是前端直接调用
+      if (USE_BACKEND_FOR_INSTANT_ANALYSIS) {
+        console.log('🔄 使用后端API进行即时代码分析');
+        analysisResult = await api.analyzeInstantCode(code, language);
+      } else {
+        console.log('⚠️ 使用前端直接调用LLM（不推荐，会暴露API密钥）');
+        analysisResult = await CodeAnalysisEngine.analyzeCode(code, language);
+      }
+      
       const endTime = Date.now();
       const duration = (endTime - startTime) / 1000;
 
@@ -253,9 +266,10 @@ class UserManager {
       }
 
       toast.success(`分析完成！发现 ${analysisResult.issues.length} 个问题`);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Analysis failed:', error);
-      toast.error("分析失败，请稍后重试");
+      const errorMsg = error?.response?.data?.detail || error?.message || "分析失败，请稍后重试";
+      toast.error(errorMsg);
     } finally {
       setAnalyzing(false);
       // 即时分析结束后清空前端内存中的代码（满足NFR-2销毁要求）
@@ -692,7 +706,7 @@ class UserManager {
                 <div className="flex items-center gap-2">
                   <Badge variant="outline" className="text-xs">
                     <Clock className="w-3 h-3 mr-1" />
-                    {analysisTime.toFixed(2)}s
+                    {(analysisTime || 0).toFixed(2)}s
                   </Badge>
                   <Badge variant="outline" className="text-xs">
                     {language.charAt(0).toUpperCase() + language.slice(1)}
@@ -718,10 +732,10 @@ class UserManager {
                     <Target className="w-6 h-6 text-white" />
                   </div>
                   <div className="text-2xl font-bold text-primary mb-1">
-                    {result.quality_score.toFixed(1)}
+                    {(result.quality_score || 0).toFixed(1)}
                   </div>
                   <p className="text-xs font-medium text-primary/80 mb-2">质量评分</p>
-                  <Progress value={result.quality_score} className="h-1" />
+                  <Progress value={result.quality_score || 0} className="h-1" />
                 </div>
 
                 <div className="text-center p-4 bg-white rounded-lg border border-red-200">
