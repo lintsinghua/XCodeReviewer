@@ -35,9 +35,13 @@ class BackendAPIAdapter {
       id: backendProject.id?.toString() || backendProject.id,
       name: backendProject.name,
       description: backendProject.description || '',
-      repository_url: backendProject.repository_url || '',
-      repository_type: backendProject.repository_type || 'github',
-      default_branch: backendProject.default_branch || 'main',
+      // 后端字段名可能是 source_url 或 repository_url
+      repository_url: backendProject.repository_url || backendProject.source_url || '',
+      // 后端字段名可能是 source_type 或 repository_type
+      repository_type: backendProject.repository_type || backendProject.source_type || 'github',
+      // 后端字段名可能是 branch 或 default_branch
+      default_branch: backendProject.default_branch || backendProject.branch || 'main',
+      // 处理 programming_languages 字段（后端可能返回数组或字符串）
       programming_languages: typeof backendProject.programming_languages === 'string'
         ? backendProject.programming_languages
         : JSON.stringify(backendProject.programming_languages || []),
@@ -129,8 +133,10 @@ class BackendAPIAdapter {
       source_url: project.repository_url || '',  // repository_url → source_url
       source_type: (project.repository_type || 'github') as any,  // repository_type → source_type
       branch: project.default_branch || 'main',  // default_branch → branch
-      repository_name: this.extractRepoName(project.repository_url)  // 从 URL 提取仓库名
-    });
+      repository_name: this.extractRepoName(project.repository_url),  // 从 URL 提取仓库名
+      // 添加编程语言信息（后端期望数组格式）
+      programming_languages: project.programming_languages || []
+    } as any);
     return this.transformProject(created);
   }
 
@@ -155,7 +161,22 @@ class BackendAPIAdapter {
   }
 
   async updateProject(id: string, updates: Partial<CreateProjectForm>): Promise<Project> {
-    const updated = await backendApi.projects.update(Number(id), updates);
+    // 将前端字段名映射到后端 API 期望的字段名
+    const backendUpdates: any = {
+      ...(updates.name && { name: updates.name }),
+      ...(updates.description !== undefined && { description: updates.description }),
+      ...(updates.repository_url !== undefined && { source_url: updates.repository_url }),
+      ...(updates.repository_type && { source_type: updates.repository_type }),
+      ...(updates.default_branch && { branch: updates.default_branch }),
+      ...(updates.programming_languages && { programming_languages: updates.programming_languages })
+    };
+    
+    // 如果有 repository_url，提取 repository_name
+    if (updates.repository_url) {
+      backendUpdates.repository_name = this.extractRepoName(updates.repository_url);
+    }
+    
+    const updated = await backendApi.projects.update(Number(id), backendUpdates);
     return this.transformProject(updated);
   }
 

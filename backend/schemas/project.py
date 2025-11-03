@@ -2,7 +2,7 @@
 Pydantic schemas for project endpoints.
 """
 from pydantic import BaseModel, Field, HttpUrl
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
 from models.project import ProjectSource, ProjectStatus
 
@@ -15,6 +15,7 @@ class ProjectCreate(BaseModel):
     source_url: Optional[str] = Field(None, max_length=500, description="Repository URL")
     repository_name: Optional[str] = Field(None, max_length=255, description="Repository name")
     branch: str = Field(default="main", max_length=100, description="Branch name")
+    programming_languages: Optional[List[str]] = Field(None, description="List of programming languages used")
     
     class Config:
         json_schema_extra = {
@@ -24,7 +25,8 @@ class ProjectCreate(BaseModel):
                 "source_type": "github",
                 "source_url": "https://github.com/user/repo",
                 "repository_name": "user/repo",
-                "branch": "main"
+                "branch": "main",
+                "programming_languages": ["python", "javascript", "typescript"]
             }
         }
 
@@ -35,6 +37,9 @@ class ProjectUpdate(BaseModel):
     description: Optional[str] = Field(None, description="Project description")
     branch: Optional[str] = Field(None, max_length=100, description="Branch name")
     status: Optional[ProjectStatus] = Field(None, description="Project status")
+    source_url: Optional[str] = Field(None, max_length=500, description="Repository URL")
+    source_type: Optional[ProjectSource] = Field(None, description="Source type")
+    programming_languages: Optional[List[str]] = Field(None, description="List of programming languages used")
     
     class Config:
         json_schema_extra = {
@@ -42,7 +47,8 @@ class ProjectUpdate(BaseModel):
                 "name": "Updated Project Name",
                 "description": "Updated description",
                 "branch": "develop",
-                "status": "active"
+                "status": "active",
+                "programming_languages": ["python", "javascript"]
             }
         }
 
@@ -59,6 +65,7 @@ class ProjectResponse(BaseModel):
     total_files: int
     total_lines: int
     primary_language: Optional[str]
+    programming_languages: Optional[str]  # JSON string of language list
     status: ProjectStatus
     created_at: datetime
     updated_at: datetime
@@ -79,6 +86,7 @@ class ProjectResponse(BaseModel):
                 "total_files": 150,
                 "total_lines": 5000,
                 "primary_language": "Python",
+                "programming_languages": "[\"python\", \"javascript\", \"typescript\"]",
                 "status": "active",
                 "created_at": "2024-01-01T00:00:00",
                 "updated_at": "2024-01-01T00:00:00",

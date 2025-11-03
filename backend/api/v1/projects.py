@@ -47,6 +47,8 @@ async def create_project(
         Created project
     """
     try:
+        import json
+        
         # Create project
         project = Project(
             name=project_data.name,
@@ -55,6 +57,7 @@ async def create_project(
             source_url=project_data.source_url,
             repository_name=project_data.repository_name,
             branch=project_data.branch,
+            programming_languages=json.dumps(project_data.programming_languages) if project_data.programming_languages else None,
             owner_id=current_user.id
         )
         
@@ -299,8 +302,12 @@ async def update_project(
             )
         
         # Update fields
+        import json
         update_data = project_data.model_dump(exclude_unset=True)
         for field, value in update_data.items():
+            # Convert programming_languages list to JSON string
+            if field == 'programming_languages' and value is not None:
+                value = json.dumps(value)
             setattr(project, field, value)
         
         await db.commit()

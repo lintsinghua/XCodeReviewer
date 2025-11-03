@@ -49,6 +49,7 @@ class Project(Base):
     total_files: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     total_lines: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     primary_language: Mapped[str] = mapped_column(String(50), nullable=True)
+    programming_languages: Mapped[str] = mapped_column(Text, nullable=True)  # JSON array of languages
     
     # Status
     status: Mapped[ProjectStatus] = mapped_column(
