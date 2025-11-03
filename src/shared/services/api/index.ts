@@ -137,6 +137,12 @@ export const projectApi = {
     apiClient.get<PaginatedResponse<Project>>('/projects', { params }),
 
   /**
+   * List deleted projects (for recycle bin)
+   */
+  listDeleted: (params?: { page?: number; page_size?: number }) =>
+    apiClient.get<PaginatedResponse<Project>>('/projects/deleted/list', { params }),
+
+  /**
    * Get project by ID
    */
   get: (id: number) =>
@@ -149,10 +155,16 @@ export const projectApi = {
     apiClient.put<Project>(`/projects/${id}`, data),
 
   /**
-   * Delete project
+   * Delete project (soft delete)
    */
   delete: (id: number) =>
     apiClient.delete(`/projects/${id}`),
+
+  /**
+   * Restore deleted project
+   */
+  restore: (id: number) =>
+    apiClient.post<Project>(`/projects/${id}/restore`),
 
   /**
    * Get project statistics

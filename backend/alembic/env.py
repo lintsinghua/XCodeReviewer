@@ -34,8 +34,13 @@ except ImportError as e:
 config = context.config
 
 # Override sqlalchemy.url from environment variable
+# Replace asyncpg with psycopg2 for Alembic migrations (sync driver)
 if os.getenv("DATABASE_URL"):
-    config.set_main_option("sqlalchemy.url", os.getenv("DATABASE_URL"))
+    db_url = os.getenv("DATABASE_URL")
+    # Replace asyncpg (async) with psycopg2 (sync) for Alembic
+    if "postgresql+asyncpg" in db_url:
+        db_url = db_url.replace("postgresql+asyncpg", "postgresql+psycopg2")
+    config.set_main_option("sqlalchemy.url", db_url)
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.

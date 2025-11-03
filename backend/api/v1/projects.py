@@ -20,7 +20,7 @@ from api.dependencies import get_current_user
 from core.exceptions import NotFoundError, ValidationError
 
 
-router = APIRouter(prefix="/projects", tags=["projects"])
+router = APIRouter()
 
 
 @router.post(
@@ -110,6 +110,9 @@ async def list_projects(
         # Apply filters
         if status_filter:
             query = query.where(Project.status == status_filter)
+        else:
+            # 默认只显示活跃和归档的项目，不显示已删除的
+            query = query.where(Project.status.in_([ProjectStatus.ACTIVE, ProjectStatus.ARCHIVED]))
         
         if search:
             query = query.where(Project.name.ilike(f"%{search}%"))
@@ -139,6 +142,67 @@ async def list_projects(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to list projects"
+        )
+
+
+@router.get(
+    "/deleted/list",
+    response_model=ProjectListResponse,
+    summary="List deleted projects",
+    description="Get a list of deleted projects (for recycle bin)"
+)
+async def list_deleted_projects(
+    page: int = Query(1, ge=1, description="Page number"),
+    page_size: int = Query(10, ge=1, le=100, description="Items per page"),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+) -> ProjectListResponse:
+    """
+    List deleted projects for the current user.
+    
+    Args:
+        page: Page number
+        page_size: Items per page
+        current_user: Authenticated user
+        db: Database session
+        
+    Returns:
+        Paginated list of deleted projects
+    """
+    try:
+        # Build query for deleted projects only
+        query = select(Project).where(
+            and_(
+                Project.owner_id == current_user.id,
+                Project.status == ProjectStatus.DELETED
+            )
+        )
+        
+        # Get total count
+        count_query = select(func.count()).select_from(query.subquery())
+        total_result = await db.execute(count_query)
+        total = total_result.scalar_one()
+        
+        # Apply pagination
+        query = query.offset((page - 1) * page_size).limit(page_size)
+        query = query.order_by(Project.updated_at.desc())
+        
+        # Execute query
+        result = await db.execute(query)
+        projects = result.scalars().all()
+        
+        return ProjectListResponse(
+            items=[ProjectResponse.model_validate(p) for p in projects],
+            total=total,
+            page=page,
+            page_size=page_size
+        )
+        
+    except Exception as e:
+        logger.error(f"Error listing deleted projects: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to list deleted projects"
         )
 
 
@@ -307,4 +371,64 @@ async def delete_project(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to delete project"
+        )
+
+
+@router.post(
+    "/{project_id}/restore",
+    response_model=ProjectResponse,
+    summary="Restore project",
+    description="Restore a deleted project"
+)
+async def restore_project(
+    project_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+) -> ProjectResponse:
+    """
+    Restore a deleted project.
+    
+    Args:
+        project_id: Project ID
+        current_user: Authenticated user
+        db: Database session
+        
+    Returns:
+        Restored project
+    """
+    try:
+        # Get project
+        query = select(Project).where(
+            and_(
+                Project.id == project_id,
+                Project.owner_id == current_user.id,
+                Project.status == ProjectStatus.DELETED
+            )
+        )
+        result = await db.execute(query)
+        project = result.scalar_one_or_none()
+        
+        if not project:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Deleted project {project_id} not found"
+            )
+        
+        # Restore project
+        project.status = ProjectStatus.ACTIVE
+        await db.commit()
+        await db.refresh(project)
+        
+        logger.info(f"Restored project {project_id}")
+        
+        return ProjectResponse.model_validate(project)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"Error restoring project {project_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to restore project"
         )

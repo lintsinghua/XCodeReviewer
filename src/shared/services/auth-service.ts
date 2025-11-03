@@ -84,6 +84,10 @@ class AuthService {
     const refreshToken = this.getRefreshToken();
     
     if (!refreshToken) {
+      this.clearAuth();
+      window.dispatchEvent(new CustomEvent('auth:logout', {
+        detail: { reason: 'no_refresh_token' }
+      }));
       return false;
     }
     
@@ -91,9 +95,16 @@ class AuthService {
       const response = await backendApi.auth.refreshToken(refreshToken);
       this.saveTokens(response.access_token, response.refresh_token);
       return true;
-    } catch (error) {
+    } catch (error: any) {
       console.error('刷新token失败:', error);
       this.clearAuth();
+      
+      // 触发登出事件
+      const isExpired = error.response?.data?.error?.message?.includes('expired') ||
+                        error.response?.data?.detail?.includes('expired');
+      window.dispatchEvent(new CustomEvent('auth:logout', {
+        detail: { reason: isExpired ? 'token_expired' : 'refresh_failed' }
+      }));
       return false;
     }
   }
@@ -209,13 +220,36 @@ class AuthService {
       // 尝试获取用户信息来验证token是否有效
       await this.getCurrentUser();
     } catch (error: any) {
-      // 如果是401错误，尝试刷新token
-      if (error.response?.status === 401) {
-        const success = await this.refreshAccessToken();
-        if (!success) {
-          // 刷新失败，清除认证信息
+      const errorData = error.response?.data;
+      
+      // 检查是否是认证错误
+      const isAuthError = 
+        error.response?.status === 401 || 
+        errorData?.error?.code === 'AUTHENTICATION_ERROR';
+      
+      if (isAuthError) {
+        // 检查是否是 token 过期
+        const isExpired = 
+          errorData?.error?.message?.includes('expired') ||
+          errorData?.error?.message?.includes('Signature has expired') ||
+          errorData?.detail?.includes('expired');
+        
+        if (isExpired) {
+          // Token 已过期，直接清除并触发登出
           this.clearAuth();
-          window.dispatchEvent(new CustomEvent('auth:logout'));
+          window.dispatchEvent(new CustomEvent('auth:logout', {
+            detail: { reason: 'token_expired' }
+          }));
+        } else {
+          // 其他认证错误，尝试刷新 token
+          const success = await this.refreshAccessToken();
+          if (!success) {
+            // 刷新失败，清除认证信息
+            this.clearAuth();
+            window.dispatchEvent(new CustomEvent('auth:logout', {
+              detail: { reason: 'unauthorized' }
+            }));
+          }
         }
       }
     }

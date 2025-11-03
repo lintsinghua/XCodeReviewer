@@ -21,7 +21,7 @@ from schemas.task import (
 from api.dependencies import get_current_user
 
 
-router = APIRouter(prefix="/tasks", tags=["tasks"])
+router = APIRouter()
 
 
 @router.post(

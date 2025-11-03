@@ -121,15 +121,36 @@ class BackendAPIAdapter {
   }
 
   async createProject(project: CreateProjectForm & { owner_id?: string }): Promise<Project> {
+    // 将前端字段名映射到后端 API 期望的字段名
     const created = await backendApi.projects.create({
       name: project.name,
       description: project.description || '',
-      repository_url: project.repository_url || '',
-      repository_type: project.repository_type || 'github',
-      default_branch: project.default_branch || 'main',
-      programming_languages: project.programming_languages || []
+      source_url: project.repository_url || '',  // repository_url → source_url
+      source_type: (project.repository_type || 'github') as any,  // repository_type → source_type
+      branch: project.default_branch || 'main',  // default_branch → branch
+      repository_name: this.extractRepoName(project.repository_url)  // 从 URL 提取仓库名
     });
     return this.transformProject(created);
+  }
+
+  /**
+   * 从 repository URL 提取仓库名称
+   * 例如: https://github.com/owner/repo -> owner/repo
+   */
+  private extractRepoName(url?: string): string | undefined {
+    if (!url) return undefined;
+    
+    try {
+      // 匹配 GitHub/GitLab URL 模式
+      const match = url.match(/(?:github\.com|gitlab\.com)\/([^/]+\/[^/]+)/);
+      if (match && match[1]) {
+        return match[1].replace(/\.git$/, ''); // 移除 .git 后缀
+      }
+    } catch (error) {
+      console.warn('Failed to extract repository name from URL:', url, error);
+    }
+    
+    return undefined;
   }
 
   async updateProject(id: string, updates: Partial<CreateProjectForm>): Promise<Project> {
@@ -142,16 +163,26 @@ class BackendAPIAdapter {
   }
 
   async getDeletedProjects(): Promise<Project[]> {
-    // 后端暂不支持，返回空数组
-    return [];
+    try {
+      const response = await backendApi.projects.listDeleted({ page: 1, page_size: 100 });
+      return response.items.map(p => this.transformProject(p));
+    } catch (error) {
+      console.error('获取已删除项目失败:', error);
+      return [];
+    }
   }
 
   async restoreProject(id: string): Promise<void> {
-    // 后端暂不支持
-    console.warn('后端暂不支持恢复项目功能');
+    try {
+      await backendApi.projects.restore(Number(id));
+    } catch (error) {
+      console.error('恢复项目失败:', error);
+      throw error;
+    }
   }
 
   async permanentlyDeleteProject(id: string): Promise<void> {
+    // 永久删除暂时使用软删除（后端可以添加一个 force 参数来实现真正的物理删除）
     await backendApi.projects.delete(Number(id));
   }
 

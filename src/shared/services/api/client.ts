@@ -81,9 +81,35 @@ export class APIClient {
       (response) => response,
       async (error: AxiosError) => {
         const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean };
+        const errorData = error.response?.data as any;
 
-        // If error is 401 and we haven't retried yet
-        if (error.response?.status === 401 && !originalRequest._retry) {
+        // 检查是否是认证错误
+        const isAuthError = 
+          error.response?.status === 401 || 
+          errorData?.error?.code === 'AUTHENTICATION_ERROR' ||
+          errorData?.detail?.includes('token') ||
+          errorData?.detail?.includes('expired') ||
+          errorData?.detail?.includes('Invalid token');
+
+        // If error is 401 or authentication error and we haven't retried yet
+        if (isAuthError && !originalRequest._retry) {
+          // 如果是 token 过期或签名失效，不尝试刷新，直接登出
+          const isTokenExpired = 
+            errorData?.error?.message?.includes('expired') ||
+            errorData?.error?.message?.includes('Signature has expired') ||
+            errorData?.detail?.includes('expired');
+
+          if (isTokenExpired) {
+            this.isRefreshing = false;
+            this.clearTokensFromStorage();
+            // 触发登出事件，带上原因
+            window.dispatchEvent(new CustomEvent('auth:logout', {
+              detail: { reason: 'token_expired' }
+            }));
+            return Promise.reject(this.handleError(error));
+          }
+
+          // 尝试刷新 token
           if (this.isRefreshing) {
             // Wait for token refresh to complete
             return new Promise((resolve) => {
@@ -111,8 +137,10 @@ export class APIClient {
           } catch (refreshError) {
             this.isRefreshing = false;
             this.clearTokensFromStorage();
-            // Redirect to login or emit event
-            window.dispatchEvent(new CustomEvent('auth:logout'));
+            // 触发登出事件
+            window.dispatchEvent(new CustomEvent('auth:logout', {
+              detail: { reason: 'unauthorized' }
+            }));
             return Promise.reject(refreshError);
           }
         }

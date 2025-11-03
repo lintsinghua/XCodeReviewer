@@ -21,7 +21,7 @@ from schemas.issue import (
 from api.dependencies import get_current_user
 
 
-router = APIRouter(prefix="/issues", tags=["issues"])
+router = APIRouter()
 
 
 @router.get(

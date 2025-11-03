@@ -97,4 +97,4 @@ tmp/
 temp/
 
 .kiro
-__pycache__
+__pycache__/

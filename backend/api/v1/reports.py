@@ -25,7 +25,7 @@ from api.dependencies import get_current_user
 from tasks.report_tasks import generate_report_task
 
 
-router = APIRouter(prefix="/reports", tags=["reports"])
+router = APIRouter()
 
 
 @router.post(

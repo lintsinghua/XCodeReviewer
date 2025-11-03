@@ -23,7 +23,7 @@ from schemas.statistics import (
 from api.dependencies import get_current_user
 
 
-router = APIRouter(prefix="/statistics", tags=["statistics"])
+router = APIRouter()
 
 
 @router.get(
