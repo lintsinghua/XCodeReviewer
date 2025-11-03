@@ -35,8 +35,10 @@ class AuditTask(Base):
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     
     # Task info
-    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    name: Mapped[str] = mapped_column(String(255), nullable=True)  # Make nullable, will auto-generate
     description: Mapped[str] = mapped_column(Text, nullable=True)
+    task_type: Mapped[str] = mapped_column(String(50), default="repository", nullable=False)  # repository, instant, etc.
+    branch_name: Mapped[str] = mapped_column(String(100), default="main", nullable=False)
     
     # Status
     status: Mapped[TaskStatus] = mapped_column(
@@ -58,6 +60,7 @@ class AuditTask(Base):
     # Configuration
     agents_used: Mapped[Dict[str, Any]] = mapped_column(JSON, nullable=True)
     scan_config: Mapped[Dict[str, Any]] = mapped_column(JSON, nullable=True)
+    exclude_patterns: Mapped[list[str]] = mapped_column(JSON, nullable=True)  # File patterns to exclude
     
     # Results
     total_issues: Mapped[int] = mapped_column(Integer, default=0, nullable=False)

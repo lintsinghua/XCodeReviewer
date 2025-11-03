@@ -148,11 +148,11 @@ export default function ExportReportDialog({
                             </div>
                             <div className="flex items-center justify-between">
                                 <span className="text-gray-600">质量评分:</span>
-                                <span className="font-medium text-gray-900">{task.quality_score.toFixed(1)}/100</span>
+                                <span className="font-medium text-gray-900">{(task.quality_score || 0).toFixed(1)}/100</span>
                             </div>
                             <div className="flex items-center justify-between">
                                 <span className="text-gray-600">扫描文件:</span>
-                                <span className="font-medium text-gray-900">{task.scanned_files}/{task.total_files}</span>
+                                <span className="font-medium text-gray-900">{task.scanned_files || 0}/{task.total_files || 0}</span>
                             </div>
                             <div className="flex items-center justify-between">
                                 <span className="text-gray-600">发现问题:</span>
@@ -160,7 +160,7 @@ export default function ExportReportDialog({
                             </div>
                             <div className="flex items-center justify-between">
                                 <span className="text-gray-600">代码行数:</span>
-                                <span className="font-medium text-gray-900">{task.total_lines.toLocaleString()}</span>
+                                <span className="font-medium text-gray-900">{(task.total_lines || 0).toLocaleString()}</span>
                             </div>
                             <div className="flex items-center justify-between">
                                 <span className="text-gray-600">严重问题:</span>

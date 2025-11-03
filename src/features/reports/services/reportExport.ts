@@ -295,15 +295,15 @@ function generateReportHTML(
         </tr>
         <tr>
             <td>质量评分</td>
-            <td>${task.quality_score.toFixed(1)}/100</td>
+            <td>${(task.quality_score || 0).toFixed(1)}/100</td>
             <td>扫描文件</td>
-            <td>${task.scanned_files}/${task.total_files}</td>
+            <td>${task.scanned_files || 0}/${task.total_files || 0}</td>
         </tr>
         <tr>
             <td>代码行数</td>
-            <td>${task.total_lines.toLocaleString()}</td>
+            <td>${(task.total_lines || 0).toLocaleString()}</td>
             <td>发现问题</td>
-            <td>${task.issues_count}</td>
+            <td>${task.issues_count || 0}</td>
         </tr>
         <tr>
             <td>严重问题</td>

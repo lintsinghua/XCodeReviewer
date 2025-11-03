@@ -9,12 +9,15 @@ from models.audit_task import TaskStatus, TaskPriority
 
 class TaskCreate(BaseModel):
     """Task creation schema"""
-    name: str = Field(..., min_length=1, max_length=255, description="Task name")
+    name: Optional[str] = Field(None, min_length=1, max_length=255, description="Task name")
     description: Optional[str] = Field(None, description="Task description")
     project_id: int = Field(..., description="Project ID")
+    task_type: Optional[str] = Field("repository", description="Task type (repository, instant, etc.)")
+    branch_name: Optional[str] = Field("main", description="Branch name to scan")
     priority: TaskPriority = Field(default=TaskPriority.NORMAL, description="Task priority")
     agents_used: Optional[Dict[str, Any]] = Field(None, description="Agents configuration")
     scan_config: Optional[Dict[str, Any]] = Field(None, description="Scan configuration")
+    exclude_patterns: Optional[list[str]] = Field(None, description="File patterns to exclude from scan")
     
     class Config:
         json_schema_extra = {
@@ -22,6 +25,8 @@ class TaskCreate(BaseModel):
                 "name": "Code Quality Scan",
                 "description": "Scan for code quality issues",
                 "project_id": 1,
+                "task_type": "repository",
+                "branch_name": "main",
                 "priority": "normal",
                 "agents_used": {
                     "security": True,
@@ -31,7 +36,8 @@ class TaskCreate(BaseModel):
                 "scan_config": {
                     "max_files": 100,
                     "include_tests": False
-                }
+                },
+                "exclude_patterns": ["node_modules/**", ".git/**"]
             }
         }
 

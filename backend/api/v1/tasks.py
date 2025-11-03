@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_, or_
 from typing import List, Optional
+from datetime import datetime
 from loguru import logger
 
 from db.session import get_db
@@ -64,14 +65,20 @@ async def create_task(
                 detail=f"Project {task_data.project_id} not found"
             )
         
+        # Auto-generate task name if not provided
+        task_name = task_data.name or f"{project.name} - {task_data.task_type} - {datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        
         # Create task
         task = AuditTask(
-            name=task_data.name,
+            name=task_name,
             description=task_data.description,
             project_id=task_data.project_id,
+            task_type=task_data.task_type or "repository",
+            branch_name=task_data.branch_name or "main",
             priority=task_data.priority,
             agents_used=task_data.agents_used,
             scan_config=task_data.scan_config,
+            exclude_patterns=task_data.exclude_patterns,
             created_by=current_user.id
         )
         
@@ -79,11 +86,16 @@ async def create_task(
         await db.commit()
         await db.refresh(task)
         
-        logger.info(f"Created task {task.id} for project {task_data.project_id}")
+        logger.info(f"Created task {task.id} ({task_name}) for project {task_data.project_id}")
         
-        # TODO: Trigger async task processing with Celery
-        # from tasks.scan import start_scan_task
-        # start_scan_task.delay(task.id)
+        # Trigger async task processing with Celery
+        try:
+            from tasks.scan_tasks import scan_repository_task
+            celery_task = scan_repository_task.delay(task.id)
+            logger.info(f"Queued Celery task {celery_task.id} for audit task {task.id}")
+        except Exception as e:
+            logger.warning(f"Failed to queue Celery task: {e}. Task will remain in pending state.")
+            # 不影响任务创建，任务仍然会被创建但不会自动执行
         
         return TaskResponse.model_validate(task)
         

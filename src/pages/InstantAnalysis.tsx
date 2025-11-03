@@ -706,7 +706,7 @@ class UserManager {
                 <div className="flex items-center gap-2">
                   <Badge variant="outline" className="text-xs">
                     <Clock className="w-3 h-3 mr-1" />
-                    {analysisTime.toFixed(2)}s
+                    {(analysisTime || 0).toFixed(2)}s
                   </Badge>
                   <Badge variant="outline" className="text-xs">
                     {language.charAt(0).toUpperCase() + language.slice(1)}
@@ -732,10 +732,10 @@ class UserManager {
                     <Target className="w-6 h-6 text-white" />
                   </div>
                   <div className="text-2xl font-bold text-primary mb-1">
-                    {result.quality_score.toFixed(1)}
+                    {(result.quality_score || 0).toFixed(1)}
                   </div>
                   <p className="text-xs font-medium text-primary/80 mb-2">质量评分</p>
-                  <Progress value={result.quality_score} className="h-1" />
+                  <Progress value={result.quality_score || 0} className="h-1" />
                 </div>
 
                 <div className="text-center p-4 bg-white rounded-lg border border-red-200">

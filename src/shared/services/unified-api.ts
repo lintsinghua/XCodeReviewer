@@ -66,7 +66,11 @@ class BackendAPIAdapter {
       status: backendTask.status || 'pending',
       total_files: backendTask.total_files || 0,
       scanned_files: backendTask.scanned_files || 0,
-      issues_count: backendTask.issues_count || 0,
+      total_lines: backendTask.total_lines || 0,
+      // 字段映射：后端使用 total_issues，前端期望 issues_count
+      issues_count: backendTask.issues_count || backendTask.total_issues || 0,
+      // 字段映射：后端使用 overall_score，前端期望 quality_score
+      quality_score: backendTask.quality_score || backendTask.overall_score || 0,
       exclude_patterns: typeof backendTask.exclude_patterns === 'string'
         ? backendTask.exclude_patterns
         : JSON.stringify(backendTask.exclude_patterns || []),
