@@ -14,7 +14,8 @@ import type {
   InstantAnalysis,
   CreateProjectForm,
   CreateAuditTaskForm,
-  InstantAnalysisForm
+  InstantAnalysisForm,
+  CodeAnalysisResult
 } from '../types';
 
 // 检查是否使用后端 API
@@ -318,6 +319,14 @@ class BackendAPIAdapter {
   }): Promise<InstantAnalysis> {
     return localApi.createInstantAnalysis(analysis);
   }
+
+  /**
+   * 即时代码分析（通过后端LLM）
+   */
+  async analyzeInstantCode(code: string, language: string): Promise<CodeAnalysisResult> {
+    const result = await backendApi.instantAnalysis.analyze({ code, language });
+    return result as CodeAnalysisResult;
+  }
 }
 
 // 创建适配器实例
@@ -381,6 +390,12 @@ export const unifiedApi = {
     quality_score?: number;
     analysis_time?: number;
   }) => USE_BACKEND ? backendAdapter.createInstantAnalysis(analysis) : localApi.createInstantAnalysis(analysis),
+  
+  /**
+   * 即时代码分析（始终通过后端LLM）
+   * 即使USE_BACKEND为false，即时分析也应该通过后端，避免在前端暴露LLM API密钥
+   */
+  analyzeInstantCode: (code: string, language: string) => backendAdapter.analyzeInstantCode(code, language),
 };
 
 // 导出为默认 api

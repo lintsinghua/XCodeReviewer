@@ -6,7 +6,7 @@ from fastapi import APIRouter
 api_router = APIRouter()
 
 # Import and include routers from different modules
-from api.v1 import auth, agents, migration, monitoring, projects, tasks, issues, statistics, websocket, reports
+from api.v1 import auth, agents, migration, monitoring, projects, tasks, issues, statistics, websocket, reports, instant_analysis, system_settings
 
 api_router.include_router(
     auth.router,
@@ -65,6 +65,18 @@ api_router.include_router(
     reports.router,
     prefix="/reports",
     tags=["reports"]
+)
+
+api_router.include_router(
+    instant_analysis.router,
+    prefix="/instant-analysis",
+    tags=["instant-analysis"]
+)
+
+api_router.include_router(
+    system_settings.router,
+    prefix="/system",
+    tags=["system-settings"]
 )
 
 # Note: Uncomment other routers as modules are implemented

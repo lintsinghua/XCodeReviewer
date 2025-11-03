@@ -22,6 +22,7 @@ import {
   Database
 } from "lucide-react";
 import { toast } from "sonner";
+import { api } from "@/shared/services/api";
 
 // LLM 提供商配置
 const LLM_PROVIDERS = [
@@ -123,27 +124,83 @@ export function SystemConfig() {
 
   const [showApiKeys, setShowApiKeys] = useState<Record<string, boolean>>({});
   const [hasChanges, setHasChanges] = useState(false);
-  const [configSource, setConfigSource] = useState<'runtime' | 'build'>('build');
+  const [configSource, setConfigSource] = useState<'backend' | 'runtime' | 'build'>('build');
 
   // 加载配置
   useEffect(() => {
     loadConfig();
   }, []);
 
-  const loadConfig = () => {
+  const loadConfig = async () => {
     try {
-      // 尝试从 localStorage 加载运行时配置
+      // 首先尝试从后端 API 加载配置
+      try {
+        const llmSettings = await api.systemSettings.getLLMSettings();
+        const allSettings = await api.systemSettings.getSettings();
+        
+        // 辅助函数：从设置数组中查找值
+        const findSettingValue = (key: string): string | undefined => {
+          const setting = allSettings.find((s: any) => s.key === key);
+          return setting?.value;
+        };
+        
+        // 构建配置对象
+        const backendConfig: SystemConfigData = {
+          llmProvider: llmSettings.provider || 'gemini',
+          llmApiKey: llmSettings.api_key || '',
+          llmModel: llmSettings.model || '',
+          llmBaseUrl: llmSettings.base_url || '',
+          llmTimeout: (llmSettings.timeout || 150) * 1000, // 转换为毫秒
+          llmTemperature: llmSettings.temperature || 0.2,
+          llmMaxTokens: llmSettings.max_tokens || 4096,
+          llmCustomHeaders: '',
+          
+          geminiApiKey: findSettingValue('platform.gemini_api_key') || '',
+          openaiApiKey: findSettingValue('platform.openai_api_key') || '',
+          claudeApiKey: findSettingValue('platform.claude_api_key') || '',
+          qwenApiKey: findSettingValue('platform.qwen_api_key') || '',
+          deepseekApiKey: findSettingValue('platform.deepseek_api_key') || '',
+          zhipuApiKey: findSettingValue('platform.zhipu_api_key') || '',
+          moonshotApiKey: findSettingValue('platform.moonshot_api_key') || '',
+          baiduApiKey: findSettingValue('platform.baidu_api_key') || '',
+          minimaxApiKey: findSettingValue('platform.minimax_api_key') || '',
+          doubaoApiKey: findSettingValue('platform.doubao_api_key') || '',
+          ollamaBaseUrl: findSettingValue('platform.ollama_base_url') || 'http://localhost:11434/v1',
+          
+          githubToken: findSettingValue('github.token') || '',
+          gitlabToken: findSettingValue('gitlab.token') || '',
+          
+          maxAnalyzeFiles: Number(findSettingValue('analysis.max_files')) || 40,
+          llmConcurrency: Number(findSettingValue('analysis.concurrency')) || 2,
+          llmGapMs: Number(findSettingValue('analysis.gap_ms')) || 500,
+          outputLanguage: findSettingValue('analysis.output_language') || 'zh-CN',
+        };
+        
+        setConfig(backendConfig);
+        setConfigSource('backend');
+        console.log('✅ 已从后端数据库加载配置');
+        return;
+      } catch (apiError: any) {
+        // 如果是认证错误，显示提示
+        if (apiError?.response?.status === 401) {
+          console.log('⚠️ 需要登录才能访问数据库配置');
+        } else {
+          console.warn('⚠️ 无法从后端加载配置，使用本地配置:', apiError);
+        }
+      }
+      
+      // 降级：尝试从 localStorage 加载
       const savedConfig = localStorage.getItem(STORAGE_KEY);
-
       if (savedConfig) {
         const parsedConfig = JSON.parse(savedConfig);
         setConfig(parsedConfig);
         setConfigSource('runtime');
-        console.log('已加载运行时配置');
+        console.log('📦 已加载本地运行时配置');
       } else {
         // 使用构建时配置
         loadFromEnv();
         setConfigSource('build');
+        console.log('🔧 使用构建时配置');
       }
     } catch (error) {
       console.error('Failed to load config:', error);
@@ -183,25 +240,105 @@ export function SystemConfig() {
     setConfig(envConfig);
   };
 
-  const saveConfig = () => {
+  const saveConfig = async () => {
     try {
+      // 首先尝试保存到后端 API
+      try {
+        // 保存 LLM 配置
+        await api.systemSettings.updateLLMSettings({
+          provider: config.llmProvider,
+          model: config.llmModel || undefined,
+          api_key: config.llmApiKey || undefined,
+          base_url: config.llmBaseUrl || undefined,
+          temperature: config.llmTemperature,
+          max_tokens: config.llmMaxTokens || undefined,
+          timeout: Math.floor(config.llmTimeout / 1000), // 转换为秒
+        });
+        
+        // 批量保存其他配置
+        const settingsToUpdate: Record<string, string> = {};
+        
+        // 平台 API Keys
+        if (config.geminiApiKey) settingsToUpdate['platform.gemini_api_key'] = config.geminiApiKey;
+        if (config.openaiApiKey) settingsToUpdate['platform.openai_api_key'] = config.openaiApiKey;
+        if (config.claudeApiKey) settingsToUpdate['platform.claude_api_key'] = config.claudeApiKey;
+        if (config.qwenApiKey) settingsToUpdate['platform.qwen_api_key'] = config.qwenApiKey;
+        if (config.deepseekApiKey) settingsToUpdate['platform.deepseek_api_key'] = config.deepseekApiKey;
+        if (config.zhipuApiKey) settingsToUpdate['platform.zhipu_api_key'] = config.zhipuApiKey;
+        if (config.moonshotApiKey) settingsToUpdate['platform.moonshot_api_key'] = config.moonshotApiKey;
+        if (config.baiduApiKey) settingsToUpdate['platform.baidu_api_key'] = config.baiduApiKey;
+        if (config.minimaxApiKey) settingsToUpdate['platform.minimax_api_key'] = config.minimaxApiKey;
+        if (config.doubaoApiKey) settingsToUpdate['platform.doubao_api_key'] = config.doubaoApiKey;
+        if (config.ollamaBaseUrl) settingsToUpdate['platform.ollama_base_url'] = config.ollamaBaseUrl;
+        
+        // GitHub/GitLab
+        if (config.githubToken) settingsToUpdate['github.token'] = config.githubToken;
+        if (config.gitlabToken) settingsToUpdate['gitlab.token'] = config.gitlabToken;
+        
+        // 分析配置
+        settingsToUpdate['analysis.max_files'] = String(config.maxAnalyzeFiles);
+        settingsToUpdate['analysis.concurrency'] = String(config.llmConcurrency);
+        settingsToUpdate['analysis.gap_ms'] = String(config.llmGapMs);
+        settingsToUpdate['analysis.output_language'] = config.outputLanguage;
+        
+        if (Object.keys(settingsToUpdate).length > 0) {
+          await api.systemSettings.batchUpdateSettings(settingsToUpdate);
+        }
+        
+        setHasChanges(false);
+        setConfigSource('backend');
+        
+        // 记录用户操作
+        import('@/shared/utils/logger').then(({ logger }) => {
+          logger.logUserAction('保存系统配置到数据库', {
+            provider: config.llmProvider,
+            hasApiKey: !!config.llmApiKey,
+            maxFiles: config.maxAnalyzeFiles,
+            concurrency: config.llmConcurrency,
+            language: config.outputLanguage,
+          });
+        });
+        
+        toast.success("配置已保存到数据库！");
+        
+        // 提示用户刷新页面
+        setTimeout(() => {
+          if (window.confirm("配置已保存。是否立即刷新页面使配置生效？")) {
+            window.location.reload();
+          }
+        }, 1000);
+        return;
+      } catch (apiError: any) {
+        console.error('保存到后端失败，降级到本地存储:', apiError);
+        
+        // 如果是权限问题，提示用户
+        if (apiError?.response?.status === 401) {
+          toast.error("需要登录才能保存配置");
+          return;
+        } else if (apiError?.response?.status === 403) {
+          toast.error("需要管理员权限才能修改系统配置");
+          return;
+        }
+        
+        toast.warning("无法保存到服务器，将保存到本地");
+        // 如果后端保存失败，降级到 localStorage
+      }
+      
+      // 降级：保存到 localStorage
       localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
       setHasChanges(false);
       setConfigSource('runtime');
-
+      
       // 记录用户操作
-      import('@/shared/utils/logger').then(({ logger, LogCategory }) => {
-        logger.logUserAction('保存系统配置', {
+      import('@/shared/utils/logger').then(({ logger }) => {
+        logger.logUserAction('保存系统配置到本地', {
           provider: config.llmProvider,
           hasApiKey: !!config.llmApiKey,
-          maxFiles: config.maxAnalyzeFiles,
-          concurrency: config.llmConcurrency,
-          language: config.outputLanguage,
         });
       });
-
-      toast.success("配置已保存！刷新页面后生效");
-
+      
+      toast.success("配置已保存到本地存储");
+      
       // 提示用户刷新页面
       setTimeout(() => {
         if (window.confirm("配置已保存。是否立即刷新页面使配置生效？")) {
@@ -210,12 +347,12 @@ export function SystemConfig() {
       }, 1000);
     } catch (error) {
       console.error('Failed to save config:', error);
-
-      // 记录错误并显示详细信息
+      
+      // 记录错误
       import('@/shared/utils/errorHandler').then(({ handleError }) => {
         handleError(error, '保存系统配置失败');
       });
-
+      
       const errorMessage = error instanceof Error ? error.message : '未知错误';
       toast.error(`保存配置失败: ${errorMessage}`);
     }
@@ -287,8 +424,10 @@ export function SystemConfig() {
         <AlertDescription className="flex items-center justify-between">
           <div>
             <strong>当前配置来源：</strong>
-            {configSource === 'runtime' ? (
-              <Badge variant="default" className="ml-2">运行时配置</Badge>
+            {configSource === 'backend' ? (
+              <Badge variant="default" className="ml-2">数据库配置</Badge>
+            ) : configSource === 'runtime' ? (
+              <Badge variant="secondary" className="ml-2">本地运行时配置</Badge>
             ) : (
               <Badge variant="outline" className="ml-2">构建时配置</Badge>
             )}
@@ -311,7 +450,7 @@ export function SystemConfig() {
                 保存配置
               </Button>
             )}
-            {configSource === 'runtime' && (
+            {(configSource === 'runtime' || configSource === 'backend') && (
               <Button onClick={resetConfig} variant="outline" size="sm">
                 <RotateCcw className="w-4 h-4 mr-2" />
                 重置
@@ -691,10 +830,20 @@ export function SystemConfig() {
               <div className="flex items-start gap-3 p-3 bg-muted rounded-lg">
                 <Database className="h-5 w-5 text-primary mt-0.5" />
                 <div>
-                  <p className="font-medium text-foreground">运行时配置</p>
+                  <p className="font-medium text-foreground">数据库配置（推荐）</p>
                   <p>
-                    配置保存在浏览器 localStorage 中，刷新页面后立即生效。
-                    可以在不重新构建 Docker 镜像的情况下修改配置。
+                    配置保存在后端数据库中，可跨设备同步，更安全可靠。
+                    支持团队共享配置，由管理员统一管理。
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3 p-3 bg-muted rounded-lg">
+                <Database className="h-5 w-5 text-orange-600 mt-0.5" />
+                <div>
+                  <p className="font-medium text-foreground">本地运行时配置（备选）</p>
+                  <p>
+                    当后端不可用时，配置保存在浏览器 localStorage 中。
+                    仅在当前设备有效，清除浏览器数据会丢失。
                   </p>
                 </div>
               </div>
@@ -703,7 +852,7 @@ export function SystemConfig() {
                 <div>
                   <p className="font-medium text-foreground">配置优先级</p>
                   <p>
-                    运行时配置 &gt; 构建时配置。如果设置了运行时配置，将覆盖构建时的环境变量。
+                    数据库配置 &gt; 后端 .env 配置 &gt; 本地运行时配置 &gt; 构建时配置
                   </p>
                 </div>
               </div>
@@ -712,7 +861,8 @@ export function SystemConfig() {
                 <div>
                   <p className="font-medium text-foreground">安全提示</p>
                   <p>
-                    API Keys 存储在浏览器本地，其他网站无法访问。但清除浏览器数据会删除所有配置。
+                    API Keys 存储在后端数据库中，通过加密传输。
+                    非管理员用户无法查看敏感信息。
                   </p>
                 </div>
               </div>

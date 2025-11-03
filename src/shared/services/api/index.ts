@@ -372,6 +372,117 @@ export const fileApi = {
     apiClient.upload('/projects/upload', file, onProgress),
 };
 
+// ============================================================================
+// Instant Analysis API
+// ============================================================================
+
+export const instantAnalysisApi = {
+  /**
+   * Analyze code instantly
+   */
+  analyze: (data: { code: string; language: string }) =>
+    apiClient.post<{
+      issues: Array<{
+        type: string;
+        severity: string;
+        title: string;
+        description: string;
+        suggestion: string;
+        line: number;
+        column?: number;
+        code_snippet: string;
+        ai_explanation: string;
+        xai?: {
+          what: string;
+          why: string;
+          how: string;
+          learn_more?: string;
+        };
+      }>;
+      quality_score: number;
+      summary: {
+        total_issues: number;
+        critical_issues: number;
+        high_issues: number;
+        medium_issues: number;
+        low_issues: number;
+      };
+      metrics: {
+        complexity: number;
+        maintainability: number;
+        security: number;
+        performance: number;
+      };
+    }>('/instant-analysis/analyze', data),
+
+  /**
+   * Get supported languages
+   */
+  getSupportedLanguages: () =>
+    apiClient.get<{ languages: string[] }>('/instant-analysis/supported-languages'),
+};
+
+// ============================================================================
+// System Settings API
+// ============================================================================
+
+export const systemSettingsApi = {
+  /**
+   * Get LLM settings
+   */
+  getLLMSettings: () =>
+    apiClient.get<{
+      provider: string;
+      model?: string;
+      api_key?: string;
+      base_url?: string;
+      temperature: number;
+      max_tokens?: number;
+      timeout: number;
+    }>('/system/llm-settings'),
+
+  /**
+   * Update LLM settings
+   */
+  updateLLMSettings: (data: {
+    provider?: string;
+    model?: string;
+    api_key?: string;
+    base_url?: string;
+    temperature?: number;
+    max_tokens?: number;
+    timeout?: number;
+  }) =>
+    apiClient.put('/system/llm-settings', data),
+
+  /**
+   * Get all settings by category
+   */
+  getSettings: (category?: string) =>
+    apiClient.get<Array<{
+      id: number;
+      key: string;
+      value?: string;
+      category: string;
+      description?: string;
+      is_sensitive: boolean;
+      created_at: string;
+      updated_at: string;
+    }>>('/system/settings', { params: { category } }),
+
+  /**
+   * Get specific setting
+   */
+  getSetting: (key: string) =>
+    apiClient.get(`/system/settings/${key}`),
+
+  /**
+   * Batch update settings
+   */
+  batchUpdateSettings: (settings: Record<string, string>) =>
+    apiClient.post('/system/settings/batch', { settings }),
+};
+
 // Export all APIs
 export const api = {
   auth: authApi,
@@ -382,6 +493,8 @@ export const api = {
   statistics: statisticsApi,
   migration: migrationApi,
   files: fileApi,
+  instantAnalysis: instantAnalysisApi,
+  systemSettings: systemSettingsApi,
 };
 
 export default api;

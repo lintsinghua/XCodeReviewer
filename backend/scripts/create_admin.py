@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 from passlib.context import CryptContext
 
-from core.config import settings
+from app.config import settings
 from models.user import User
 from db.base import Base
 
@@ -58,11 +58,11 @@ async def create_admin_user():
             admin_user = User(
                 username="admin",
                 email="admin@example.com",
-                hashed_password=hashed_password,
+                password_hash=hashed_password,
                 full_name="Administrator",
-                role="admin",
+                role="ADMIN",
                 is_active=True,
-                is_superuser=True,
+                is_verified=True,
             )
             
             session.add(admin_user)
@@ -129,10 +129,11 @@ async def create_test_users():
                 user = User(
                     username=user_data["username"],
                     email=user_data["email"],
-                    hashed_password=hashed_password,
+                    password_hash=hashed_password,
                     full_name=user_data["full_name"],
-                    role=user_data["role"],
+                    role=user_data["role"].upper(),
                     is_active=True,
+                    is_verified=True,
                 )
                 
                 session.add(user)

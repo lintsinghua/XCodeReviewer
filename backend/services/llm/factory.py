@@ -41,18 +41,24 @@ class LLMFactory:
         
         Args:
             provider: Provider name
-            **kwargs: Additional configuration
+            **kwargs: Additional configuration (can include api_key)
             
         Returns:
             LLM adapter instance
         """
         if provider not in cls._adapters:
-            raise LLMProviderError(f"Unknown LLM provider: {provider}")
+            raise LLMProviderError(
+                provider=provider,
+                message=f"Unknown LLM provider: {provider}"
+            )
         
-        # Get API key from settings
-        api_key = cls._get_api_key(provider)
+        # Get API key: use provided one or get from settings
+        api_key = kwargs.pop('api_key', None) or cls._get_api_key(provider)
         if not api_key:
-            raise LLMProviderError(f"No API key configured for provider: {provider}")
+            raise LLMProviderError(
+                provider=provider,
+                message=f"No API key configured for provider: {provider}"
+            )
         
         # Create instance
         adapter_class = cls._adapters[provider]
@@ -96,6 +102,10 @@ class LLMFactory:
         Returns:
             API key or None
         """
+        # Ollama is a local model and doesn't need an API key
+        if provider.lower() == "ollama":
+            return "ollama"  # Placeholder value for local models
+        
         key_mapping = {
             "openai": settings.OPENAI_API_KEY,
             "gemini": settings.GEMINI_API_KEY,

@@ -31,12 +31,11 @@ async def lifespan(app: FastAPI):
         settings.generate_secret_key_if_needed()
     
     # Initialize default admin user on first run
-    # Note: Uncomment when User model is implemented
-    # try:
-    #     from scripts.init_admin import create_default_admin
-    #     await create_default_admin()
-    # except Exception as e:
-    #     logger.warning(f"Admin user initialization skipped: {e}")
+    try:
+        from scripts.init_admin import create_default_admin
+        await create_default_admin()
+    except Exception as e:
+        logger.warning(f"Admin user initialization skipped: {e}")
     
     logger.info(f"Application started successfully (version {settings.APP_VERSION})")
     

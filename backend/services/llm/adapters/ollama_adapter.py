@@ -13,6 +13,11 @@ from core.exceptions import LLMProviderError
 class OllamaAdapter(BaseLLMAdapter):
     """Ollama local model adapter"""
     
+    @property
+    def provider_name(self) -> str:
+        """Return provider name"""
+        return "ollama"
+    
     def __init__(self, api_key: str = "ollama", **kwargs):
         """
         Initialize Ollama adapter.
@@ -87,24 +92,32 @@ class OllamaAdapter(BaseLLMAdapter):
             # Create response
             return LLMResponse(
                 content=content,
-                usage=usage,
+                usage=usage.to_dict() if hasattr(usage, 'to_dict') else usage,
                 model=model,
                 provider="ollama",
-                timestamp=datetime.utcnow(),
                 metadata={
                     "total_duration": data.get("total_duration"),
                     "load_duration": data.get("load_duration"),
                     "eval_count": data.get("eval_count"),
-                    "eval_duration": data.get("eval_duration")
+                    "eval_duration": data.get("eval_duration"),
+                    "timestamp": datetime.utcnow().isoformat()
                 }
             )
             
         except httpx.HTTPError as e:
             logger.error(f"Ollama API HTTP error: {e}")
-            raise LLMProviderError(f"Ollama API HTTP error: {e}")
+            raise LLMProviderError(
+                provider="ollama",
+                message=f"Ollama API HTTP error: {e}",
+                original_error=e
+            )
         except Exception as e:
             logger.error(f"Ollama adapter error: {e}")
-            raise LLMProviderError(f"Ollama adapter error: {e}")
+            raise LLMProviderError(
+                provider="ollama",
+                message=f"Ollama adapter error: {e}",
+                original_error=e
+            )
     
     async def stream(
         self,
@@ -152,10 +165,18 @@ class OllamaAdapter(BaseLLMAdapter):
                             
         except httpx.HTTPError as e:
             logger.error(f"Ollama streaming error: {e}")
-            raise LLMProviderError(f"Ollama streaming error: {e}")
+            raise LLMProviderError(
+                provider="ollama",
+                message=f"Ollama streaming error: {e}",
+                original_error=e
+            )
         except Exception as e:
             logger.error(f"Ollama streaming adapter error: {e}")
-            raise LLMProviderError(f"Ollama streaming adapter error: {e}")
+            raise LLMProviderError(
+                provider="ollama",
+                message=f"Ollama streaming adapter error: {e}",
+                original_error=e
+            )
     
     def count_tokens(self, text: str, model: str) -> int:
         """

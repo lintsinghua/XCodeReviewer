@@ -68,10 +68,15 @@ class Settings(BaseSettings):
     ENCRYPTION_KEY: Optional[str] = None
     
     # LLM
+    LLM_PROVIDER: str = "gemini"  # Current LLM provider
     LLM_DEFAULT_PROVIDER: str = "gemini"
+    LLM_MODEL: Optional[str] = None  # LLM model name (use provider default if None)
+    LLM_API_KEY: Optional[str] = None  # Primary LLM API key
+    LLM_TEMPERATURE: float = 0.2  # LLM temperature for code analysis
     LLM_TIMEOUT: int = 150
     LLM_MAX_RETRIES: int = 3
     LLM_CACHE_TTL: int = 86400
+    OUTPUT_LANGUAGE: str = "zh-CN"  # Output language for LLM responses
     
     # LLM API Keys
     GEMINI_API_KEY: Optional[str] = None
@@ -84,6 +89,9 @@ class Settings(BaseSettings):
     BAIDU_API_KEY: Optional[str] = None
     MINIMAX_API_KEY: Optional[str] = None
     DOUBAO_API_KEY: Optional[str] = None
+    
+    # Ollama (local model)
+    OLLAMA_BASE_URL: str = "http://localhost:11434"  # Ollama server URL
     
     # GitHub/GitLab
     GITHUB_TOKEN: Optional[str] = None
