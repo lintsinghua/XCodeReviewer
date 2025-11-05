@@ -74,6 +74,7 @@ async def _scan_repository_async(task, task_id: int) -> Dict[str, Any]:
                 branch=project.branch
             )
             
+            logger.info(f"Scan result: {scan_result}")
             # Update project with scan results
             project.total_files = scan_result["total_files"]
             project.primary_language = scan_result.get("primary_language")
@@ -100,6 +101,7 @@ async def _scan_repository_async(task, task_id: int) -> Dict[str, Any]:
             all_issues: List[AuditIssue] = []
             total_lines_analyzed = 0
             files_analyzed = 0
+            logger.info(f"Files to analyze: {files_to_analyze}")
             
             for idx, file_info in enumerate(files_to_analyze):
                 try:
@@ -285,8 +287,11 @@ def _get_code_files(files: List[Dict]) -> List[Dict]:
     
     code_files = []
     for file_info in files:
-        if file_info.get("type") != "file":
+        # Accept "blob" (GitHub) or "file" type, skip directories/trees
+        file_type = file_info.get("type", "")
+        if file_type not in ["blob", "file"]:
             continue
+        
         path = file_info.get("path", "")
         ext = os.path.splitext(path)[1].lower()
         if ext in CODE_EXTENSIONS:

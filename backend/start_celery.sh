@@ -1,11 +1,5 @@
 #!/bin/bash
 # Celery Worker 启动脚本
-# 用于本地开发环境
-
-# 激活 conda 环境
-source ~/miniconda3/etc/profile.d/conda.sh
-conda activate code
-
 # 切换到 backend 目录
 cd "$(dirname "$0")"
 
