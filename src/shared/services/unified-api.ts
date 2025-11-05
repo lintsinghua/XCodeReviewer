@@ -67,10 +67,10 @@ class BackendAPIAdapter {
       total_files: backendTask.total_files || 0,
       scanned_files: backendTask.scanned_files || 0,
       total_lines: backendTask.total_lines || 0,
-      // 字段映射：后端使用 total_issues，前端期望 issues_count
-      issues_count: backendTask.issues_count || backendTask.total_issues || 0,
-      // 字段映射：后端使用 overall_score，前端期望 quality_score
-      quality_score: backendTask.quality_score || backendTask.overall_score || 0,
+      // 修复：后端返回 total_issues，前端期望 issues_count
+      issues_count: backendTask.total_issues || backendTask.issues_count || 0,
+      // 修复：后端返回 overall_score，前端期望 quality_score
+      quality_score: backendTask.overall_score || backendTask.quality_score || 0,
       exclude_patterns: typeof backendTask.exclude_patterns === 'string'
         ? backendTask.exclude_patterns
         : JSON.stringify(backendTask.exclude_patterns || []),
@@ -99,8 +99,9 @@ class BackendAPIAdapter {
       title: backendIssue.title || '未知问题',
       description: backendIssue.description || '',
       file_path: backendIssue.file_path || '',
-      line_number: backendIssue.line_number || 0,
-      column_number: backendIssue.column_number || null,
+      // 修复：后端返回的是 line_start/line_end，而非 line_number
+      line_number: backendIssue.line_start || backendIssue.line_number || 0,
+      column_number: backendIssue.column_start || backendIssue.column_number || null,
       code_snippet: backendIssue.code_snippet || '',
       suggestion: backendIssue.suggestion || '',
       status: backendIssue.status || 'open',
@@ -252,10 +253,33 @@ class BackendAPIAdapter {
 
   // ==================== 问题相关 ====================
 
-  async getAuditIssues(taskId: string): Promise<AuditIssue[]> {
-    const response = await backendApi.issues.list({ task_id: Number(taskId) });
-    const issues = response.items || response.data || response;
-    return Array.isArray(issues) ? issues.map(i => this.transformIssue(i)) : [];
+  async getAuditIssues(taskId: string, page: number = 1, pageSize: number = 20, severity?: string, status?: string): Promise<{ items: AuditIssue[]; total: number; page: number; pageSize: number }> {
+    // 支持后端分页，避免一次性加载所有数据
+    const params: any = { 
+      task_id: Number(taskId),
+      page: page,
+      page_size: pageSize
+    };
+    
+    // 如果指定了严重程度，添加过滤条件
+    if (severity && severity !== 'all') {
+      params.severity = severity;
+    }
+    
+    // 如果指定了状态，添加过滤条件
+    if (status && status !== 'all') {
+      params.status_filter = status;
+    }
+    
+    const response = await backendApi.issues.list(params);
+    const issues = response.items || response.data || [];
+    
+    return {
+      items: Array.isArray(issues) ? issues.map(i => this.transformIssue(i)) : [],
+      total: response.total || 0,
+      page: response.page || page,
+      pageSize: response.page_size || pageSize
+    };
   }
 
   async createAuditIssue(issue: Omit<AuditIssue, 'id' | 'created_at' | 'task' | 'resolver'>): Promise<AuditIssue> {
@@ -266,6 +290,10 @@ class BackendAPIAdapter {
   async updateAuditIssue(id: string, updates: Partial<AuditIssue>): Promise<AuditIssue> {
     const updated = await backendApi.issues.update(Number(id), updates);
     return this.transformIssue(updated);
+  }
+
+  async bulkUpdateIssues(issueIds: number[], status: string): Promise<void> {
+    await backendApi.issues.bulkUpdate(issueIds, status);
   }
 
   // ==================== 统计相关 ====================
@@ -384,11 +412,14 @@ export const unifiedApi = {
     USE_BACKEND ? backendAdapter.updateAuditTask(id, updates) : localApi.updateAuditTask(id, updates),
 
   // 问题相关
-  getAuditIssues: (taskId: string) => USE_BACKEND ? backendAdapter.getAuditIssues(taskId) : localApi.getAuditIssues(taskId),
+  getAuditIssues: (taskId: string, page?: number, pageSize?: number, severity?: string, status?: string) => 
+    USE_BACKEND ? backendAdapter.getAuditIssues(taskId, page, pageSize, severity, status) : localApi.getAuditIssues(taskId),
   createAuditIssue: (issue: Omit<AuditIssue, 'id' | 'created_at' | 'task' | 'resolver'>) =>
     USE_BACKEND ? backendAdapter.createAuditIssue(issue) : localApi.createAuditIssue(issue),
   updateAuditIssue: (id: string, updates: Partial<AuditIssue>) =>
     USE_BACKEND ? backendAdapter.updateAuditIssue(id, updates) : localApi.updateAuditIssue(id, updates),
+  bulkUpdateIssues: (issueIds: number[], status: string) =>
+    USE_BACKEND ? backendAdapter.bulkUpdateIssues(issueIds, status) : Promise.reject('Not supported in local mode'),
 
   // 统计相关
   getProjectStats: () => USE_BACKEND ? backendAdapter.getProjectStats() : localApi.getProjectStats(),

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   ArrowLeft,
   Activity,
@@ -52,7 +53,91 @@ function parseAIExplanation(aiExplanation: string) {
 }
 
 // 问题列表组件
-function IssuesList({ issues }: { issues: AuditIssue[] }) {
+function IssuesList({ 
+  issues, 
+  totalIssues, 
+  currentPage, 
+  onPageChange, 
+  onSeverityChange,
+  onIssuesUpdate,
+  statusFilter,
+  onStatusChange
+}: { 
+  issues: AuditIssue[]; 
+  totalIssues: number;
+  currentPage: number;
+  onPageChange: (page: number) => void;
+  onSeverityChange: (severity: string) => void;
+  onIssuesUpdate: () => void;
+  statusFilter: string;
+  onStatusChange: (status: string) => void;
+}) {
+  const [selectedIssues, setSelectedIssues] = useState<Set<number>>(new Set());
+  const [isUpdating, setIsUpdating] = useState(false);
+  
+  const itemsPerPage = 20; // 每页显示20个问题
+  
+  // 当切换标签页时，重置到第一页
+  const handleTabChange = (value: string) => {
+    onSeverityChange(value);
+    onPageChange(1);
+    setSelectedIssues(new Set());
+  };
+  
+  // 切换单个问题选中状态
+  const toggleIssueSelection = (issueId: number) => {
+    const newSelected = new Set(selectedIssues);
+    if (newSelected.has(issueId)) {
+      newSelected.delete(issueId);
+    } else {
+      newSelected.add(issueId);
+    }
+    setSelectedIssues(newSelected);
+  };
+  
+  // 全选/取消全选
+  const toggleSelectAll = () => {
+    if (selectedIssues.size === issues.length) {
+      setSelectedIssues(new Set());
+    } else {
+      setSelectedIssues(new Set(issues.map(i => Number(i.id))));
+    }
+  };
+  
+  // 批量更新问题状态
+  const handleBulkUpdate = async (status: string) => {
+    if (selectedIssues.size === 0) {
+      toast.error("请先选择要更新的问题");
+      return;
+    }
+    
+    try {
+      setIsUpdating(true);
+      const issueIds = Array.from(selectedIssues);
+      await api.bulkUpdateIssues(issueIds, status);
+      toast.success(`成功更新 ${issueIds.length} 个问题`);
+      setSelectedIssues(new Set());
+      onIssuesUpdate();
+    } catch (error) {
+      console.error('批量更新问题失败:', error);
+      toast.error("批量更新失败");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+  
+  // 单个问题确认
+  const handleSingleConfirm = async (issueId: number) => {
+    try {
+      await api.updateAuditIssue(String(issueId), { status: 'resolved' });
+      toast.success("问题已确认");
+      onIssuesUpdate();
+    } catch (error) {
+      console.error('确认问题失败:', error);
+      toast.error("确认失败");
+    }
+  };
+  
   const getSeverityColor = (severity: string) => {
     switch (severity) {
       case 'critical': return 'bg-red-100 text-red-800 border-red-200';
@@ -74,15 +159,115 @@ function IssuesList({ issues }: { issues: AuditIssue[] }) {
     }
   };
 
-  const criticalIssues = issues.filter(issue => issue.severity === 'critical');
-  const highIssues = issues.filter(issue => issue.severity === 'high');
-  const mediumIssues = issues.filter(issue => issue.severity === 'medium');
-  const lowIssues = issues.filter(issue => issue.severity === 'low');
+  // 计算总页数（基于后端返回的总数）
+  const getTotalPages = () => {
+    return Math.ceil(totalIssues / itemsPerPage);
+  };
 
-  const renderIssue = (issue: AuditIssue, index: number) => (
-    <div key={issue.id || index} className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md hover:border-gray-300 transition-all duration-200 group">
+  // 分页组件
+  const Pagination = ({ total, current, onChange }: { total: number; current: number; onChange: (page: number) => void }) => {
+    if (total <= 1) return null;
+
+    const pages = [];
+    const maxVisiblePages = 7;
+    
+    let startPage = Math.max(1, current - Math.floor(maxVisiblePages / 2));
+    let endPage = Math.min(total, startPage + maxVisiblePages - 1);
+    
+    if (endPage - startPage < maxVisiblePages - 1) {
+      startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+      pages.push(i);
+    }
+
+    return (
+      <div className="flex items-center justify-center space-x-2 mt-6 pb-4">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => onChange(current - 1)}
+          disabled={current === 1}
+          className="px-3"
+        >
+          上一页
+        </Button>
+        
+        {startPage > 1 && (
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onChange(1)}
+              className="px-3"
+            >
+              1
+            </Button>
+            {startPage > 2 && <span className="text-gray-500">...</span>}
+          </>
+        )}
+        
+        {pages.map(page => (
+          <Button
+            key={page}
+            variant={page === current ? "default" : "outline"}
+            size="sm"
+            onClick={() => onChange(page)}
+            className={`px-3 ${page === current ? 'bg-primary text-white' : ''}`}
+          >
+            {page}
+          </Button>
+        ))}
+        
+        {endPage < total && (
+          <>
+            {endPage < total - 1 && <span className="text-gray-500">...</span>}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onChange(total)}
+              className="px-3"
+            >
+              {total}
+            </Button>
+          </>
+        )}
+        
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => onChange(current + 1)}
+          disabled={current === total}
+          className="px-3"
+        >
+          下一页
+        </Button>
+        
+        <span className="text-sm text-gray-600 ml-4">
+          第 {current} / {total} 页，共 {totalIssues} 条，显示 {itemsPerPage * (current - 1) + 1}-{Math.min(itemsPerPage * current, totalIssues)} 条
+        </span>
+      </div>
+    );
+  };
+
+  const renderIssue = (issue: AuditIssue, index: number) => {
+    const issueId = Number(issue.id);
+    const isSelected = selectedIssues.has(issueId);
+    const isResolved = issue.status === 'resolved' || issue.status === 'false_positive';
+    
+    return (
+    <div key={issue.id || index} className={`bg-white border rounded-lg p-4 hover:shadow-md transition-all duration-200 group ${isSelected ? 'border-primary bg-blue-50' : 'border-gray-200 hover:border-gray-300'} ${isResolved ? 'opacity-60' : ''}`}>
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-start space-x-3">
+          {/* 复选框 */}
+          <input
+            type="checkbox"
+            checked={isSelected}
+            onChange={() => toggleIssueSelection(issueId)}
+            className="mt-2 w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary cursor-pointer"
+            disabled={isResolved}
+          />
           <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${issue.severity === 'critical' ? 'bg-red-100 text-red-600' :
             issue.severity === 'high' ? 'bg-orange-100 text-orange-600' :
               issue.severity === 'medium' ? 'bg-yellow-100 text-yellow-600' :
@@ -223,53 +408,168 @@ function IssuesList({ issues }: { issues: AuditIssue[] }) {
           }
         })()}
       </div>
+      
+      {/* 状态标签和操作按钮 */}
+      <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-200">
+        <div className="flex items-center space-x-2">
+          {isResolved ? (
+            <Badge className="bg-green-100 text-green-800 border-green-200">
+              <CheckCircle className="w-3 h-3 mr-1" />
+              {issue.status === 'resolved' ? '已确认' : '误报'}
+            </Badge>
+          ) : (
+            <Badge variant="outline" className="text-gray-600">
+              待确认
+            </Badge>
+          )}
+        </div>
+        {!isResolved && (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => handleSingleConfirm(issueId)}
+            className="text-green-600 hover:text-green-700 hover:bg-green-50"
+          >
+            <CheckCircle className="w-4 h-4 mr-1" />
+            确认
+          </Button>
+        )}
+      </div>
     </div>
   );
+  };
 
-  if (issues.length === 0) {
-    return (
-      <div className="text-center py-16">
-        <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-          <CheckCircle className="w-12 h-12 text-green-600" />
-        </div>
-        <h3 className="text-2xl font-bold text-green-800 mb-3">代码质量优秀！</h3>
-        <p className="text-green-600 text-lg mb-6">恭喜！没有发现任何问题</p>
-        <div className="bg-green-50 rounded-lg p-6 max-w-md mx-auto">
-          <p className="text-green-700 text-sm">
-            您的代码通过了所有质量检查，包括安全性、性能、可维护性等各个方面的评估。
-          </p>
-        </div>
-      </div>
-    );
-  }
+  // 注意：不要在这里返回，总是显示标签页，让每个标签页内部处理空状态
 
   return (
-    <Tabs defaultValue="all" className="w-full">
+    <div>
+      {/* 批量操作工具栏 */}
+      {issues.length > 0 && (
+        <div className="bg-white border border-gray-200 rounded-lg p-4 mb-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={selectedIssues.size > 0 && selectedIssues.size === issues.filter(i => i.status !== 'resolved' && i.status !== 'false_positive').length}
+                  onChange={toggleSelectAll}
+                  className="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary"
+                />
+                <span className="text-sm text-gray-700 font-medium">
+                  全选 {selectedIssues.size > 0 && `(${selectedIssues.size})`}
+                </span>
+              </label>
+              
+              {selectedIssues.size > 0 && (
+                <div className="flex items-center space-x-2">
+                  <Button
+                    size="sm"
+                    onClick={() => handleBulkUpdate('resolved')}
+                    disabled={isUpdating}
+                    className="bg-green-600 hover:bg-green-700 text-white"
+                  >
+                    <CheckCircle className="w-4 h-4 mr-1" />
+                    批量确认 ({selectedIssues.size})
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleBulkUpdate('false_positive')}
+                    disabled={isUpdating}
+                    className="text-gray-600 hover:bg-gray-50"
+                  >
+                    标记为误报
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setSelectedIssues(new Set())}
+                    className="text-gray-600"
+                  >
+                    取消选择
+                  </Button>
+                </div>
+              )}
+            </div>
+            
+            <Select value={statusFilter} onValueChange={onStatusChange}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="问题状态" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">全部状态</SelectItem>
+                <SelectItem value="open">
+                  <span className="flex items-center">
+                    <span className="w-2 h-2 rounded-full bg-yellow-500 mr-2"></span>
+                    待确认
+                  </span>
+                </SelectItem>
+                <SelectItem value="resolved">
+                  <span className="flex items-center">
+                    <span className="w-2 h-2 rounded-full bg-green-500 mr-2"></span>
+                    已确认
+                  </span>
+                </SelectItem>
+                <SelectItem value="false_positive">
+                  <span className="flex items-center">
+                    <span className="w-2 h-2 rounded-full bg-gray-500 mr-2"></span>
+                    误报
+                  </span>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      )}
+      
+    <Tabs defaultValue="all" className="w-full" onValueChange={handleTabChange}>
       <TabsList className="grid w-full grid-cols-5 mb-6">
         <TabsTrigger value="all" className="text-sm">
-          全部 ({issues.length})
+          全部
         </TabsTrigger>
         <TabsTrigger value="critical" className="text-sm">
-          严重 ({criticalIssues.length})
+          严重
         </TabsTrigger>
         <TabsTrigger value="high" className="text-sm">
-          高 ({highIssues.length})
+          高
         </TabsTrigger>
         <TabsTrigger value="medium" className="text-sm">
-          中等 ({mediumIssues.length})
+          中等
         </TabsTrigger>
         <TabsTrigger value="low" className="text-sm">
-          低 ({lowIssues.length})
+          低
         </TabsTrigger>
       </TabsList>
 
       <TabsContent value="all" className="space-y-4 mt-6">
-        {issues.map((issue, index) => renderIssue(issue, index))}
+        {issues.length > 0 ? (
+          <>
+            {issues.map((issue, index) => renderIssue(issue, index))}
+            <Pagination 
+              total={getTotalPages()} 
+              current={currentPage} 
+              onChange={onPageChange}
+            />
+          </>
+        ) : (
+          <div className="text-center py-12">
+            <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">没有发现问题</h3>
+            <p className="text-gray-500">代码质量良好</p>
+          </div>
+        )}
       </TabsContent>
 
       <TabsContent value="critical" className="space-y-4 mt-6">
-        {criticalIssues.length > 0 ? (
-          criticalIssues.map((issue, index) => renderIssue(issue, index))
+        {issues.length > 0 ? (
+          <>
+            {issues.map((issue, index) => renderIssue(issue, index))}
+            <Pagination 
+              total={getTotalPages()} 
+              current={currentPage} 
+              onChange={onPageChange}
+            />
+          </>
         ) : (
           <div className="text-center py-12">
             <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
@@ -280,8 +580,15 @@ function IssuesList({ issues }: { issues: AuditIssue[] }) {
       </TabsContent>
 
       <TabsContent value="high" className="space-y-4 mt-6">
-        {highIssues.length > 0 ? (
-          highIssues.map((issue, index) => renderIssue(issue, index))
+        {issues.length > 0 ? (
+          <>
+            {issues.map((issue, index) => renderIssue(issue, index))}
+            <Pagination 
+              total={getTotalPages()} 
+              current={currentPage} 
+              onChange={onPageChange}
+            />
+          </>
         ) : (
           <div className="text-center py-12">
             <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
@@ -292,8 +599,15 @@ function IssuesList({ issues }: { issues: AuditIssue[] }) {
       </TabsContent>
 
       <TabsContent value="medium" className="space-y-4 mt-6">
-        {mediumIssues.length > 0 ? (
-          mediumIssues.map((issue, index) => renderIssue(issue, index))
+        {issues.length > 0 ? (
+          <>
+            {issues.map((issue, index) => renderIssue(issue, index))}
+            <Pagination 
+              total={getTotalPages()} 
+              current={currentPage} 
+              onChange={onPageChange}
+            />
+          </>
         ) : (
           <div className="text-center py-12">
             <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
@@ -304,8 +618,15 @@ function IssuesList({ issues }: { issues: AuditIssue[] }) {
       </TabsContent>
 
       <TabsContent value="low" className="space-y-4 mt-6">
-        {lowIssues.length > 0 ? (
-          lowIssues.map((issue, index) => renderIssue(issue, index))
+        {issues.length > 0 ? (
+          <>
+            {issues.map((issue, index) => renderIssue(issue, index))}
+            <Pagination 
+              total={getTotalPages()} 
+              current={currentPage} 
+              onChange={onPageChange}
+            />
+          </>
         ) : (
           <div className="text-center py-12">
             <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
@@ -315,6 +636,7 @@ function IssuesList({ issues }: { issues: AuditIssue[] }) {
         )}
       </TabsContent>
     </Tabs>
+    </div>
   );
 }
 
@@ -324,12 +646,24 @@ export default function TaskDetail() {
   const [issues, setIssues] = useState<AuditIssue[]>([]);
   const [loading, setLoading] = useState(true);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [currentSeverity, setCurrentSeverity] = useState('all');
+  const [currentStatus, setCurrentStatus] = useState<string>('all');
+  const [totalIssues, setTotalIssues] = useState(0);
+  const [issuesPerPage] = useState(20);
 
   useEffect(() => {
     if (id) {
       loadTaskDetail();
     }
   }, [id]);
+
+  // 当页码、严重程度或状态变化时，重新加载issues
+  useEffect(() => {
+    if (id && task) {
+      loadIssues();
+    }
+  }, [id, currentPage, currentSeverity, currentStatus]);
 
   // 对于运行中或等待中的任务，静默更新进度（不触发loading状态）
   useEffect(() => {
@@ -341,11 +675,8 @@ export default function TaskDetail() {
     if (task.status === 'running' || task.status === 'pending') {
       const intervalId = setInterval(async () => {
         try {
-          // 静默获取任务数据，不触发loading状态
-          const [taskData, issuesData] = await Promise.all([
-            api.getAuditTaskById(id),
-            api.getAuditIssues(id)
-          ]);
+          // 静默获取任务数据
+          const taskData = await api.getAuditTaskById(id);
 
           // 只有数据真正变化时才更新状态
           if (taskData && (
@@ -354,7 +685,8 @@ export default function TaskDetail() {
             taskData.issues_count !== task.issues_count
           )) {
             setTask(taskData);
-            setIssues(issuesData);
+            // 重新加载当前页的issues
+            loadIssues();
           }
         } catch (error) {
           console.error('静默更新任务失败:', error);
@@ -363,25 +695,36 @@ export default function TaskDetail() {
 
       return () => clearInterval(intervalId);
     }
-  }, [task?.status, task?.scanned_files, id]);
+  }, [task?.status, task?.scanned_files, id, currentPage, currentSeverity, currentStatus]);
 
   const loadTaskDetail = async () => {
     if (!id) return;
 
     try {
       setLoading(true);
-      const [taskData, issuesData] = await Promise.all([
-        api.getAuditTaskById(id),
-        api.getAuditIssues(id)
-      ]);
-
+      const taskData = await api.getAuditTaskById(id);
       setTask(taskData);
-      setIssues(issuesData);
+      
+      // 加载第一页的issues
+      await loadIssues();
     } catch (error) {
       console.error('Failed to load task detail:', error);
       toast.error("加载任务详情失败");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadIssues = async () => {
+    if (!id) return;
+
+    try {
+      const response = await api.getAuditIssues(id, currentPage, issuesPerPage, currentSeverity, currentStatus);
+      setIssues(response.items);
+      setTotalIssues(response.total);
+    } catch (error) {
+      console.error('Failed to load issues:', error);
+      toast.error("加载问题列表失败");
     }
   };
 
@@ -571,11 +914,16 @@ export default function TaskDetail() {
           <CardContent className="p-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="stat-label">质量评分</p>
-                <p className="stat-value text-xl text-primary">{(task.quality_score || 0).toFixed(1)}</p>
+                <p className="stat-label">代码文件</p>
+                <p className="stat-value text-xl text-primary">
+                  <span className="text-emerald-600">{task.scanned_files || 0}</span>
+                  <span className="text-gray-400 text-base"> / </span>
+                  <span>{task.total_files || 0}</span>
+                </p>
+                <p className="text-xs text-gray-500 mt-1">已分析 / 代码文件</p>
               </div>
               <div className="stat-icon from-emerald-500 to-emerald-600">
-                <TrendingUp className="w-5 h-5 text-white" />
+                <FileText className="w-5 h-5 text-white" />
               </div>
             </div>
           </CardContent>
@@ -597,9 +945,9 @@ export default function TaskDetail() {
       </div>
 
       {/* 任务信息 */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
-          <Card className="card-modern">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:items-start">
+        <div className="lg:col-span-2 h-full">
+          <Card className="card-modern h-full">
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <Shield className="w-5 h-5 text-primary" />
@@ -639,44 +987,49 @@ export default function TaskDetail() {
                 )}
               </div>
 
-              {/* 排除模式 */}
-              {task.exclude_patterns && (
-                <div>
-                  <p className="text-sm font-medium text-gray-500 mb-2">排除模式</p>
-                  <div className="flex flex-wrap gap-2">
-                    {JSON.parse(task.exclude_patterns).map((pattern: string) => (
-                      <Badge key={pattern} variant="outline" className="text-xs">
-                        {pattern}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
+              {/* 排除模式和扫描配置 - 并排显示 */}
+              {(task.exclude_patterns || task.scan_config) && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* 排除模式 */}
+                  {task.exclude_patterns && (
+                    <div>
+                      <p className="text-sm font-medium text-gray-500 mb-2">排除模式</p>
+                      <div className="flex flex-wrap gap-2">
+                        {JSON.parse(task.exclude_patterns).map((pattern: string) => (
+                          <Badge key={pattern} variant="outline" className="text-xs">
+                            {pattern}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
-              {/* 扫描配置 */}
-              {task.scan_config && (
-                <div>
-                  <p className="text-sm font-medium text-gray-500 mb-2">扫描配置</p>
-                  <div className="bg-gray-50 rounded-lg p-3">
-                    <pre className="text-xs text-gray-600">
-                      {JSON.stringify(JSON.parse(task.scan_config), null, 2)}
-                    </pre>
-                  </div>
+                  {/* 扫描配置 */}
+                  {task.scan_config && (
+                    <div>
+                      <p className="text-sm font-medium text-gray-500 mb-2">扫描配置</p>
+                      <div className="bg-gray-50 rounded-lg p-3">
+                        <pre className="text-xs text-gray-600">
+                          {JSON.stringify(JSON.parse(task.scan_config), null, 2)}
+                        </pre>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </CardContent>
           </Card>
         </div>
 
-        <div>
-          <Card className="card-modern">
+        <div className="h-full">
+          <Card className="card-modern h-full flex flex-col">
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <FileText className="w-5 h-5 text-primary" />
                 <span>项目信息</span>
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 flex-1">
               {task.project ? (
                 <>
                   <div>
@@ -716,17 +1069,26 @@ export default function TaskDetail() {
         </div>
       </div>
 
-      {/* 问题列表 */}
-      {issues.length > 0 && (
+      {/* 问题列表 - 始终显示，即使某个严重程度下没有问题 */}
+      {task && task.status === 'completed' && (
         <Card className="card-modern">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <Bug className="w-6 h-6 text-orange-600" />
-              <span>发现的问题 ({issues.length})</span>
+              <span>发现的问题 ({totalIssues})</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <IssuesList issues={issues} />
+            <IssuesList 
+            issues={issues} 
+            totalIssues={totalIssues}
+            currentPage={currentPage}
+            onPageChange={setCurrentPage}
+            onSeverityChange={setCurrentSeverity}
+            onIssuesUpdate={loadIssues}
+            statusFilter={currentStatus}
+            onStatusChange={setCurrentStatus}
+          />
           </CardContent>
         </Card>
       )}

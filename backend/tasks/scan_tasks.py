@@ -90,12 +90,16 @@ async def _scan_repository_async(task, task_id: int) -> Dict[str, Any]:
             analyzer = InstantCodeAnalyzer(db=db)
             
             files_to_analyze = _get_code_files(scan_result.get("files", []))
-            total_files = len(files_to_analyze)
+            total_code_files = len(files_to_analyze)
+            
+            # Update audit task with code files count (not all files)
+            audit_task.total_files = total_code_files
+            await db.commit()
             
             # Limit files for performance (top 50 files for now)
             MAX_FILES = 50
-            if total_files > MAX_FILES:
-                logger.info(f"Limiting analysis to {MAX_FILES} out of {total_files} files")
+            if total_code_files > MAX_FILES:
+                logger.info(f"Limiting analysis to {MAX_FILES} out of {total_code_files} code files")
                 files_to_analyze = files_to_analyze[:MAX_FILES]
             
             all_issues: List[AuditIssue] = []
@@ -179,6 +183,8 @@ async def _scan_repository_async(task, task_id: int) -> Dict[str, Any]:
             audit_task.medium_issues = issue_counts["medium"]
             audit_task.low_issues = issue_counts["low"]
             audit_task.overall_score = quality_score
+            audit_task.scanned_files = files_analyzed  # Update analyzed files count
+            audit_task.total_lines = total_lines_analyzed  # Update total lines analyzed
             audit_task.progress = 100
             audit_task.status = TaskStatus.COMPLETED
             audit_task.current_step = "Analysis completed"
@@ -194,7 +200,7 @@ async def _scan_repository_async(task, task_id: int) -> Dict[str, Any]:
                 "total": 100,
                 "status": "Analysis completed",
                 "result": {
-                    "total_files": total_files,
+                    "total_files": total_code_files,
                     "files_analyzed": files_analyzed,
                     "total_issues": len(all_issues),
                     "quality_score": quality_score
@@ -207,7 +213,7 @@ async def _scan_repository_async(task, task_id: int) -> Dict[str, Any]:
                 "task_id": task_id,
                 "project_id": project.id,
                 "status": "completed",
-                "total_files": total_files,
+                "total_files": total_code_files,
                 "files_analyzed": files_analyzed,
                 "total_issues": len(all_issues),
                 "quality_score": quality_score

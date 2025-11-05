@@ -4,6 +4,7 @@ Endpoints for managing audit tasks.
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_, or_
+from sqlalchemy.orm import selectinload
 from typing import List, Optional
 from datetime import datetime
 from loguru import logger
@@ -141,10 +142,10 @@ async def list_tasks(
         Paginated list of tasks
     """
     try:
-        # Build query - join with projects to filter by owner
+        # Build query - join with projects to filter by owner and eagerly load project
         query = select(AuditTask).join(Project).where(
             Project.owner_id == current_user.id
-        )
+        ).options(selectinload(AuditTask.project))
         
         # Apply filters
         if project_id:
@@ -207,13 +208,13 @@ async def get_task(
         Task details
     """
     try:
-        # Get task with project ownership check
+        # Get task with project ownership check and eagerly load project
         query = select(AuditTask).join(Project).where(
             and_(
                 AuditTask.id == task_id,
                 Project.owner_id == current_user.id
             )
-        )
+        ).options(selectinload(AuditTask.project))
         result = await db.execute(query)
         task = result.scalar_one_or_none()
         

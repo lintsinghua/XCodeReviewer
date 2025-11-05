@@ -266,8 +266,8 @@ export const issueApi = {
   /**
    * Bulk update issues
    */
-  bulkUpdate: (issueIds: number[], data: IssueUpdate) =>
-    apiClient.post('/issues/bulk-update', { issue_ids: issueIds, ...data }),
+  bulkUpdate: (issue_ids: number[], status: string) =>
+    apiClient.post('/issues/bulk-update', { issue_ids, status }),
 };
 
 // ============================================================================

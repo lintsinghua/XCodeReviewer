@@ -7,6 +7,21 @@ from datetime import datetime
 from models.audit_task import TaskStatus, TaskPriority
 
 
+class ProjectSummary(BaseModel):
+    """简化的项目信息"""
+    id: int
+    name: str
+    description: Optional[str] = None
+    source_type: Optional[str] = None
+    repository_name: Optional[str] = None
+    branch: Optional[str] = None
+    primary_language: Optional[str] = None
+    programming_languages: Optional[str] = None  # JSON string of language list
+    
+    class Config:
+        from_attributes = True
+
+
 class TaskCreate(BaseModel):
     """Task creation schema"""
     name: Optional[str] = Field(None, min_length=1, max_length=255, description="Task name")
@@ -63,18 +78,24 @@ class TaskResponse(BaseModel):
     id: int
     name: str
     description: Optional[str]
+    task_type: str
+    branch_name: str
     status: TaskStatus
     priority: TaskPriority
     progress: int
     current_step: Optional[str]
     agents_used: Optional[Dict[str, Any]]
     scan_config: Optional[Dict[str, Any]]
+    exclude_patterns: Optional[list[str]] = None
     total_issues: int
     critical_issues: int
     high_issues: int
     medium_issues: int
     low_issues: int
     overall_score: float
+    total_files: int = 0
+    scanned_files: int = 0
+    total_lines: int = 0
     error_message: Optional[str]
     retry_count: int
     created_at: datetime
@@ -82,6 +103,7 @@ class TaskResponse(BaseModel):
     completed_at: Optional[datetime]
     project_id: int
     created_by: Optional[int]
+    project: Optional[ProjectSummary] = None
     
     class Config:
         from_attributes = True

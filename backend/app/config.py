@@ -102,9 +102,9 @@ class Settings(BaseSettings):
     LLM_CONCURRENCY: int = 2
     LLM_GAP_MS: int = 500
     
-    # Rate Limiting
-    RATE_LIMIT_PER_MINUTE: int = 60
-    RATE_LIMIT_PER_HOUR: int = 1000
+    # Rate Limiting (更宽松的限制，适合开发和正常使用)
+    RATE_LIMIT_PER_MINUTE: int = 300  # 从60增加到300
+    RATE_LIMIT_PER_HOUR: int = 5000   # 从1000增加到5000
     
     # Monitoring
     SENTRY_DSN: Optional[str] = None
