@@ -293,30 +293,50 @@ export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, pr
                 filteredProjects.map((project) => (
                   <Card 
                     key={project.id} 
-                    className={`cursor-pointer transition-all hover:shadow-md ${
+                    className={`cursor-pointer transition-all duration-200 border-2 ${
                       taskForm.project_id === project.id 
-                        ? 'ring-2 ring-primary bg-primary/5' 
-                        : 'hover:bg-gray-50'
+                        ? 'border-primary bg-primary/5 shadow-lg' 
+                        : 'border-gray-200 hover:border-gray-300 hover:shadow-md'
                     }`}
                     onClick={() => setTaskForm({ ...taskForm, project_id: project.id })}
                   >
                     <CardContent className="p-4">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <h4 className="font-medium text-sm">{project.name}</h4>
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h4 className={`font-semibold text-sm truncate ${
+                              taskForm.project_id === project.id ? 'text-primary' : 'text-gray-900'
+                            }`}>
+                              {project.name}
+                            </h4>
+                            {taskForm.project_id === project.id && (
+                              <Badge variant="default" className="bg-primary text-white text-xs px-2 py-0.5">
+                                已选择
+                              </Badge>
+                            )}
+                          </div>
                           {project.description && (
-                            <p className="text-xs text-gray-500 mt-1 line-clamp-2">
+                            <p className="text-xs text-gray-500 mt-1.5 line-clamp-2 leading-relaxed">
                               {project.description}
                             </p>
                           )}
-                          <div className="flex items-center space-x-4 mt-2 text-xs text-gray-400">
-                            <span>{project.repository_type?.toUpperCase() || 'OTHER'}</span>
-                            <span>{project.default_branch}</span>
+                          <div className="flex items-center gap-3 mt-2.5">
+                            <Badge variant="outline" className="text-xs font-normal">
+                              {project.repository_type?.toUpperCase() || 'OTHER'}
+                            </Badge>
+                            <div className="flex items-center text-xs text-gray-500">
+                              <GitBranch className="w-3 h-3 mr-1" />
+                              {project.default_branch}
+                            </div>
                           </div>
                         </div>
                         {taskForm.project_id === project.id && (
-                          <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center">
-                            <div className="w-2 h-2 rounded-full bg-white"></div>
+                          <div className="flex-shrink-0 mt-0.5">
+                            <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center ring-2 ring-primary/20">
+                              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                              </svg>
+                            </div>
                           </div>
                         )}
                       </div>
