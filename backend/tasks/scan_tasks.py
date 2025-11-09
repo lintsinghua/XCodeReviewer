@@ -618,6 +618,8 @@ def _map_category(type_str: str) -> IssueCategory:
         'PERFORMANCE': IssueCategory.PERFORMANCE,
         'ERROR_HANDLING': IssueCategory.RELIABILITY,
         'DOCUMENTATION': IssueCategory.DOCUMENTATION,
+        'READABILITY': IssueCategory.MAINTAINABILITY,
+        'ABSTRACTIONS': IssueCategory.MAINTAINABILITY,
         
         # 常见别名
         'design': IssueCategory.MAINTAINABILITY,
@@ -628,6 +630,8 @@ def _map_category(type_str: str) -> IssueCategory:
         'tests': IssueCategory.QUALITY,
         'robustness': IssueCategory.RELIABILITY,
         'error_handling': IssueCategory.RELIABILITY,
+        'readability': IssueCategory.MAINTAINABILITY,
+        'abstractions': IssueCategory.MAINTAINABILITY,
     }
     return category_map.get(type_str, IssueCategory.OTHER)
 
