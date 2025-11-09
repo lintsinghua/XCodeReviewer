@@ -15,10 +15,12 @@ import {
   Save,
   X,
   CheckCircle2,
-  XCircle
+  XCircle,
+  Key
 } from "lucide-react";
 import { toast } from "sonner";
 import { apiClient } from "@/shared/services/api/client";
+import { ApiKeyDialog } from "./ApiKeyDialog";
 
 interface LLMProvider {
   id: number;
@@ -67,6 +69,8 @@ export function LLMProviderManager() {
   const [loading, setLoading] = useState(true);
   const [showDialog, setShowDialog] = useState(false);
   const [editingProvider, setEditingProvider] = useState<LLMProvider | null>(null);
+  const [showApiKeyDialog, setShowApiKeyDialog] = useState(false);
+  const [selectedProviderForKey, setSelectedProviderForKey] = useState<{ id: number; name: string } | null>(null);
   const [formData, setFormData] = useState<ProviderFormData>({
     name: "",
     display_name: "",
@@ -270,24 +274,43 @@ export function LLMProviderManager() {
                 </div>
               )}
 
-              <div className="flex gap-2 pt-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="flex-1"
-                  onClick={() => handleEdit(provider)}
-                >
-                  <Edit className="w-3 h-3 mr-1" />
-                  编辑
-                </Button>
-                {!provider.is_builtin && (
+              <div className="flex flex-col gap-2 pt-2">
+                <div className="flex gap-2">
                   <Button
                     variant="outline"
                     size="sm"
-                    className="text-red-600 hover:text-red-700"
-                    onClick={() => handleDelete(provider)}
+                    className="flex-1"
+                    onClick={() => handleEdit(provider)}
                   >
-                    <Trash2 className="w-3 h-3" />
+                    <Edit className="w-3 h-3 mr-1" />
+                    编辑
+                  </Button>
+                  {!provider.is_builtin && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-red-600 hover:text-red-700"
+                      onClick={() => handleDelete(provider)}
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </Button>
+                  )}
+                </div>
+                {provider.requires_api_key && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="w-full"
+                    onClick={() => {
+                      setSelectedProviderForKey({
+                        id: provider.id,
+                        name: provider.display_name
+                      });
+                      setShowApiKeyDialog(true);
+                    }}
+                  >
+                    <Key className="w-3 h-3 mr-1" />
+                    配置 API Key
                   </Button>
                 )}
               </div>
@@ -497,6 +520,14 @@ export function LLMProviderManager() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* API Key 配置对话框 */}
+      <ApiKeyDialog
+        providerId={selectedProviderForKey?.id || null}
+        providerName={selectedProviderForKey?.name || ""}
+        open={showApiKeyDialog}
+        onOpenChange={setShowApiKeyDialog}
+      />
     </div>
   );
 }

@@ -119,19 +119,28 @@ async def _scan_repository_async(task, task_id: int) -> Dict[str, Any]:
             
             # Check if task has specific LLM provider, otherwise use system default
             llm_config = {}
+            db_api_key = None
+            
             if audit_task.llm_provider_id:
                 # Use task-specific LLM provider
                 from models.llm_provider import LLMProvider
+                from services.llm.provider_api_key_service import get_provider_api_key_by_id
+                
                 provider_result = await db.execute(select(LLMProvider).where(LLMProvider.id == audit_task.llm_provider_id))
                 llm_provider = provider_result.scalar_one_or_none()
+                
                 if llm_provider and llm_provider.is_active:
                     logger.info(f"🎯 Using task-specific LLM provider: {llm_provider.display_name} (ID: {llm_provider.id})")
+                    
+                    # Try to get API key from database first
+                    db_api_key = await get_provider_api_key_by_id(llm_provider.id, db)
+                    
                     llm_config = {
-                        'provider': llm_provider.provider_type.value,
+                        'provider': llm_provider.provider_type,
                         'model': llm_provider.default_model,
                         'base_url': llm_provider.api_endpoint,
                         'temperature': 0.2,
-                        'api_key': None  # Will be loaded from env
+                        'api_key': db_api_key  # Use DB API key if available
                     }
                 else:
                     logger.warning(f"Task-specific LLM provider {audit_task.llm_provider_id} not found or inactive, falling back to system default")
@@ -152,8 +161,16 @@ async def _scan_repository_async(task, task_id: int) -> Dict[str, Any]:
             analyzer.model = llm_config.get('model')
             analyzer.temperature = llm_config.get('temperature', 0.2)
             analyzer.base_url = llm_config.get('base_url')
+            
+            # Priority: DB API key > Environment variable
             analyzer.api_key = llm_config.get('api_key') or analyzer._get_api_key_for_provider(analyzer.provider)
             analyzer._config_loaded = True
+            
+            if db_api_key:
+                logger.info(f"✅ Using API key from database for provider: {analyzer.provider}")
+            else:
+                logger.info(f"✅ Using API key from environment for provider: {analyzer.provider}")
+            
             logger.info(f"✅ Analyzer configured: provider={analyzer.provider}, model={analyzer.model}, base_url={analyzer.base_url}")
             
             # Filter files based on scan configuration

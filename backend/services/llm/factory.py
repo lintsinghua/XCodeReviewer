@@ -12,6 +12,7 @@ from services.llm.adapters.qwen_adapter import QwenAdapter
 from services.llm.adapters.deepseek_adapter import DeepSeekAdapter
 from services.llm.adapters.openai_compatible_adapter import ZhipuAdapter, MoonshotAdapter
 from services.llm.adapters.ollama_adapter import OllamaAdapter
+from services.llm.adapters.bedrock_adapter import BedrockAdapter
 from core.exceptions import LLMProviderError
 from app.config import settings
 
@@ -106,6 +107,11 @@ class LLMFactory:
         if provider.lower() == "ollama":
             return "ollama"  # Placeholder value for local models
         
+        # Bedrock uses API key (see: https://docs.aws.amazon.com/bedrock/latest/userguide/api-keys-how.html)
+        if provider.lower() == "bedrock":
+            # Return placeholder - actual API key should be provided or loaded from environment
+            return "bedrock-api-key"  # Placeholder, actual API key from env: BEDROCK_API_KEY
+        
         key_mapping = {
             "openai": settings.OPENAI_API_KEY,
             "gemini": settings.GEMINI_API_KEY,
@@ -117,6 +123,7 @@ class LLMFactory:
             "baidu": settings.BAIDU_API_KEY,
             "minimax": settings.MINIMAX_API_KEY,
             "doubao": settings.DOUBAO_API_KEY,
+            "bedrock": settings.BEDROCK_API_KEY,
         }
         
         return key_mapping.get(provider)
@@ -131,6 +138,7 @@ LLMFactory.register("deepseek", DeepSeekAdapter)
 LLMFactory.register("zhipu", ZhipuAdapter)
 LLMFactory.register("moonshot", MoonshotAdapter)
 LLMFactory.register("ollama", OllamaAdapter)
+LLMFactory.register("bedrock", BedrockAdapter)
 
 # TODO: Register other adapters as they are implemented
 # Baidu, MiniMax, Doubao, etc.

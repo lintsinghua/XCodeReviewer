@@ -92,3 +92,24 @@ class LLMProviderListResponse(BaseModel):
     page: int
     page_size: int
 
+
+class LLMProviderApiKeyUpdate(BaseModel):
+    """LLM Provider API key update schema"""
+    api_key: str = Field(..., min_length=1, description="API key (will be encrypted)")
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "api_key": "sk-1234567890abcdef..."
+            }
+        }
+
+
+class LLMProviderApiKeyStatus(BaseModel):
+    """LLM Provider API key status schema"""
+    has_api_key: bool = Field(..., description="Whether API key is configured")
+    api_key_preview: Optional[str] = Field(None, description="Preview of API key (first/last few chars)")
+    
+    class Config:
+        from_attributes = True
+

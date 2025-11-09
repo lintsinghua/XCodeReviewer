@@ -14,7 +14,9 @@ from schemas.llm_provider import (
     LLMProviderCreate,
     LLMProviderUpdate,
     LLMProviderResponse,
-    LLMProviderListResponse
+    LLMProviderListResponse,
+    LLMProviderApiKeyUpdate,
+    LLMProviderApiKeyStatus
 )
 from api.dependencies import get_current_user, require_admin
 
@@ -264,5 +266,165 @@ async def delete_provider(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to delete provider"
+        )
+
+
+@router.put(
+    "/{provider_id}/api-key",
+    response_model=LLMProviderApiKeyStatus,
+    summary="Set provider API key",
+    description="Set or update the API key for an LLM provider (encrypted storage)"
+)
+async def set_provider_api_key(
+    provider_id: int,
+    api_key_data: LLMProviderApiKeyUpdate,
+    current_user: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db)
+) -> LLMProviderApiKeyStatus:
+    """Set or update API key for a provider."""
+    try:
+        from utils.encryption import encrypt_api_key
+        
+        # Get provider
+        result = await db.execute(
+            select(LLMProvider).where(LLMProvider.id == provider_id)
+        )
+        provider = result.scalar_one_or_none()
+        
+        if not provider:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Provider with ID {provider_id} not found"
+            )
+        
+        # Encrypt and store API key
+        encrypted_key = encrypt_api_key(api_key_data.api_key)
+        provider.encrypted_api_key = encrypted_key
+        
+        await db.commit()
+        
+        logger.info(f"Updated API key for provider {provider_id} by user {current_user.id}")
+        
+        # Return status with preview
+        preview = None
+        if len(api_key_data.api_key) > 8:
+            preview = f"{api_key_data.api_key[:4]}...{api_key_data.api_key[-4:]}"
+        elif len(api_key_data.api_key) > 4:
+            preview = f"{api_key_data.api_key[:2]}...{api_key_data.api_key[-2:]}"
+        
+        return LLMProviderApiKeyStatus(
+            has_api_key=True,
+            api_key_preview=preview
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"Error setting API key for provider {provider_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to set API key"
+        )
+
+
+@router.get(
+    "/{provider_id}/api-key",
+    response_model=LLMProviderApiKeyStatus,
+    summary="Get provider API key status",
+    description="Check if an API key is configured for a provider"
+)
+async def get_provider_api_key_status(
+    provider_id: int,
+    current_user: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db)
+) -> LLMProviderApiKeyStatus:
+    """Get API key status for a provider."""
+    try:
+        from utils.encryption import decrypt_api_key
+        
+        # Get provider
+        result = await db.execute(
+            select(LLMProvider).where(LLMProvider.id == provider_id)
+        )
+        provider = result.scalar_one_or_none()
+        
+        if not provider:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Provider with ID {provider_id} not found"
+            )
+        
+        # Check if API key exists
+        has_key = bool(provider.encrypted_api_key)
+        preview = None
+        
+        if has_key:
+            try:
+                # Decrypt to get preview
+                decrypted_key = decrypt_api_key(provider.encrypted_api_key)
+                if len(decrypted_key) > 8:
+                    preview = f"{decrypted_key[:4]}...{decrypted_key[-4:]}"
+                elif len(decrypted_key) > 4:
+                    preview = f"{decrypted_key[:2]}...{decrypted_key[-2:]}"
+            except Exception as e:
+                logger.warning(f"Failed to decrypt API key for preview: {e}")
+                preview = "****...****"
+        
+        return LLMProviderApiKeyStatus(
+            has_api_key=has_key,
+            api_key_preview=preview
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting API key status for provider {provider_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to get API key status"
+        )
+
+
+@router.delete(
+    "/{provider_id}/api-key",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete provider API key",
+    description="Remove the API key for an LLM provider"
+)
+async def delete_provider_api_key(
+    provider_id: int,
+    current_user: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db)
+) -> None:
+    """Delete API key for a provider."""
+    try:
+        # Get provider
+        result = await db.execute(
+            select(LLMProvider).where(LLMProvider.id == provider_id)
+        )
+        provider = result.scalar_one_or_none()
+        
+        if not provider:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Provider with ID {provider_id} not found"
+            )
+        
+        # Remove API key
+        provider.encrypted_api_key = None
+        
+        await db.commit()
+        
+        logger.info(f"Deleted API key for provider {provider_id} by user {current_user.id}")
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"Error deleting API key for provider {provider_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to delete API key"
         )
 

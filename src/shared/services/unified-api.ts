@@ -242,7 +242,8 @@ class BackendAPIAdapter {
       task_type: task.task_type || 'full_scan',
       branch_name: task.branch_name || 'main',
       exclude_patterns: task.exclude_patterns || [],
-      scan_config: task.scan_config || {}
+      scan_config: task.scan_config || {},
+      llm_provider_id: task.llm_provider_id  // 添加 LLM Provider ID
     });
     return this.transformTask(created);
   }

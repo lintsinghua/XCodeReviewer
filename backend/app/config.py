@@ -89,6 +89,7 @@ class Settings(BaseSettings):
     BAIDU_API_KEY: Optional[str] = None
     MINIMAX_API_KEY: Optional[str] = None
     DOUBAO_API_KEY: Optional[str] = None
+    BEDROCK_API_KEY: Optional[str] = None  # AWS Bedrock API key
     
     # Ollama (local model)
     OLLAMA_BASE_URL: str = "http://localhost:11434"  # Ollama server URL

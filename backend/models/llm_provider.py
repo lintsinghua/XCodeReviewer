@@ -4,6 +4,7 @@ Model for managing LLM provider configurations.
 from sqlalchemy import String, Text, Boolean, Integer, JSON
 from sqlalchemy.orm import Mapped, mapped_column
 from datetime import datetime
+from typing import Optional
 from db.base import Base
 
 
@@ -26,6 +27,7 @@ class LLMProvider(Base):
     api_endpoint: Mapped[str] = mapped_column(String(500), nullable=True)
     default_model: Mapped[str] = mapped_column(String(200), nullable=True)
     supported_models: Mapped[str] = mapped_column(JSON, nullable=True)  # JSON array of model names
+    encrypted_api_key: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # Encrypted API key
     
     # Settings
     requires_api_key: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)

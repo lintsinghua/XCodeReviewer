@@ -57,6 +57,32 @@ BUILTIN_PROVIDERS = [
         "is_builtin": True,
     },
     {
+        "name": "bedrock",
+        "display_name": "AWS Bedrock Claude",
+        "description": "AWS Bedrock Claude 3.5 Sonnet (us-east-1)",
+        "icon": "🟧",
+        "provider_type": "bedrock",
+        "api_endpoint": "us-east-1",  # AWS region
+        "default_model": "anthropic.claude-3-5-sonnet-20241022-v2:0",
+        "supported_models": [
+            "anthropic.claude-3-5-sonnet-20241022-v2:0",
+            "anthropic.claude-3-5-sonnet-20240620-v1:0",
+            "anthropic.claude-3-opus-20240229-v1:0",
+            "anthropic.claude-3-sonnet-20240229-v1:0",
+            "anthropic.claude-3-haiku-20240307-v1:0"
+        ],
+        "requires_api_key": True,  # Requires AWS credentials
+        "supports_streaming": True,
+        "max_tokens_limit": 4096,
+        "category": "international",
+        "is_active": True,
+        "is_builtin": True,
+        "config": {
+            "region_name": "us-east-1",
+            "note": "Uses AWS credentials from environment (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY) or IAM role"
+        }
+    },
+    {
         "name": "deepseek",
         "display_name": "DeepSeek",
         "description": "DeepSeek AI models",
