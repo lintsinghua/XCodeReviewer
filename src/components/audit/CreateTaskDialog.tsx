@@ -19,6 +19,7 @@ import {
   Search
 } from "lucide-react";
 import { api } from "@/shared/services/unified-api";
+import { apiClient } from "@/shared/services/api/client";
 import type { Project, CreateAuditTaskForm } from "@/shared/types";
 import { toast } from "sonner";
 import TerminalProgressDialog from "./TerminalProgressDialog";
@@ -47,11 +48,14 @@ export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, pr
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(false);
   const [categoriesError, setCategoriesError] = useState(false);
+  const [llmProviders, setLlmProviders] = useState<any[]>([]);
+  const [loadingProviders, setLoadingProviders] = useState(false);
   
   const [taskForm, setTaskForm] = useState<CreateAuditTaskForm>({
     project_id: "",
     task_type: "repository",
     branch_name: "main",
+    llm_provider_id: undefined,
     exclude_patterns: [
       "node_modules/**", 
       ".git/**", 
@@ -87,6 +91,7 @@ export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, pr
     if (open) {
       loadProjects();
       loadCategories();
+      loadLLMProviders();
       // 如果有预选择的项目ID，设置到表单中
       if (preselectedProjectId) {
         setTaskForm(prev => ({ ...prev, project_id: preselectedProjectId }));
@@ -135,6 +140,19 @@ export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, pr
       toast.error("加载项目失败");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadLLMProviders = async () => {
+    try {
+      setLoadingProviders(true);
+      const response = await apiClient.get('/llm-providers?page_size=100&is_active=true');
+      setLlmProviders(response.items || []);
+    } catch (error) {
+      console.error('Failed to load LLM providers:', error);
+      toast.error("加载 LLM 提供商失败");
+    } finally {
+      setLoadingProviders(false);
     }
   };
 
@@ -215,6 +233,7 @@ export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, pr
         branch_name: taskForm.branch_name || project.default_branch || 'main',
         exclude_patterns: taskForm.exclude_patterns,
         scan_config: scanConfig,
+        llm_provider_id: taskForm.llm_provider_id,
         created_by: 'local-user' // TODO: 使用实际用户ID
       });
       
@@ -569,6 +588,46 @@ export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, pr
                         </SelectItem>
                       </SelectContent>
                     </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="llm_provider">LLM 提供商</Label>
+                    <Select 
+                      value={taskForm.llm_provider_id?.toString() || "default"} 
+                      onValueChange={(value) => setTaskForm({ 
+                        ...taskForm, 
+                        llm_provider_id: value === "default" ? undefined : parseInt(value)
+                      })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="选择 LLM 提供商" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="default">
+                          <div className="flex items-center space-x-2">
+                            <Settings className="w-4 h-4" />
+                            <span>使用系统默认配置</span>
+                          </div>
+                        </SelectItem>
+                        {loadingProviders ? (
+                          <SelectItem value="loading" disabled>
+                            <span className="text-muted-foreground">加载中...</span>
+                          </SelectItem>
+                        ) : (
+                          llmProviders.map((provider) => (
+                            <SelectItem key={provider.id} value={provider.id.toString()}>
+                              <div className="flex items-center space-x-2">
+                                {provider.icon && <span>{provider.icon}</span>}
+                                <span>{provider.display_name}</span>
+                              </div>
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      选择此任务使用的 LLM 提供商，默认使用系统配置
+                    </p>
                   </div>
 
                   {taskForm.task_type === "repository" && (selectedProject.repository_url) && (

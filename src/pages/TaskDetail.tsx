@@ -1041,6 +1041,20 @@ export default function TaskDetail() {
                   </p>
                 </div>
                 <div>
+                  <p className="text-sm font-medium text-gray-500">LLM 提供商</p>
+                  <p className="text-base flex items-center">
+                    <Zap className="w-4 h-4 mr-1" />
+                    {task.llm_provider ? (
+                      <span className="flex items-center space-x-1">
+                        {task.llm_provider.icon && <span>{task.llm_provider.icon}</span>}
+                        <span>{task.llm_provider.display_name}</span>
+                      </span>
+                    ) : (
+                      <span className="text-gray-400">系统默认</span>
+                    )}
+                  </p>
+                </div>
+                <div>
                   <p className="text-sm font-medium text-gray-500">创建时间</p>
                   <p className="text-base flex items-center">
                     <Calendar className="w-4 h-4 mr-1" />

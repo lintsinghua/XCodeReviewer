@@ -7,5 +7,6 @@ from models.audit_issue import AuditIssue
 from models.report import Report
 from models.system_settings import SystemSettings
 from models.prompt import Prompt
+from models.llm_provider import LLMProvider
 
-__all__ = ["User", "Project", "AuditTask", "AuditIssue", "Report", "SystemSettings", "Prompt"]
+__all__ = ["User", "Project", "AuditTask", "AuditIssue", "Report", "SystemSettings", "Prompt", "LLMProvider"]

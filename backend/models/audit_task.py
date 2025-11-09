@@ -100,10 +100,16 @@ class AuditTask(Base):
         nullable=True,
         index=True
     )
+    llm_provider_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("llm_providers.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True
+    )
     
     # Relationships
     project: Mapped["Project"] = relationship("Project", back_populates="audit_tasks")
     created_by_user: Mapped["User"] = relationship("User", back_populates="audit_tasks")
+    llm_provider: Mapped[Optional["LLMProvider"]] = relationship("LLMProvider", lazy="joined")
     
     issues: Mapped[List["AuditIssue"]] = relationship(
         "AuditIssue",

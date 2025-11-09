@@ -49,12 +49,21 @@ export interface ProjectMember {
 }
 
 // 审计相关类型
+export interface LLMProviderInfo {
+  id: number;
+  name: string;
+  display_name: string;
+  icon?: string;
+}
+
 export interface AuditTask {
   id: string;
   project_id: string;
   task_type: 'repository' | 'instant';
   status: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
   branch_name?: string;
+  llm_provider_id?: number;
+  llm_provider?: LLMProviderInfo;
   exclude_patterns: string;
   scan_config: string;
   total_files: number;
@@ -119,6 +128,7 @@ export interface CreateAuditTaskForm {
   project_id: string;
   task_type: 'repository' | 'instant';
   branch_name?: string;
+  llm_provider_id?: number;
   exclude_patterns: string[];
   scan_config: {
     include_tests?: boolean;

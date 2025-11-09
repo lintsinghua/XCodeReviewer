@@ -33,6 +33,7 @@ class TaskCreate(BaseModel):
     agents_used: Optional[Dict[str, Any]] = Field(None, description="Agents configuration")
     scan_config: Optional[Dict[str, Any]] = Field(None, description="Scan configuration")
     exclude_patterns: Optional[list[str]] = Field(None, description="File patterns to exclude from scan")
+    llm_provider_id: Optional[int] = Field(None, description="LLM Provider to use for this task")
     
     class Config:
         json_schema_extra = {
@@ -73,6 +74,17 @@ class TaskUpdate(BaseModel):
         }
 
 
+class LLMProviderSummary(BaseModel):
+    """简化的 LLM Provider 信息"""
+    id: int
+    name: str
+    display_name: str
+    icon: Optional[str] = None
+    
+    class Config:
+        from_attributes = True
+
+
 class TaskResponse(BaseModel):
     """Task response schema"""
     id: int
@@ -103,7 +115,9 @@ class TaskResponse(BaseModel):
     completed_at: Optional[datetime]
     project_id: int
     created_by: Optional[int]
+    llm_provider_id: Optional[int] = None
     project: Optional[ProjectSummary] = None
+    llm_provider: Optional[LLMProviderSummary] = None
     
     class Config:
         from_attributes = True

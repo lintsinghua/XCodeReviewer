@@ -22,6 +22,7 @@ import {
 import { api } from "@/shared/services/unified-api";
 import { DatabaseManager } from "@/components/database/DatabaseManager";
 import { SystemConfig } from "@/components/system/SystemConfig";
+import { LLMProviderManager } from "@/components/llm/LLMProviderManager";
 import { toast } from "sonner";
 
 export default function AdminDashboard() {
@@ -199,8 +200,9 @@ export default function AdminDashboard() {
 
       {/* 主要内容标签页 */}
       <Tabs defaultValue="config" className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="config">系统配置</TabsTrigger>
+          <TabsTrigger value="providers">LLM 提供商</TabsTrigger>
           <TabsTrigger value="overview">数据概览</TabsTrigger>
           <TabsTrigger value="storage">存储管理</TabsTrigger>
           <TabsTrigger value="operations">数据操作</TabsTrigger>
@@ -210,6 +212,11 @@ export default function AdminDashboard() {
         {/* 系统配置 */}
         <TabsContent value="config" className="space-y-6">
           <SystemConfig />
+        </TabsContent>
+
+        {/* LLM 提供商管理 */}
+        <TabsContent value="providers" className="space-y-6">
+          <LLMProviderManager />
         </TabsContent>
 
         {/* 数据概览 */}

@@ -117,9 +117,31 @@ async def _scan_repository_async(task, task_id: int) -> Dict[str, Any]:
             # Analyze code files with scan configuration
             logger.info(f"Starting code analysis for project {project.id}")
             
-            # Load LLM config from database first
-            from services.system_settings_service import get_llm_config_from_db
-            llm_config = await get_llm_config_from_db(db)
+            # Check if task has specific LLM provider, otherwise use system default
+            llm_config = {}
+            if audit_task.llm_provider_id:
+                # Use task-specific LLM provider
+                from models.llm_provider import LLMProvider
+                provider_result = await db.execute(select(LLMProvider).where(LLMProvider.id == audit_task.llm_provider_id))
+                llm_provider = provider_result.scalar_one_or_none()
+                if llm_provider and llm_provider.is_active:
+                    logger.info(f"🎯 Using task-specific LLM provider: {llm_provider.display_name} (ID: {llm_provider.id})")
+                    llm_config = {
+                        'provider': llm_provider.provider_type.value,
+                        'model': llm_provider.default_model,
+                        'base_url': llm_provider.api_endpoint,
+                        'temperature': 0.2,
+                        'api_key': None  # Will be loaded from env
+                    }
+                else:
+                    logger.warning(f"Task-specific LLM provider {audit_task.llm_provider_id} not found or inactive, falling back to system default")
+            
+            # If no task-specific provider or it's not found, load system default
+            if not llm_config:
+                from services.system_settings_service import get_llm_config_from_db
+                llm_config = await get_llm_config_from_db(db)
+                logger.info(f"📋 Using system LLM config: provider={llm_config.get('provider')}, model={llm_config.get('model')}")
+            
             logger.info(f"📋 LLM config loaded: provider={llm_config.get('provider')}, model={llm_config.get('model')}, base_url={llm_config.get('base_url')}")
             
             # Don't pass db to analyzer to avoid connection conflicts

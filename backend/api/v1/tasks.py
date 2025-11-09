@@ -80,7 +80,8 @@ async def create_task(
             agents_used=task_data.agents_used,
             scan_config=task_data.scan_config,
             exclude_patterns=task_data.exclude_patterns,
-            created_by=current_user.id
+            created_by=current_user.id,
+            llm_provider_id=task_data.llm_provider_id
         )
         
         db.add(task)

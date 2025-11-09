@@ -377,8 +377,8 @@ class BackendAPIAdapter {
   /**
    * 即时代码分析（通过后端LLM）
    */
-  async analyzeInstantCode(code: string, language: string): Promise<CodeAnalysisResult> {
-    const result = await backendApi.instantAnalysis.analyze({ code, language });
+  async analyzeInstantCode(code: string, language: string, llm_provider_id?: number): Promise<CodeAnalysisResult> {
+    const result = await backendApi.instantAnalysis.analyze({ code, language, llm_provider_id });
     return result as CodeAnalysisResult;
   }
 }
@@ -452,7 +452,7 @@ export const unifiedApi = {
    * 即时代码分析（始终通过后端LLM）
    * 即使USE_BACKEND为false，即时分析也应该通过后端，避免在前端暴露LLM API密钥
    */
-  analyzeInstantCode: (code: string, language: string) => backendAdapter.analyzeInstantCode(code, language),
+  analyzeInstantCode: (code: string, language: string, llm_provider_id?: number) => backendAdapter.analyzeInstantCode(code, language, llm_provider_id),
 
   // Prompts API - 直接使用后端 API（提示词管理总是使用后端）
   prompts: backendApi.prompts,

@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { CodeAnalysisEngine } from "@/features/analysis/services";
 import { api } from "@/shared/services/unified-api";
+import { apiClient } from "@/shared/services/api/client";
 import type { CodeAnalysisResult, AuditTask, AuditIssue } from "@/shared/types";
 import { toast } from "sonner";
 import ExportReportDialog from "@/components/reports/ExportReportDialog";
@@ -59,10 +60,31 @@ export default function InstantAnalysis() {
   const [result, setResult] = useState<CodeAnalysisResult | null>(null);
   const [analysisTime, setAnalysisTime] = useState(0);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [llmProviders, setLlmProviders] = useState<any[]>([]);
+  const [selectedProviderId, setSelectedProviderId] = useState<number | undefined>(undefined);
+  const [loadingProviders, setLoadingProviders] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const loadingCardRef = useRef<HTMLDivElement>(null);
 
   const supportedLanguages = CodeAnalysisEngine.getSupportedLanguages();
+
+  // 加载 LLM Providers
+  useEffect(() => {
+    const loadLLMProviders = async () => {
+      try {
+        setLoadingProviders(true);
+        const response = await apiClient.get('/llm-providers?page_size=100&is_active=true');
+        setLlmProviders(response.items || []);
+      } catch (error) {
+        console.error('Failed to load LLM providers:', error);
+        // 静默失败，不影响用户使用
+      } finally {
+        setLoadingProviders(false);
+      }
+    };
+
+    loadLLMProviders();
+  }, []);
 
   // 监听analyzing状态变化，自动滚动到加载卡片
   useEffect(() => {
@@ -238,8 +260,11 @@ class UserManager {
       
       // 根据配置选择使用后端API还是前端直接调用
       if (USE_BACKEND_FOR_INSTANT_ANALYSIS) {
-        console.log('🔄 使用后端API进行即时代码分析');
-        analysisResult = await api.analyzeInstantCode(code, language);
+        console.log('🔄 使用后端API进行即时代码分析', { 
+          provider_id: selectedProviderId,
+          provider_name: selectedProviderId ? llmProviders.find(p => p.id === selectedProviderId)?.display_name : '系统默认'
+        });
+        analysisResult = await api.analyzeInstantCode(code, language, selectedProviderId);
       } else {
         console.log('⚠️ 使用前端直接调用LLM（不推荐，会暴露API密钥）');
         analysisResult = await CodeAnalysisEngine.analyzeCode(code, language);
@@ -616,6 +641,38 @@ class UserManager {
                       {lang.charAt(0).toUpperCase() + lang.slice(1)}
                     </SelectItem>
                   ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex-1">
+              <Select 
+                value={selectedProviderId?.toString() || "default"} 
+                onValueChange={(value) => setSelectedProviderId(value === "default" ? undefined : parseInt(value))}
+              >
+                <SelectTrigger className="h-9">
+                  <SelectValue placeholder="选择 LLM 提供商" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="default">
+                    <div className="flex items-center space-x-2">
+                      <Zap className="w-4 h-4" />
+                      <span>系统默认</span>
+                    </div>
+                  </SelectItem>
+                  {loadingProviders ? (
+                    <SelectItem value="loading" disabled>
+                      <span className="text-muted-foreground">加载中...</span>
+                    </SelectItem>
+                  ) : (
+                    llmProviders.map((provider) => (
+                      <SelectItem key={provider.id} value={provider.id.toString()}>
+                        <div className="flex items-center space-x-2">
+                          {provider.icon && <span>{provider.icon}</span>}
+                          <span>{provider.display_name}</span>
+                        </div>
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>

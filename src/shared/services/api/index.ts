@@ -380,7 +380,7 @@ export const instantAnalysisApi = {
   /**
    * Analyze code instantly
    */
-  analyze: (data: { code: string; language: string }) =>
+  analyze: (data: { code: string; language: string; llm_provider_id?: number }) =>
     apiClient.post<{
       issues: Array<{
         type: string;
