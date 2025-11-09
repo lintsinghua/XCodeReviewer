@@ -407,3 +407,130 @@ async def update_llm_settings(
             detail="Failed to update LLM settings"
         )
 
+
+# ============================================================================
+# System Prompt Templates Endpoints
+# ============================================================================
+
+@router.get(
+    "/prompt-templates",
+    response_model=List[SystemSettingResponse],
+    summary="Get system prompt templates",
+    description="Get all system prompt templates"
+)
+async def get_prompt_templates(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Get all system prompt templates"""
+    try:
+        result = await db.execute(
+            select(SystemSettings).where(SystemSettings.category == "prompt_templates")
+        )
+        templates = result.scalars().all()
+        
+        return [template.to_dict(include_sensitive=True) for template in templates]
+    
+    except Exception as e:
+        logger.error(f"Error fetching prompt templates: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to fetch prompt templates"
+        )
+
+
+@router.get(
+    "/prompt-templates/{key}",
+    response_model=SystemSettingResponse,
+    summary="Get a specific prompt template",
+    description="Get a system prompt template by key"
+)
+async def get_prompt_template(
+    key: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Get a specific prompt template by key"""
+    try:
+        result = await db.execute(
+            select(SystemSettings).where(
+                and_(
+                    SystemSettings.key == key,
+                    SystemSettings.category == "prompt_templates"
+                )
+            )
+        )
+        template = result.scalar_one_or_none()
+        
+        if not template:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Prompt template '{key}' not found"
+            )
+        
+        return template.to_dict(include_sensitive=True)
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching prompt template {key}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to fetch prompt template"
+        )
+
+
+@router.put(
+    "/prompt-templates/{key}",
+    response_model=SystemSettingResponse,
+    summary="Update a prompt template",
+    description="Update a system prompt template (admin only)"
+)
+async def update_prompt_template(
+    key: str,
+    setting_data: SystemSettingUpdate,
+    current_user: User = Depends(get_current_admin_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Update a prompt template"""
+    try:
+        result = await db.execute(
+            select(SystemSettings).where(
+                and_(
+                    SystemSettings.key == key,
+                    SystemSettings.category == "prompt_templates"
+                )
+            )
+        )
+        template = result.scalar_one_or_none()
+        
+        if not template:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Prompt template '{key}' not found"
+            )
+        
+        # Update fields
+        if setting_data.value is not None:
+            template.value = setting_data.value
+        if setting_data.description is not None:
+            template.description = setting_data.description
+        
+        template.updated_by = current_user.id
+        
+        await db.commit()
+        await db.refresh(template)
+        
+        logger.info(f"Updated prompt template: {template.key} by user {current_user.id}")
+        return template.to_dict(include_sensitive=True)
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"Error updating prompt template {key}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to update prompt template"
+        )
+

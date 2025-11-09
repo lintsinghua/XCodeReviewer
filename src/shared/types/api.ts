@@ -215,6 +215,7 @@ export interface AuditIssue {
   description: string;
   code_snippet?: string;
   suggestion?: string;
+  fix_example?: string;  // 修复示例代码
   agent_name?: string;
   confidence_score?: number;
   created_at: string;

@@ -82,7 +82,17 @@ def task_failure_handler(task_id, exception, *args, **kwargs):
 class BaseTask(celery_app.Task):
     """Base task class with common functionality"""
     
-    autoretry_for = (Exception,)
+    # Auto-retry for most exceptions, but not database connection errors
+    # to avoid connection pool conflicts during retries
+    autoretry_for = (
+        ValueError,
+        KeyError,
+        TypeError,
+        AttributeError,
+        IOError,
+        ConnectionError,
+        TimeoutError,
+    )
     retry_kwargs = {"max_retries": 3}
     retry_backoff = True
     retry_backoff_max = 600  # 10 minutes

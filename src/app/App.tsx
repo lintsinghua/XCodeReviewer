@@ -15,6 +15,8 @@ const AuditTasks = lazy(() => import("@/pages/AuditTasks"));
 const TaskDetail = lazy(() => import("@/pages/TaskDetail"));
 const AdminDashboard = lazy(() => import("@/pages/AdminDashboard"));
 const LogsPage = lazy(() => import("@/pages/LogsPage"));
+const Prompts = lazy(() => import("@/pages/Prompts"));
+const SystemPromptTemplates = lazy(() => import("@/pages/SystemPromptTemplates"));
 
 // Loading 组件
 function LoadingFallback() {
@@ -96,6 +98,8 @@ function AppContent() {
             <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
             <Route path="/recycle-bin" element={<ProtectedRoute><RecycleBin /></ProtectedRoute>} />
             <Route path="/logs" element={<ProtectedRoute><LogsPage /></ProtectedRoute>} />
+            <Route path="/prompts" element={<ProtectedRoute><Prompts /></ProtectedRoute>} />
+            <Route path="/system-prompt-templates" element={<ProtectedRoute><SystemPromptTemplates /></ProtectedRoute>} />
             
             {/* 404 重定向 */}
             <Route path="*" element={<Navigate to="/" replace />} />

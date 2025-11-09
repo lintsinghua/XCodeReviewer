@@ -471,15 +471,43 @@ class UserManager {
       )}
 
       <div className="space-y-2">
-        {issue.suggestion && (
-          <div className="bg-white border border-blue-200 rounded-lg p-3 shadow-sm">
-            <div className="flex items-center mb-2">
-              <div className="w-5 h-5 bg-blue-600 rounded flex items-center justify-center mr-2">
-                <Lightbulb className="w-3 h-3 text-white" />
+        {issue.suggestion && (() => {
+          // 判断是否为代码内容 (包含换行符、多个空格、或特定代码字符)
+          const isCode = issue.suggestion.includes('\n') || 
+                        issue.suggestion.includes('  ') || 
+                        /[{}();=<>]/.test(issue.suggestion) ||
+                        issue.suggestion.split(' ').length < 10; // 代码通常词汇较少
+          
+          return (
+            <div className="bg-white border border-blue-200 rounded-lg p-3 shadow-sm">
+              <div className="flex items-center mb-2">
+                <div className="w-5 h-5 bg-blue-600 rounded flex items-center justify-center mr-2">
+                  <Lightbulb className="w-3 h-3 text-white" />
+                </div>
+                <span className="font-medium text-blue-800 text-sm">修复建议</span>
               </div>
-              <span className="font-medium text-blue-800 text-sm">修复建议</span>
+              {isCode ? (
+                <pre className="bg-blue-50 border border-blue-200 rounded p-2 overflow-x-auto">
+                  <code className="text-xs text-blue-900 font-mono whitespace-pre">{issue.suggestion}</code>
+                </pre>
+              ) : (
+                <p className="text-blue-700 text-xs leading-relaxed">{issue.suggestion}</p>
+              )}
             </div>
-            <p className="text-blue-700 text-xs leading-relaxed">{issue.suggestion}</p>
+          );
+        })()}
+
+        {issue.fix_example && (
+          <div className="bg-white border border-green-200 rounded-lg p-3 shadow-sm">
+            <div className="flex items-center mb-2">
+              <div className="w-5 h-5 bg-green-600 rounded flex items-center justify-center mr-2">
+                <Code className="w-3 h-3 text-white" />
+              </div>
+              <span className="font-medium text-green-800 text-sm">修复示例代码</span>
+            </div>
+            <pre className="bg-gray-50 border border-gray-200 rounded p-2 overflow-x-auto">
+              <code className="text-xs text-gray-800 font-mono whitespace-pre">{issue.fix_example}</code>
+            </pre>
           </div>
         )}
 

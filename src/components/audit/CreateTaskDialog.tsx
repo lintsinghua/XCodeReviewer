@@ -43,17 +43,32 @@ export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, pr
   const [zipFile, setZipFile] = useState<File | null>(null);
   const [loadingZipFile, setLoadingZipFile] = useState(false);
   const [hasLoadedZip, setHasLoadedZip] = useState(false);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [loadingCategories, setLoadingCategories] = useState(false);
+  const [categoriesError, setCategoriesError] = useState(false);
   
   const [taskForm, setTaskForm] = useState<CreateAuditTaskForm>({
     project_id: "",
     task_type: "repository",
     branch_name: "main",
-    exclude_patterns: ["node_modules/**", ".git/**", "dist/**", "build/**", "*.log"],
+    exclude_patterns: [
+      "node_modules/**", 
+      ".git/**", 
+      "dist/**", 
+      "build/**", 
+      "*.log",
+      ".cache/**",
+      "temp/**",
+      "vendor/**",
+      "coverage/**"
+    ],
     scan_config: {
       include_tests: true,
       include_docs: false,
       max_file_size: 1024, // KB
-      analysis_depth: "standard"
+      analysis_depth: "standard",
+      scan_categories: [] // 添加扫描类别字段
     }
   });
 
@@ -71,6 +86,7 @@ export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, pr
   useEffect(() => {
     if (open) {
       loadProjects();
+      loadCategories();
       // 如果有预选择的项目ID，设置到表单中
       if (preselectedProjectId) {
         setTaskForm(prev => ({ ...prev, project_id: preselectedProjectId }));
@@ -122,6 +138,25 @@ export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, pr
     }
   };
 
+  const loadCategories = async () => {
+    try {
+      setLoadingCategories(true);
+      setCategoriesError(false);
+      const response = await api.prompts.getCategories();
+      setCategories(response.categories || []);
+      // 默认选中所有类别
+      setSelectedCategories(response.categories || []);
+    } catch (error) {
+      console.error('Failed to load categories:', error);
+      toast.error("加载扫描类别失败，请检查网络连接或稍后重试");
+      setCategoriesError(true);
+      setCategories([]);
+      setSelectedCategories([]);
+    } finally {
+      setLoadingCategories(false);
+    }
+  };
+
   const handleCreateTask = async () => {
     if (!taskForm.project_id) {
       toast.error("请选择项目");
@@ -130,6 +165,11 @@ export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, pr
 
     if (taskForm.task_type === "repository" && !taskForm.branch_name?.trim()) {
       toast.error("请输入分支名称");
+      return;
+    }
+
+    if (selectedCategories.length === 0) {
+      toast.error("请至少选择一个扫描项");
       return;
     }
 
@@ -142,10 +182,30 @@ export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, pr
     try {
       setCreating(true);
       
+      // 整合所有配置到 scan_config
+      const scanConfig = {
+        // 基础配置
+        branch_name: taskForm.branch_name || project.default_branch || 'main',
+        task_type: taskForm.task_type,
+        
+        // 排除规则
+        exclude_patterns: taskForm.exclude_patterns,
+        
+        // 扫描项
+        scan_categories: selectedCategories,
+        
+        // 高级选项
+        include_tests: taskForm.scan_config.include_tests,
+        include_docs: taskForm.scan_config.include_docs,
+        max_file_size: taskForm.scan_config.max_file_size,
+        analysis_depth: taskForm.scan_config.analysis_depth,
+      };
+
       console.log('🎯 开始创建审计任务（通过后端API）...', { 
         projectId: project.id, 
         projectName: project.name,
-        repositoryType: project.repository_type 
+        repositoryType: project.repository_type,
+        scanConfig: scanConfig
       });
 
       // 使用统一的API接口创建任务（会根据配置自动选择后端或前端）
@@ -154,7 +214,7 @@ export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, pr
         task_type: taskForm.task_type,
         branch_name: taskForm.branch_name || project.default_branch || 'main',
         exclude_patterns: taskForm.exclude_patterns,
-        scan_config: taskForm.scan_config,
+        scan_config: scanConfig,
         created_by: 'local-user' // TODO: 使用实际用户ID
       });
       
@@ -209,10 +269,12 @@ export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, pr
         include_tests: true,
         include_docs: false,
         max_file_size: 1024,
-        analysis_depth: "standard"
+        analysis_depth: "standard",
+        scan_categories: []
       }
     });
     setSearchTerm("");
+    setSelectedCategories([...categories]); // 重置为全选
   };
 
   const toggleExcludePattern = (pattern: string) => {
@@ -246,6 +308,22 @@ export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, pr
     });
   };
 
+  const toggleCategory = (category: string) => {
+    if (selectedCategories.includes(category)) {
+      setSelectedCategories(selectedCategories.filter(c => c !== category));
+    } else {
+      setSelectedCategories([...selectedCategories, category]);
+    }
+  };
+
+  const selectAllCategories = () => {
+    setSelectedCategories([...categories]);
+  };
+
+  const clearAllCategories = () => {
+    setSelectedCategories([]);
+  };
+
   const selectedProject = projects.find(p => p.id === taskForm.project_id);
   const filteredProjects = projects.filter(project =>
     project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -254,7 +332,7 @@ export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, pr
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2">
             <Shield className="w-5 h-5 text-primary" />
@@ -284,9 +362,9 @@ export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, pr
             </div>
 
             {/* 项目列表 */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-60 overflow-y-auto">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-60 overflow-y-auto">
               {loading ? (
-                <div className="col-span-2 flex items-center justify-center py-8">
+                <div className="col-span-full flex items-center justify-center py-8">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                 </div>
               ) : filteredProjects.length > 0 ? (
@@ -298,29 +376,28 @@ export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, pr
                         ? 'border-primary bg-primary/5 shadow-lg' 
                         : 'border-gray-200 hover:border-gray-300 hover:shadow-md'
                     }`}
-                    onClick={() => setTaskForm({ ...taskForm, project_id: project.id })}
+                    onClick={() => setTaskForm({ 
+                      ...taskForm, 
+                      project_id: taskForm.project_id === project.id ? "" : project.id 
+                    })}
                   >
                     <CardContent className="p-4">
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h4 className={`font-semibold text-sm truncate ${
-                              taskForm.project_id === project.id ? 'text-primary' : 'text-gray-900'
-                            }`}>
-                              {project.name}
-                            </h4>
-                            {taskForm.project_id === project.id && (
-                              <Badge variant="default" className="bg-primary text-white text-xs px-2 py-0.5">
-                                已选择
-                              </Badge>
-                            )}
-                          </div>
+                          {/* 项目名称 */}
+                          <h4 className={`font-semibold text-base mb-2 ${
+                            taskForm.project_id === project.id ? 'text-primary' : 'text-gray-900'
+                          }`}>
+                            {project.name}
+                          </h4>
+                          {/* 项目描述 */}
                           {project.description && (
-                            <p className="text-xs text-gray-500 mt-1.5 line-clamp-2 leading-relaxed">
+                            <p className="text-xs text-gray-500 mb-2 line-clamp-2 leading-relaxed">
                               {project.description}
                             </p>
                           )}
-                          <div className="flex items-center gap-3 mt-2.5">
+                          {/* 项目信息 */}
+                          <div className="flex items-center gap-3">
                             <Badge variant="outline" className="text-xs font-normal">
                               {project.repository_type?.toUpperCase() || 'OTHER'}
                             </Badge>
@@ -331,7 +408,7 @@ export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, pr
                           </div>
                         </div>
                         {taskForm.project_id === project.id && (
-                          <div className="flex-shrink-0 mt-0.5">
+                          <div className="flex-shrink-0">
                             <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center ring-2 ring-primary/20">
                               <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
@@ -344,7 +421,7 @@ export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, pr
                   </Card>
                 ))
               ) : (
-                <div className="col-span-2 text-center py-8 text-gray-500">
+                <div className="col-span-full text-center py-8 text-gray-500">
                   <FileText className="w-8 h-8 mx-auto mb-2 opacity-50" />
                   <p className="text-sm">
                     {searchTerm ? '未找到匹配的项目' : '暂无可用项目'}
@@ -357,10 +434,14 @@ export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, pr
           {/* 任务配置 */}
           {selectedProject && (
             <Tabs defaultValue="basic" className="w-full">
-              <TabsList className="grid w-full grid-cols-3">
+              <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="basic" className="flex items-center space-x-2">
                   <GitBranch className="w-4 h-4" />
                   <span>基础配置</span>
+                </TabsTrigger>
+                <TabsTrigger value="scan-items" className="flex items-center space-x-2">
+                  <Shield className="w-4 h-4" />
+                  <span>扫描项</span>
                 </TabsTrigger>
                 <TabsTrigger value="exclude" className="flex items-center space-x-2">
                   <FileText className="w-4 h-4" />
@@ -523,6 +604,124 @@ export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, pr
                     </div>
                   </CardContent>
                 </Card>
+              </TabsContent>
+
+              <TabsContent value="scan-items" className="space-y-4 mt-6">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label className="text-base font-medium">扫描项选择</Label>
+                      <p className="text-sm text-gray-500 mt-1">
+                        选择要检查的代码质量维度（至少选择一项）
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        size="sm"
+                        onClick={selectAllCategories}
+                      >
+                        全选
+                      </Button>
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        size="sm"
+                        onClick={clearAllCategories}
+                      >
+                        清空
+                      </Button>
+                    </div>
+                  </div>
+
+                  {loadingCategories ? (
+                    <div className="flex items-center justify-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                    </div>
+                  ) : categoriesError ? (
+                    <Card className="bg-red-50 border-red-200">
+                      <CardContent className="p-6">
+                        <div className="flex flex-col items-center justify-center space-y-4">
+                          <AlertCircle className="w-12 h-12 text-red-500" />
+                          <div className="text-center">
+                            <p className="font-medium text-red-900 mb-1">加载扫描类别失败</p>
+                            <p className="text-sm text-red-700">
+                              无法从服务器获取扫描类别，请检查网络连接
+                            </p>
+                          </div>
+                          <Button
+                            variant="outline"
+                            onClick={loadCategories}
+                            className="border-red-300 text-red-700 hover:bg-red-100"
+                          >
+                            重试
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ) : categories.length === 0 ? (
+                    <Card className="bg-amber-50 border-amber-200">
+                      <CardContent className="p-6">
+                        <div className="flex items-start space-x-3">
+                          <AlertCircle className="w-6 h-6 text-amber-600 mt-0.5" />
+                          <div>
+                            <p className="font-medium text-amber-900 mb-1">暂无可用的扫描类别</p>
+                            <p className="text-sm text-amber-700">
+                              请先在系统中配置提示词类别
+                            </p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                      {categories.map((category) => (
+                        <div 
+                          key={category} 
+                          className={`flex items-center space-x-2 p-3 border rounded-lg cursor-pointer transition-all ${
+                            selectedCategories.includes(category)
+                              ? 'border-primary bg-primary/5 hover:bg-primary/10'
+                              : 'hover:bg-gray-50 hover:border-gray-300'
+                          }`}
+                          onClick={() => toggleCategory(category)}
+                        >
+                          <Checkbox
+                            checked={selectedCategories.includes(category)}
+                            onCheckedChange={() => toggleCategory(category)}
+                          />
+                          <div className="flex-1">
+                            <p className="text-sm font-medium whitespace-nowrap">
+                              {category}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {selectedCategories.length > 0 && (
+                    <Card className="bg-blue-50 border-blue-200">
+                      <CardContent className="p-4">
+                        <div className="flex items-start space-x-3">
+                          <Info className="w-5 h-5 text-blue-600 mt-0.5" />
+                          <div className="text-sm">
+                            <p className="font-medium text-blue-900 mb-1">
+                              已选择 {selectedCategories.length} 个扫描项
+                            </p>
+                            <div className="flex flex-wrap gap-2 mt-2">
+                              {selectedCategories.map(cat => (
+                                <Badge key={cat} variant="secondary" className="text-xs">
+                                  {cat}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
               </TabsContent>
 
               <TabsContent value="exclude" className="space-y-4 mt-6">

@@ -81,6 +81,7 @@ export interface AuditIssue {
   title: string;
   description?: string;
   suggestion?: string;
+  fix_example?: string;  // 修复示例代码
   code_snippet?: string;
   ai_explanation?: string;
   status: 'open' | 'resolved' | 'false_positive';

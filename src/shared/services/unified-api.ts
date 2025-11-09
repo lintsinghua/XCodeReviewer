@@ -452,6 +452,12 @@ export const unifiedApi = {
    * 即使USE_BACKEND为false，即时分析也应该通过后端，避免在前端暴露LLM API密钥
    */
   analyzeInstantCode: (code: string, language: string) => backendAdapter.analyzeInstantCode(code, language),
+
+  // Prompts API - 直接使用后端 API（提示词管理总是使用后端）
+  prompts: backendApi.prompts,
+
+  // System Settings API - 直接使用后端 API（系统设置总是使用后端）
+  systemSettings: backendApi.systemSettings,
 };
 
 // 导出为默认 api
