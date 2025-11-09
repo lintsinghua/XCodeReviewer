@@ -174,6 +174,7 @@ async def get_issue_statistics(
             "quality": 0,
             "performance": 0,
             "maintainability": 0,
+            "reliability": 0,
             "style": 0,
             "documentation": 0,
             "other": 0

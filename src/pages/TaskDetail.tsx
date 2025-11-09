@@ -17,13 +17,13 @@ import {
   GitBranch,
   Shield,
   Bug,
-  TrendingUp,
   Download,
   Code,
   Lightbulb,
   Info,
   Zap,
-  X
+  X,
+  ChevronRight
 } from "lucide-react";
 import { api } from "@/shared/services/unified-api";
 import type { AuditTask, AuditIssue } from "@/shared/types";
@@ -256,6 +256,19 @@ function IssuesList({
     const isSelected = selectedIssues.has(issueId);
     const isResolved = issue.status === 'resolved' || issue.status === 'false_positive';
     
+    // Debug logging for first 3 issues
+    if (index < 3) {
+      console.log(`Issue ${index}:`, {
+        id: issue.id,
+        title: issue.title?.substring(0, 40) + '...',
+        severity: issue.severity,
+        has_fix_example: !!issue.fix_example,
+        fix_example: issue.fix_example ? issue.fix_example.substring(0, 100) + '...' : 'NULL',
+        fix_example_length: issue.fix_example?.length,
+        fix_example_trimmed_length: issue.fix_example?.trim().length
+      });
+    }
+    
     return (
     <div key={issue.id || index} className={`bg-white border rounded-lg p-4 hover:shadow-md transition-all duration-200 group ${isSelected ? 'border-primary bg-blue-50' : 'border-gray-200 hover:border-gray-300'} ${isResolved ? 'opacity-60' : ''}`}>
       <div className="flex items-start justify-between mb-3">
@@ -297,7 +310,8 @@ function IssuesList({
         </Badge>
       </div>
 
-      {issue.description && (
+      {/* 只有当description和title不同时才显示description */}
+      {issue.description && issue.description !== issue.title && (
         <div className="bg-white border border-gray-200 rounded-lg p-3 mb-3">
           <div className="flex items-center mb-1">
             <Info className="w-3 h-3 text-gray-600 mr-1" />
@@ -357,19 +371,32 @@ function IssuesList({
           );
         })()}
 
-        {issue.fix_example && (
-          <div className="bg-white border border-green-200 rounded-lg p-3 shadow-sm">
-            <div className="flex items-center mb-2">
-              <div className="w-5 h-5 bg-green-600 rounded flex items-center justify-center mr-2">
-                <Code className="w-3 h-3 text-white" />
+        {(() => {
+          const showFixExample = issue.fix_example && issue.fix_example.trim().length > 0;
+          if (index < 3) {
+            console.log(`Issue ${index} fix_example render check:`, {
+              has_fix_example: !!issue.fix_example,
+              fix_example_type: typeof issue.fix_example,
+              fix_example_length: issue.fix_example?.length,
+              trimmed_length: issue.fix_example?.trim().length,
+              will_render: showFixExample
+            });
+          }
+          
+          return showFixExample ? (
+            <div className="bg-white border border-green-200 rounded-lg p-3 shadow-sm">
+              <div className="flex items-center mb-2">
+                <div className="w-5 h-5 bg-green-600 rounded flex items-center justify-center mr-2">
+                  <Code className="w-3 h-3 text-white" />
+                </div>
+                <span className="font-medium text-green-800 text-sm">修复示例代码</span>
               </div>
-              <span className="font-medium text-green-800 text-sm">修复示例代码</span>
+              <pre className="bg-gray-50 border border-gray-200 rounded p-2 overflow-x-auto">
+                <code className="text-xs text-gray-800 font-mono whitespace-pre">{issue.fix_example}</code>
+              </pre>
             </div>
-            <pre className="bg-gray-50 border border-gray-200 rounded p-2 overflow-x-auto">
-              <code className="text-xs text-gray-800 font-mono whitespace-pre">{issue.fix_example}</code>
-            </pre>
-          </div>
-        )}
+          ) : null;
+        })()}
 
         {issue.ai_explanation && (() => {
           const parsedExplanation = parseAIExplanation(issue.ai_explanation);
@@ -679,6 +706,7 @@ export default function TaskDetail() {
   const [currentStatus, setCurrentStatus] = useState<string>('all');
   const [totalIssues, setTotalIssues] = useState(0);
   const [issuesPerPage] = useState(20);
+  const [isScanConfigExpanded, setIsScanConfigExpanded] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -748,8 +776,23 @@ export default function TaskDetail() {
 
     try {
       const response = await api.getAuditIssues(id, currentPage, issuesPerPage, currentSeverity, currentStatus);
-      setIssues(response.items);
-      setTotalIssues(response.total);
+      // Debug: Check API response
+      console.log('API Response:', {
+        is_array: Array.isArray(response),
+        items_count: Array.isArray(response) ? response.length : response.items?.length,
+        first_item_fix_example: Array.isArray(response) 
+          ? response[0]?.fix_example 
+          : response.items?.[0]?.fix_example
+      });
+      
+      // Handle both array and object response formats
+      if (Array.isArray(response)) {
+        setIssues(response);
+        setTotalIssues(response.length);
+      } else {
+        setIssues(response.items);
+        setTotalIssues(response.total);
+      }
     } catch (error) {
       console.error('Failed to load issues:', error);
       toast.error("加载问题列表失败");
@@ -1015,34 +1058,72 @@ export default function TaskDetail() {
                 )}
               </div>
 
-              {/* 排除模式和扫描配置 - 并排显示 */}
-              {(task.exclude_patterns || task.scan_config) && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* 排除模式 */}
-                  {task.exclude_patterns && (
-                    <div>
-                      <p className="text-sm font-medium text-gray-500 mb-2">排除模式</p>
-                      <div className="flex flex-wrap gap-2">
-                        {JSON.parse(task.exclude_patterns).map((pattern: string) => (
-                          <Badge key={pattern} variant="outline" className="text-xs">
-                            {pattern}
-                          </Badge>
-                        ))}
-                      </div>
+              {/* 扫描配置 - 优化显示 */}
+              {task.scan_config && (
+                <div className="space-y-3">
+                  <div>
+                      <button
+                        onClick={() => setIsScanConfigExpanded(!isScanConfigExpanded)}
+                        className="flex items-center space-x-2 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors mb-2"
+                      >
+                        <span>扫描配置</span>
+                        <ChevronRight className={`w-4 h-4 transition-transform ${isScanConfigExpanded ? 'rotate-90' : ''}`} />
+                      </button>
+                      
+                      {isScanConfigExpanded ? (
+                        <div className="bg-gray-50 rounded-lg p-3 max-h-96 overflow-y-auto border border-gray-200">
+                          <pre className="text-xs text-gray-600 whitespace-pre-wrap">
+                            {JSON.stringify(JSON.parse(task.scan_config), null, 2)}
+                          </pre>
+                        </div>
+                      ) : (
+                        <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                          {(() => {
+                            const config = JSON.parse(task.scan_config);
+                            return (
+                              <>
+                                <div className="grid grid-cols-2 gap-2 text-xs">
+                                  {config.branch_name && (
+                                    <div className="flex items-center space-x-2">
+                                      <span className="text-gray-500">分支:</span>
+                                      <span className="text-gray-700 font-medium">{config.branch_name}</span>
+                                    </div>
+                                  )}
+                                  {config.task_type && (
+                                    <div className="flex items-center space-x-2">
+                                      <span className="text-gray-500">类型:</span>
+                                      <span className="text-gray-700 font-medium">{config.task_type}</span>
+                                    </div>
+                                  )}
+                                  {config.scan_categories && (
+                                    <div className="flex items-center space-x-2 col-span-2">
+                                      <span className="text-gray-500">扫描类别:</span>
+                                      <span className="text-gray-700 font-medium">{config.scan_categories.length} 个</span>
+                                    </div>
+                                  )}
+                                  {config.max_file_size && (
+                                    <div className="flex items-center space-x-2">
+                                      <span className="text-gray-500">最大文件:</span>
+                                      <span className="text-gray-700 font-medium">{config.max_file_size} KB</span>
+                                    </div>
+                                  )}
+                                  {config.analysis_depth && (
+                                    <div className="flex items-center space-x-2">
+                                      <span className="text-gray-500">分析深度:</span>
+                                      <span className="text-gray-700 font-medium">{config.analysis_depth}</span>
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="mt-2 text-xs text-gray-400 flex items-center space-x-1">
+                                  <Info className="w-3 h-3" />
+                                  <span>点击展开查看完整配置</span>
+                                </div>
+                              </>
+                            );
+                          })()}
+                        </div>
+                      )}
                     </div>
-                  )}
-
-                  {/* 扫描配置 */}
-                  {task.scan_config && (
-                    <div>
-                      <p className="text-sm font-medium text-gray-500 mb-2">扫描配置</p>
-                      <div className="bg-gray-50 rounded-lg p-3">
-                        <pre className="text-xs text-gray-600">
-                          {JSON.stringify(JSON.parse(task.scan_config), null, 2)}
-                        </pre>
-                      </div>
-                    </div>
-                  )}
                 </div>
               )}
             </CardContent>

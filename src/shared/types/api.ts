@@ -188,6 +188,7 @@ export enum IssueSeverity {
 
 export enum IssueCategory {
   SECURITY = 'security',
+  QUALITY = 'quality',
   PERFORMANCE = 'performance',
   MAINTAINABILITY = 'maintainability',
   RELIABILITY = 'reliability',

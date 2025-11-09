@@ -400,6 +400,7 @@ class UserManager {
       title: issue.title,
       description: issue.description || undefined,
       suggestion: issue.suggestion || undefined,
+      fix_example: issue.fix_example || undefined,
       code_snippet: issue.code_snippet || undefined,
       ai_explanation: issue.ai_explanation || (issue.xai ? JSON.stringify(issue.xai) : undefined),
       status: 'open',
@@ -439,7 +440,8 @@ class UserManager {
         </Badge>
       </div>
 
-      {issue.description && (
+      {/* 只有当description和title不同时才显示description */}
+      {issue.description && issue.description !== issue.title && (
         <div className="bg-white border border-gray-200 rounded-lg p-3 mb-3">
           <div className="flex items-center mb-1">
             <Info className="w-3 h-3 text-gray-600 mr-1" />
@@ -497,7 +499,7 @@ class UserManager {
           );
         })()}
 
-        {issue.fix_example && (
+        {issue.fix_example && issue.fix_example.trim() && (
           <div className="bg-white border border-green-200 rounded-lg p-3 shadow-sm">
             <div className="flex items-center mb-2">
               <div className="w-5 h-5 bg-green-600 rounded flex items-center justify-center mr-2">

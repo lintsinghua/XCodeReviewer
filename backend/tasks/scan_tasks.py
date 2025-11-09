@@ -173,15 +173,6 @@ async def _scan_repository_async(task, task_id: int) -> Dict[str, Any]:
                     audit_task.progress = progress
                     audit_task.current_step = f"Analyzing {file_info['path']} ({idx+1}/{len(files_to_analyze)})"
                     
-                    if idx % 5 == 0:  # Update Celery state and commit every 5 files
-                        task.update_state(state="PROGRESS", meta={
-                            "current": progress,
-                            "total": 100,
-                            "status": f"Analyzing files ({idx+1}/{len(files_to_analyze)})"
-                        })
-                        # Flush changes without full commit to reduce conflicts
-                        await db.flush()
-                    
                     # Read file content
                     content = await scanner.get_file_content(
                         source_type=project.source_type,
@@ -286,7 +277,8 @@ async def _scan_repository_async(task, task_id: int) -> Dict[str, Any]:
                                     title=title or f"{category_name} Issue",
                                     description=comment,
                                     severity=_map_severity(severity_str),
-                                    category=_map_category(issue.get("type", category_name.lower())),
+                                    # 优先使用 prompt 的 category，这样能确保分类正确
+                                    category=_map_category(category_name),
                                     file_path=issue.get("file_name", file_info["path"]),
                                     line_start=line_number,
                                     line_end=line_number,
@@ -311,9 +303,27 @@ async def _scan_repository_async(task, task_id: int) -> Dict[str, Any]:
                     # Count file as analyzed (regardless of whether issues were found)
                     files_analyzed += 1
                     
-                    # Commit every 10 files to avoid memory issues
-                    if (idx + 1) % 10 == 0:
+                    # Update task statistics in real-time
+                    audit_task.scanned_files = files_analyzed
+                    audit_task.total_lines = total_lines_analyzed
+                    audit_task.total_issues = len(all_issues)
+                    
+                    # Calculate issue counts by severity
+                    issue_counts = _count_issues_by_severity(all_issues)
+                    audit_task.critical_issues = issue_counts["critical"]
+                    audit_task.high_issues = issue_counts["high"]
+                    audit_task.medium_issues = issue_counts["medium"]
+                    audit_task.low_issues = issue_counts["low"]
+                    
+                    # Commit every 3 files to make updates visible to frontend
+                    if (idx + 1) % 3 == 0:
                         await db.commit()
+                        # Update Celery state with current statistics
+                        task.update_state(state="PROGRESS", meta={
+                            "current": progress,
+                            "total": 100,
+                            "status": f"已分析 {files_analyzed}/{len(files_to_analyze)} 文件，发现 {len(all_issues)} 个问题"
+                        })
                         logger.info(f"Analyzed {idx + 1}/{len(files_to_analyze)} files, found {len(all_issues)} issues so far")
                     
                 except Exception as e:
@@ -586,6 +596,7 @@ def _map_severity(severity_str: str) -> IssueSeverity:
 def _map_category(type_str: str) -> IssueCategory:
     """Map issue type to category enum"""
     category_map = {
+        # 标准类别（小写）
         'security': IssueCategory.SECURITY,
         'quality': IssueCategory.QUALITY,
         'performance': IssueCategory.PERFORMANCE,
@@ -593,8 +604,32 @@ def _map_category(type_str: str) -> IssueCategory:
         'style': IssueCategory.STYLE,
         'documentation': IssueCategory.DOCUMENTATION,
         'bug': IssueCategory.QUALITY,
+        'reliability': IssueCategory.RELIABILITY,
+        
+        # Prompt 类别映射（大写）
+        'DESIGN': IssueCategory.MAINTAINABILITY,
+        'FUNCTIONALITY': IssueCategory.RELIABILITY,
+        'NAMING': IssueCategory.MAINTAINABILITY,
+        'CONSISTENCY': IssueCategory.STYLE,
+        'CODING_STYLE': IssueCategory.STYLE,
+        'TESTS': IssueCategory.QUALITY,
+        'ROBUSTNESS': IssueCategory.RELIABILITY,
+        'SECURITY': IssueCategory.SECURITY,
+        'PERFORMANCE': IssueCategory.PERFORMANCE,
+        'ERROR_HANDLING': IssueCategory.RELIABILITY,
+        'DOCUMENTATION': IssueCategory.DOCUMENTATION,
+        
+        # 常见别名
+        'design': IssueCategory.MAINTAINABILITY,
+        'functionality': IssueCategory.RELIABILITY,
+        'naming': IssueCategory.MAINTAINABILITY,
+        'consistency': IssueCategory.STYLE,
+        'coding_style': IssueCategory.STYLE,
+        'tests': IssueCategory.QUALITY,
+        'robustness': IssueCategory.RELIABILITY,
+        'error_handling': IssueCategory.RELIABILITY,
     }
-    return category_map.get(type_str.lower(), IssueCategory.OTHER)
+    return category_map.get(type_str, IssueCategory.OTHER)
 
 
 def _count_issues_by_severity(issues: List[AuditIssue]) -> Dict[str, int]:

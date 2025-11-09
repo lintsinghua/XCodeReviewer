@@ -125,6 +125,7 @@ export default function Dashboard() {
             quality: { name: '代码质量', color: '#f59e0b' },
             performance: { name: '性能问题', color: '#10b981' },
             maintainability: { name: '可维护性', color: '#3b82f6' },
+            reliability: { name: '可靠性', color: '#06b6d4' },
             style: { name: '代码风格', color: '#8b5cf6' },
             documentation: { name: '文档问题', color: '#ec4899' },
             bug: { name: '潜在Bug', color: '#dc2626' },

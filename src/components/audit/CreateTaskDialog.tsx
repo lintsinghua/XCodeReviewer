@@ -333,16 +333,16 @@ export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, pr
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+        <DialogHeader className="pb-3">
           <DialogTitle className="flex items-center space-x-2">
             <Shield className="w-5 h-5 text-primary" />
             <span>新建审计任务</span>
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6">
+        <div className="space-y-4">
           {/* 项目选择 */}
-          <div className="space-y-4">
+          <div className="space-y-3">
             <div className="flex items-center justify-between">
               <Label className="text-base font-medium">选择项目</Label>
               <Badge variant="outline" className="text-xs">
@@ -364,7 +364,7 @@ export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, pr
             {/* 项目列表 */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-60 overflow-y-auto">
               {loading ? (
-                <div className="col-span-full flex items-center justify-center py-8">
+                <div className="col-span-full flex items-center justify-center py-6">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                 </div>
               ) : filteredProjects.length > 0 ? (
@@ -381,18 +381,18 @@ export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, pr
                       project_id: taskForm.project_id === project.id ? "" : project.id 
                     })}
                   >
-                    <CardContent className="p-4">
-                      <div className="flex items-start justify-between gap-3">
+                    <CardContent className="p-3">
+                      <div className="flex items-start justify-between gap-2">
                         <div className="flex-1 min-w-0">
                           {/* 项目名称 */}
-                          <h4 className={`font-semibold text-base mb-2 ${
+                          <h4 className={`font-semibold text-base mb-1.5 ${
                             taskForm.project_id === project.id ? 'text-primary' : 'text-gray-900'
                           }`}>
                             {project.name}
                           </h4>
                           {/* 项目描述 */}
                           {project.description && (
-                            <p className="text-xs text-gray-500 mb-2 line-clamp-2 leading-relaxed">
+                            <p className="text-xs text-gray-500 mb-1.5 line-clamp-2 leading-relaxed">
                               {project.description}
                             </p>
                           )}
@@ -421,7 +421,7 @@ export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, pr
                   </Card>
                 ))
               ) : (
-                <div className="col-span-full text-center py-8 text-gray-500">
+                <div className="col-span-full text-center py-6 text-gray-500">
                   <FileText className="w-8 h-8 mx-auto mb-2 opacity-50" />
                   <p className="text-sm">
                     {searchTerm ? '未找到匹配的项目' : '暂无可用项目'}

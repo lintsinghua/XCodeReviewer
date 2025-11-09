@@ -104,6 +104,7 @@ class BackendAPIAdapter {
       column_number: backendIssue.column_start || backendIssue.column_number || null,
       code_snippet: backendIssue.code_snippet || '',
       suggestion: backendIssue.suggestion || '',
+      fix_example: backendIssue.fix_example || undefined,  // 添加修复示例字段
       status: backendIssue.status || 'open',
       resolved_by: backendIssue.resolved_by || null,
       resolver: backendIssue.resolver,

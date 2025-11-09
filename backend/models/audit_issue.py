@@ -24,6 +24,7 @@ class IssueCategory(str, enum.Enum):
     QUALITY = "quality"
     PERFORMANCE = "performance"
     MAINTAINABILITY = "maintainability"
+    RELIABILITY = "reliability"
     STYLE = "style"
     DOCUMENTATION = "documentation"
     OTHER = "other"
