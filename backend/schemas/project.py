@@ -7,6 +7,16 @@ from datetime import datetime
 from models.project import ProjectSource, ProjectStatus
 
 
+class OwnerInfo(BaseModel):
+    """Owner information"""
+    id: int
+    username: str
+    full_name: Optional[str] = None
+    
+    class Config:
+        from_attributes = True
+
+
 class ProjectCreate(BaseModel):
     """Project creation schema"""
     name: str = Field(..., min_length=1, max_length=255, description="Project name")
@@ -71,6 +81,7 @@ class ProjectResponse(BaseModel):
     updated_at: datetime
     last_scanned_at: Optional[datetime]
     owner_id: int
+    owner: Optional[OwnerInfo] = None
     
     class Config:
         from_attributes = True
