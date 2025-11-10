@@ -19,6 +19,20 @@ class IssueUpdate(BaseModel):
         }
 
 
+class IssueBulkUpdate(BaseModel):
+    """Bulk issue update schema"""
+    issue_ids: list[int] = Field(..., description="List of issue IDs to update")
+    status: IssueStatus = Field(..., description="New status for all issues")
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "issue_ids": [1, 2, 3],
+                "status": "resolved"
+            }
+        }
+
+
 class IssueCommentCreate(BaseModel):
     """Issue comment creation schema"""
     content: str = Field(..., min_length=1, description="Comment content")
@@ -50,7 +64,7 @@ class IssueResponse(BaseModel):
     confidence: float
     suggestion: Optional[str]
     fix_example: Optional[str]
-    metadata: Optional[Dict[str, Any]]
+    metadata: Optional[Dict[str, Any]] = Field(None, alias='issue_metadata', serialization_alias='metadata')
     created_at: datetime
     updated_at: datetime
     resolved_at: Optional[datetime]
@@ -58,6 +72,7 @@ class IssueResponse(BaseModel):
     
     class Config:
         from_attributes = True
+        populate_by_name = True  # 允许使用字段名或别名
         json_schema_extra = {
             "example": {
                 "id": 1,

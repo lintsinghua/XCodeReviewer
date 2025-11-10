@@ -4,6 +4,7 @@ Endpoints for managing projects.
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_
+from sqlalchemy.orm import joinedload
 from typing import List
 from loguru import logger
 
@@ -63,7 +64,7 @@ async def create_project(
         
         db.add(project)
         await db.commit()
-        await db.refresh(project)
+        await db.refresh(project, ['owner'])
         
         logger.info(f"Created project {project.id} for user {current_user.id}")
         
@@ -107,8 +108,8 @@ async def list_projects(
         Paginated list of projects
     """
     try:
-        # Build query
-        query = select(Project).where(Project.owner_id == current_user.id)
+        # Build query with joinedload for owner
+        query = select(Project).options(joinedload(Project.owner)).where(Project.owner_id == current_user.id)
         
         # Apply filters
         if status_filter:
@@ -131,7 +132,7 @@ async def list_projects(
         
         # Execute query
         result = await db.execute(query)
-        projects = result.scalars().all()
+        projects = result.scalars().unique().all()
         
         return ProjectListResponse(
             items=[ProjectResponse.model_validate(p) for p in projects],
@@ -173,8 +174,8 @@ async def list_deleted_projects(
         Paginated list of deleted projects
     """
     try:
-        # Build query for deleted projects only
-        query = select(Project).where(
+        # Build query for deleted projects only with joinedload for owner
+        query = select(Project).options(joinedload(Project.owner)).where(
             and_(
                 Project.owner_id == current_user.id,
                 Project.status == ProjectStatus.DELETED
@@ -192,7 +193,7 @@ async def list_deleted_projects(
         
         # Execute query
         result = await db.execute(query)
-        projects = result.scalars().all()
+        projects = result.scalars().unique().all()
         
         return ProjectListResponse(
             items=[ProjectResponse.model_validate(p) for p in projects],
@@ -232,8 +233,8 @@ async def get_project(
         Project details
     """
     try:
-        # Get project
-        query = select(Project).where(
+        # Get project with owner information
+        query = select(Project).options(joinedload(Project.owner)).where(
             and_(
                 Project.id == project_id,
                 Project.owner_id == current_user.id
@@ -285,8 +286,8 @@ async def update_project(
         Updated project
     """
     try:
-        # Get project
-        query = select(Project).where(
+        # Get project with owner information
+        query = select(Project).options(joinedload(Project.owner)).where(
             and_(
                 Project.id == project_id,
                 Project.owner_id == current_user.id
@@ -311,7 +312,7 @@ async def update_project(
             setattr(project, field, value)
         
         await db.commit()
-        await db.refresh(project)
+        await db.refresh(project, ['owner'])
         
         logger.info(f"Updated project {project_id}")
         
@@ -404,8 +405,8 @@ async def restore_project(
         Restored project
     """
     try:
-        # Get project
-        query = select(Project).where(
+        # Get project with owner information
+        query = select(Project).options(joinedload(Project.owner)).where(
             and_(
                 Project.id == project_id,
                 Project.owner_id == current_user.id,
@@ -424,7 +425,7 @@ async def restore_project(
         # Restore project
         project.status = ProjectStatus.ACTIVE
         await db.commit()
-        await db.refresh(project)
+        await db.refresh(project, ['owner'])
         
         logger.info(f"Restored project {project_id}")
         

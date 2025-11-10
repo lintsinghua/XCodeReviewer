@@ -71,6 +71,11 @@ class AuditTask(Base):
     
     overall_score: Mapped[float] = mapped_column(default=0.0, nullable=False)
     
+    # File statistics
+    total_files: Mapped[int] = mapped_column(Integer, default=0, nullable=False)  # Total files scanned
+    scanned_files: Mapped[int] = mapped_column(Integer, default=0, nullable=False)  # Files analyzed (code files)
+    total_lines: Mapped[int] = mapped_column(Integer, default=0, nullable=False)  # Total lines of code analyzed
+    
     # Error handling
     error_message: Mapped[str] = mapped_column(Text, nullable=True)
     retry_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
@@ -95,10 +100,16 @@ class AuditTask(Base):
         nullable=True,
         index=True
     )
+    llm_provider_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("llm_providers.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True
+    )
     
     # Relationships
     project: Mapped["Project"] = relationship("Project", back_populates="audit_tasks")
     created_by_user: Mapped["User"] = relationship("User", back_populates="audit_tasks")
+    llm_provider: Mapped[Optional["LLMProvider"]] = relationship("LLMProvider", lazy="joined")
     
     issues: Mapped[List["AuditIssue"]] = relationship(
         "AuditIssue",

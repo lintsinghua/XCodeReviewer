@@ -134,6 +134,13 @@ export enum TaskPriority {
   URGENT = 'urgent',
 }
 
+export interface LLMProviderSummary {
+  id: number;
+  name: string;
+  display_name: string;
+  icon?: string;
+}
+
 export interface AuditTask {
   id: number;
   name: string;
@@ -157,6 +164,8 @@ export interface AuditTask {
   completed_at?: string;
   project_id: number;
   created_by: number;
+  llm_provider_id?: number;
+  llm_provider?: LLMProviderSummary;
 }
 
 export interface TaskCreate {
@@ -166,6 +175,7 @@ export interface TaskCreate {
   priority?: TaskPriority;
   agents_used?: Record<string, any>;
   scan_config?: Record<string, any>;
+  llm_provider_id?: number;
 }
 
 export interface TaskUpdate {
@@ -188,6 +198,7 @@ export enum IssueSeverity {
 
 export enum IssueCategory {
   SECURITY = 'security',
+  QUALITY = 'quality',
   PERFORMANCE = 'performance',
   MAINTAINABILITY = 'maintainability',
   RELIABILITY = 'reliability',
@@ -215,6 +226,7 @@ export interface AuditIssue {
   description: string;
   code_snippet?: string;
   suggestion?: string;
+  fix_example?: string;  // 修复示例代码
   agent_name?: string;
   confidence_score?: number;
   created_at: string;

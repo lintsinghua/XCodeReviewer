@@ -14,6 +14,7 @@ class AuditTaskCreate(BaseModel):
     priority: TaskPriority = TaskPriority.NORMAL
     agents_used: Optional[List[str]] = None
     scan_config: Optional[Dict[str, Any]] = None
+    llm_provider_id: Optional[int] = Field(None, description="LLM Provider to use for this task")
 
 
 class AuditTaskUpdate(BaseModel):
@@ -22,6 +23,16 @@ class AuditTaskUpdate(BaseModel):
     description: Optional[str] = None
     status: Optional[TaskStatus] = None
     priority: Optional[TaskPriority] = None
+
+
+class LLMProviderInfo(BaseModel):
+    """Schema for LLM Provider info in task response"""
+    id: int
+    name: str
+    display_name: str
+    icon: Optional[str] = None
+    
+    model_config = ConfigDict(from_attributes=True)
 
 
 class AuditTaskResponse(BaseModel):
@@ -41,6 +52,8 @@ class AuditTaskResponse(BaseModel):
     overall_score: float
     project_id: int
     created_by: Optional[int]
+    llm_provider_id: Optional[int] = None
+    llm_provider: Optional[LLMProviderInfo] = None
     created_at: datetime
     started_at: Optional[datetime]
     completed_at: Optional[datetime]

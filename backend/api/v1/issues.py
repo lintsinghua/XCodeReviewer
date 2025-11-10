@@ -14,6 +14,7 @@ from models.audit_task import AuditTask
 from models.audit_issue import AuditIssue, IssueSeverity, IssueCategory, IssueStatus
 from schemas.issue import (
     IssueUpdate,
+    IssueBulkUpdate,
     IssueResponse,
     IssueListResponse,
     IssueStatistics
@@ -32,7 +33,7 @@ router = APIRouter()
 )
 async def list_issues(
     page: int = Query(1, ge=1, description="Page number"),
-    page_size: int = Query(10, ge=1, le=100, description="Items per page"),
+    page_size: int = Query(10, ge=1, le=1000, description="Items per page"),  # 增加到1000
     task_id: Optional[int] = Query(None, description="Filter by task ID"),
     project_id: Optional[int] = Query(None, description="Filter by project ID"),
     severity: Optional[IssueSeverity] = Query(None, description="Filter by severity"),
@@ -173,6 +174,7 @@ async def get_issue_statistics(
             "quality": 0,
             "performance": 0,
             "maintainability": 0,
+            "reliability": 0,
             "style": 0,
             "documentation": 0,
             "other": 0
@@ -323,6 +325,74 @@ async def update_issue(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to update issue"
+        )
+
+
+@router.post(
+    "/bulk-update",
+    summary="Bulk update issues",
+    description="Update multiple issues at once"
+)
+async def bulk_update_issues(
+    bulk_data: IssueBulkUpdate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Bulk update issues.
+    
+    Args:
+        bulk_data: Bulk update data
+        current_user: Authenticated user
+        db: Database session
+        
+    Returns:
+        Summary of updated issues
+    """
+    try:
+        # Get issues with ownership check
+        query = select(AuditIssue).join(AuditTask).join(Project).where(
+            and_(
+                AuditIssue.id.in_(bulk_data.issue_ids),
+                Project.owner_id == current_user.id
+            )
+        )
+        result = await db.execute(query)
+        issues = result.scalars().all()
+        
+        if not issues:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="No issues found"
+            )
+        
+        # Update all issues
+        updated_count = 0
+        from datetime import datetime
+        for issue in issues:
+            issue.status = bulk_data.status
+            if bulk_data.status in [IssueStatus.RESOLVED, IssueStatus.FALSE_POSITIVE]:
+                issue.resolved_at = datetime.utcnow()
+            updated_count += 1
+        
+        await db.commit()
+        
+        logger.info(f"Bulk updated {updated_count} issues to status {bulk_data.status}")
+        
+        return {
+            "message": f"Successfully updated {updated_count} issues",
+            "updated_count": updated_count,
+            "status": bulk_data.status
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"Error bulk updating issues: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to bulk update issues"
         )
 
 

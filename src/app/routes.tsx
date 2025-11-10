@@ -7,6 +7,7 @@ import AuditTasks from "@/pages/AuditTasks";
 import TaskDetail from "@/pages/TaskDetail";
 import AdminDashboard from "@/pages/AdminDashboard";
 import LogsPage from "@/pages/LogsPage";
+import Prompts from "@/pages/Prompts";
 import Auth from "@/pages/Auth";
 import type { ComponentType } from 'react';
 
@@ -88,6 +89,13 @@ const routes: RouteConfig[] = [
     name: "系统日志",
     path: "/logs",
     component: LogsPage,
+    visible: true,
+    protected: true,
+  },
+  {
+    name: "提示词管理",
+    path: "/prompts",
+    component: Prompts,
     visible: true,
     protected: true,
   },

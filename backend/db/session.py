@@ -24,12 +24,29 @@ if settings.USE_LOCAL_DB:
     )
 else:
     # PostgreSQL cloud mode
-    engine = create_async_engine(
-        settings.DATABASE_URL,
-        pool_size=settings.DATABASE_POOL_SIZE,
-        max_overflow=settings.DATABASE_MAX_OVERFLOW,
-        echo=settings.DEBUG,
-    )
+    # Use NullPool for Celery workers to avoid connection sharing across processes
+    import os
+    is_celery_worker = os.environ.get('CELERY_WORKER', False)
+    
+    if is_celery_worker:
+        # For Celery workers: use NullPool to create fresh connections
+        # This prevents "another operation is in progress" errors
+        engine = create_async_engine(
+            settings.DATABASE_URL,
+            poolclass=NullPool,
+            echo=settings.DEBUG,
+            pool_pre_ping=True,  # Verify connections before using
+        )
+    else:
+        # For web servers: use connection pooling for better performance
+        engine = create_async_engine(
+            settings.DATABASE_URL,
+            pool_size=settings.DATABASE_POOL_SIZE,
+            max_overflow=settings.DATABASE_MAX_OVERFLOW,
+            echo=settings.DEBUG,
+            pool_pre_ping=True,  # Verify connections before using
+            pool_recycle=3600,  # Recycle connections after 1 hour
+        )
 
 # Create session factory
 AsyncSessionLocal = async_sessionmaker(

@@ -7,10 +7,13 @@ from typing import List, Optional, Dict, Any
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+from loguru import logger
 
 from services.llm.instant_code_analyzer import InstantCodeAnalyzer
 from api.dependencies import get_current_user
 from db.session import get_db
+from models.llm_provider import LLMProvider
 
 
 router = APIRouter()
@@ -27,6 +30,10 @@ class InstantAnalysisRequest(BaseModel):
         ...,
         description="Programming language (e.g., python, javascript, java)",
         examples=["python", "javascript", "java"]
+    )
+    llm_provider_id: Optional[int] = Field(
+        None,
+        description="Optional LLM provider ID to use for analysis. If not provided, uses system default."
     )
 
 
@@ -155,10 +162,57 @@ async def analyze_code(
     Configuration is loaded from database first, with fallback to environment variables.
     """
     try:
+        from services.llm.provider_api_key_service import get_provider_api_key_by_id, get_provider_api_key_from_db
+        
+        # Check if a specific LLM provider is requested
+        llm_config = {}
+        db_api_key = None
+        
+        if request.llm_provider_id:
+            # Load specific LLM provider configuration
+            provider_result = await db.execute(
+                select(LLMProvider).where(LLMProvider.id == request.llm_provider_id)
+            )
+            llm_provider = provider_result.scalar_one_or_none()
+            
+            if llm_provider and llm_provider.is_active:
+                logger.info(f"🎯 Using user-selected LLM provider: {llm_provider.display_name} (ID: {llm_provider.id})")
+                
+                # Try to get API key from database first
+                db_api_key = await get_provider_api_key_by_id(llm_provider.id, db)
+                
+                llm_config = {
+                    'provider': llm_provider.provider_type,
+                    'model': llm_provider.default_model,
+                    'base_url': llm_provider.api_endpoint,
+                    'temperature': 0.2,
+                    'api_key': db_api_key  # Use DB API key if available
+                }
+            else:
+                logger.warning(f"LLM provider {request.llm_provider_id} not found or inactive, falling back to system default")
+        
         # Create analyzer instance with database session for config loading
         analyzer = InstantCodeAnalyzer(db=db)
         
-        # Perform analysis (will load config from database)
+        # If a specific provider was requested and found, override the configuration
+        if llm_config:
+            analyzer.provider = llm_config.get('provider', 'gemini')
+            analyzer.model = llm_config.get('model')
+            analyzer.base_url = llm_config.get('base_url')
+            analyzer.temperature = llm_config.get('temperature', 0.2)
+            
+            # Priority: DB API key > Environment variable
+            analyzer.api_key = llm_config.get('api_key') or analyzer._get_api_key_for_provider(analyzer.provider)
+            analyzer._config_loaded = True
+            
+            if db_api_key:
+                logger.info(f"✅ Using API key from database for provider: {analyzer.provider}")
+            else:
+                logger.info(f"✅ Using API key from environment for provider: {analyzer.provider}")
+            
+            logger.info(f"✅ Analyzer configured with user-selected provider: {analyzer.provider}, model={analyzer.model}")
+        
+        # Perform analysis (will load config from database if not already configured)
         result = await analyzer.analyze_code(
             code=request.code,
             language=request.language
@@ -172,6 +226,7 @@ async def analyze_code(
             detail=str(e)
         )
     except Exception as e:
+        logger.error(f"Instant analysis failed: {str(e)}")
         raise HTTPException(
             status_code=500,
             detail=f"Analysis failed: {str(e)}"

@@ -20,10 +20,9 @@ import {
   Settings
 } from "lucide-react";
 import { api } from "@/shared/services/unified-api";
-import { dbMode, isLocalMode } from "@/shared/config/database";
 import { DatabaseManager } from "@/components/database/DatabaseManager";
-import { DatabaseStatusDetail } from "@/components/database/DatabaseStatus";
 import { SystemConfig } from "@/components/system/SystemConfig";
+import { LLMProviderManager } from "@/components/llm/LLMProviderManager";
 import { toast } from "sonner";
 
 export default function AdminDashboard() {
@@ -128,21 +127,6 @@ export default function AdminDashboard() {
         </Button>
       </div>
 
-      {/* 数据库模式提示 */}
-      {!isLocalMode && (
-        <Alert>
-          <Info className="h-4 w-4" />
-          <AlertDescription>
-            当前使用 <strong>{dbMode === 'supabase' ? 'Supabase 云端' : '演示'}</strong> 模式。
-            数据库管理功能仅在本地数据库模式下完全可用。
-            {dbMode === 'demo' && ' 请在 .env 文件中配置 VITE_USE_LOCAL_DB=true 启用本地数据库。'}
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {/* 数据库状态卡片 */}
-      <DatabaseStatusDetail />
-
       {/* 统计概览 */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
@@ -216,8 +200,9 @@ export default function AdminDashboard() {
 
       {/* 主要内容标签页 */}
       <Tabs defaultValue="config" className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="config">系统配置</TabsTrigger>
+          <TabsTrigger value="providers">LLM 提供商</TabsTrigger>
           <TabsTrigger value="overview">数据概览</TabsTrigger>
           <TabsTrigger value="storage">存储管理</TabsTrigger>
           <TabsTrigger value="operations">数据操作</TabsTrigger>
@@ -227,6 +212,11 @@ export default function AdminDashboard() {
         {/* 系统配置 */}
         <TabsContent value="config" className="space-y-6">
           <SystemConfig />
+        </TabsContent>
+
+        {/* LLM 提供商管理 */}
+        <TabsContent value="providers" className="space-y-6">
+          <LLMProviderManager />
         </TabsContent>
 
         {/* 数据概览 */}
@@ -468,14 +458,7 @@ export default function AdminDashboard() {
               <CardDescription>配置数据库行为和性能选项</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <Alert>
-                <Info className="h-4 w-4" />
-                <AlertDescription>
-                  <strong>当前数据库模式：</strong> {dbMode === 'local' ? '本地 IndexedDB' : dbMode === 'supabase' ? 'Supabase 云端' : '演示模式'}
-                </AlertDescription>
-              </Alert>
-
-              <div className="space-y-4 pt-4">
+              <div className="space-y-4">
                 <div className="flex items-center justify-between p-4 border rounded-lg">
                   <div>
                     <p className="font-medium">自动备份</p>

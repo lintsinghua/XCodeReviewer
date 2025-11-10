@@ -137,3 +137,30 @@ async def get_optional_current_user(
         return await get_current_user(credentials, db)
     except (AuthenticationError, AuthorizationError):
         return None
+
+
+async def require_admin(
+    current_user = Depends(get_current_user),
+):
+    """
+    Require admin role for the current user.
+    Alias for get_current_admin_user for consistency.
+    
+    Args:
+        current_user: Current authenticated user
+        
+    Returns:
+        User object with admin role
+        
+    Raises:
+        AuthorizationError: If user is not an admin
+    """
+    # Check if user has admin role
+    from models.user import UserRole
+    
+    user_role = current_user.role if hasattr(current_user, 'role') else None
+    
+    if user_role != UserRole.ADMIN:
+        raise AuthorizationError("Admin access required")
+    
+    return current_user

@@ -99,30 +99,46 @@ export default function Dashboard() {
       // 基于真实数据生成问题类型分布
       // 需要获取所有问题数据来统计
       try {
-        const allIssues = await Promise.all(
-          tasks.map(task => api.getAuditIssues(task.id).catch(() => []))
+        const allIssuesResponses = await Promise.all(
+          tasks.map(task => api.getAuditIssues(task.id).catch(() => ({ items: [], total: 0 })))
         );
-        const flatIssues = allIssues.flat();
+        
+        // 从响应中提取 items 数组
+        const flatIssues = allIssuesResponses.flatMap(response => 
+          response && typeof response === 'object' && 'items' in response 
+            ? response.items 
+            : Array.isArray(response) 
+              ? response 
+              : []
+        );
 
         if (flatIssues.length > 0) {
           const typeCount: Record<string, number> = {};
-          flatIssues.forEach(issue => {
-            typeCount[issue.issue_type] = (typeCount[issue.issue_type] || 0) + 1;
+          flatIssues.forEach((issue: any) => {
+            // 兼容不同的字段名称
+            const type = issue.issue_type || issue.category || 'other';
+            typeCount[type] = (typeCount[type] || 0) + 1;
           });
 
           const typeMap: Record<string, { name: string; color: string }> = {
-            security: { name: '安全问题', color: '#dc2626' },
-            bug: { name: '潜在Bug', color: '#7f1d1d' },
-            performance: { name: '性能问题', color: '#b91c1c' },
-            style: { name: '代码风格', color: '#991b1b' },
-            maintainability: { name: '可维护性', color: '#450a0a' }
+            security: { name: '安全问题', color: '#ef4444' },
+            quality: { name: '代码质量', color: '#f59e0b' },
+            performance: { name: '性能问题', color: '#10b981' },
+            maintainability: { name: '可维护性', color: '#3b82f6' },
+            reliability: { name: '可靠性', color: '#06b6d4' },
+            style: { name: '代码风格', color: '#8b5cf6' },
+            documentation: { name: '文档问题', color: '#ec4899' },
+            bug: { name: '潜在Bug', color: '#dc2626' },
+            other: { name: '其他', color: '#6b7280' }
           };
 
-          const issueData = Object.entries(typeCount).map(([type, count]) => ({
-            name: typeMap[type]?.name || type,
-            value: count,
-            color: typeMap[type]?.color || '#6b7280'
-          }));
+          const issueData = Object.entries(typeCount)
+            .map(([type, count]) => ({
+              name: typeMap[type]?.name || type,
+              value: count,
+              color: typeMap[type]?.color || '#6b7280'
+            }))
+            .sort((a, b) => b.value - a.value); // 按数量降序排序
 
           setIssueTypeData(issueData);
         } else {

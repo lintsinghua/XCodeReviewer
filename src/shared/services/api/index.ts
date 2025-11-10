@@ -266,8 +266,8 @@ export const issueApi = {
   /**
    * Bulk update issues
    */
-  bulkUpdate: (issueIds: number[], data: IssueUpdate) =>
-    apiClient.post('/issues/bulk-update', { issue_ids: issueIds, ...data }),
+  bulkUpdate: (issue_ids: number[], status: string) =>
+    apiClient.post('/issues/bulk-update', { issue_ids, status }),
 };
 
 // ============================================================================
@@ -380,7 +380,7 @@ export const instantAnalysisApi = {
   /**
    * Analyze code instantly
    */
-  analyze: (data: { code: string; language: string }) =>
+  analyze: (data: { code: string; language: string; llm_provider_id?: number }) =>
     apiClient.post<{
       issues: Array<{
         type: string;
@@ -420,6 +420,137 @@ export const instantAnalysisApi = {
    */
   getSupportedLanguages: () =>
     apiClient.get<{ languages: string[] }>('/instant-analysis/supported-languages'),
+};
+
+// ============================================================================
+// Prompts API
+// ============================================================================
+
+export const promptsApi = {
+  /**
+   * List all prompts
+   */
+  list: (params?: {
+    page?: number;
+    page_size?: number;
+    category?: string;
+    subcategory?: string;
+    is_active?: boolean;
+    search?: string;
+  }) =>
+    apiClient.get<{
+      items: Array<{
+        id: number;
+        category: string;
+        subcategory?: string;
+        name: string;
+        description?: string;
+        content: string;
+        system_prompt_template?: string;
+        is_active: boolean;
+        is_system: boolean;
+        order_index: number;
+        subcategory_mapping?: Record<string, any>;
+        created_at: string;
+        updated_at: string;
+        created_by?: number;
+        updated_by?: number;
+      }>;
+      total: number;
+      page: number;
+      page_size: number;
+    }>('/prompts', { params }),
+
+  /**
+   * Get categories
+   */
+  getCategories: () =>
+    apiClient.get<{ categories: string[] }>('/prompts/categories'),
+
+  /**
+   * Get a specific prompt
+   */
+  get: (id: number) =>
+    apiClient.get(`/prompts/${id}`),
+
+  /**
+   * Create a new prompt
+   */
+  create: (data: {
+    category: string;
+    subcategory?: string;
+    name: string;
+    description?: string;
+    content: string;
+    system_prompt_template?: string;
+    is_active?: boolean;
+    order_index?: number;
+    subcategory_mapping?: Record<string, any>;
+  }) =>
+    apiClient.post('/prompts', data),
+
+  /**
+   * Update a prompt
+   */
+  update: (id: number, data: {
+    category?: string;
+    subcategory?: string;
+    name?: string;
+    description?: string;
+    content?: string;
+    system_prompt_template?: string;
+    is_active?: boolean;
+    order_index?: number;
+    subcategory_mapping?: Record<string, any>;
+  }) =>
+    apiClient.put(`/prompts/${id}`, data),
+
+  /**
+   * Delete a prompt
+   */
+  delete: (id: number) =>
+    apiClient.delete(`/prompts/${id}`),
+
+  /**
+   * Bulk import prompts
+   */
+  bulkImport: (data: {
+    prompts: Array<{
+      category: string;
+      subcategory?: string;
+      name: string;
+      description?: string;
+      content: string;
+      system_prompt_template?: string;
+      is_active?: boolean;
+      order_index?: number;
+      subcategory_mapping?: Record<string, any>;
+    }>;
+    overwrite?: boolean;
+  }) =>
+    apiClient.post('/prompts/bulk-import', data),
+
+  /**
+   * Export prompts
+   */
+  export: (category?: string) =>
+    apiClient.post<{
+      prompts: Array<{
+        id: number;
+        category: string;
+        subcategory?: string;
+        name: string;
+        description?: string;
+        content: string;
+        system_prompt_template?: string;
+        is_active: boolean;
+        is_system: boolean;
+        order_index: number;
+        subcategory_mapping?: Record<string, any>;
+        created_at: string;
+        updated_at: string;
+      }>;
+    }>('/prompts/export', { category }),
 };
 
 // ============================================================================
@@ -481,6 +612,24 @@ export const systemSettingsApi = {
    */
   batchUpdateSettings: (settings: Record<string, string>) =>
     apiClient.post('/system/settings/batch', { settings }),
+
+  /**
+   * Get all prompt templates
+   */
+  getPromptTemplates: () =>
+    apiClient.get('/system/prompt-templates'),
+
+  /**
+   * Get a specific prompt template
+   */
+  getPromptTemplate: (key: string) =>
+    apiClient.get(`/system/prompt-templates/${key}`),
+
+  /**
+   * Update a prompt template
+   */
+  updatePromptTemplate: (key: string, data: { value?: string; description?: string }) =>
+    apiClient.put(`/system/prompt-templates/${key}`, data),
 };
 
 // Export all APIs
@@ -495,6 +644,7 @@ export const api = {
   files: fileApi,
   instantAnalysis: instantAnalysisApi,
   systemSettings: systemSettingsApi,
+  prompts: promptsApi,
 };
 
 export default api;

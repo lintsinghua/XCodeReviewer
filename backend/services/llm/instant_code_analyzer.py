@@ -114,13 +114,21 @@ class InstantCodeAnalyzer:
         """Get list of supported programming languages"""
         return self.SUPPORTED_LANGUAGES.copy()
     
-    async def analyze_code(self, code: str, language: str) -> Dict[str, Any]:
+    async def analyze_code(
+        self, 
+        code: str, 
+        language: str, 
+        custom_system_prompt: Optional[str] = None,
+        custom_user_prompt: Optional[str] = None
+    ) -> Dict[str, Any]:
         """
         Analyze code using LLM.
         
         Args:
             code: Source code to analyze
             language: Programming language
+            custom_system_prompt: Optional custom system prompt to use instead of default
+            custom_user_prompt: Optional custom user prompt to use instead of default
             
         Returns:
             Analysis result with issues, quality score, and metrics
@@ -138,9 +146,16 @@ class InstantCodeAnalyzer:
         output_language = settings.OUTPUT_LANGUAGE or 'zh-CN'
         is_chinese = output_language == 'zh-CN'
         
-        # Build prompts
-        system_prompt = self._build_system_prompt(is_chinese)
-        user_prompt = self._build_user_prompt(code, language, is_chinese)
+        # Build prompts - use custom prompts if provided
+        if custom_system_prompt:
+            system_prompt = custom_system_prompt
+        else:
+            system_prompt = self._build_system_prompt(is_chinese)
+        
+        if custom_user_prompt:
+            user_prompt = custom_user_prompt
+        else:
+            user_prompt = self._build_user_prompt(code, language, is_chinese)
         
         try:
             # Get LLM adapter
@@ -329,31 +344,47 @@ Important notes:
             # Parse JSON
             result = json.loads(text)
             
-            # Validate required fields
-            if not isinstance(result, dict):
-                raise ValueError("Result must be a JSON object")
+            # Handle two formats:
+            # 1. Direct array format (from worker prompt): [{"file_name": "...", "line_number": 123, ...}]
+            # 2. Object format (from default prompt): {"issues": [...], "quality_score": 85, ...}
+            if isinstance(result, list):
+                # Worker prompt format - convert to standard format
+                return {
+                    "issues": result,
+                    "quality_score": 0,  # Will be calculated elsewhere
+                    "summary": {
+                        "total_issues": len(result),
+                        "critical_issues": sum(1 for i in result if i.get("severity", "").lower() == "critical"),
+                        "high_issues": sum(1 for i in result if i.get("severity", "").lower() == "high"),
+                        "medium_issues": sum(1 for i in result if i.get("severity", "").lower() == "medium"),
+                        "low_issues": sum(1 for i in result if i.get("severity", "").lower() == "low")
+                    }
+                }
             
-            required_fields = ['issues', 'quality_score', 'summary', 'metrics']
-            for field in required_fields:
-                if field not in result:
-                    raise ValueError(f"Missing required field: {field}")
+            # Validate required fields for object format
+            if not isinstance(result, dict):
+                raise ValueError("Result must be a JSON object or array")
+            
+            # Ensure issues field exists
+            if 'issues' not in result:
+                result['issues'] = []
             
             # Validate issues
             if not isinstance(result['issues'], list):
                 result['issues'] = []
             
-            # Validate summary
-            if not isinstance(result['summary'], dict):
+            # Validate summary (optional, provide default if missing)
+            if 'summary' not in result or not isinstance(result['summary'], dict):
                 result['summary'] = {
                     'total_issues': len(result['issues']),
-                    'critical_issues': 0,
-                    'high_issues': 0,
-                    'medium_issues': 0,
-                    'low_issues': 0
+                    'critical_issues': sum(1 for i in result['issues'] if i.get('severity', '').lower() == 'critical'),
+                    'high_issues': sum(1 for i in result['issues'] if i.get('severity', '').lower() == 'high'),
+                    'medium_issues': sum(1 for i in result['issues'] if i.get('severity', '').lower() == 'medium'),
+                    'low_issues': sum(1 for i in result['issues'] if i.get('severity', '').lower() == 'low')
                 }
             
-            # Validate metrics
-            if not isinstance(result['metrics'], dict):
+            # Validate metrics (optional, provide default if missing)
+            if 'metrics' not in result or not isinstance(result['metrics'], dict):
                 result['metrics'] = {
                     'complexity': 70,
                     'maintainability': 70,
@@ -361,8 +392,8 @@ Important notes:
                     'performance': 70
                 }
             
-            # Ensure quality_score is a number
-            if not isinstance(result['quality_score'], (int, float)):
+            # Ensure quality_score exists and is a number (optional, provide default if missing)
+            if 'quality_score' not in result or not isinstance(result['quality_score'], (int, float)):
                 result['quality_score'] = 70
             
             return result

@@ -110,7 +110,11 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     - Returns 429 with Retry-After header
     """
     
-    EXCLUDED_PATHS = {"/health", "/ready", "/metrics", "/api/docs", "/api/redoc"}
+    EXCLUDED_PATHS = {
+        "/health", "/ready", "/metrics", 
+        "/api/v1/docs", "/api/v1/redoc", "/api/v1/openapi.json",
+        "/docs", "/redoc", "/openapi.json"
+    }
     
     def __init__(self, app, redis_url: str = None):
         super().__init__(app)
@@ -163,6 +167,15 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     
     async def _check_rate_limit(self, identifier: str, path: str):
         """Check if request exceeds rate limits"""
+        # 在DEBUG模式下，使用更宽松的限制
+        per_minute_limit = settings.RATE_LIMIT_PER_MINUTE
+        per_hour_limit = settings.RATE_LIMIT_PER_HOUR
+        
+        if settings.DEBUG:
+            # 开发模式：10倍宽松
+            per_minute_limit = per_minute_limit * 10
+            per_hour_limit = per_hour_limit * 10
+        
         redis = await self.get_redis()
         
         # Check per-minute limit
@@ -174,10 +187,10 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             await redis.setex(minute_key, 60, 1)
         else:
             minute_count = int(minute_count)
-            if minute_count >= settings.RATE_LIMIT_PER_MINUTE:
+            if minute_count >= per_minute_limit:
                 ttl = await redis.ttl(minute_key)
                 raise RateLimitExceeded(
-                    message=f"Rate limit exceeded: {settings.RATE_LIMIT_PER_MINUTE} requests per minute",
+                    message=f"Rate limit exceeded: {per_minute_limit} requests per minute",
                     retry_after=ttl if ttl > 0 else 60
                 )
             await redis.incr(minute_key)
@@ -191,10 +204,10 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             await redis.setex(hour_key, 3600, 1)
         else:
             hour_count = int(hour_count)
-            if hour_count >= settings.RATE_LIMIT_PER_HOUR:
+            if hour_count >= per_hour_limit:
                 ttl = await redis.ttl(hour_key)
                 raise RateLimitExceeded(
-                    message=f"Rate limit exceeded: {settings.RATE_LIMIT_PER_HOUR} requests per hour",
+                    message=f"Rate limit exceeded: {per_hour_limit} requests per hour",
                     retry_after=ttl if ttl > 0 else 3600
                 )
             await redis.incr(hour_key)

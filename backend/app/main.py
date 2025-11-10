@@ -62,8 +62,8 @@ app.add_middleware(
 # Gzip Compression
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 
-# Rate Limiting Middleware
-app.add_middleware(RateLimitMiddleware)
+# Rate Limiting Middleware - DISABLED
+# app.add_middleware(RateLimitMiddleware)
 
 # Request Logging Middleware
 app.add_middleware(RequestLoggingMiddleware)
