@@ -19,9 +19,5 @@
         }
       ]
     }
-  ],
-  "env": {
-    "VITE_LLM_PROVIDER": "@vite_llm_provider",
-    "VITE_USE_LOCAL_DB": "@vite_use_local_db"
-  }
+  ]
 }
