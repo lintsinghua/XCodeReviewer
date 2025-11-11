@@ -7,70 +7,98 @@ import AuditTasks from "@/pages/AuditTasks";
 import TaskDetail from "@/pages/TaskDetail";
 import AdminDashboard from "@/pages/AdminDashboard";
 import LogsPage from "@/pages/LogsPage";
-import type { ReactNode } from 'react';
+import Prompts from "@/pages/Prompts";
+import Auth from "@/pages/Auth";
+import type { ComponentType } from "react";
 
 export interface RouteConfig {
-  name: string;
-  path: string;
-  element: ReactNode;
-  visible?: boolean;
+	name: string;
+	path: string;
+	component: ComponentType<any>;
+	visible?: boolean;
+	protected?: boolean;
 }
 
 const routes: RouteConfig[] = [
-  {
-    name: "仪表盘",
-    path: "/",
-    element: <Dashboard />,
-    visible: true,
-  },
-  {
-    name: "项目管理",
-    path: "/projects",
-    element: <Projects />,
-    visible: true,
-  },
-  {
-    name: "项目详情",
-    path: "/projects/:id",
-    element: <ProjectDetail />,
-    visible: false,
-  },
-  {
-    name: "即时分析",
-    path: "/instant-analysis",
-    element: <InstantAnalysis />,
-    visible: true,
-  },
-  {
-    name: "审计任务",
-    path: "/audit-tasks",
-    element: <AuditTasks />,
-    visible: true,
-  },
-  {
-    name: "任务详情",
-    path: "/tasks/:id",
-    element: <TaskDetail />,
-    visible: false,
-  },
-  {
-    name: "系统管理",
-    path: "/admin",
-    element: <AdminDashboard />,
-    visible: true,
-  },
-  {
-    name: "回收站",
-    path: "/recycle-bin",
-    element: <RecycleBin />,
-    visible: true,
-  },
-  {
-    name: "系统日志",
-    path: "/logs",
-    element: <LogsPage />,
-    visible: true,
-  },
+	// 认证页面（不需要保护）
+	{
+		name: "登录",
+		path: "/auth",
+		component: Auth,
+		visible: false,
+		protected: false,
+	},
+	// 以下页面需要登录才能访问
+	{
+		name: "仪表盘",
+		path: "/",
+		component: Dashboard,
+		visible: true,
+		protected: true,
+	},
+	{
+		name: "项目管理",
+		path: "/projects",
+		component: Projects,
+		visible: true,
+		protected: true,
+	},
+	{
+		name: "项目详情",
+		path: "/projects/:id",
+		component: ProjectDetail,
+		visible: false,
+		protected: true,
+	},
+	{
+		name: "即时分析",
+		path: "/instant-analysis",
+		component: InstantAnalysis,
+		visible: true,
+		protected: true,
+	},
+	{
+		name: "审计任务",
+		path: "/audit-tasks",
+		component: AuditTasks,
+		visible: true,
+		protected: true,
+	},
+	{
+		name: "任务详情",
+		path: "/tasks/:id",
+		component: TaskDetail,
+		visible: false,
+		protected: true,
+	},
+	{
+		name: "系统管理",
+		path: "/admin",
+		component: AdminDashboard,
+		visible: true,
+		protected: true,
+	},
+	{
+		name: "回收站",
+		path: "/recycle-bin",
+		component: RecycleBin,
+		visible: true,
+		protected: true,
+	},
+	{
+		name: "系统日志",
+		path: "/logs",
+		component: LogsPage,
+		visible: true,
+		protected: true,
+	},
+	{
+		name: "提示词管理",
+		path: "/prompts",
+		component: Prompts,
+		visible: true,
+		protected: true,
+	},
 ];
 
 export default routes;

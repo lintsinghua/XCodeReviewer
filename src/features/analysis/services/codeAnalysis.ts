@@ -1,45 +1,52 @@
 import type { CodeAnalysisResult } from "@/shared/types";
-import { LLMService } from '@/shared/services/llm';
-import { getCurrentLLMApiKey, getCurrentLLMModel, env } from '@/shared/config/env';
-import type { LLMConfig } from '@/shared/services/llm/types';
-import { SUPPORTED_LANGUAGES } from '@/shared/constants';
+import { LLMService } from "@/shared/services/llm";
+import {
+	getCurrentLLMApiKey,
+	getCurrentLLMModel,
+	env,
+} from "@/shared/config/env";
+import type { LLMConfig } from "@/shared/services/llm/types";
+import { SUPPORTED_LANGUAGES } from "@/shared/constants";
 
 // 基于 LLM 的代码分析引擎
 export class CodeAnalysisEngine {
-  static getSupportedLanguages(): string[] {
-    return [...SUPPORTED_LANGUAGES];
-  }
+	static getSupportedLanguages(): string[] {
+		return [...SUPPORTED_LANGUAGES];
+	}
 
-  /**
-   * 创建LLM服务实例
-   */
-  private static createLLMService(): LLMService {
-    const apiKey = getCurrentLLMApiKey();
-    if (!apiKey) {
-      throw new Error(`缺少 ${env.LLM_PROVIDER} API Key，请在 .env 中配置`);
-    }
+	/**
+	 * 创建LLM服务实例
+	 */
+	private static createLLMService(): LLMService {
+		const apiKey = getCurrentLLMApiKey();
+		if (!apiKey) {
+			throw new Error(`缺少 ${env.LLM_PROVIDER} API Key，请在 .env 中配置`);
+		}
 
-    const config: LLMConfig = {
-      provider: env.LLM_PROVIDER as any,
-      apiKey,
-      model: getCurrentLLMModel(),
-      baseUrl: env.LLM_BASE_URL,
-      timeout: env.LLM_TIMEOUT,
-      temperature: env.LLM_TEMPERATURE,
-      maxTokens: env.LLM_MAX_TOKENS,
-    };
+		const config: LLMConfig = {
+			provider: env.LLM_PROVIDER as any,
+			apiKey,
+			model: getCurrentLLMModel(),
+			baseUrl: env.LLM_BASE_URL,
+			timeout: env.LLM_TIMEOUT,
+			temperature: env.LLM_TEMPERATURE,
+			maxTokens: env.LLM_MAX_TOKENS,
+		};
 
-    return new LLMService(config);
-  }
+		return new LLMService(config);
+	}
 
-  static async analyzeCode(code: string, language: string): Promise<CodeAnalysisResult> {
-    const llmService = this.createLLMService();
+	static async analyzeCode(
+		code: string,
+		language: string,
+	): Promise<CodeAnalysisResult> {
+		const llmService = this.createLLMService();
 
-    // 获取输出语言配置
-    const outputLanguage = env.OUTPUT_LANGUAGE || 'zh-CN';
-    const isChineseOutput = outputLanguage === 'zh-CN';
+		// 获取输出语言配置
+		const outputLanguage = env.OUTPUT_LANGUAGE || "zh-CN";
+		const isChineseOutput = outputLanguage === "zh-CN";
 
-    const schema = `{
+		const schema = `{
       "issues": [
         {
           "type": "security|bug|performance|style|maintainability",
@@ -75,9 +82,9 @@ export class CodeAnalysisEngine {
       }
     }`;
 
-    // 根据配置生成不同语言的提示词
-    const systemPrompt = isChineseOutput
-      ? `⚠️⚠️⚠️ 只输出JSON，禁止输出其他任何格式！禁止markdown！禁止文本分析！⚠️⚠️⚠️
+		// 根据配置生成不同语言的提示词
+		const systemPrompt = isChineseOutput
+			? `⚠️⚠️⚠️ 只输出JSON，禁止输出其他任何格式！禁止markdown！禁止文本分析！⚠️⚠️⚠️
 
 你是一个专业的代码审计助手。你的任务是分析代码并返回严格符合JSON Schema的结果。
 
@@ -152,7 +159,7 @@ ${schema}
 }
 
 ⚠️ 重要提醒：line字段必须从代码左侧的行号标注中读取，不要猜测或填0！`
-      : `⚠️⚠️⚠️ OUTPUT JSON ONLY! NO OTHER FORMAT! NO MARKDOWN! NO TEXT ANALYSIS! ⚠️⚠️⚠️
+			: `⚠️⚠️⚠️ OUTPUT JSON ONLY! NO OTHER FORMAT! NO MARKDOWN! NO TEXT ANALYSIS! ⚠️⚠️⚠️
 
 You are a professional code auditing assistant. Your task is to analyze code and return results in strict JSON Schema format.
 
@@ -228,18 +235,21 @@ Example (assuming line 25 in code is "25| config[password] = user_password"):
 
 ⚠️ CRITICAL: Read line numbers from the "lineNumber|" prefix on the left of each code line. Do NOT guess or use 0!`;
 
-    // 为代码添加行号，帮助LLM准确定位问题
-    const codeWithLineNumbers = code.split('\n').map((line, idx) => `${idx + 1}| ${line}`).join('\n');
-    
-    const userPrompt = isChineseOutput
-      ? `编程语言: ${language}
+		// 为代码添加行号，帮助LLM准确定位问题
+		const codeWithLineNumbers = code
+			.split("\n")
+			.map((line, idx) => `${idx + 1}| ${line}`)
+			.join("\n");
+
+		const userPrompt = isChineseOutput
+			? `编程语言: ${language}
 
 ⚠️ 代码已标注行号（格式：行号| 代码内容），请根据行号准确填写 line 字段！
 
 请分析以下代码:
 
 ${codeWithLineNumbers}`
-      : `Programming Language: ${language}
+			: `Programming Language: ${language}
 
 ⚠️ Code is annotated with line numbers (format: lineNumber| code), please fill the 'line' field accurately based on these numbers!
 
@@ -247,458 +257,498 @@ Please analyze the following code:
 
 ${codeWithLineNumbers}`;
 
-    let text = '';
-    try {
-      console.log('🚀 开始调用 LLM 分析...');
-      console.log(`📡 提供商: ${env.LLM_PROVIDER}`);
-      console.log(`🤖 模型: ${getCurrentLLMModel()}`);
-      console.log(`🔗 Base URL: ${env.LLM_BASE_URL || '(默认)'}`);
+		let text = "";
+		try {
+			console.log("🚀 开始调用 LLM 分析...");
+			console.log(`📡 提供商: ${env.LLM_PROVIDER}`);
+			console.log(`🤖 模型: ${getCurrentLLMModel()}`);
+			console.log(`🔗 Base URL: ${env.LLM_BASE_URL || "(默认)"}`);
 
-      // 使用新的LLM服务进行分析
-      const response = await llmService.complete({
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt },
-        ],
-        temperature: 0.2,
-      });
-      text = response.content;
+			// 使用新的LLM服务进行分析
+			const response = await llmService.complete({
+				messages: [
+					{ role: "system", content: systemPrompt },
+					{ role: "user", content: userPrompt },
+				],
+				temperature: 0.2,
+			});
+			text = response.content;
 
-      console.log('✅ LLM 响应成功');
-      console.log(`📊 响应长度: ${text.length} 字符`);
-      console.log(`📝 响应内容预览: ${text.substring(0, 200)}...`);
-    } catch (e: any) {
-      console.error('LLM分析失败:', e);
+			console.log("✅ LLM 响应成功");
+			console.log(`📊 响应长度: ${text.length} 字符`);
+			console.log(`📝 响应内容预览: ${text.substring(0, 200)}...`);
+		} catch (e: any) {
+			console.error("LLM分析失败:", e);
 
-      // 构造更友好的错误消息
-      const errorMsg = e.message || '未知错误';
-      const provider = env.LLM_PROVIDER;
+			// 构造更友好的错误消息
+			const errorMsg = e.message || "未知错误";
+			const provider = env.LLM_PROVIDER;
 
-      // 抛出详细的错误信息给前端
-      throw new Error(
-        `${provider} API调用失败\n\n` +
-        `错误详情：${errorMsg}\n\n` +
-        `配置检查：\n` +
-        `- 提供商：${provider}\n` +
-        `- 模型：${getCurrentLLMModel() || '(使用默认)'}\n` +
-        `- API Key：${getCurrentLLMApiKey() ? '已配置' : '未配置'}\n` +
-        `- 超时设置：${env.LLM_TIMEOUT}ms\n\n` +
-        `请检查.env配置文件或尝试切换其他LLM提供商`
-      );
-    }
-    const parsed = this.safeParseJson(text);
+			// 抛出详细的错误信息给前端
+			throw new Error(
+				`${provider} API调用失败\n\n` +
+					`错误详情：${errorMsg}\n\n` +
+					`配置检查：\n` +
+					`- 提供商：${provider}\n` +
+					`- 模型：${getCurrentLLMModel() || "(使用默认)"}\n` +
+					`- API Key：${getCurrentLLMApiKey() ? "已配置" : "未配置"}\n` +
+					`- 超时设置：${env.LLM_TIMEOUT}ms\n\n` +
+					`请检查.env配置文件或尝试切换其他LLM提供商`,
+			);
+		}
+		const parsed = this.safeParseJson(text);
 
-    // 如果解析失败，抛出错误而不是返回默认值
-    if (!parsed) {
-      const provider = env.LLM_PROVIDER;
-      const currentModel = getCurrentLLMModel();
+		// 如果解析失败，抛出错误而不是返回默认值
+		if (!parsed) {
+			const provider = env.LLM_PROVIDER;
+			const currentModel = getCurrentLLMModel();
 
-      let suggestions = '';
-      if (provider === 'ollama') {
-        suggestions =
-          `建议解决方案：\n` +
-          `1. 升级到更强的模型（推荐）：\n` +
-          `   ollama pull codellama\n` +
-          `   ollama pull qwen2.5:7b\n` +
-          `2. 更新配置文件 .env：\n` +
-          `   VITE_LLM_MODEL=codellama\n` +
-          `3. 重启应用后重试\n\n` +
-          `注意：超轻量模型仅适合测试连接，实际使用需要更强的模型。`;
-      } else {
-        suggestions =
-          `建议解决方案：\n` +
-          `1. 尝试更换更强大的模型（在 .env 中修改 VITE_LLM_MODEL）\n` +
-          `2. 检查当前模型是否支持结构化输出（JSON 格式）\n` +
-          `3. 尝试切换到其他 LLM 提供商：\n` +
-          `   - Gemini (免费额度充足)\n` +
-          `   - OpenAI GPT (稳定可靠)\n` +
-          `   - Claude (代码理解能力强)\n` +
-          `   - DeepSeek (性价比高)\n` +
-          `4. 如果使用代理，检查网络连接是否稳定\n` +
-          `5. 增加超时时间（VITE_LLM_TIMEOUT）`;
-      }
+			let suggestions = "";
+			if (provider === "ollama") {
+				suggestions =
+					`建议解决方案：\n` +
+					`1. 升级到更强的模型（推荐）：\n` +
+					`   ollama pull codellama\n` +
+					`   ollama pull qwen2.5:7b\n` +
+					`2. 更新配置文件 .env：\n` +
+					`   VITE_LLM_MODEL=codellama\n` +
+					`3. 重启应用后重试\n\n` +
+					`注意：超轻量模型仅适合测试连接，实际使用需要更强的模型。`;
+			} else {
+				suggestions =
+					`建议解决方案：\n` +
+					`1. 尝试更换更强大的模型（在 .env 中修改 VITE_LLM_MODEL）\n` +
+					`2. 检查当前模型是否支持结构化输出（JSON 格式）\n` +
+					`3. 尝试切换到其他 LLM 提供商：\n` +
+					`   - Gemini (免费额度充足)\n` +
+					`   - OpenAI GPT (稳定可靠)\n` +
+					`   - Claude (代码理解能力强)\n` +
+					`   - DeepSeek (性价比高)\n` +
+					`4. 如果使用代理，检查网络连接是否稳定\n` +
+					`5. 增加超时时间（VITE_LLM_TIMEOUT）`;
+			}
 
-      throw new Error(
-        `LLM 响应解析失败\n\n` +
-        `提供商: ${provider}\n` +
-        `模型: ${currentModel || '(默认)'}\n\n` +
-        `原因：当前模型返回的内容不是有效的 JSON 格式，\n` +
-        `这可能是因为模型能力不足或配置不当。\n\n` +
-        suggestions
-      );
-    }
+			throw new Error(
+				`LLM 响应解析失败\n\n` +
+					`提供商: ${provider}\n` +
+					`模型: ${currentModel || "(默认)"}\n\n` +
+					`原因：当前模型返回的内容不是有效的 JSON 格式，\n` +
+					`这可能是因为模型能力不足或配置不当。\n\n` +
+					suggestions,
+			);
+		}
 
-    console.log('🔍 解析结果:', {
-      hasIssues: Array.isArray(parsed?.issues),
-      issuesCount: parsed?.issues?.length || 0,
-      hasMetrics: !!parsed?.metrics,
-      hasQualityScore: !!parsed?.quality_score
-    });
+		console.log("🔍 解析结果:", {
+			hasIssues: Array.isArray(parsed?.issues),
+			issuesCount: parsed?.issues?.length || 0,
+			hasMetrics: !!parsed?.metrics,
+			hasQualityScore: !!parsed?.quality_score,
+		});
 
-    const issues = Array.isArray(parsed?.issues) ? parsed.issues : [];
-    
-    // 规范化issues，确保数据格式正确
-    issues.forEach((issue: any, index: number) => {
-      // 验证行号和列号的合理性
-      if (issue.line !== undefined) {
-        const originalLine = issue.line;
-        const parsedLine = parseInt(issue.line);
-        // 如果行号是0或无效值，设置为undefined而不是1（表示未知位置）
-        if (isNaN(parsedLine) || parsedLine <= 0) {
-          console.warn(`⚠️ 问题 #${index + 1} "${issue.title}" 的行号无效: ${originalLine}，已设置为 undefined`);
-          issue.line = undefined;
-        } else {
-          issue.line = parsedLine;
-        }
-      }
-      
-      if (issue.column !== undefined) {
-        const originalColumn = issue.column;
-        const parsedColumn = parseInt(issue.column);
-        // 如果列号是0或无效值，设置为undefined而不是1
-        if (isNaN(parsedColumn) || parsedColumn <= 0) {
-          console.warn(`⚠️ 问题 #${index + 1} "${issue.title}" 的列号无效: ${originalColumn}，已设置为 undefined`);
-          issue.column = undefined;
-        } else {
-          issue.column = parsedColumn;
-        }
-      }
-      
-      // 确保所有文本字段都存在且是字符串类型
-      const textFields = ['title', 'description', 'suggestion', 'ai_explanation'];
-      textFields.forEach(field => {
-        if (issue[field] && typeof issue[field] !== 'string') {
-          issue[field] = String(issue[field]);
-        }
-      });
-      
-      // code_snippet已经由JSON.parse正确处理，不需要额外处理
-      // JSON.parse会自动将\\n转换为真实的换行符，这正是我们想要的
-    });
-    
-    const metrics = parsed?.metrics ?? this.estimateMetricsFromIssues(issues);
-    const qualityScore = parsed?.quality_score ?? this.calculateQualityScore(metrics, issues);
+		const issues = Array.isArray(parsed?.issues) ? parsed.issues : [];
 
-    console.log(`📋 最终发现 ${issues.length} 个问题`);
-    console.log(`⭐ 质量评分: ${qualityScore}`);
+		// 规范化issues，确保数据格式正确
+		issues.forEach((issue: any, index: number) => {
+			// 验证行号和列号的合理性
+			if (issue.line !== undefined) {
+				const originalLine = issue.line;
+				const parsedLine = parseInt(issue.line);
+				// 如果行号是0或无效值，设置为undefined而不是1（表示未知位置）
+				if (isNaN(parsedLine) || parsedLine <= 0) {
+					console.warn(
+						`⚠️ 问题 #${index + 1} "${issue.title}" 的行号无效: ${originalLine}，已设置为 undefined`,
+					);
+					issue.line = undefined;
+				} else {
+					issue.line = parsedLine;
+				}
+			}
 
-    return {
-      issues,
-      quality_score: qualityScore,
-      summary: parsed?.summary ?? {
-        total_issues: issues.length,
-        critical_issues: issues.filter((i: any) => i.severity === 'critical').length,
-        high_issues: issues.filter((i: any) => i.severity === 'high').length,
-        medium_issues: issues.filter((i: any) => i.severity === 'medium').length,
-        low_issues: issues.filter((i: any) => i.severity === 'low').length,
-      },
-      metrics
-    } as CodeAnalysisResult;
-  }
+			if (issue.column !== undefined) {
+				const originalColumn = issue.column;
+				const parsedColumn = parseInt(issue.column);
+				// 如果列号是0或无效值，设置为undefined而不是1
+				if (isNaN(parsedColumn) || parsedColumn <= 0) {
+					console.warn(
+						`⚠️ 问题 #${index + 1} "${issue.title}" 的列号无效: ${originalColumn}，已设置为 undefined`,
+					);
+					issue.column = undefined;
+				} else {
+					issue.column = parsedColumn;
+				}
+			}
 
-  private static safeParseJson(text: string): any {
-    // 预处理：修复常见的非标准 JSON 格式
-    const fixJsonFormat = (str: string): string => {
-      // 1. 去除前后空白
-      str = str.trim();
+			// 确保所有文本字段都存在且是字符串类型
+			const textFields = [
+				"title",
+				"description",
+				"suggestion",
+				"ai_explanation",
+			];
+			textFields.forEach((field) => {
+				if (issue[field] && typeof issue[field] !== "string") {
+					issue[field] = String(issue[field]);
+				}
+			});
 
-      // 2. 修复尾部逗号（JSON 不允许）- 必须在其他处理之前
-      str = str.replace(/,(\s*[}\]])/g, '$1');
+			// code_snippet已经由JSON.parse正确处理，不需要额外处理
+			// JSON.parse会自动将\\n转换为真实的换行符，这正是我们想要的
+		});
 
-      // 3. 修复缺少逗号的问题
-      str = str.replace(/\}(\s*)\{/g, '},\n{');
-      str = str.replace(/\](\s*)\[/g, '],\n[');
-      str = str.replace(/\}(\s*)"([^"]+)":/g, '},\n"$2":');
-      str = str.replace(/\](\s*)"([^"]+)":/g, '],\n"$2":');
+		const metrics = parsed?.metrics ?? this.estimateMetricsFromIssues(issues);
+		const qualityScore =
+			parsed?.quality_score ?? this.calculateQualityScore(metrics, issues);
 
-      // 4. 修复对象/数组后缺少逗号的情况
-      str = str.replace(/([}\]])(\s*)(")/g, '$1,\n$3');
+		console.log(`📋 最终发现 ${issues.length} 个问题`);
+		console.log(`⭐ 质量评分: ${qualityScore}`);
 
-      // 5. 移除多余的逗号
-      str = str.replace(/,+/g, ',');
+		return {
+			issues,
+			quality_score: qualityScore,
+			summary: parsed?.summary ?? {
+				total_issues: issues.length,
+				critical_issues: issues.filter((i: any) => i.severity === "critical")
+					.length,
+				high_issues: issues.filter((i: any) => i.severity === "high").length,
+				medium_issues: issues.filter((i: any) => i.severity === "medium")
+					.length,
+				low_issues: issues.filter((i: any) => i.severity === "low").length,
+			},
+			metrics,
+		} as CodeAnalysisResult;
+	}
 
-      return str;
-    };
+	private static safeParseJson(text: string): any {
+		// 预处理：修复常见的非标准 JSON 格式
+		const fixJsonFormat = (str: string): string => {
+			// 1. 去除前后空白
+			str = str.trim();
 
-    // 清理和修复 JSON 字符串
-    const cleanText = (str: string): string => {
-      // 移除 BOM 和零宽字符
-      let cleaned = str
-        .replace(/^\uFEFF/, '')
-        .replace(/[\u200B-\u200D\uFEFF]/g, '');
+			// 2. 修复尾部逗号（JSON 不允许）- 必须在其他处理之前
+			str = str.replace(/,(\s*[}\]])/g, "$1");
 
-      // 使用状态机智能处理JSON字符串值中的控制字符
-      // 这种方法可以正确处理包含换行符、引号等特殊字符的多行字符串
-      let result = '';
-      let inString = false;
-      let isKey = false;  // 是否在处理键名
-      let prevChar = '';
-      
-      for (let i = 0; i < cleaned.length; i++) {
-        const char = cleaned[i];
-        const nextChar = cleaned[i + 1] || '';
-        
-        // 检测字符串的开始和结束（检查前一个字符不是未转义的反斜杠）
-        if (char === '"' && prevChar !== '\\') {
-          if (!inString) {
-            // 字符串开始 - 判断是键还是值
-            // 简单判断：如果前面有冒号，则是值，否则是键
-            const beforeQuote = result.slice(Math.max(0, result.length - 10));
-            isKey = !beforeQuote.includes(':') || beforeQuote.lastIndexOf(':') < beforeQuote.lastIndexOf('{') || beforeQuote.lastIndexOf(':') < beforeQuote.lastIndexOf(',');
-          }
-          inString = !inString;
-          result += char;
-          prevChar = char;
-          continue;
-        }
-        
-        // 在字符串值内部（非键名）处理特殊字符
-        if (inString && !isKey) {
-          const code = char.charCodeAt(0);
-          
-          // 转义控制字符
-          if (code === 0x0A) {  // 换行符
-            result += '\\n';
-            prevChar = 'n';  // 防止被识别为转义符
-            continue;
-          } else if (code === 0x0D) {  // 回车符
-            result += '\\r';
-            prevChar = 'r';
-            continue;
-          } else if (code === 0x09) {  // 制表符
-            result += '\\t';
-            prevChar = 't';
-            continue;
-          } else if (code < 0x20 || (code >= 0x7F && code <= 0x9F)) {
-            // 其他控制字符：移除
-            prevChar = char;
-            continue;
-          }
-          
-          // 处理反斜杠
-          if (char === '\\' && nextChar && '"\\/bfnrtu'.indexOf(nextChar) === -1) {
-            // 无效的转义序列，转义反斜杠本身
-            result += '\\\\';
-            prevChar = '\\';
-            continue;
-          }
-          
-          // 移除中文引号（使用Unicode编码避免语法错误）
-          const charCode = char.charCodeAt(0);
-          if (charCode === 0x201C || charCode === 0x201D || charCode === 0x2018 || charCode === 0x2019) {
-            prevChar = char;
-            continue;
-          }
-        }
-        
-        // 默认情况：保持字符不变
-        result += char;
-        prevChar = char;
-      }
+			// 3. 修复缺少逗号的问题
+			str = str.replace(/\}(\s*)\{/g, "},\n{");
+			str = str.replace(/\](\s*)\[/g, "],\n[");
+			str = str.replace(/\}(\s*)"([^"]+)":/g, '},\n"$2":');
+			str = str.replace(/\](\s*)"([^"]+)":/g, '],\n"$2":');
 
-      return result;
-    };
+			// 4. 修复对象/数组后缺少逗号的情况
+			str = str.replace(/([}\]])(\s*)(")/g, "$1,\n$3");
 
-    // 尝试多种方式解析
-    const attempts = [
-      // 1. 直接解析原始响应（如果LLM输出格式完美）
-      () => {
-        return JSON.parse(text);
-      },
-      // 2. 清理后再解析
-      () => {
-        const cleaned = cleanText(text);
-        const fixed = fixJsonFormat(cleaned);
-        return JSON.parse(fixed);
-      },
-      // 3. 提取 JSON 对象（智能匹配，处理字符串中的花括号）
-      () => {
-        const cleaned = cleanText(text);
-        // 找到第一个 { 的位置
-        const startIdx = cleaned.indexOf('{');
-        if (startIdx === -1) throw new Error('No JSON object found');
+			// 5. 移除多余的逗号
+			str = str.replace(/,+/g, ",");
 
-        // 从第一个 { 开始，找到匹配的 }，需要考虑字符串中的引号
-        let braceCount = 0;
-        let endIdx = -1;
-        let inString = false;
-        let prevChar = '';
-        
-        for (let i = startIdx; i < cleaned.length; i++) {
-          const char = cleaned[i];
-          
-          // 检测字符串边界（排除转义的引号）
-          if (char === '"' && prevChar !== '\\') {
-            inString = !inString;
-          }
-          
-          // 只在字符串外部统计花括号
-          if (!inString) {
-            if (char === '{') braceCount++;
-            if (char === '}') {
-              braceCount--;
-              if (braceCount === 0) {
-                endIdx = i + 1;
-                break;
-              }
-            }
-          }
-          
-          prevChar = char;
-        }
+			return str;
+		};
 
-        if (endIdx === -1) throw new Error('Incomplete JSON object');
+		// 清理和修复 JSON 字符串
+		const cleanText = (str: string): string => {
+			// 移除 BOM 和零宽字符
+			let cleaned = str
+				.replace(/^\uFEFF/, "")
+				.replace(/[\u200B-\u200D\uFEFF]/g, "");
 
-        const jsonStr = cleaned.substring(startIdx, endIdx);
-        const fixed = fixJsonFormat(jsonStr);
-        return JSON.parse(fixed);
-      },
-      // 4. 去除 markdown 代码块
-      () => {
-        const cleaned = cleanText(text);
-        const codeBlockMatch = cleaned.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/);
-        if (codeBlockMatch) {
-          const fixed = fixJsonFormat(codeBlockMatch[1]);
-          return JSON.parse(fixed);
-        }
-        throw new Error('No code block found');
-      },
-      // 5. 尝试修复截断的 JSON
-      () => {
-        const cleaned = cleanText(text);
-        const startIdx = cleaned.indexOf('{');
-        if (startIdx === -1) throw new Error('Cannot fix truncated JSON');
+			// 使用状态机智能处理JSON字符串值中的控制字符
+			// 这种方法可以正确处理包含换行符、引号等特殊字符的多行字符串
+			let result = "";
+			let inString = false;
+			let isKey = false; // 是否在处理键名
+			let prevChar = "";
 
-        let json = cleaned.substring(startIdx);
-        // 尝试补全未闭合的结构
-        const openBraces = (json.match(/\{/g) || []).length;
-        const closeBraces = (json.match(/\}/g) || []).length;
-        const openBrackets = (json.match(/\[/g) || []).length;
-        const closeBrackets = (json.match(/\]/g) || []).length;
+			for (let i = 0; i < cleaned.length; i++) {
+				const char = cleaned[i];
+				const nextChar = cleaned[i + 1] || "";
 
-        // 补全缺失的闭合符号
-        json += ']'.repeat(Math.max(0, openBrackets - closeBrackets));
-        json += '}'.repeat(Math.max(0, openBraces - closeBraces));
+				// 检测字符串的开始和结束（检查前一个字符不是未转义的反斜杠）
+				if (char === '"' && prevChar !== "\\") {
+					if (!inString) {
+						// 字符串开始 - 判断是键还是值
+						// 简单判断：如果前面有冒号，则是值，否则是键
+						const beforeQuote = result.slice(Math.max(0, result.length - 10));
+						isKey =
+							!beforeQuote.includes(":") ||
+							beforeQuote.lastIndexOf(":") < beforeQuote.lastIndexOf("{") ||
+							beforeQuote.lastIndexOf(":") < beforeQuote.lastIndexOf(",");
+					}
+					inString = !inString;
+					result += char;
+					prevChar = char;
+					continue;
+				}
 
-        const fixed = fixJsonFormat(json);
-        return JSON.parse(fixed);
-      }
-    ];
+				// 在字符串值内部（非键名）处理特殊字符
+				if (inString && !isKey) {
+					const code = char.charCodeAt(0);
 
-    let lastError: any = null;
-    for (let i = 0; i < attempts.length; i++) {
-      try {
-        const result = attempts[i]();
-        if (i > 0) {
-          console.log(`✅ JSON解析成功（方法 ${i + 1}/${attempts.length}）`);
-        }
-        return result;
-      } catch (e) {
-        lastError = e;
-        if (i === 0) {
-          console.warn('直接解析失败，尝试清理后解析...', e);
-        } else if (i === 2) {
-          console.warn('提取 JSON 对象后解析失败:', e);
-        } else if (i === 3) {
-          console.warn('从代码块提取 JSON 失败:', e);
-        }
-      }
-    }
+					// 转义控制字符
+					if (code === 0x0a) {
+						// 换行符
+						result += "\\n";
+						prevChar = "n"; // 防止被识别为转义符
+						continue;
+					} else if (code === 0x0d) {
+						// 回车符
+						result += "\\r";
+						prevChar = "r";
+						continue;
+					} else if (code === 0x09) {
+						// 制表符
+						result += "\\t";
+						prevChar = "t";
+						continue;
+					} else if (code < 0x20 || (code >= 0x7f && code <= 0x9f)) {
+						// 其他控制字符：移除
+						prevChar = char;
+						continue;
+					}
 
-    // 所有尝试都失败
-    console.error('⚠️ 无法解析 LLM 响应为 JSON');
-    console.error('原始内容（前500字符）:', text.substring(0, 500));
-    console.error('解析错误:', lastError);
-    console.warn('💡 提示: 当前模型可能无法生成有效的 JSON 格式');
-    console.warn('   建议：更换更强大的模型或切换其他 LLM 提供商');
-    return null;
-  }
+					// 处理反斜杠
+					if (
+						char === "\\" &&
+						nextChar &&
+						'"\\/bfnrtu'.indexOf(nextChar) === -1
+					) {
+						// 无效的转义序列，转义反斜杠本身
+						result += "\\\\";
+						prevChar = "\\";
+						continue;
+					}
 
-  private static estimateMetricsFromIssues(issues: any[]) {
-    const base = 90;
-    const penalty = Math.min(60, (issues?.length || 0) * 2);
-    const score = Math.max(0, base - penalty);
-    return {
-      complexity: score,
-      maintainability: score,
-      security: score,
-      performance: score
-    };
-  }
+					// 移除中文引号（使用Unicode编码避免语法错误）
+					const charCode = char.charCodeAt(0);
+					if (
+						charCode === 0x201c ||
+						charCode === 0x201d ||
+						charCode === 0x2018 ||
+						charCode === 0x2019
+					) {
+						prevChar = char;
+						continue;
+					}
+				}
 
-  private static calculateQualityScore(metrics: any, issues: any[]): number {
-    const criticalWeight = 30;
-    const highWeight = 20;
-    const mediumWeight = 10;
-    const lowWeight = 5;
+				// 默认情况：保持字符不变
+				result += char;
+				prevChar = char;
+			}
 
-    const criticalIssues = issues.filter((i: any) => i.severity === 'critical').length;
-    const highIssues = issues.filter((i: any) => i.severity === 'high').length;
-    const mediumIssues = issues.filter((i: any) => i.severity === 'medium').length;
-    const lowIssues = issues.filter((i: any) => i.severity === 'low').length;
+			return result;
+		};
 
-    const issueScore = 100 - (
-      criticalIssues * criticalWeight +
-      highIssues * highWeight +
-      mediumIssues * mediumWeight +
-      lowIssues * lowWeight
-    );
+		// 尝试多种方式解析
+		const attempts = [
+			// 1. 直接解析原始响应（如果LLM输出格式完美）
+			() => {
+				return JSON.parse(text);
+			},
+			// 2. 清理后再解析
+			() => {
+				const cleaned = cleanText(text);
+				const fixed = fixJsonFormat(cleaned);
+				return JSON.parse(fixed);
+			},
+			// 3. 提取 JSON 对象（智能匹配，处理字符串中的花括号）
+			() => {
+				const cleaned = cleanText(text);
+				// 找到第一个 { 的位置
+				const startIdx = cleaned.indexOf("{");
+				if (startIdx === -1) throw new Error("No JSON object found");
 
-    const metricsScore = (
-      metrics.complexity +
-      metrics.maintainability +
-      metrics.security +
-      metrics.performance
-    ) / 4;
+				// 从第一个 { 开始，找到匹配的 }，需要考虑字符串中的引号
+				let braceCount = 0;
+				let endIdx = -1;
+				let inString = false;
+				let prevChar = "";
 
-    return Math.max(0, Math.min(100, (issueScore + metricsScore) / 2));
-  }
+				for (let i = startIdx; i < cleaned.length; i++) {
+					const char = cleaned[i];
 
-  // 仓库级别的分析（占位保留）
-  static async analyzeRepository(_repoUrl: string, _branch: string = 'main', _excludePatterns: string[] = []): Promise<{
-    taskId: string;
-    status: 'pending' | 'running' | 'completed' | 'failed';
-  }> {
-    const taskId = `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    return { taskId, status: 'pending' };
-  }
+					// 检测字符串边界（排除转义的引号）
+					if (char === '"' && prevChar !== "\\") {
+						inString = !inString;
+					}
 
-  // GitHub/GitLab集成（占位保留）
-  static async getRepositories(_token: string, _platform: 'github' | 'gitlab'): Promise<any[]> {
-    return [
-      {
-        id: '1',
-        name: 'example-project',
-        full_name: 'user/example-project',
-        description: '示例项目',
-        html_url: 'https://github.com/user/example-project',
-        clone_url: 'https://github.com/user/example-project.git',
-        default_branch: 'main',
-        language: 'JavaScript',
-        private: false,
-        updated_at: new Date().toISOString()
-      }
-    ];
-  }
+					// 只在字符串外部统计花括号
+					if (!inString) {
+						if (char === "{") braceCount++;
+						if (char === "}") {
+							braceCount--;
+							if (braceCount === 0) {
+								endIdx = i + 1;
+								break;
+							}
+						}
+					}
 
-  static async getBranches(_repoUrl: string, _token: string): Promise<any[]> {
-    return [
-      {
-        name: 'main',
-        commit: {
-          sha: 'abc123',
-          url: 'https://github.com/user/repo/commit/abc123'
-        },
-        protected: true
-      },
-      {
-        name: 'develop',
-        commit: {
-          sha: 'def456',
-          url: 'https://github.com/user/repo/commit/def456'
-        },
-        protected: false
-      }
-    ];
-  }
+					prevChar = char;
+				}
+
+				if (endIdx === -1) throw new Error("Incomplete JSON object");
+
+				const jsonStr = cleaned.substring(startIdx, endIdx);
+				const fixed = fixJsonFormat(jsonStr);
+				return JSON.parse(fixed);
+			},
+			// 4. 去除 markdown 代码块
+			() => {
+				const cleaned = cleanText(text);
+				const codeBlockMatch = cleaned.match(
+					/```(?:json)?\s*(\{[\s\S]*\})\s*```/,
+				);
+				if (codeBlockMatch) {
+					const fixed = fixJsonFormat(codeBlockMatch[1]);
+					return JSON.parse(fixed);
+				}
+				throw new Error("No code block found");
+			},
+			// 5. 尝试修复截断的 JSON
+			() => {
+				const cleaned = cleanText(text);
+				const startIdx = cleaned.indexOf("{");
+				if (startIdx === -1) throw new Error("Cannot fix truncated JSON");
+
+				let json = cleaned.substring(startIdx);
+				// 尝试补全未闭合的结构
+				const openBraces = (json.match(/\{/g) || []).length;
+				const closeBraces = (json.match(/\}/g) || []).length;
+				const openBrackets = (json.match(/\[/g) || []).length;
+				const closeBrackets = (json.match(/\]/g) || []).length;
+
+				// 补全缺失的闭合符号
+				json += "]".repeat(Math.max(0, openBrackets - closeBrackets));
+				json += "}".repeat(Math.max(0, openBraces - closeBraces));
+
+				const fixed = fixJsonFormat(json);
+				return JSON.parse(fixed);
+			},
+		];
+
+		let lastError: any = null;
+		for (let i = 0; i < attempts.length; i++) {
+			try {
+				const result = attempts[i]();
+				if (i > 0) {
+					console.log(`✅ JSON解析成功（方法 ${i + 1}/${attempts.length}）`);
+				}
+				return result;
+			} catch (e) {
+				lastError = e;
+				if (i === 0) {
+					console.warn("直接解析失败，尝试清理后解析...", e);
+				} else if (i === 2) {
+					console.warn("提取 JSON 对象后解析失败:", e);
+				} else if (i === 3) {
+					console.warn("从代码块提取 JSON 失败:", e);
+				}
+			}
+		}
+
+		// 所有尝试都失败
+		console.error("⚠️ 无法解析 LLM 响应为 JSON");
+		console.error("原始内容（前500字符）:", text.substring(0, 500));
+		console.error("解析错误:", lastError);
+		console.warn("💡 提示: 当前模型可能无法生成有效的 JSON 格式");
+		console.warn("   建议：更换更强大的模型或切换其他 LLM 提供商");
+		return null;
+	}
+
+	private static estimateMetricsFromIssues(issues: any[]) {
+		const base = 90;
+		const penalty = Math.min(60, (issues?.length || 0) * 2);
+		const score = Math.max(0, base - penalty);
+		return {
+			complexity: score,
+			maintainability: score,
+			security: score,
+			performance: score,
+		};
+	}
+
+	private static calculateQualityScore(metrics: any, issues: any[]): number {
+		const criticalWeight = 30;
+		const highWeight = 20;
+		const mediumWeight = 10;
+		const lowWeight = 5;
+
+		const criticalIssues = issues.filter(
+			(i: any) => i.severity === "critical",
+		).length;
+		const highIssues = issues.filter((i: any) => i.severity === "high").length;
+		const mediumIssues = issues.filter(
+			(i: any) => i.severity === "medium",
+		).length;
+		const lowIssues = issues.filter((i: any) => i.severity === "low").length;
+
+		const issueScore =
+			100 -
+			(criticalIssues * criticalWeight +
+				highIssues * highWeight +
+				mediumIssues * mediumWeight +
+				lowIssues * lowWeight);
+
+		const metricsScore =
+			(metrics.complexity +
+				metrics.maintainability +
+				metrics.security +
+				metrics.performance) /
+			4;
+
+		return Math.max(0, Math.min(100, (issueScore + metricsScore) / 2));
+	}
+
+	// 仓库级别的分析（占位保留）
+	static async analyzeRepository(
+		_repoUrl: string,
+		_branch: string = "main",
+		_excludePatterns: string[] = [],
+	): Promise<{
+		taskId: string;
+		status: "pending" | "running" | "completed" | "failed";
+	}> {
+		const taskId = `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+		return { taskId, status: "pending" };
+	}
+
+	// GitHub/GitLab集成（占位保留）
+	static async getRepositories(
+		_token: string,
+		_platform: "github" | "gitlab",
+	): Promise<any[]> {
+		return [
+			{
+				id: "1",
+				name: "example-project",
+				full_name: "user/example-project",
+				description: "示例项目",
+				html_url: "https://github.com/user/example-project",
+				clone_url: "https://github.com/user/example-project.git",
+				default_branch: "main",
+				language: "JavaScript",
+				private: false,
+				updated_at: new Date().toISOString(),
+			},
+		];
+	}
+
+	static async getBranches(_repoUrl: string, _token: string): Promise<any[]> {
+		return [
+			{
+				name: "main",
+				commit: {
+					sha: "abc123",
+					url: "https://github.com/user/repo/commit/abc123",
+				},
+				protected: true,
+			},
+			{
+				name: "develop",
+				commit: {
+					sha: "def456",
+					url: "https://github.com/user/repo/commit/def456",
+				},
+				protected: false,
+			},
+		];
+	}
 }
