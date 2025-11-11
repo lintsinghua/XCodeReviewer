@@ -59,6 +59,10 @@
 
 ### 主要功能界面
 
+#### 🌐 在线演示
+
+无需部署，直接访问在线演示（数据存储在浏览器本地，支持所有核心功能）：**[https://xcodereviewer-preview.vercel.app](https://xcodereviewer-preview.vercel.app)**
+
 #### 智能仪表盘
 ![智能仪表盘](public/images/example1.png)
 *实时展示项目统计、质量趋势和系统性能，提供全面的代码审计概览*
@@ -71,23 +75,11 @@
 ![项目管理](public/images/example3.png)
 *集成 GitHub/GitLab 仓库，支持多语言项目审计和批量代码分析*
 
-#### 审计报告导出
-![审计报告示例](public/images/审计报告示例.png)
-*支持导出 JSON 和 PDF 格式的专业审计报告，包含完整的问题详情和修复建议*
-
 ## 🚀 快速开始
 
-### ☁️ Vercel 一键部署（最快捷）
+### ☁️ Vercel 一键部署
 
 适合快速部署和体验，无需服务器，全球 CDN 加速。
-
-#### 🌐 在线演示
-
-无需部署，直接访问在线演示：**[https://xcodereviewer-preview.vercel.app](https://xcodereviewer-preview.vercel.app)**
-
-- ✅ 开箱即用，无需配置
-- ✅ 数据存储在浏览器本地
-- ✅ 支持所有核心功能
 
 #### 方式一：一键部署按钮（推荐）⭐
 

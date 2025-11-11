@@ -59,6 +59,10 @@ In the fast-paced world of software development, ensuring code quality is crucia
 
 ### Main Feature Interfaces
 
+#### 🌐 Online Demo
+
+No deployment needed, access the online demo directly (data stored locally in browser, all core features supported): **[https://xcodereviewer-preview.vercel.app](https://xcodereviewer-preview.vercel.app)**
+
 #### 📊 Intelligent Dashboard
 ![Intelligent Dashboard](public/images/example1.png)
 *Real-time display of project statistics, quality trends, and system performance, providing comprehensive code audit overview*
@@ -71,23 +75,11 @@ In the fast-paced world of software development, ensuring code quality is crucia
 ![Project Management](public/images/example3.png)
 *Integrated GitHub/GitLab repositories, supporting multi-language project audits and batch code analysis*
 
-#### 📄 Audit Report Export
-![Audit Report Example](public/images/审计报告示例.png)
-*Support exporting professional audit reports in JSON and PDF formats, including complete issue details and fix suggestions*
-
 ## 🚀 Quick Start
 
-### ☁️ Vercel One-Click Deployment (Fastest)
+### ☁️ Vercel One-Click Deployment
 
 Perfect for quick deployment and testing without a server, with global CDN acceleration.
-
-#### 🌐 Online Demo
-
-No deployment needed, access the online demo directly: **[https://xcodereviewer-preview.vercel.app](https://xcodereviewer-preview.vercel.app)**
-
-- ✅ Ready to use out of the box, no configuration needed
-- ✅ Data stored locally in browser
-- ✅ All core features supported
 
 #### Method 1: One-Click Deploy Button (Recommended) ⭐
 
