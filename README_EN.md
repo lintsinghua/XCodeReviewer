@@ -124,9 +124,13 @@ vercel --prod
 - ✅ Custom domain support
 - ✅ Automatic deployment (auto-update on Git push)
 
+**✨ Database Mode**:
+- Automatically uses **local database mode** (IndexedDB) by default, data stored in browser
+- No database configuration needed, ready to use out of the box
+- To use Supabase cloud database, configure environment variables
+
 **⚠️ Important Notes**:
 - Vercel is primarily for frontend deployment; backend APIs need separate deployment
-- Recommended to use local database mode (`VITE_USE_LOCAL_DB=true`)
 - After deployment, configure runtime settings at `/admin` page
 
 ---

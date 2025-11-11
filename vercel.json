@@ -3,6 +3,11 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "framework": "vite",
+  "build": {
+    "env": {
+      "VITE_USE_LOCAL_DB": "true"
+    }
+  },
   "rewrites": [
     {
       "source": "/(.*)",
