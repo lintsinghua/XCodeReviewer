@@ -36,7 +36,9 @@
 
 #### 🌐 Online Demo
 
-No deployment needed, access the online demo directly (data stored locally in browser, all core features supported): **[https://xcodereviewer-preview.vercel.app](https://xcodereviewer-preview.vercel.app)**
+No deployment needed, access the online demo directly (data stored locally in browser, all core features supported):
+
+**[https://xcodereviewer-preview.vercel.app](https://xcodereviewer-preview.vercel.app)**
 
 ## 🌟 Why Choose XCodeReviewer?
 
