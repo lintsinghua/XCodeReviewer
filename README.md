@@ -81,6 +81,14 @@
 
 适合快速部署和体验，无需服务器，全球 CDN 加速。
 
+#### 🌐 在线演示
+
+无需部署，直接访问在线演示：**[https://xcodereviewer-preview.vercel.app](https://xcodereviewer-preview.vercel.app)**
+
+- ✅ 开箱即用，无需配置
+- ✅ 数据存储在浏览器本地
+- ✅ 支持所有核心功能
+
 #### 方式一：一键部署按钮（推荐）⭐
 
 点击下方按钮直接部署到 Vercel：
