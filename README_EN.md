@@ -34,6 +34,10 @@
 
 **XCodeReviewer** is a modern code audit platform powered by Large Language Models (LLM), designed to provide developers with intelligent, comprehensive, and in-depth code quality analysis and review services.
 
+#### 🌐 Online Demo
+
+No deployment needed, access the online demo directly (data stored locally in browser, all core features supported): **[https://xcodereviewer-preview.vercel.app](https://xcodereviewer-preview.vercel.app)**
+
 ## 🌟 Why Choose XCodeReviewer?
 
 In the fast-paced world of software development, ensuring code quality is crucial. Traditional code audit tools are rigid and inefficient, while manual audits are time-consuming and labor-intensive. XCodeReviewer leverages the powerful capabilities of LLM to revolutionize the way code reviews are conducted:
@@ -58,10 +62,6 @@ In the fast-paced world of software development, ensuring code quality is crucia
 ## 🎬 Project Demo
 
 ### Main Feature Interfaces
-
-#### 🌐 Online Demo
-
-No deployment needed, access the online demo directly (data stored locally in browser, all core features supported): **[https://xcodereviewer-preview.vercel.app](https://xcodereviewer-preview.vercel.app)**
 
 #### 📊 Intelligent Dashboard
 ![Intelligent Dashboard](public/images/example1.png)

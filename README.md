@@ -34,6 +34,10 @@
 
 **XCodeReviewer** 是一个由大型语言模型（LLM）驱动的现代化代码审计平台，旨在为开发者提供智能、全面且极具深度的代码质量分析和审查服务。
 
+#### 🌐 在线演示
+
+无需部署，直接访问在线演示（数据存储在浏览器本地，支持所有核心功能）：**[https://xcodereviewer-preview.vercel.app](https://xcodereviewer-preview.vercel.app)**
+
 ## 🌟 为什么选择 XCodeReviewer？
 
 在快节奏的软件开发中，保证代码质量至关重要。传统代码审计工具规则死板、效率低下，而人工审计则耗时耗力。XCodeReviewer 借助 LLM 的强大能力，彻底改变了代码审查的方式：
@@ -58,10 +62,6 @@
 ## 🎬 项目演示
 
 ### 主要功能界面
-
-#### 🌐 在线演示
-
-无需部署，直接访问在线演示（数据存储在浏览器本地，支持所有核心功能）：**[https://xcodereviewer-preview.vercel.app](https://xcodereviewer-preview.vercel.app)**
 
 #### 智能仪表盘
 ![智能仪表盘](public/images/example1.png)
