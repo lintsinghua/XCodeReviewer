@@ -1,0 +1,12 @@
+node_modules
+.git
+.vscode
+.DS_Store
+*.log
+.env.local
+.env.me
+backend
+dist
+tests
+history
+patches

@@ -77,7 +77,61 @@
 
 ## 🚀 快速开始
 
-### 🐳 Docker 部署（推荐）
+### ☁️ Vercel 一键部署（最快捷）
+
+适合快速部署和体验，无需服务器，全球 CDN 加速。
+
+#### 方式一：一键部署按钮（推荐）⭐
+
+点击下方按钮直接部署到 Vercel：
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/lintsinghua/XCodeReviewer)
+
+#### 方式二：通过 Vercel CLI 部署
+
+```bash
+# 1. 安装 Vercel CLI
+npm i -g vercel
+
+# 2. 登录 Vercel
+vercel login
+
+# 3. 部署项目
+vercel
+
+# 4. 部署到生产环境
+vercel --prod
+```
+
+#### 方式三：通过 Vercel Dashboard 部署
+
+1. 访问 [Vercel Dashboard](https://vercel.com/dashboard)
+2. 点击 "Add New..." → "Project"
+3. 导入你的 GitHub 仓库
+4. Vercel 会自动检测 Vite 项目配置
+5. 配置环境变量（至少需要）：
+   ```
+   VITE_LLM_PROVIDER=your_llm_provider
+   VITE_LLM_API_KEY=your_api_key_here
+   VITE_USE_LOCAL_DB=true
+   ```
+6. 点击 "Deploy"
+
+**✨ Vercel 部署优势**：
+- ✅ 全球 CDN 加速，访问速度快
+- ✅ 自动 HTTPS 和域名配置
+- ✅ 零配置，开箱即用
+- ✅ 支持自定义域名
+- ✅ 自动部署（Git 推送后自动更新）
+
+**⚠️ 注意事项**：
+- Vercel 主要用于前端部署，后端 API 需单独部署
+- 推荐使用本地数据库模式（`VITE_USE_LOCAL_DB=true`）
+- 部署后可在 `/admin` 页面进行运行时配置
+
+---
+
+### 🐳 Docker 部署（推荐生产环境）
 
 #### 方式一：使用发布的镜像（最简单）⭐
 

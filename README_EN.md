@@ -77,7 +77,61 @@ In the fast-paced world of software development, ensuring code quality is crucia
 
 ## 🚀 Quick Start
 
-### 🐳 Docker Deployment (Recommended)
+### ☁️ Vercel One-Click Deployment (Fastest)
+
+Perfect for quick deployment and testing without a server, with global CDN acceleration.
+
+#### Method 1: One-Click Deploy Button (Recommended) ⭐
+
+Click the button below to deploy directly to Vercel:
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/lintsinghua/XCodeReviewer)
+
+#### Method 2: Deploy via Vercel CLI
+
+```bash
+# 1. Install Vercel CLI
+npm i -g vercel
+
+# 2. Login to Vercel
+vercel login
+
+# 3. Deploy project
+vercel
+
+# 4. Deploy to production
+vercel --prod
+```
+
+#### Method 3: Deploy via Vercel Dashboard
+
+1. Visit [Vercel Dashboard](https://vercel.com/dashboard)
+2. Click "Add New..." → "Project"
+3. Import your GitHub repository
+4. Vercel will automatically detect Vite project configuration
+5. Configure environment variables (minimum required):
+   ```
+   VITE_LLM_PROVIDER=your_llm_provider
+   VITE_LLM_API_KEY=your_api_key_here
+   VITE_USE_LOCAL_DB=true
+   ```
+6. Click "Deploy"
+
+**✨ Vercel Deployment Advantages**:
+- ✅ Global CDN acceleration for fast access
+- ✅ Automatic HTTPS and domain configuration
+- ✅ Zero configuration, ready to use
+- ✅ Custom domain support
+- ✅ Automatic deployment (auto-update on Git push)
+
+**⚠️ Important Notes**:
+- Vercel is primarily for frontend deployment; backend APIs need separate deployment
+- Recommended to use local database mode (`VITE_USE_LOCAL_DB=true`)
+- After deployment, configure runtime settings at `/admin` page
+
+---
+
+### 🐳 Docker Deployment (Recommended for Production)
 
 #### Method 1: Use Published Image (Easiest) ⭐
 
