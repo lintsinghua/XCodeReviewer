@@ -627,22 +627,20 @@ ${codeWithLineNumbers}`;
   }
 
   private static calculateQualityScore(metrics: any, issues: any[]): number {
-    const criticalWeight = 30;
-    const highWeight = 20;
-    const mediumWeight = 10;
-    const lowWeight = 5;
-
     const criticalIssues = issues.filter((i: any) => i.severity === 'critical').length;
     const highIssues = issues.filter((i: any) => i.severity === 'high').length;
     const mediumIssues = issues.filter((i: any) => i.severity === 'medium').length;
     const lowIssues = issues.filter((i: any) => i.severity === 'low').length;
 
-    const issueScore = 100 - (
-      criticalIssues * criticalWeight +
-      highIssues * highWeight +
-      mediumIssues * mediumWeight +
-      lowIssues * lowWeight
-    );
+    // 使用更平衡的权重公式，避免分数跌至0
+    // 权重相对较低，使用对数缩放来处理大量问题
+    const baseScore = 100;
+    const criticalPenalty = Math.min(40, criticalIssues * 2);
+    const highPenalty = Math.min(30, highIssues * 1.5);
+    const mediumPenalty = Math.min(20, mediumIssues);
+    const lowPenalty = Math.min(10, lowIssues * 0.5);
+
+    const issueScore = Math.max(0, baseScore - (criticalPenalty + highPenalty + mediumPenalty + lowPenalty));
 
     const metricsScore = (
       metrics.complexity +
@@ -651,7 +649,11 @@ ${codeWithLineNumbers}`;
       metrics.performance
     ) / 4;
 
-    return Math.max(0, Math.min(100, (issueScore + metricsScore) / 2));
+    // 使用加权平均：问题占30%权重，指标占70%权重
+    // 这样可以保证有问题的代码仍然能获得一个合理的分数
+    const finalScore = issueScore * 0.3 + metricsScore * 0.7;
+    
+    return Math.max(0, Math.min(100, finalScore));
   }
 
   // 仓库级别的分析（占位保留）
