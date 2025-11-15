@@ -1,6 +1,7 @@
 import { api } from "@/shared/config/database";
 import { CodeAnalysisEngine } from "@/features/analysis/services";
 import { taskControl } from "@/shared/services/taskControl";
+import { env } from "@/shared/config/env";
 
 type GithubTreeItem = { path: string; type: "blob" | "tree"; size?: number; url: string; sha: string };
 
@@ -9,16 +10,16 @@ const TEXT_EXTENSIONS = [
   // 注意：已移除 .md，因为文档文件会导致LLM返回非JSON格式
 ];
 const MAX_FILE_SIZE_BYTES = 200 * 1024;
-const MAX_ANALYZE_FILES = Number(import.meta.env.VITE_MAX_ANALYZE_FILES || 40);
-const LLM_CONCURRENCY = Number(import.meta.env.VITE_LLM_CONCURRENCY || 2);
-const LLM_GAP_MS = Number(import.meta.env.VITE_LLM_GAP_MS || 500);
+const MAX_ANALYZE_FILES = env.MAX_ANALYZE_FILES;
+const LLM_CONCURRENCY = env.LLM_CONCURRENCY;
+const LLM_GAP_MS = env.LLM_GAP_MS;
 
 const isTextFile = (p: string) => TEXT_EXTENSIONS.some(ext => p.toLowerCase().endsWith(ext));
 const matchExclude = (p: string, ex: string[]) => ex.some(e => p.includes(e.replace(/^\//, "")) || (e.endsWith("/**") && p.startsWith(e.slice(0, -3).replace(/^\//, ""))));
 
 async function githubApi<T>(url: string, token?: string): Promise<T> {
   const headers: Record<string, string> = { "Accept": "application/vnd.github+json" };
-  const t = token || (import.meta.env.VITE_GITHUB_TOKEN as string | undefined);
+  const t = token || env.GITHUB_TOKEN;
   if (t) headers["Authorization"] = `Bearer ${t}`;
   const res = await fetch(url, { headers });
   if (!res.ok) {
@@ -30,7 +31,7 @@ async function githubApi<T>(url: string, token?: string): Promise<T> {
 
 async function gitlabApi<T>(url: string, token?: string): Promise<T> {
   const headers: Record<string, string> = { "Content-Type": "application/json" };
-  const t = token || (import.meta.env.VITE_GITLAB_TOKEN as string | undefined);
+  const t = token || env.GITLAB_TOKEN;
   if (t) {
     // 支持两种 token 格式：
     // 1. 标准 Personal Access Token (glpat-xxx)
@@ -215,7 +216,7 @@ export async function runRepositoryAudit(params: {
             // 为 GitLab 添加认证 Token
             if (isGitLab) {
               // 优先使用从 URL 提取的 token，否则使用配置的 token
-              let token = params.gitlabToken || (import.meta.env.VITE_GITLAB_TOKEN as string | undefined);
+              let token = params.gitlabToken || env.GITLAB_TOKEN;
               
               // 如果 URL 中包含 OAuth2 token，提取它
               if (repoUrl.includes('@')) {

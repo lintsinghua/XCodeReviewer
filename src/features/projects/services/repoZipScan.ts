@@ -2,6 +2,7 @@ import { unzip } from "fflate";
 import { CodeAnalysisEngine } from "@/features/analysis/services";
 import { api } from "@/shared/config/database";
 import { taskControl } from "@/shared/services/taskControl";
+import { env } from "@/shared/config/env";
 
 const TEXT_EXTENSIONS = [
   ".js", ".ts", ".tsx", ".jsx", ".py", ".java", ".go", ".rs", ".cpp", ".c", ".h", ".cc", ".hh",
@@ -10,10 +11,10 @@ const TEXT_EXTENSIONS = [
 ];
 
 const MAX_FILE_SIZE_BYTES = 200 * 1024; // 200KB
-const MAX_ANALYZE_FILES = 50;
+const MAX_ANALYZE_FILES = env.MAX_ANALYZE_FILES;
 
 // 从环境变量读取配置，豆包等API需要更长的延迟
-const LLM_GAP_MS = Number(import.meta.env.VITE_LLM_GAP_MS) || 2000; // 默认2秒，避免API限流
+const LLM_GAP_MS = env.LLM_GAP_MS || 2000; // 默认2秒，避免API限流
 
 function isTextFile(path: string): boolean {
   return TEXT_EXTENSIONS.some(ext => path.toLowerCase().endsWith(ext));

@@ -25,6 +25,7 @@ import TerminalProgressDialog from "./TerminalProgressDialog";
 import { runRepositoryAudit } from "@/features/projects/services/repoScan";
 import { scanZipFile, validateZipFile } from "@/features/projects/services/repoZipScan";
 import { loadZipFile } from "@/shared/utils/zipStorage";
+import { env } from "@/shared/config/env";
 
 interface CreateTaskDialogProps {
   open: boolean;
@@ -170,17 +171,8 @@ export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, pr
         console.log('📡 调用 runRepositoryAudit...');
         
         // 从运行时配置中获取 Token
-        const getRuntimeConfig = () => {
-          try {
-            const saved = localStorage.getItem('xcodereviewer_runtime_config');
-            return saved ? JSON.parse(saved) : null;
-          } catch {
-            return null;
-          }
-        };
-        const runtimeConfig = getRuntimeConfig();
-        const githubToken = runtimeConfig?.githubToken || (import.meta.env.VITE_GITHUB_TOKEN as string | undefined);
-        const gitlabToken = runtimeConfig?.gitlabToken || (import.meta.env.VITE_GITLAB_TOKEN as string | undefined);
+        const githubToken = env.GITHUB_TOKEN;
+        const gitlabToken = env.GITLAB_TOKEN;
         
         taskId = await runRepositoryAudit({
           projectId: project.id,
