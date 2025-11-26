@@ -1,0 +1,21 @@
+[project]
+name = "xcodereviewer-backend"
+version = "0.1.0"
+description = "XCodeReviewer Backend API"
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi>=0.100.0",
+    "uvicorn[standard]",
+    "sqlalchemy>=2.0.0",
+    "asyncpg",
+    "alembic",
+    "pydantic>=2.0.0",
+    "pydantic-settings",
+    "passlib[bcrypt]",
+    "python-jose[cryptography]",
+    "python-multipart",
+    "httpx",
+    "email-validator",
+    "greenlet",
+    "bcrypt<5.0.0",
+]

@@ -96,3 +96,75 @@ jspm_packages/
 tmp/
 temp/
 .vercel
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.eggs/
+pip-log.txt
+pip-delete-this-directory.txt
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.venv/
+venv/
+ENV/
+env/
+
+# Backend specific
+backend/.venv/
+backend/venv/
+backend/__pycache__/
+backend/*.pyc
+backend/.pytest_cache/
+backend/.coverage
+backend/alembic.ini.bak
+
+# Frontend specific
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+frontend/.vite/
+frontend/.next/
+frontend/.nuxt/
+frontend/.cache/
+frontend/.parcel-cache/
+frontend/.turbo/
+frontend/.svelte-kit/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Secrets and keys
+*.pem
+*.key
+*.cert
+*.crt
+secrets/
+.secrets/

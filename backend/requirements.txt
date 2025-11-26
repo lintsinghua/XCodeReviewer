@@ -1,0 +1,12 @@
+fastapi>=0.100.0
+uvicorn[standard]
+sqlalchemy>=2.0.0
+asyncpg
+alembic
+pydantic>=2.0.0
+pydantic-settings
+passlib[bcrypt]
+python-jose[cryptography]
+python-multipart
+httpx
+
