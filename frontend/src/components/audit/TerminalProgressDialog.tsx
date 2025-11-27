@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Dialog, DialogOverlay, DialogPortal } from "@/components/ui/dialog";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
-import { Terminal, CheckCircle, XCircle, Loader2, X as XIcon } from "lucide-react";
+import { Terminal, X as XIcon } from "lucide-react";
 import { cn, calculateTaskProgress } from "@/shared/utils/utils";
 import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
 import { taskControl } from "@/shared/services/taskControl";
@@ -112,8 +112,8 @@ export default function TerminalProgressDialog({
 
             // 初始化日志
             addLog("🚀 审计任务已启动", "info");
-            addLog(`� 任务任ID: ${taskId}`, "info");
-            addLog(`� 任务类D型: ${taskType === "repository" ? "仓库审计" : "ZIP文件审计"}`, "info");
+            addLog(`任务ID: ${taskId}`, "info");
+            addLog(`任务类型: ${taskType === "repository" ? "仓库审计" : "ZIP文件审计"}`, "info");
             addLog("⏳ 正在初始化审计环境...", "info");
         }
 
@@ -383,42 +383,31 @@ export default function TerminalProgressDialog({
     const getLogColor = (type: LogEntry["type"]) => {
         switch (type) {
             case "success":
-                return "text-emerald-400";
+                return "text-green-500";
             case "error":
-                return "text-rose-400";
+                return "text-red-500";
             case "warning":
-                return "text-amber-400";
+                return "text-yellow-500";
             default:
-                return "text-gray-200";
+                return "text-gray-300";
         }
-    };
-
-    // 获取状态图标
-    const getStatusIcon = () => {
-        if (isFailed) {
-            return <XCircle className="w-5 h-5 text-rose-400" />;
-        }
-        if (isCompleted) {
-            return <CheckCircle className="w-5 h-5 text-emerald-400" />;
-        }
-        return <Loader2 className="w-5 h-5 text-rose-400 animate-spin" />;
     };
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogPortal>
-                <DialogOverlay />
+                <DialogOverlay className="bg-black/50 backdrop-blur-sm" />
                 <DialogPrimitive.Content
                     className={cn(
                         "fixed left-[50%] top-[50%] z-50 translate-x-[-50%] translate-y-[-50%]",
                         "w-[90vw] aspect-[16/9]",
-                        "max-w-[1600px] max-h-[900px]",
-                        "p-0 gap-0 rounded-lg overflow-hidden",
-                        "bg-gradient-to-br from-gray-900 via-red-950/30 to-gray-900 border border-red-900/50",
+                        "max-w-[1200px] max-h-[800px]",
+                        "p-0 gap-0 rounded-none overflow-hidden",
+                        "bg-black border-4 border-gray-500 shadow-[10px_10px_0px_0px_rgba(0,0,0,0.5)]",
                         "data-[state=open]:animate-in data-[state=closed]:animate-out",
                         "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
                         "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
-                        "duration-200 shadow-2xl"
+                        "duration-200"
                     )}
                     onPointerDownOutside={(e) => e.preventDefault()}
                     onInteractOutside={(e) => e.preventDefault()}
@@ -432,33 +421,46 @@ export default function TerminalProgressDialog({
                     </VisuallyHidden.Root>
 
                     {/* 终端头部 */}
-                    <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-red-950/50 to-gray-900/80 border-b border-red-900/30 backdrop-blur-sm">
+                    <div className="flex items-center justify-between px-4 py-2 bg-gray-300 border-b-4 border-gray-500">
                         <div className="flex items-center space-x-3">
-                            <Terminal className="w-5 h-5 text-rose-400" />
-                            <span className="text-sm font-medium text-gray-100">审计进度监控</span>
-                            {getStatusIcon()}
+                            <Terminal className="w-5 h-5 text-black" />
+                            <span className="text-sm font-bold text-black uppercase font-display tracking-wider">TERMINAL // 审计进度监控</span>
                         </div>
                         <div className="flex items-center space-x-2">
-                            <div className="w-3 h-3 rounded-full bg-emerald-500" />
-                            <div className="w-3 h-3 rounded-full bg-amber-500" />
+                            {/* 模拟窗口控制按钮 */}
+                            <div className="w-4 h-4 border-2 border-black bg-white flex items-center justify-center">
+                                <div className="w-2 h-0.5 bg-black"></div>
+                            </div>
+                            <div className="w-4 h-4 border-2 border-black bg-white flex items-center justify-center">
+                                <div className="w-2 h-2 border border-black"></div>
+                            </div>
                             <button
-                                className="w-3 h-3 rounded-full bg-rose-500 hover:bg-rose-600 cursor-pointer transition-colors focus:outline-none"
+                                className="w-4 h-4 border-2 border-black bg-primary hover:bg-red-600 cursor-pointer transition-colors focus:outline-none flex items-center justify-center"
                                 onClick={() => onOpenChange(false)}
                                 title="关闭"
                                 aria-label="关闭"
-                            />
+                            >
+                                <XIcon className="w-3 h-3 text-white" />
+                            </button>
                         </div>
                     </div>
 
                     {/* 终端内容 */}
-                    <div className="p-6 bg-gradient-to-b from-gray-900/95 to-gray-950/95 overflow-y-auto h-[calc(100%-120px)] font-mono text-sm backdrop-blur-sm">
-                        <div className="space-y-2">
+                    <div className="p-6 bg-black overflow-y-auto h-[calc(100%-100px)] font-mono text-sm relative">
+                        {/* 扫描线效果 */}
+                        <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] z-10 bg-[length:100%_2px,3px_100%]"></div>
+
+                        <div className="space-y-1 relative z-20">
                             {logs.map((log, index) => (
-                                <div key={index} className="flex items-start space-x-3 hover:bg-red-950/10 px-2 py-1 rounded transition-colors">
-                                    <span className="text-rose-800/70 text-xs flex-shrink-0 w-20">
+                                <div key={index} className="flex items-start space-x-3 hover:bg-white/5 px-2 py-0.5 transition-colors">
+                                    <span className="text-gray-500 text-xs flex-shrink-0 w-24 font-bold">
                                         [{log.timestamp}]
                                     </span>
-                                    <span className={`${getLogColor(log.type)} flex-1`}>
+                                    <span className={`${getLogColor(log.type)} flex-1 font-bold tracking-wide`}>
+                                        {log.type === 'info' && '> '}
+                                        {log.type === 'success' && '✓ '}
+                                        {log.type === 'error' && '✗ '}
+                                        {log.type === 'warning' && '! '}
                                         {log.message}
                                     </span>
                                 </div>
@@ -466,107 +468,63 @@ export default function TerminalProgressDialog({
 
                             {/* 光标旋转闪烁效果 */}
                             {!isCompleted && !isFailed && (
-                                <div className="flex items-center space-x-2 mt-4">
-                                    <span className="text-rose-800/70 text-xs w-20">[{currentTime}]</span>
-                                    <span className="inline-block text-rose-400 animate-spinner font-bold text-base"></span>
+                                <div className="flex items-center space-x-2 mt-4 px-2">
+                                    <span className="text-gray-500 text-xs w-24 font-bold">[{currentTime}]</span>
+                                    <span className="inline-block text-green-500 animate-pulse font-bold text-base">_</span>
                                 </div>
                             )}
-
-                            {/* 添加自定义动画 */}
-                            <style>{`
-                                @keyframes spinner {
-                                    0% {
-                                        content: '|';
-                                        opacity: 1;
-                                    }
-                                    25% {
-                                        content: '/';
-                                        opacity: 0.8;
-                                    }
-                                    50% {
-                                        content: '—';
-                                        opacity: 0.6;
-                                    }
-                                    75% {
-                                        content: '\\\\';
-                                        opacity: 0.8;
-                                    }
-                                    100% {
-                                        content: '|';
-                                        opacity: 1;
-                                    }
-                                }
-                                .animate-spinner::before {
-                                    content: '|';
-                                    animation: spinner-content 0.8s linear infinite;
-                                }
-                                .animate-spinner {
-                                    animation: spinner-opacity 0.8s ease-in-out infinite;
-                                }
-                                @keyframes spinner-content {
-                                    0% { content: '|'; }
-                                    25% { content: '/'; }
-                                    50% { content: '—'; }
-                                    75% { content: '\\\\'; }
-                                    100% { content: '|'; }
-                                }
-                                @keyframes spinner-opacity {
-                                    0%, 100% { opacity: 1; }
-                                    25%, 75% { opacity: 0.8; }
-                                    50% { opacity: 0.6; }
-                                }
-                            `}</style>
 
                             <div ref={logsEndRef} />
                         </div>
                     </div>
 
                     {/* 底部控制和提示 */}
-                    <div className="px-4 py-3 bg-gradient-to-r from-red-950/50 to-gray-900/80 border-t border-red-900/30 backdrop-blur-sm">
-                        <div className="flex items-center justify-between text-xs">
-                            <span className="text-gray-300">
-                                {isCancelled ? "🛑 任务已取消，已分析的结果已保存" :
-                                    isCompleted ? "✅ 任务已完成，可以关闭此窗口" :
-                                        isFailed ? "❌ 任务失败，请检查配置后重试" :
-                                            "⏳ 审计进行中，请勿关闭窗口，过程可能较慢，请耐心等待......"}
+                    <div className="px-4 py-3 bg-gray-200 border-t-4 border-gray-500 flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                            <div className={`w-3 h-3 border-2 border-black ${isFailed ? 'bg-red-500' : isCompleted ? 'bg-green-500' : 'bg-yellow-400 animate-pulse'}`}></div>
+                            <span className="text-xs font-bold text-black uppercase font-mono tracking-tight">
+                                {isCancelled ? "STATUS: CANCELLED // 任务已取消" :
+                                    isCompleted ? "STATUS: COMPLETED // 任务已完成" :
+                                        isFailed ? "STATUS: FAILED // 任务失败" :
+                                            "STATUS: RUNNING // 审计进行中..."}
                             </span>
+                        </div>
 
-                            <div className="flex items-center space-x-2">
-                                {/* 运行中显示取消按钮 */}
-                                {!isCompleted && !isFailed && !isCancelled && (
-                                    <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={handleCancel}
-                                        className="h-7 text-xs bg-gray-800 border-red-600 text-red-400 hover:bg-red-900 hover:text-red-200"
-                                    >
-                                        <XIcon className="w-3 h-3 mr-1" />
-                                        取消任务
-                                    </Button>
-                                )}
+                        <div className="flex items-center space-x-3">
+                            {/* 运行中显示取消按钮 */}
+                            {!isCompleted && !isFailed && !isCancelled && (
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={handleCancel}
+                                    className="h-8 text-xs bg-white border-2 border-black text-black hover:bg-red-100 hover:text-red-900 font-bold uppercase rounded-none shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
+                                >
+                                    <XIcon className="w-3 h-3 mr-1" />
+                                    取消任务
+                                </Button>
+                            )}
 
-                                {/* 失败时显示查看日志按钮 */}
-                                {isFailed && (
-                                    <button
-                                        onClick={() => {
-                                            window.open('/logs', '_blank');
-                                        }}
-                                        className="px-4 py-1.5 bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-500 hover:to-orange-500 text-white rounded text-xs transition-all shadow-lg shadow-yellow-900/50 font-medium"
-                                    >
-                                        📋 查看日志
-                                    </button>
-                                )}
+                            {/* 失败时显示查看日志按钮 */}
+                            {isFailed && (
+                                <button
+                                    onClick={() => {
+                                        window.open('/logs', '_blank');
+                                    }}
+                                    className="px-4 py-1.5 bg-yellow-400 border-2 border-black text-black hover:bg-yellow-500 text-xs font-bold uppercase rounded-none shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all"
+                                >
+                                    📋 查看日志
+                                </button>
+                            )}
 
-                                {/* 已完成/失败/取消显示关闭按钮 */}
-                                {(isCompleted || isFailed || isCancelled) && (
-                                    <button
-                                        onClick={() => onOpenChange(false)}
-                                        className="px-4 py-1.5 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white rounded text-xs transition-all shadow-lg shadow-rose-900/50 font-medium"
-                                    >
-                                        关闭
-                                    </button>
-                                )}
-                            </div>
+                            {/* 已完成/失败/取消显示关闭按钮 */}
+                            {(isCompleted || isFailed || isCancelled) && (
+                                <button
+                                    onClick={() => onOpenChange(false)}
+                                    className="px-4 py-1.5 bg-primary border-2 border-black text-white hover:bg-primary/90 text-xs font-bold uppercase rounded-none shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all"
+                                >
+                                    关闭窗口
+                                </button>
+                            )}
                         </div>
                     </div>
                 </DialogPrimitive.Content>

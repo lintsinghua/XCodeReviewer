@@ -1,9 +1,7 @@
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
 import {
   HardDrive,
@@ -97,10 +95,10 @@ export default function AdminDashboard() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-screen bg-gray-100">
         <div className="space-y-4 text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary mx-auto"></div>
-          <p className="text-muted-foreground">加载数据库信息...</p>
+          <div className="animate-spin rounded-none h-16 w-16 border-8 border-black border-t-transparent mx-auto"></div>
+          <p className="text-black font-mono font-bold uppercase">加载数据库信息...</p>
         </div>
       </div>
     );
@@ -109,17 +107,17 @@ export default function AdminDashboard() {
   return (
     <div className="space-y-6 pb-8">
       {/* 页面标题 */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between border-b-4 border-black pb-6 bg-white/50 backdrop-blur-sm p-4 retro-border">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-            <Settings className="h-8 w-8 text-primary" />
+          <h1 className="text-3xl font-display font-bold text-black uppercase tracking-tighter flex items-center gap-3">
+            <Settings className="h-8 w-8 text-black" />
             系统管理
           </h1>
-          <p className="text-gray-600 mt-2">
+          <p className="text-gray-600 mt-2 font-mono border-l-2 border-primary pl-2">
             管理系统配置、LLM设置、数据库和存储使用情况
           </p>
         </div>
-        <Button variant="outline" onClick={loadStats}>
+        <Button variant="outline" onClick={loadStats} className="retro-btn bg-white text-black border-2 border-black hover:bg-gray-100 rounded-none h-10 font-bold uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
           <RefreshCw className="w-4 h-4 mr-2" />
           刷新数据
         </Button>
@@ -127,12 +125,12 @@ export default function AdminDashboard() {
 
       {/* 主要内容标签页 */}
       <Tabs defaultValue="config" className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="config">系统配置</TabsTrigger>
-          <TabsTrigger value="overview">数据概览</TabsTrigger>
-          <TabsTrigger value="storage">存储管理</TabsTrigger>
-          <TabsTrigger value="operations">数据操作</TabsTrigger>
-          <TabsTrigger value="settings">高级设置</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-5 bg-transparent border-2 border-black p-0 h-auto gap-0 mb-6">
+          <TabsTrigger value="config" className="rounded-none border-r-2 border-black data-[state=active]:bg-black data-[state=active]:text-white font-mono font-bold uppercase h-10 text-xs">系统配置</TabsTrigger>
+          <TabsTrigger value="overview" className="rounded-none border-r-2 border-black data-[state=active]:bg-black data-[state=active]:text-white font-mono font-bold uppercase h-10 text-xs">数据概览</TabsTrigger>
+          <TabsTrigger value="storage" className="rounded-none border-r-2 border-black data-[state=active]:bg-black data-[state=active]:text-white font-mono font-bold uppercase h-10 text-xs">存储管理</TabsTrigger>
+          <TabsTrigger value="operations" className="rounded-none border-r-2 border-black data-[state=active]:bg-black data-[state=active]:text-white font-mono font-bold uppercase h-10 text-xs">数据操作</TabsTrigger>
+          <TabsTrigger value="settings" className="rounded-none data-[state=active]:bg-black data-[state=active]:text-white font-mono font-bold uppercase h-10 text-xs">高级设置</TabsTrigger>
         </TabsList>
 
         {/* 系统配置 */}
@@ -144,19 +142,19 @@ export default function AdminDashboard() {
         <TabsContent value="overview" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* 任务完成率 */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+            <div className="retro-card bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-0">
+              <div className="p-4 border-b-2 border-black bg-gray-50">
+                <h3 className="text-lg font-display font-bold uppercase flex items-center gap-2">
                   <TrendingUp className="h-5 w-5" />
                   任务完成率
-                </CardTitle>
-                <CardDescription>审计任务的完成情况统计</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
+                </h3>
+                <p className="text-xs text-gray-500 font-mono mt-1">审计任务的完成情况统计</p>
+              </div>
+              <div className="p-6 space-y-4 font-mono">
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between text-sm">
+                  <div className="flex items-center justify-between text-sm font-bold">
                     <span>已完成</span>
-                    <span className="font-medium">
+                    <span>
                       {stats.totalTasks > 0
                         ? Math.round((stats.completedTasks / stats.totalTasks) * 100)
                         : 0}%
@@ -167,35 +165,36 @@ export default function AdminDashboard() {
                       ? (stats.completedTasks / stats.totalTasks) * 100
                       : 0
                     }
+                    className="h-4 border-2 border-black rounded-none bg-gray-200 [&>div]:bg-green-600"
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-4 pt-4">
+                <div className="grid grid-cols-2 gap-4 pt-4 border-t-2 border-black border-dashed">
                   <div className="space-y-1">
-                    <p className="text-sm text-muted-foreground">总任务数</p>
+                    <p className="text-xs text-gray-500 uppercase font-bold">总任务数</p>
                     <p className="text-2xl font-bold">{stats.totalTasks}</p>
                   </div>
                   <div className="space-y-1">
-                    <p className="text-sm text-muted-foreground">已完成</p>
+                    <p className="text-xs text-gray-500 uppercase font-bold">已完成</p>
                     <p className="text-2xl font-bold text-green-600">{stats.completedTasks}</p>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
 
             {/* 问题解决率 */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+            <div className="retro-card bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-0">
+              <div className="p-4 border-b-2 border-black bg-gray-50">
+                <h3 className="text-lg font-display font-bold uppercase flex items-center gap-2">
                   <CheckCircle2 className="h-5 w-5" />
                   问题解决率
-                </CardTitle>
-                <CardDescription>代码问题的解决情况统计</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
+                </h3>
+                <p className="text-xs text-gray-500 font-mono mt-1">代码问题的解决情况统计</p>
+              </div>
+              <div className="p-6 space-y-4 font-mono">
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between text-sm">
+                  <div className="flex items-center justify-between text-sm font-bold">
                     <span>已解决</span>
-                    <span className="font-medium">
+                    <span>
                       {stats.totalIssues > 0
                         ? Math.round((stats.resolvedIssues / stats.totalIssues) * 100)
                         : 0}%
@@ -206,104 +205,104 @@ export default function AdminDashboard() {
                       ? (stats.resolvedIssues / stats.totalIssues) * 100
                       : 0
                     }
-                    className="bg-orange-100"
+                    className="h-4 border-2 border-black rounded-none bg-gray-200 [&>div]:bg-orange-500"
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-4 pt-4">
+                <div className="grid grid-cols-2 gap-4 pt-4 border-t-2 border-black border-dashed">
                   <div className="space-y-1">
-                    <p className="text-sm text-muted-foreground">总问题数</p>
+                    <p className="text-xs text-gray-500 uppercase font-bold">总问题数</p>
                     <p className="text-2xl font-bold">{stats.totalIssues}</p>
                   </div>
                   <div className="space-y-1">
-                    <p className="text-sm text-muted-foreground">已解决</p>
+                    <p className="text-xs text-gray-500 uppercase font-bold">已解决</p>
                     <p className="text-2xl font-bold text-green-600">{stats.resolvedIssues}</p>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </div>
 
           {/* 数据库表统计 */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+          <div className="retro-card bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-0">
+            <div className="p-4 border-b-2 border-black bg-gray-50">
+              <h3 className="text-lg font-display font-bold uppercase flex items-center gap-2">
                 <Package className="h-5 w-5" />
                 数据库表统计
-              </CardTitle>
-              <CardDescription>各数据表的记录数量</CardDescription>
-            </CardHeader>
-            <CardContent>
+              </h3>
+              <p className="text-xs text-gray-500 font-mono mt-1">各数据表的记录数量</p>
+            </div>
+            <div className="p-6 font-mono">
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                <div className="p-4 border rounded-lg">
+                <div className="p-4 border-2 border-black bg-blue-50 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all">
                   <div className="flex items-center gap-3">
                     <FolderOpen className="h-8 w-8 text-primary" />
                     <div>
-                      <p className="text-sm text-muted-foreground">项目</p>
+                      <p className="text-xs text-gray-600 uppercase font-bold">项目</p>
                       <p className="text-2xl font-bold">{stats.totalProjects}</p>
                     </div>
                   </div>
                 </div>
-                <div className="p-4 border rounded-lg">
+                <div className="p-4 border-2 border-black bg-green-50 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all">
                   <div className="flex items-center gap-3">
                     <Clock className="h-8 w-8 text-green-600" />
                     <div>
-                      <p className="text-sm text-muted-foreground">审计任务</p>
+                      <p className="text-xs text-gray-600 uppercase font-bold">审计任务</p>
                       <p className="text-2xl font-bold">{stats.totalTasks}</p>
                     </div>
                   </div>
                 </div>
-                <div className="p-4 border rounded-lg">
+                <div className="p-4 border-2 border-black bg-orange-50 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all">
                   <div className="flex items-center gap-3">
                     <AlertTriangle className="h-8 w-8 text-orange-600" />
                     <div>
-                      <p className="text-sm text-muted-foreground">问题</p>
+                      <p className="text-xs text-gray-600 uppercase font-bold">问题</p>
                       <p className="text-2xl font-bold">{stats.totalIssues}</p>
                     </div>
                   </div>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </TabsContent>
 
         {/* 存储管理 */}
         <TabsContent value="storage" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+          <div className="retro-card bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-0">
+            <div className="p-4 border-b-2 border-black bg-gray-50">
+              <h3 className="text-lg font-display font-bold uppercase flex items-center gap-2">
                 <HardDrive className="h-5 w-5" />
                 存储空间使用情况
-              </CardTitle>
-              <CardDescription>
+              </h3>
+              <p className="text-xs text-gray-500 font-mono mt-1">
                 浏览器 IndexedDB 存储空间的使用详情
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
+              </p>
+            </div>
+            <div className="p-6 space-y-6 font-mono">
               {storageDetails ? (
                 <>
                   <div className="space-y-2">
-                    <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center justify-between text-sm font-bold">
                       <span>已使用空间</span>
-                      <span className="font-medium">{storageDetails.percentage}%</span>
+                      <span>{storageDetails.percentage}%</span>
                     </div>
-                    <Progress value={storageDetails.percentage} />
-                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <Progress value={storageDetails.percentage} className="h-4 border-2 border-black rounded-none bg-gray-200 [&>div]:bg-primary" />
+                    <div className="flex items-center justify-between text-xs text-gray-500 font-bold">
                       <span>{stats.storageUsed} 已使用</span>
                       <span>{stats.storageQuota} 总配额</span>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4">
-                    <div className="p-4 bg-muted rounded-lg">
-                      <p className="text-sm text-muted-foreground mb-1">已使用</p>
+                    <div className="p-4 bg-gray-100 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                      <p className="text-xs text-gray-600 uppercase font-bold mb-1">已使用</p>
                       <p className="text-xl font-bold">{stats.storageUsed}</p>
                     </div>
-                    <div className="p-4 bg-muted rounded-lg">
-                      <p className="text-sm text-muted-foreground mb-1">总配额</p>
+                    <div className="p-4 bg-gray-100 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                      <p className="text-xs text-gray-600 uppercase font-bold mb-1">总配额</p>
                       <p className="text-xl font-bold">{stats.storageQuota}</p>
                     </div>
-                    <div className="p-4 bg-muted rounded-lg">
-                      <p className="text-sm text-muted-foreground mb-1">剩余空间</p>
+                    <div className="p-4 bg-gray-100 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                      <p className="text-xs text-gray-600 uppercase font-bold mb-1">剩余空间</p>
                       <p className="text-xl font-bold">
                         {((storageDetails.quota - storageDetails.usage) / 1024 / 1024).toFixed(2)} MB
                       </p>
@@ -311,59 +310,65 @@ export default function AdminDashboard() {
                   </div>
 
                   {storageDetails.percentage > 80 && (
-                    <Alert variant="destructive">
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertDescription>
-                        存储空间使用率已超过 80%，建议清理不需要的数据或导出备份后清空数据库。
-                      </AlertDescription>
-                    </Alert>
+                    <div className="bg-red-50 border-2 border-red-500 p-4 flex items-start gap-3 shadow-[4px_4px_0px_0px_rgba(239,68,68,1)]">
+                      <AlertCircle className="h-5 w-5 text-red-600 mt-0.5" />
+                      <div>
+                        <p className="font-bold text-red-800 uppercase">警告</p>
+                        <p className="text-sm text-red-700 font-medium">
+                          存储空间使用率已超过 80%，建议清理不需要的数据或导出备份后清空数据库。
+                        </p>
+                      </div>
+                    </div>
                   )}
                 </>
               ) : (
-                <Alert>
-                  <Info className="h-4 w-4" />
-                  <AlertDescription>
-                    无法获取存储空间信息。您的浏览器可能不支持 Storage API。
-                  </AlertDescription>
-                </Alert>
+                <div className="bg-blue-50 border-2 border-blue-500 p-4 flex items-start gap-3 shadow-[4px_4px_0px_0px_rgba(59,130,246,1)]">
+                  <Info className="h-5 w-5 text-blue-600 mt-0.5" />
+                  <div>
+                    <p className="font-bold text-blue-800 uppercase">提示</p>
+                    <p className="text-sm text-blue-700 font-medium">
+                      无法获取存储空间信息。您的浏览器可能不支持 Storage API。
+                    </p>
+                  </div>
+                </div>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>存储优化建议</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex items-start gap-3 p-3 bg-muted rounded-lg">
+          <div className="retro-card bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-0">
+            <div className="p-4 border-b-2 border-black bg-gray-50">
+              <h3 className="text-lg font-display font-bold uppercase">存储优化建议</h3>
+            </div>
+            <div className="p-6 space-y-3 font-mono">
+              <div className="flex items-start gap-3 p-3 bg-gray-50 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                 <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5" />
                 <div>
-                  <p className="font-medium">定期导出备份</p>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="font-bold text-black uppercase text-sm">定期导出备份</p>
+                  <p className="text-xs text-gray-600 font-medium">
                     建议定期导出数据为 JSON 文件，防止数据丢失
                   </p>
                 </div>
               </div>
-              <div className="flex items-start gap-3 p-3 bg-muted rounded-lg">
+              <div className="flex items-start gap-3 p-3 bg-gray-50 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                 <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5" />
                 <div>
-                  <p className="font-medium">清理旧数据</p>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="font-bold text-black uppercase text-sm">清理旧数据</p>
+                  <p className="text-xs text-gray-600 font-medium">
                     删除不再需要的项目和任务可以释放存储空间
                   </p>
                 </div>
               </div>
-              <div className="flex items-start gap-3 p-3 bg-muted rounded-lg">
+              <div className="flex items-start gap-3 p-3 bg-gray-50 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                 <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5" />
                 <div>
-                  <p className="font-medium">监控存储使用</p>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="font-bold text-black uppercase text-sm">监控存储使用</p>
+                  <p className="text-xs text-gray-600 font-medium">
                     定期检查存储使用情况，避免超出浏览器限制
                   </p>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </TabsContent>
 
         {/* 数据操作 */}
@@ -373,63 +378,66 @@ export default function AdminDashboard() {
 
         {/* 设置 */}
         <TabsContent value="settings" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>数据库设置</CardTitle>
-              <CardDescription>配置数据库行为和性能选项</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Alert>
-                <Info className="h-4 w-4" />
-                <AlertDescription>
-                  <strong>当前数据库模式：</strong> {
-                    dbMode === 'api' ? '后端 PostgreSQL 数据库' :
-                      dbMode === 'local' ? '本地 IndexedDB' :
-                        dbMode === 'supabase' ? 'Supabase 云端（已废弃）' :
-                          '演示模式'
-                  }
-                </AlertDescription>
-              </Alert>
+          <div className="retro-card bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-0">
+            <div className="p-4 border-b-2 border-black bg-gray-50">
+              <h3 className="text-lg font-display font-bold uppercase">数据库设置</h3>
+              <p className="text-xs text-gray-500 font-mono mt-1">配置数据库行为和性能选项</p>
+            </div>
+            <div className="p-6 space-y-4 font-mono">
+              <div className="bg-blue-50 border-2 border-blue-500 p-4 flex items-start gap-3 shadow-[4px_4px_0px_0px_rgba(59,130,246,1)]">
+                <Info className="h-5 w-5 text-blue-600 mt-0.5" />
+                <div>
+                  <p className="font-bold text-blue-800 uppercase text-sm">当前数据库模式</p>
+                  <p className="text-sm text-blue-700 font-medium mt-1">
+                    {
+                      dbMode === 'api' ? '后端 PostgreSQL 数据库' :
+                        dbMode === 'local' ? '本地 IndexedDB' :
+                          dbMode === 'supabase' ? 'Supabase 云端（已废弃）' :
+                            '演示模式'
+                    }
+                  </p>
+                </div>
+              </div>
 
               <div className="space-y-4 pt-4">
-                <div className="flex items-center justify-between p-4 border rounded-lg">
+                <div className="flex items-center justify-between p-4 border-2 border-black bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                   <div>
-                    <p className="font-medium">自动备份</p>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="font-bold text-black uppercase text-sm">自动备份</p>
+                    <p className="text-xs text-gray-500 font-medium">
                       定期自动导出数据备份（开发中）
                     </p>
                   </div>
-                  <Badge variant="outline">即将推出</Badge>
+                  <Badge variant="outline" className="rounded-none border-black bg-gray-100 font-mono text-xs">即将推出</Badge>
                 </div>
 
-                <div className="flex items-center justify-between p-4 border rounded-lg">
+                <div className="flex items-center justify-between p-4 border-2 border-black bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                   <div>
-                    <p className="font-medium">数据压缩</p>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="font-bold text-black uppercase text-sm">数据压缩</p>
+                    <p className="text-xs text-gray-500 font-medium">
                       压缩存储数据以节省空间（开发中）
                     </p>
                   </div>
-                  <Badge variant="outline">即将推出</Badge>
+                  <Badge variant="outline" className="rounded-none border-black bg-gray-100 font-mono text-xs">即将推出</Badge>
                 </div>
 
-                <div className="flex items-center justify-between p-4 border rounded-lg">
+                <div className="flex items-center justify-between p-4 border-2 border-black bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                   <div>
-                    <p className="font-medium">数据同步</p>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="font-bold text-black uppercase text-sm">数据同步</p>
+                    <p className="text-xs text-gray-500 font-medium">
                       在多个设备间同步数据（开发中）
                     </p>
                   </div>
-                  <Badge variant="outline">即将推出</Badge>
+                  <Badge variant="outline" className="rounded-none border-black bg-gray-100 font-mono text-xs">即将推出</Badge>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>关于本地数据库</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 text-sm text-muted-foreground">
+          <div className="retro-card bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-0">
+            <div className="p-4 border-b-2 border-black bg-gray-50">
+              <h3 className="text-lg font-display font-bold uppercase">关于本地数据库</h3>
+            </div>
+            <div className="p-6 space-y-3 text-sm text-gray-600 font-mono font-medium">
               <p>
                 本地数据库使用浏览器的 IndexedDB 技术存储数据，具有以下特点：
               </p>
@@ -440,11 +448,11 @@ export default function AdminDashboard() {
                 <li>清除浏览器数据会删除所有本地数据</li>
                 <li>不同浏览器的数据相互独立</li>
               </ul>
-              <p className="pt-2">
-                <strong>建议：</strong>定期导出数据备份，以防意外数据丢失。
+              <p className="pt-2 border-t-2 border-black border-dashed mt-4">
+                <strong className="text-black uppercase">建议：</strong>定期导出数据备份，以防意外数据丢失。
               </p>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </TabsContent>
       </Tabs>
     </div>

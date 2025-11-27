@@ -5,8 +5,9 @@ import { apiClient } from '@/shared/api/serverClient';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+
 import { toast } from 'sonner';
+import { Terminal, Lock, Cpu } from 'lucide-react';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -32,64 +33,111 @@ export default function Login() {
       const formData = new URLSearchParams();
       formData.append('username', email);
       formData.append('password', password);
-      
+
       const response = await apiClient.post('/auth/login', formData, {
         headers: {
-            'Content-Type': 'application/x-www-form-urlencoded'
+          'Content-Type': 'application/x-www-form-urlencoded'
         }
       });
-      
+
       await login(response.data.access_token);
-      toast.success('登录成功');
+      toast.success('访问已授予');
       // 跳转由 useEffect 监听 isAuthenticated 状态变化自动处理
     } catch (error: any) {
-      toast.error(error.response?.data?.detail || '登录失败');
+      toast.error(error.response?.data?.detail || '访问被拒绝');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">XCodeReviewer</CardTitle>
-          <CardDescription className="text-center">请输入您的账号和密码登录</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+    <div className="min-h-screen flex items-center justify-center bg-background relative overflow-hidden">
+      {/* Decorative Background Elements */}
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
+
+      <div className="absolute top-10 left-10 font-mono text-xs text-gray-400 hidden md:block">
+        <div>系统ID: 0x84F2</div>
+        <div>状态: 等待输入</div>
+        <div>加密: AES-256</div>
+      </div>
+
+      <div className="absolute bottom-10 right-10 font-mono text-xs text-gray-400 hidden md:block text-right">
+        <div>安全连接</div>
+        <div>端口: 443</div>
+      </div>
+
+      {/* Main Card */}
+      <div className="w-full max-w-md relative z-10 p-4">
+        <div className="mb-8 text-center">
+          <div className="inline-flex items-center justify-center p-4 bg-primary border-2 border-black shadow-retro mb-4">
+            <Terminal className="w-8 h-8 text-white" />
+          </div>
+          <h1 className="text-4xl font-display font-bold tracking-tighter uppercase">
+            XCode<span className="text-primary">Reviewer</span>
+          </h1>
+          <p className="text-sm font-mono text-gray-500 mt-2">输入凭据以继续</p>
+        </div>
+
+        <div className="bg-white border-2 border-black shadow-retro p-8 relative">
+          {/* Decorative Corner Markers */}
+          <div className="absolute top-2 left-2 w-2 h-2 bg-black" />
+          <div className="absolute top-2 right-2 w-2 h-2 bg-black" />
+          <div className="absolute bottom-2 left-2 w-2 h-2 bg-black" />
+          <div className="absolute bottom-2 right-2 w-2 h-2 bg-black" />
+
+          <form onSubmit={handleSubmit} className="space-y-6 mt-4">
             <div className="space-y-2">
-              <Label htmlFor="email">邮箱</Label>
-              <Input 
-                id="email" 
-                type="email" 
-                placeholder="name@example.com" 
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required 
-              />
+              <Label htmlFor="email" className="font-mono uppercase text-xs font-bold">身份 / 邮箱</Label>
+              <div className="relative">
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="USER@DOMAIN.COM"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className="retro-input font-mono pl-10"
+                />
+                <Cpu className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              </div>
             </div>
+
             <div className="space-y-2">
-              <Label htmlFor="password">密码</Label>
-              <Input 
-                id="password" 
-                type="password" 
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required 
-              />
+              <Label htmlFor="password" className="font-mono uppercase text-xs font-bold">通行码</Label>
+              <div className="relative">
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="retro-input font-mono pl-10"
+                />
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              </div>
             </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? '登录中...' : '登录'}
+
+            <Button
+              type="submit"
+              className="w-full retro-btn text-lg h-12 mt-4"
+              disabled={loading}
+            >
+              {loading ? (
+                <span className="flex items-center gap-2">
+                  <span className="animate-spin">/</span> 认证中...
+                </span>
+              ) : '初始化会话'}
             </Button>
           </form>
-        </CardContent>
-        <CardFooter className="flex flex-col space-y-2">
-            <div className="text-sm text-center text-gray-500">
-                还没有账号？ <span className="text-blue-600 cursor-pointer hover:underline" onClick={() => navigate('/register')}>立即注册</span>
+
+          <div className="mt-6 pt-6 border-t-2 border-dashed border-gray-200 text-center">
+            <div className="text-xs font-mono text-gray-500">
+              没有访问令牌？ <span className="text-primary font-bold cursor-pointer hover:underline" onClick={() => navigate('/register')}>申请访问</span>
             </div>
-        </CardFooter>
-      </Card>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

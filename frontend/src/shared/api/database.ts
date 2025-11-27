@@ -1,10 +1,10 @@
 import { apiClient } from "./serverClient";
-import type { 
-  Profile, 
-  Project, 
-  ProjectMember, 
-  AuditTask, 
-  AuditIssue, 
+import type {
+  Profile,
+  Project,
+  ProjectMember,
+  AuditTask,
+  AuditIssue,
   InstantAnalysis,
   CreateProjectForm,
   CreateAuditTaskForm,
@@ -14,7 +14,7 @@ import type {
 // Implement the same interface as the original localDatabase.ts but using backend API
 export const api = {
   // ==================== Profile 相关方法 ====================
-  
+
   async getProfilesById(_id: string): Promise<Profile | null> {
     try {
       const res = await apiClient.get('/users/me');
@@ -184,7 +184,7 @@ export const api = {
     }
   },
 
-  async createInstantAnalysis(_analysis: InstantAnalysisForm & { 
+  async createInstantAnalysis(_analysis: InstantAnalysisForm & {
     user_id: string;
     analysis_result?: string;
     issues_count?: number;
@@ -205,6 +205,7 @@ export const api = {
     completed_tasks: number;
     total_issues: number;
     resolved_issues: number;
+    avg_quality_score: number;
   }> {
     try {
       const res = await apiClient.get('/projects/stats');
@@ -216,7 +217,8 @@ export const api = {
         total_tasks: 0,
         completed_tasks: 0,
         total_issues: 0,
-        resolved_issues: 0
+        resolved_issues: 0,
+        avg_quality_score: 0
       };
     }
   },
@@ -294,7 +296,7 @@ export const api = {
   }> {
     const formData = new FormData();
     formData.append('file', file);
-    
+
     const res = await apiClient.post('/database/import', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',

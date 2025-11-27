@@ -1,18 +1,17 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
-import { 
-  ArrowLeft, 
-  Edit, 
+import {
+  ArrowLeft,
+  Edit,
   ExternalLink,
   Code,
   Shield,
@@ -41,7 +40,6 @@ export default function ProjectDetail() {
   const [showCreateTaskDialog, setShowCreateTaskDialog] = useState(false);
   const [showTerminalDialog, setShowTerminalDialog] = useState(false);
   const [currentTaskId, setCurrentTaskId] = useState<string | null>(null);
-  const [showSettingsDialog, setShowSettingsDialog] = useState(false);
   const [editForm, setEditForm] = useState<CreateProjectForm>({
     name: "",
     description: "",
@@ -50,6 +48,47 @@ export default function ProjectDetail() {
     default_branch: "main",
     programming_languages: []
   });
+  const [activeTab, setActiveTab] = useState("overview");
+  const [latestIssues, setLatestIssues] = useState<any[]>([]);
+  const [loadingIssues, setLoadingIssues] = useState(false);
+
+  useEffect(() => {
+    if (activeTab === 'issues' && tasks.length > 0) {
+      loadLatestIssues();
+    }
+  }, [activeTab, tasks]);
+
+  const loadLatestIssues = async () => {
+    const completedTasks = tasks.filter(t => t.status === 'completed').sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    if (completedTasks.length > 0) {
+      setLoadingIssues(true);
+      try {
+        const issues = await api.getAuditIssues(completedTasks[0].id);
+        setLatestIssues(issues);
+      } catch (error) {
+        console.error('Failed to load issues:', error);
+        toast.error("加载问题列表失败");
+      } finally {
+        setLoadingIssues(false);
+      }
+    }
+  };
+
+  const handleOpenSettings = () => {
+    if (!project) return;
+
+    // 初始化编辑表单
+    setEditForm({
+      name: project.name,
+      description: project.description || "",
+      repository_url: project.repository_url || "",
+      repository_type: project.repository_type || "github",
+      default_branch: project.default_branch || "main",
+      programming_languages: project.programming_languages ? JSON.parse(project.programming_languages) : []
+    });
+
+    setActiveTab("settings");
+  };
 
   // 将小写语言名转换为显示格式
   const formatLanguageName = (lang: string): string => {
@@ -80,14 +119,14 @@ export default function ProjectDetail() {
 
   const loadProjectData = async () => {
     if (!id) return;
-    
+
     try {
       setLoading(true);
       const [projectData, tasksData] = await Promise.all([
         api.getProjectById(id),
         api.getAuditTasks(id)
       ]);
-      
+
       setProject(projectData);
       setTasks(tasksData);
     } catch (error) {
@@ -100,7 +139,7 @@ export default function ProjectDetail() {
 
   const handleRunAudit = async () => {
     if (!project || !id) return;
-    
+
     // 检查是否有仓库地址
     if (project.repository_url) {
       // 有仓库地址，启动仓库审计
@@ -113,13 +152,13 @@ export default function ProjectDetail() {
           branch: project.default_branch || 'main',
           createdBy: undefined
         });
-        
+
         console.log('审计任务创建成功，taskId:', taskId);
-        
+
         // 显示终端进度窗口
         setCurrentTaskId(taskId);
         setShowTerminalDialog(true);
-        
+
         // 重新加载项目数据
         loadProjectData();
       } catch (e: any) {
@@ -133,7 +172,7 @@ export default function ProjectDetail() {
       try {
         setScanning(true);
         const file = await loadZipFile(id);
-        
+
         if (file) {
           console.log('找到保存的ZIP文件，开始启动审计...');
           try {
@@ -144,13 +183,13 @@ export default function ProjectDetail() {
               excludePatterns: ['node_modules/**', '.git/**', 'dist/**', 'build/**'],
               createdBy: 'local-user'
             });
-            
+
             console.log('审计任务创建成功，taskId:', taskId);
-            
+
             // 显示终端进度窗口
             setCurrentTaskId(taskId);
             setShowTerminalDialog(true);
-            
+
             // 重新加载项目数据
             loadProjectData();
           } catch (e: any) {
@@ -172,25 +211,9 @@ export default function ProjectDetail() {
     }
   };
 
-  const handleOpenSettings = () => {
-    if (!project) return;
-    
-    // 初始化编辑表单
-    setEditForm({
-      name: project.name,
-      description: project.description || "",
-      repository_url: project.repository_url || "",
-      repository_type: project.repository_type || "github",
-      default_branch: project.default_branch || "main",
-      programming_languages: project.programming_languages ? JSON.parse(project.programming_languages) : []
-    });
-    
-    setShowSettingsDialog(true);
-  };
-
   const handleSaveSettings = async () => {
     if (!id) return;
-    
+
     if (!editForm.name.trim()) {
       toast.error("项目名称不能为空");
       return;
@@ -199,7 +222,6 @@ export default function ProjectDetail() {
     try {
       await api.updateProject(id, editForm);
       toast.success("项目信息已保存");
-      setShowSettingsDialog(false);
       loadProjectData();
     } catch (error) {
       console.error('Failed to update project:', error);
@@ -212,7 +234,7 @@ export default function ProjectDetail() {
     const newLanguages = currentLanguages.includes(lang)
       ? currentLanguages.filter(l => l !== lang)
       : [...currentLanguages, lang];
-    
+
     setEditForm({ ...editForm, programming_languages: newLanguages });
   };
 
@@ -258,21 +280,27 @@ export default function ProjectDetail() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      <div className="flex items-center justify-center min-h-screen font-mono">
+        <div className="text-center space-y-4">
+          <div className="relative w-16 h-16 mx-auto">
+            <div className="absolute inset-0 border-4 border-gray-200 rounded-none"></div>
+            <div className="absolute inset-0 border-4 border-primary rounded-none border-t-transparent animate-spin"></div>
+          </div>
+          <p className="text-gray-600 uppercase font-bold">加载项目数据...</p>
+        </div>
       </div>
     );
   }
 
   if (!project) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <AlertTriangle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">项目未找到</h2>
-          <p className="text-gray-600 mb-4">请检查项目ID是否正确</p>
+      <div className="flex items-center justify-center min-h-screen font-mono">
+        <div className="text-center border-2 border-black p-8 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] bg-white">
+          <AlertTriangle className="w-16 h-16 text-red-600 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-black mb-2 uppercase">项目未找到</h2>
+          <p className="text-gray-600 mb-4 uppercase">请检查项目ID是否正确</p>
           <Link to="/projects">
-            <Button>
+            <Button className="retro-btn">
               <ArrowLeft className="w-4 h-4 mr-2" />
               返回项目列表
             </Button>
@@ -282,156 +310,161 @@ export default function ProjectDetail() {
     );
   }
 
+
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 font-mono">
       {/* 页面标题 */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b-4 border-black pb-6 bg-white/50 backdrop-blur-sm p-4 retro-border">
+        <div className="flex items-start space-x-4">
           <Link to="/projects">
-            <Button variant="outline" size="sm">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              返回
+            <Button variant="outline" size="sm" className="retro-btn bg-white text-black hover:bg-gray-100 h-10 w-10 p-0 flex items-center justify-center">
+              <ArrowLeft className="w-5 h-5" />
             </Button>
           </Link>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">{project.name}</h1>
-            <p className="text-gray-600 mt-1">
+            <div className="flex items-center gap-2">
+              <h1 className="text-3xl font-display font-bold text-black uppercase tracking-tighter">{project.name}</h1>
+              <Badge variant="outline" className={`rounded-none border-2 border-black ${project.is_active ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}`}>
+                {project.is_active ? '活跃' : '暂停'}
+              </Badge>
+            </div>
+            <p className="text-gray-600 mt-1 font-mono border-l-2 border-primary pl-2">
               {project.description || '暂无项目描述'}
             </p>
           </div>
         </div>
-        
+
         <div className="flex items-center space-x-3">
-          <Badge variant={project.is_active ? "default" : "secondary"}>
-            {project.is_active ? '活跃' : '暂停'}
-          </Badge>
-          <Button onClick={handleRunAudit} disabled={scanning}>
+          <Button onClick={handleRunAudit} disabled={scanning} className="retro-btn bg-primary text-white hover:bg-primary/90">
             <Shield className="w-4 h-4 mr-2" />
             {scanning ? '正在启动...' : '启动审计'}
           </Button>
-          <Button variant="outline" onClick={handleOpenSettings}>
+          <Button variant="outline" onClick={handleOpenSettings} className="retro-btn bg-white text-black hover:bg-gray-100">
             <Edit className="w-4 h-4 mr-2" />
             编辑
           </Button>
         </div>
       </div>
 
-      {/* 项目概览 */}
+      {/* ... (stats cards remain same) ... */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <Activity className="h-8 w-8 text-blue-600" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-muted-foreground">审计任务</p>
-                <p className="text-2xl font-bold">{tasks.length}</p>
-              </div>
+        {/* ... (stats cards content) ... */}
+        <div className="retro-card bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-4 hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-bold uppercase text-gray-500">审计任务</p>
+              <p className="text-3xl font-display font-bold">{tasks.length}</p>
             </div>
-          </CardContent>
-        </Card>
+            <div className="w-12 h-12 border-2 border-black bg-blue-500 flex items-center justify-center text-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+              <Activity className="w-6 h-6" />
+            </div>
+          </div>
+        </div>
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <CheckCircle className="h-8 w-8 text-green-600" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-muted-foreground">已完成</p>
-                <p className="text-2xl font-bold">
-                  {tasks.filter(t => t.status === 'completed').length}
-                </p>
-              </div>
+        <div className="retro-card bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-4 hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-bold uppercase text-gray-500">已完成</p>
+              <p className="text-3xl font-display font-bold">
+                {tasks.filter(t => t.status === 'completed').length}
+              </p>
             </div>
-          </CardContent>
-        </Card>
+            <div className="w-12 h-12 border-2 border-black bg-green-500 flex items-center justify-center text-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+              <CheckCircle className="w-6 h-6" />
+            </div>
+          </div>
+        </div>
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <AlertTriangle className="h-8 w-8 text-orange-600" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-muted-foreground">发现问题</p>
-                <p className="text-2xl font-bold">
-                  {tasks.reduce((sum, task) => sum + task.issues_count, 0)}
-                </p>
-              </div>
+        <div className="retro-card bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-4 hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-bold uppercase text-gray-500">发现问题</p>
+              <p className="text-3xl font-display font-bold">
+                {tasks.reduce((sum, task) => sum + task.issues_count, 0)}
+              </p>
             </div>
-          </CardContent>
-        </Card>
+            <div className="w-12 h-12 border-2 border-black bg-orange-500 flex items-center justify-center text-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+              <AlertTriangle className="w-6 h-6" />
+            </div>
+          </div>
+        </div>
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <Code className="h-8 w-8 text-purple-600" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-muted-foreground">平均质量分</p>
-                <p className="text-2xl font-bold">
-                  {tasks.length > 0 
-                    ? (tasks.reduce((sum, task) => sum + task.quality_score, 0) / tasks.length).toFixed(1)
-                    : '0.0'
-                  }
-                </p>
-              </div>
+        <div className="retro-card bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-4 hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-bold uppercase text-gray-500">平均质量分</p>
+              <p className="text-3xl font-display font-bold">
+                {tasks.length > 0
+                  ? (tasks.reduce((sum, task) => sum + task.quality_score, 0) / tasks.length).toFixed(1)
+                  : '0.0'
+                }
+              </p>
             </div>
-          </CardContent>
-        </Card>
+            <div className="w-12 h-12 border-2 border-black bg-purple-500 flex items-center justify-center text-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+              <Code className="w-6 h-6" />
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* 主要内容 */}
-      <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="overview">项目概览</TabsTrigger>
-          <TabsTrigger value="tasks">审计任务</TabsTrigger>
-          <TabsTrigger value="issues">问题管理</TabsTrigger>
-          <TabsTrigger value="settings">项目设置</TabsTrigger>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-4 bg-transparent border-2 border-black p-0 h-auto gap-0">
+          <TabsTrigger value="overview" className="rounded-none border-r-2 border-black data-[state=active]:bg-primary data-[state=active]:text-white font-mono font-bold uppercase h-10">项目概览</TabsTrigger>
+          <TabsTrigger value="tasks" className="rounded-none border-r-2 border-black data-[state=active]:bg-primary data-[state=active]:text-white font-mono font-bold uppercase h-10">审计任务</TabsTrigger>
+          <TabsTrigger value="issues" className="rounded-none border-r-2 border-black data-[state=active]:bg-primary data-[state=active]:text-white font-mono font-bold uppercase h-10">问题管理</TabsTrigger>
+          <TabsTrigger value="settings" className="rounded-none data-[state=active]:bg-primary data-[state=active]:text-white font-mono font-bold uppercase h-10">项目设置</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="overview" className="space-y-6">
+        <TabsContent value="overview" className="space-y-6 mt-6">
+          {/* ... (overview content remains same) ... */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* 项目信息 */}
-            <Card>
-              <CardHeader>
-                <CardTitle>项目信息</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
+            <div className="retro-card bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-4">
+              <div className="pb-3 border-b-2 border-black mb-4">
+                <h3 className="text-lg font-display font-bold uppercase">项目信息</h3>
+              </div>
+              <div className="space-y-4 font-mono">
                 <div className="space-y-3">
                   {project.repository_url && (
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">仓库地址</span>
-                      <a 
-                        href={project.repository_url} 
-                        target="_blank" 
+                      <span className="text-sm font-bold text-gray-600 uppercase">仓库地址</span>
+                      <a
+                        href={project.repository_url}
+                        target="_blank"
                         rel="noopener noreferrer"
-                        className="text-sm text-blue-600 hover:underline flex items-center"
+                        className="text-sm text-primary hover:underline flex items-center font-bold"
                       >
                         查看仓库
                         <ExternalLink className="w-3 h-3 ml-1" />
                       </a>
                     </div>
                   )}
-                  
+
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">仓库类型</span>
-                    <Badge variant="outline">
-                      {project.repository_type === 'github' ? 'GitHub' : 
-                       project.repository_type === 'gitlab' ? 'GitLab' : '其他'}
+                    <span className="text-sm font-bold text-gray-600 uppercase">仓库类型</span>
+                    <Badge variant="outline" className="rounded-none border-black bg-gray-100 text-black">
+                      {project.repository_type === 'github' ? 'GitHub' :
+                        project.repository_type === 'gitlab' ? 'GitLab' : '其他'}
                     </Badge>
                   </div>
-                  
+
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">默认分支</span>
-                    <span className="text-sm text-muted-foreground">{project.default_branch}</span>
+                    <span className="text-sm font-bold text-gray-600 uppercase">默认分支</span>
+                    <span className="text-sm font-bold text-black bg-gray-100 px-2 border border-black">{project.default_branch}</span>
                   </div>
-                  
+
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">创建时间</span>
-                    <span className="text-sm text-muted-foreground">
+                    <span className="text-sm font-bold text-gray-600 uppercase">创建时间</span>
+                    <span className="text-sm text-black">
                       {formatDate(project.created_at)}
                     </span>
                   </div>
-                  
+
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">所有者</span>
-                    <span className="text-sm text-muted-foreground">
+                    <span className="text-sm font-bold text-gray-600 uppercase">所有者</span>
+                    <span className="text-sm text-black">
                       {project.owner?.full_name || project.owner?.phone || '未知'}
                     </span>
                   </div>
@@ -439,64 +472,67 @@ export default function ProjectDetail() {
 
                 {/* 编程语言 */}
                 {project.programming_languages && (
-                  <div>
-                    <h4 className="text-sm font-medium mb-2">支持的编程语言</h4>
+                  <div className="pt-4 border-t-2 border-dashed border-gray-300">
+                    <h4 className="text-sm font-bold mb-2 uppercase text-gray-600">支持的编程语言</h4>
                     <div className="flex flex-wrap gap-2">
                       {JSON.parse(project.programming_languages).map((lang: string) => (
-                        <Badge key={lang} variant="outline">
+                        <Badge key={lang} variant="outline" className="rounded-none border-black bg-yellow-100 text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                           {lang}
                         </Badge>
                       ))}
                     </div>
                   </div>
                 )}
-              </CardContent>
-            </Card>
+              </div>
+            </div>
 
             {/* 最近活动 */}
-            <Card>
-              <CardHeader>
-                <CardTitle>最近活动</CardTitle>
-              </CardHeader>
-              <CardContent>
+            <div className="retro-card bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-4">
+              <div className="pb-3 border-b-2 border-black mb-4">
+                <h3 className="text-lg font-display font-bold uppercase">最近活动</h3>
+              </div>
+              <div>
                 {tasks.length > 0 ? (
                   <div className="space-y-3">
                     {tasks.slice(0, 5).map((task) => (
-                      <div key={task.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div key={task.id} className="flex items-center justify-between p-3 border-2 border-black bg-gray-50 hover:bg-white hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-1px] hover:translate-y-[-1px] transition-all">
                         <div className="flex items-center space-x-3">
-                          {getStatusIcon(task.status)}
+                          <div className="border-2 border-black p-1 bg-white">
+                            {getStatusIcon(task.status)}
+                          </div>
                           <div>
-                            <p className="text-sm font-medium">
+                            <p className="text-sm font-bold font-mono uppercase">
                               {task.task_type === 'repository' ? '仓库审计' : '即时分析'}
                             </p>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-xs text-gray-500 font-mono">
                               {formatDate(task.created_at)}
                             </p>
                           </div>
                         </div>
-                        <Badge className={getStatusColor(task.status)}>
-                          {task.status === 'completed' ? '已完成' : 
-                           task.status === 'running' ? '运行中' : 
-                           task.status === 'failed' ? '失败' : '等待中'}
+                        <Badge className={`rounded-none border-black border ${getStatusColor(task.status)}`}>
+                          {task.status === 'completed' ? '已完成' :
+                            task.status === 'running' ? '运行中' :
+                              task.status === 'failed' ? '失败' : '等待中'}
                         </Badge>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-8">
-                    <Activity className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-muted-foreground">暂无活动记录</p>
+                  <div className="text-center py-8 border-2 border-dashed border-black">
+                    <Activity className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-500 font-mono uppercase">暂无活动记录</p>
                   </div>
                 )}
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </div>
         </TabsContent>
 
-        <TabsContent value="tasks" className="space-y-6">
+        <TabsContent value="tasks" className="space-y-6 mt-6">
+          {/* ... (tasks content remains same) ... */}
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-medium">审计任务列表</h3>
-            <Button onClick={handleCreateTask}>
+            <h3 className="text-lg font-display font-bold uppercase">审计任务列表</h3>
+            <Button onClick={handleCreateTask} className="retro-btn bg-primary text-white hover:bg-primary/90">
               <Play className="w-4 h-4 mr-2" />
               新建任务
             </Button>
@@ -505,96 +541,260 @@ export default function ProjectDetail() {
           {tasks.length > 0 ? (
             <div className="space-y-4">
               {tasks.map((task) => (
-                <Card key={task.id}>
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center space-x-3">
+                <div key={task.id} className="retro-card bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-6">
+                  <div className="flex items-center justify-between mb-4 pb-4 border-b-2 border-dashed border-gray-300">
+                    <div className="flex items-center space-x-3">
+                      <div className="border-2 border-black p-1 bg-white">
                         {getStatusIcon(task.status)}
-                        <div>
-                          <h4 className="font-medium">
-                            {task.task_type === 'repository' ? '仓库审计任务' : '即时分析任务'}
-                          </h4>
-                          <p className="text-sm text-muted-foreground">
-                            创建于 {formatDate(task.created_at)}
-                          </p>
-                        </div>
                       </div>
-                      <Badge className={getStatusColor(task.status)}>
-                        {task.status === 'completed' ? '已完成' : 
-                         task.status === 'running' ? '运行中' : 
-                         task.status === 'failed' ? '失败' : '等待中'}
-                      </Badge>
-                    </div>
-
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                      <div className="text-center">
-                        <p className="text-2xl font-bold">{task.total_files}</p>
-                        <p className="text-sm text-muted-foreground">总文件数</p>
-                      </div>
-                      <div className="text-center">
-                        <p className="text-2xl font-bold">{task.total_lines}</p>
-                        <p className="text-sm text-muted-foreground">代码行数</p>
-                      </div>
-                      <div className="text-center">
-                        <p className="text-2xl font-bold">{task.issues_count}</p>
-                        <p className="text-sm text-muted-foreground">发现问题</p>
-                      </div>
-                      <div className="text-center">
-                        <p className="text-2xl font-bold">{task.quality_score.toFixed(1)}</p>
-                        <p className="text-sm text-muted-foreground">质量评分</p>
+                      <div>
+                        <h4 className="font-bold font-mono uppercase">
+                          {task.task_type === 'repository' ? '仓库审计任务' : '即时分析任务'}
+                        </h4>
+                        <p className="text-sm text-gray-500 font-mono">
+                          创建于 {formatDate(task.created_at)}
+                        </p>
                       </div>
                     </div>
+                    <Badge className={`rounded-none border-black border ${getStatusColor(task.status)}`}>
+                      {task.status === 'completed' ? '已完成' :
+                        task.status === 'running' ? '运行中' :
+                          task.status === 'failed' ? '失败' : '等待中'}
+                    </Badge>
+                  </div>
 
-                    {task.status === 'completed' && (
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between text-sm">
-                          <span>质量评分</span>
-                          <span>{task.quality_score.toFixed(1)}/100</span>
-                        </div>
-                        <Progress value={task.quality_score} />
-                      </div>
-                    )}
-
-                    <div className="flex justify-end space-x-2 mt-4">
-                      <Link to={`/tasks/${task.id}`}>
-                        <Button variant="outline" size="sm">
-                          <FileText className="w-4 h-4 mr-2" />
-                          查看详情
-                        </Button>
-                      </Link>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4 font-mono">
+                    <div className="text-center p-2 bg-gray-50 border border-gray-200">
+                      <p className="text-2xl font-bold">{task.total_files}</p>
+                      <p className="text-xs text-gray-500 uppercase">总文件数</p>
                     </div>
-                  </CardContent>
-                </Card>
+                    <div className="text-center p-2 bg-gray-50 border border-gray-200">
+                      <p className="text-2xl font-bold">{task.total_lines}</p>
+                      <p className="text-xs text-gray-500 uppercase">代码行数</p>
+                    </div>
+                    <div className="text-center p-2 bg-gray-50 border border-gray-200">
+                      <p className="text-2xl font-bold text-orange-600">{task.issues_count}</p>
+                      <p className="text-xs text-gray-500 uppercase">发现问题</p>
+                    </div>
+                    <div className="text-center p-2 bg-gray-50 border border-gray-200">
+                      <p className="text-2xl font-bold text-primary">{task.quality_score.toFixed(1)}</p>
+                      <p className="text-xs text-gray-500 uppercase">质量评分</p>
+                    </div>
+                  </div>
+
+                  {task.status === 'completed' && (
+                    <div className="space-y-2 mb-4">
+                      <div className="flex items-center justify-between text-sm font-mono font-bold">
+                        <span>质量评分</span>
+                        <span>{task.quality_score.toFixed(1)}/100</span>
+                      </div>
+                      <Progress value={task.quality_score} className="h-3 border-2 border-black rounded-none bg-gray-100 [&>div]:bg-primary" />
+                    </div>
+                  )}
+
+                  <div className="flex justify-end space-x-2 mt-4 pt-4 border-t-2 border-black">
+                    <Link to={`/tasks/${task.id}`}>
+                      <Button variant="outline" size="sm" className="retro-btn bg-white text-black hover:bg-gray-100">
+                        <FileText className="w-4 h-4 mr-2" />
+                        查看详情
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
               ))}
             </div>
           ) : (
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center py-12">
-                <Activity className="w-16 h-16 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-medium text-muted-foreground mb-2">暂无审计任务</h3>
-                <p className="text-sm text-muted-foreground mb-4">创建第一个审计任务开始代码质量分析</p>
-                <Button onClick={handleCreateTask}>
-                  <Play className="w-4 h-4 mr-2" />
-                  创建任务
-                </Button>
-              </CardContent>
-            </Card>
+            <div className="retro-card bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-12 flex flex-col items-center justify-center">
+              <Activity className="w-16 h-16 text-gray-400 mb-4" />
+              <h3 className="text-lg font-bold text-gray-600 mb-2 uppercase">暂无审计任务</h3>
+              <p className="text-sm text-gray-500 mb-6 font-mono">创建第一个审计任务开始代码质量分析</p>
+              <Button onClick={handleCreateTask} className="retro-btn bg-primary text-white hover:bg-primary/90">
+                <Play className="w-4 h-4 mr-2" />
+                创建任务
+              </Button>
+            </div>
           )}
         </TabsContent>
 
-        <TabsContent value="issues" className="space-y-6">
-          <div className="text-center py-12">
-            <AlertTriangle className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-muted-foreground mb-2">问题管理</h3>
-            <p className="text-sm text-muted-foreground">此功能正在开发中</p>
+        <TabsContent value="issues" className="space-y-6 mt-6">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-display font-bold uppercase">最新发现的问题</h3>
+            {tasks.length > 0 && (
+              <p className="text-sm text-gray-500 font-mono">
+                来自最近一次审计 ({formatDate(tasks[0].created_at)})
+              </p>
+            )}
           </div>
+
+          {loadingIssues ? (
+            <div className="text-center py-12">
+              <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
+              <p className="text-gray-500 font-mono">正在加载问题列表...</p>
+            </div>
+          ) : latestIssues.length > 0 ? (
+            <div className="space-y-4">
+              {latestIssues.map((issue, index) => (
+                <div key={index} className="retro-card bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-4 hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start space-x-3">
+                      <div className={`w-8 h-8 border-2 border-black flex items-center justify-center shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ${issue.severity === 'critical' ? 'bg-red-500 text-white' :
+                        issue.severity === 'high' ? 'bg-orange-500 text-white' :
+                          issue.severity === 'medium' ? 'bg-yellow-400 text-black' :
+                            'bg-blue-400 text-white'
+                        }`}>
+                        <AlertTriangle className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-base text-black mb-1 font-mono uppercase">{issue.title}</h4>
+                        <div className="flex items-center space-x-2 text-xs text-gray-600 font-mono">
+                          <span className="bg-gray-100 px-1 border border-gray-300">{issue.file_path}:{issue.line_number}</span>
+                          <span>{issue.category}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <Badge className={`rounded-none border-2 border-black ${issue.severity === 'critical' ? 'bg-red-100 text-red-800' :
+                      issue.severity === 'high' ? 'bg-orange-100 text-orange-800' :
+                        issue.severity === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-blue-100 text-blue-800'
+                      } font-bold uppercase`}>
+                      {issue.severity === 'critical' ? '严重' :
+                        issue.severity === 'high' ? '高' :
+                          issue.severity === 'medium' ? '中等' : '低'}
+                    </Badge>
+                  </div>
+                  <p className="mt-3 text-sm text-gray-700 font-mono border-t-2 border-dashed border-gray-200 pt-2">
+                    {issue.description}
+                  </p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="retro-card bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-12 flex flex-col items-center justify-center">
+              <CheckCircle className="w-16 h-16 text-green-500 mb-4" />
+              <h3 className="text-lg font-bold text-gray-600 mb-2 uppercase">未发现问题</h3>
+              <p className="text-sm text-gray-500 font-mono">最近一次审计未发现明显问题，或尚未进行审计。</p>
+            </div>
+          )}
         </TabsContent>
 
-        <TabsContent value="settings" className="space-y-6">
-          <div className="text-center py-12">
-            <Edit className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-muted-foreground mb-2">项目编辑</h3>
-            <p className="text-sm text-muted-foreground">此功能正在开发中</p>
+        <TabsContent value="settings" className="space-y-6 mt-6">
+          <div className="retro-card bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-6">
+            <div className="pb-4 border-b-2 border-black mb-6">
+              <h3 className="text-lg font-display font-bold uppercase flex items-center">
+                <Edit className="w-5 h-5 mr-2" />
+                编辑项目配置
+              </h3>
+            </div>
+
+            <div className="space-y-6">
+              {/* 基本信息 */}
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="edit-name" className="font-bold font-mono uppercase">项目名称 *</Label>
+                  <Input
+                    id="edit-name"
+                    value={editForm.name}
+                    onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                    placeholder="输入项目名称"
+                    className="retro-input mt-1"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="edit-description" className="font-bold font-mono uppercase">项目描述</Label>
+                  <Textarea
+                    id="edit-description"
+                    value={editForm.description}
+                    onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                    placeholder="输入项目描述"
+                    rows={3}
+                    className="retro-input mt-1 min-h-[80px]"
+                  />
+                </div>
+              </div>
+
+              {/* 仓库信息 */}
+              <div className="space-y-4 border-t-2 border-dashed border-gray-300 pt-4">
+                <h3 className="text-sm font-bold font-mono uppercase text-gray-900 bg-gray-100 inline-block px-2 border border-black">仓库信息</h3>
+
+                <div>
+                  <Label htmlFor="edit-repo-url" className="font-bold font-mono uppercase">仓库地址</Label>
+                  <Input
+                    id="edit-repo-url"
+                    value={editForm.repository_url}
+                    onChange={(e) => setEditForm({ ...editForm, repository_url: e.target.value })}
+                    placeholder="https://github.com/username/repo"
+                    className="retro-input mt-1"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="edit-repo-type" className="font-bold font-mono uppercase">仓库类型</Label>
+                    <Select
+                      value={editForm.repository_type}
+                      onValueChange={(value: any) => setEditForm({ ...editForm, repository_type: value })}
+                    >
+                      <SelectTrigger id="edit-repo-type" className="retro-input mt-1 rounded-none border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] focus:ring-0">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-none border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                        <SelectItem value="github">GitHub</SelectItem>
+                        <SelectItem value="gitlab">GitLab</SelectItem>
+                        <SelectItem value="other">其他</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="edit-branch" className="font-bold font-mono uppercase">默认分支</Label>
+                    <Input
+                      id="edit-branch"
+                      value={editForm.default_branch}
+                      onChange={(e) => setEditForm({ ...editForm, default_branch: e.target.value })}
+                      placeholder="main"
+                      className="retro-input mt-1"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* 编程语言 */}
+              <div className="space-y-4 border-t-2 border-dashed border-gray-300 pt-4">
+                <h3 className="text-sm font-bold font-mono uppercase text-gray-900 bg-gray-100 inline-block px-2 border border-black">编程语言</h3>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {supportedLanguages.map((lang) => (
+                    <div
+                      key={lang}
+                      className={`flex items-center space-x-2 p-3 border-2 cursor-pointer transition-all hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-1px] hover:translate-y-[-1px] ${editForm.programming_languages?.includes(lang)
+                        ? 'border-black bg-yellow-50 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]'
+                        : 'border-gray-300 hover:border-black'
+                        }`}
+                      onClick={() => handleToggleLanguage(lang)}
+                    >
+                      <div
+                        className={`w-4 h-4 border-2 flex items-center justify-center ${editForm.programming_languages?.includes(lang)
+                          ? 'bg-black border-black'
+                          : 'border-gray-400 bg-white'
+                          }`}
+                      >
+                        {editForm.programming_languages?.includes(lang) && (
+                          <CheckCircle className="w-3 h-3 text-white" />
+                        )}
+                      </div>
+                      <span className="text-sm font-bold font-mono">{lang}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex justify-end space-x-3 pt-6 border-t-2 border-black">
+                <Button onClick={handleSaveSettings} className="retro-btn bg-primary text-white hover:bg-primary/90 w-full md:w-auto">
+                  <Edit className="w-4 h-4 mr-2" />
+                  保存修改
+                </Button>
+              </div>
+            </div>
           </div>
         </TabsContent>
       </Tabs>
@@ -614,125 +814,6 @@ export default function ProjectDetail() {
         taskId={currentTaskId}
         taskType="repository"
       />
-
-      {/* 项目编辑对话框 */}
-      <Dialog open={showSettingsDialog} onOpenChange={setShowSettingsDialog}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>编辑项目</DialogTitle>
-          </DialogHeader>
-
-          <div className="space-y-6 py-4">
-            {/* 基本信息 */}
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="edit-name">项目名称 *</Label>
-                <Input
-                  id="edit-name"
-                  value={editForm.name}
-                  onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                  placeholder="输入项目名称"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="edit-description">项目描述</Label>
-                <Textarea
-                  id="edit-description"
-                  value={editForm.description}
-                  onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
-                  placeholder="输入项目描述"
-                  rows={3}
-                />
-              </div>
-            </div>
-
-            {/* 仓库信息 */}
-            <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-gray-900">仓库信息</h3>
-              
-              <div>
-                <Label htmlFor="edit-repo-url">仓库地址</Label>
-                <Input
-                  id="edit-repo-url"
-                  value={editForm.repository_url}
-                  onChange={(e) => setEditForm({ ...editForm, repository_url: e.target.value })}
-                  placeholder="https://github.com/username/repo"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="edit-repo-type">仓库类型</Label>
-                  <Select
-                    value={editForm.repository_type}
-                    onValueChange={(value: any) => setEditForm({ ...editForm, repository_type: value })}
-                  >
-                    <SelectTrigger id="edit-repo-type">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="github">GitHub</SelectItem>
-                      <SelectItem value="gitlab">GitLab</SelectItem>
-                      <SelectItem value="other">其他</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label htmlFor="edit-branch">默认分支</Label>
-                  <Input
-                    id="edit-branch"
-                    value={editForm.default_branch}
-                    onChange={(e) => setEditForm({ ...editForm, default_branch: e.target.value })}
-                    placeholder="main"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* 编程语言 */}
-            <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-gray-900">编程语言</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {supportedLanguages.map((lang) => (
-                  <div
-                    key={lang}
-                    className={`flex items-center space-x-2 p-3 rounded-lg border cursor-pointer transition-all ${
-                      editForm.programming_languages?.includes(lang)
-                        ? 'border-primary bg-red-50'
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                    onClick={() => handleToggleLanguage(lang)}
-                  >
-                    <div
-                      className={`w-4 h-4 rounded border flex items-center justify-center ${
-                        editForm.programming_languages?.includes(lang)
-                          ? 'bg-primary border-primary'
-                          : 'border-gray-300'
-                      }`}
-                    >
-                      {editForm.programming_languages?.includes(lang) && (
-                        <CheckCircle className="w-3 h-3 text-white" />
-                      )}
-                    </div>
-                    <span className="text-sm font-medium">{lang}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div className="flex justify-end space-x-3 pt-4 border-t">
-            <Button variant="outline" onClick={() => setShowSettingsDialog(false)}>
-              取消
-            </Button>
-            <Button onClick={handleSaveSettings}>
-              保存修改
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

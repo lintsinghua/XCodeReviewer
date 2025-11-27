@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
@@ -397,28 +397,28 @@ class UserManager {
     return { task: tempTask, issues: tempIssues };
   };
 
-  // 渲染问题的函数，使用紧凑样式
+  // 渲染问题的函数，使用复古样式
   const renderIssue = (issue: any, index: number) => (
-    <div key={index} className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md hover:border-gray-300 transition-all duration-200 group">
-      <div className="flex items-start justify-between mb-3">
+    <div key={index} className="retro-card bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-4 mb-4 hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all">
+      <div className="flex items-start justify-between mb-3 pb-3 border-b-2 border-dashed border-gray-300">
         <div className="flex items-start space-x-3">
-          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${issue.severity === 'critical' ? 'bg-red-100 text-red-600' :
-            issue.severity === 'high' ? 'bg-orange-100 text-orange-600' :
-              issue.severity === 'medium' ? 'bg-yellow-100 text-yellow-600' :
-                'bg-blue-100 text-blue-600'
+          <div className={`w-8 h-8 border-2 border-black flex items-center justify-center shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ${issue.severity === 'critical' ? 'bg-red-500 text-white' :
+            issue.severity === 'high' ? 'bg-orange-500 text-white' :
+              issue.severity === 'medium' ? 'bg-yellow-400 text-black' :
+                'bg-blue-400 text-white'
             }`}>
             {getTypeIcon(issue.type)}
           </div>
           <div className="flex-1">
-            <h4 className="font-semibold text-base text-gray-900 mb-1 group-hover:text-gray-700 transition-colors">{issue.title}</h4>
-            <div className="flex items-center space-x-1 text-xs text-gray-600">
+            <h4 className="font-bold text-base text-black mb-1 font-mono uppercase">{issue.title}</h4>
+            <div className="flex items-center space-x-1 text-xs text-gray-600 font-mono">
               <span>📍</span>
               <span>第 {issue.line} 行</span>
               {issue.column && <span>，第 {issue.column} 列</span>}
             </div>
           </div>
         </div>
-        <Badge className={`${getSeverityColor(issue.severity)} px-2 py-1 text-xs font-medium`}>
+        <Badge className={`rounded-none border-2 border-black ${getSeverityColor(issue.severity)} font-bold uppercase`}>
           {issue.severity === 'critical' ? '严重' :
             issue.severity === 'high' ? '高' :
               issue.severity === 'medium' ? '中等' : '低'}
@@ -426,46 +426,43 @@ class UserManager {
       </div>
 
       {issue.description && (
-        <div className="bg-white border border-gray-200 rounded-lg p-3 mb-3">
-          <div className="flex items-center mb-1">
-            <Info className="w-3 h-3 text-gray-600 mr-1" />
-            <span className="font-medium text-gray-800 text-xs">问题详情</span>
+        <div className="bg-gray-50 border-2 border-black p-3 mb-3 font-mono text-xs">
+          <div className="flex items-center mb-1 border-b-2 border-black pb-1 w-fit">
+            <Info className="w-3 h-3 text-black mr-1" />
+            <span className="font-bold text-black uppercase">问题详情</span>
           </div>
-          <p className="text-gray-700 text-xs leading-relaxed">
+          <p className="text-gray-800 leading-relaxed mt-2">
             {issue.description}
           </p>
         </div>
       )}
 
       {issue.code_snippet && (
-        <div className="bg-gray-900 rounded-lg p-3 mb-3 border border-gray-700">
-          <div className="flex items-center justify-between mb-2">
+        <div className="bg-black text-green-400 p-3 mb-3 border-2 border-gray-800 font-mono text-xs relative overflow-hidden">
+          <div className="absolute top-0 right-0 bg-gray-800 text-white px-2 py-0.5 text-[10px] uppercase">Code</div>
+          <div className="flex items-center justify-between mb-2 border-b border-gray-800 pb-1">
             <div className="flex items-center space-x-1">
-              <div className="w-4 h-4 bg-red-600 rounded flex items-center justify-center">
-                <Code className="w-2 h-2 text-white" />
-              </div>
-              <span className="text-gray-300 text-xs font-medium">问题代码</span>
+              <Code className="w-3 h-3 text-green-500" />
+              <span className="text-gray-400 font-bold uppercase">问题代码</span>
             </div>
-            <span className="text-gray-400 text-xs">第 {issue.line} 行</span>
+            <span className="text-gray-500">Line {issue.line}</span>
           </div>
-          <div className="bg-black/40 rounded p-2">
-            <pre className="text-xs text-gray-100 overflow-x-auto">
-              <code>{issue.code_snippet}</code>
-            </pre>
-          </div>
+          <pre className="overflow-x-auto">
+            <code>{issue.code_snippet}</code>
+          </pre>
         </div>
       )}
 
-      <div className="space-y-2">
+      <div className="space-y-3">
         {issue.suggestion && (
-          <div className="bg-white border border-blue-200 rounded-lg p-3 shadow-sm">
+          <div className="bg-blue-50 border-2 border-black p-3 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
             <div className="flex items-center mb-2">
-              <div className="w-5 h-5 bg-blue-600 rounded flex items-center justify-center mr-2">
-                <Lightbulb className="w-3 h-3 text-white" />
+              <div className="w-5 h-5 bg-blue-600 border-2 border-black flex items-center justify-center mr-2 text-white">
+                <Lightbulb className="w-3 h-3" />
               </div>
-              <span className="font-medium text-blue-800 text-sm">修复建议</span>
+              <span className="font-bold text-blue-900 text-sm uppercase font-mono">修复建议</span>
             </div>
-            <p className="text-blue-700 text-xs leading-relaxed">{issue.suggestion}</p>
+            <p className="text-blue-900 text-xs leading-relaxed font-mono">{issue.suggestion}</p>
           </div>
         )}
 
@@ -474,44 +471,44 @@ class UserManager {
 
           if (parsedExplanation) {
             return (
-              <div className="bg-white border border-red-200 rounded-lg p-3 shadow-sm">
+              <div className="bg-red-50 border-2 border-black p-3 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                 <div className="flex items-center mb-2">
-                  <div className="w-5 h-5 bg-red-600 rounded flex items-center justify-center mr-2">
-                    <Zap className="w-3 h-3 text-white" />
+                  <div className="w-5 h-5 bg-red-600 border-2 border-black flex items-center justify-center mr-2 text-white">
+                    <Zap className="w-3 h-3" />
                   </div>
-                  <span className="font-medium text-red-800 text-sm">AI 解释</span>
+                  <span className="font-bold text-red-900 text-sm uppercase font-mono">AI 解释</span>
                 </div>
 
-                <div className="space-y-2 text-xs">
+                <div className="space-y-2 text-xs font-mono">
                   {parsedExplanation.what && (
-                    <div className="border-l-2 border-red-600 pl-2">
-                      <span className="font-medium text-red-700">问题：</span>
-                      <span className="text-gray-700 ml-1">{parsedExplanation.what}</span>
+                    <div className="border-l-4 border-red-600 pl-2">
+                      <span className="font-bold text-red-900 uppercase block mb-1">问题：</span>
+                      <span className="text-gray-800">{parsedExplanation.what}</span>
                     </div>
                   )}
 
                   {parsedExplanation.why && (
-                    <div className="border-l-2 border-gray-600 pl-2">
-                      <span className="font-medium text-gray-700">原因：</span>
-                      <span className="text-gray-700 ml-1">{parsedExplanation.why}</span>
+                    <div className="border-l-4 border-gray-600 pl-2">
+                      <span className="font-bold text-gray-900 uppercase block mb-1">原因：</span>
+                      <span className="text-gray-800">{parsedExplanation.why}</span>
                     </div>
                   )}
 
                   {parsedExplanation.how && (
-                    <div className="border-l-2 border-black pl-2">
-                      <span className="font-medium text-black">方案：</span>
-                      <span className="text-gray-700 ml-1">{parsedExplanation.how}</span>
+                    <div className="border-l-4 border-black pl-2">
+                      <span className="font-bold text-black uppercase block mb-1">方案：</span>
+                      <span className="text-gray-800">{parsedExplanation.how}</span>
                     </div>
                   )}
 
                   {parsedExplanation.learn_more && (
-                    <div className="border-l-2 border-red-400 pl-2">
-                      <span className="font-medium text-red-600">链接：</span>
+                    <div className="border-l-4 border-blue-400 pl-2">
+                      <span className="font-bold text-blue-900 uppercase block mb-1">链接：</span>
                       <a
                         href={parsedExplanation.learn_more}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-red-600 hover:text-red-800 hover:underline ml-1"
+                        className="text-blue-700 hover:text-blue-900 hover:underline break-all"
                       >
                         {parsedExplanation.learn_more}
                       </a>
@@ -523,12 +520,12 @@ class UserManager {
           } else {
             // 如果无法解析JSON，回退到原始显示方式
             return (
-              <div className="bg-white border border-red-200 rounded-lg p-3">
+              <div className="bg-red-50 border-2 border-black p-3 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                 <div className="flex items-center mb-2">
                   <Zap className="w-4 h-4 text-red-600 mr-2" />
-                  <span className="font-medium text-red-800 text-sm">AI 解释</span>
+                  <span className="font-bold text-red-900 text-sm uppercase font-mono">AI 解释</span>
                 </div>
-                <p className="text-gray-700 text-xs leading-relaxed">{issue.ai_explanation}</p>
+                <p className="text-gray-800 text-xs leading-relaxed font-mono">{issue.ai_explanation}</p>
               </div>
             );
           }
@@ -538,35 +535,37 @@ class UserManager {
   );
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-6 animate-fade-in font-mono">
       {/* 页面标题 */}
-      <div>
-        <h1 className="page-title">即时代码分析</h1>
-        <p className="page-subtitle">快速分析代码片段，发现潜在问题并获得修复建议</p>
+      <div className="border-b-4 border-black pb-6 bg-white/50 backdrop-blur-sm p-4 retro-border">
+        <h1 className="text-3xl font-display font-bold text-black uppercase tracking-tighter">即时代码分析</h1>
+        <p className="text-gray-600 mt-1 font-mono border-l-2 border-primary pl-2">快速分析代码片段，发现潜在问题并获得修复建议</p>
       </div>
 
       {/* 代码输入区域 */}
-      <Card className="card-modern">
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-base">代码分析</CardTitle>
-            {result && (
-              <Button variant="outline" onClick={clearAnalysis} size="sm">
-                <X className="w-4 h-4 mr-2" />
-                重新分析
-              </Button>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-3">
+      <div className="retro-card bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-0">
+        <div className="p-4 border-b-2 border-black bg-gray-50 flex items-center justify-between">
+          <h3 className="text-lg font-display font-bold uppercase flex items-center">
+            <Code className="w-5 h-5 mr-2" />
+            代码分析
+          </h3>
+          {result && (
+            <Button variant="outline" onClick={clearAnalysis} size="sm" className="retro-btn bg-white text-black hover:bg-gray-100 h-8">
+              <X className="w-4 h-4 mr-2" />
+              重新分析
+            </Button>
+          )}
+        </div>
+
+        <div className="p-6 space-y-4">
           {/* 工具栏 */}
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="flex-1">
               <Select value={language} onValueChange={setLanguage}>
-                <SelectTrigger className="h-9">
+                <SelectTrigger className="h-10 retro-input rounded-none border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] focus:ring-0">
                   <SelectValue placeholder="选择编程语言" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="rounded-none border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
                   {supportedLanguages.map((lang) => (
                     <SelectItem key={lang} value={lang}>
                       {lang.charAt(0).toUpperCase() + lang.slice(1)}
@@ -579,9 +578,9 @@ class UserManager {
               variant="outline"
               onClick={() => fileInputRef.current?.click()}
               disabled={analyzing}
-              size="sm"
+              className="retro-btn bg-white text-black hover:bg-gray-100 h-10"
             >
-              <Upload className="w-3 h-3 mr-1" />
+              <Upload className="w-4 h-4 mr-2" />
               上传文件
             </Button>
             <input
@@ -594,14 +593,14 @@ class UserManager {
           </div>
 
           {/* 快速示例 */}
-          <div className="flex flex-wrap gap-2 items-center">
-            <span className="text-xs text-gray-600">示例：</span>
+          <div className="flex flex-wrap gap-2 items-center p-2 bg-gray-50 border-2 border-dashed border-gray-300">
+            <span className="text-xs font-bold uppercase text-gray-600 mr-2">示例：</span>
             <Button
               variant="outline"
               size="sm"
               onClick={() => loadExampleCode('javascript')}
               disabled={analyzing}
-              className="h-7 px-2 text-xs"
+              className="h-7 px-2 text-xs retro-btn bg-white hover:bg-yellow-100"
             >
               JavaScript
             </Button>
@@ -610,7 +609,7 @@ class UserManager {
               size="sm"
               onClick={() => loadExampleCode('python')}
               disabled={analyzing}
-              className="h-7 px-2 text-xs"
+              className="h-7 px-2 text-xs retro-btn bg-white hover:bg-blue-100"
             >
               Python
             </Button>
@@ -619,7 +618,7 @@ class UserManager {
               size="sm"
               onClick={() => loadExampleCode('java')}
               disabled={analyzing}
-              className="h-7 px-2 text-xs"
+              className="h-7 px-2 text-xs retro-btn bg-white hover:bg-red-100"
             >
               Java
             </Button>
@@ -628,7 +627,7 @@ class UserManager {
               size="sm"
               onClick={() => loadExampleCode('swift')}
               disabled={analyzing}
-              className="h-7 px-2 text-xs"
+              className="h-7 px-2 text-xs retro-btn bg-white hover:bg-orange-100"
             >
               Swift
             </Button>
@@ -637,22 +636,25 @@ class UserManager {
               size="sm"
               onClick={() => loadExampleCode('kotlin')}
               disabled={analyzing}
-              className="h-7 px-2 text-xs"
+              className="h-7 px-2 text-xs retro-btn bg-white hover:bg-purple-100"
             >
               Kotlin
             </Button>
           </div>
 
           {/* 代码编辑器 */}
-          <div>
+          <div className="relative">
+            <div className="absolute top-0 right-0 bg-black text-white px-2 py-1 text-xs font-mono uppercase z-10 border-l-2 border-b-2 border-white">
+              Editor
+            </div>
             <Textarea
               placeholder="粘贴代码或上传文件..."
               value={code}
               onChange={(e) => setCode(e.target.value)}
-              className="min-h-[250px] font-mono text-sm"
+              className="min-h-[300px] font-mono text-sm retro-input bg-gray-900 text-green-400 border-2 border-black p-4 focus:ring-0 focus:border-primary"
               disabled={analyzing}
             />
-            <div className="text-xs text-gray-500 mt-1">
+            <div className="text-xs text-gray-500 mt-1 font-mono text-right">
               {code.length} 字符，{code.split('\n').length} 行
             </div>
           </div>
@@ -661,176 +663,174 @@ class UserManager {
           <Button
             onClick={handleAnalyze}
             disabled={!code.trim() || !language || analyzing}
-            className="w-full btn-primary"
+            className="w-full retro-btn bg-primary text-white hover:bg-primary/90 h-12 text-lg font-bold uppercase"
           >
             {analyzing ? (
               <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                <div className="animate-spin rounded-none h-5 w-5 border-4 border-white border-t-transparent mr-3"></div>
                 分析中...
               </>
             ) : (
               <>
-                <Zap className="w-4 h-4 mr-2" />
+                <Zap className="w-5 h-5 mr-2" />
                 开始分析
               </>
             )}
           </Button>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* 分析结果区域 */}
       {result && (
-        <div className="space-y-4">
+        <div className="space-y-6">
           {/* 结果概览 */}
-          <Card className="card-modern">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center text-base">
-                  <CheckCircle className="w-5 h-5 mr-2 text-green-600" />
-                  分析结果
-                </CardTitle>
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="text-xs">
-                    <Clock className="w-3 h-3 mr-1" />
-                    {analysisTime.toFixed(2)}s
-                  </Badge>
-                  <Badge variant="outline" className="text-xs">
-                    {language.charAt(0).toUpperCase() + language.slice(1)}
-                  </Badge>
+          <div className="retro-card bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-0">
+            <div className="p-4 border-b-2 border-black bg-gray-50 flex items-center justify-between">
+              <h3 className="text-lg font-display font-bold uppercase flex items-center">
+                <CheckCircle className="w-5 h-5 mr-2 text-green-600" />
+                分析结果
+              </h3>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="rounded-none border-black bg-white text-xs font-mono">
+                  <Clock className="w-3 h-3 mr-1" />
+                  {analysisTime.toFixed(2)}s
+                </Badge>
+                <Badge variant="outline" className="rounded-none border-black bg-white text-xs font-mono uppercase">
+                  {language}
+                </Badge>
 
-                  {/* 导出按钮 */}
-                  <Button
-                    size="sm"
-                    onClick={() => setExportDialogOpen(true)}
-                    className="btn-primary"
-                  >
-                    <Download className="w-4 h-4 mr-2" />
-                    导出报告
-                  </Button>
-                </div>
+                {/* 导出按钮 */}
+                <Button
+                  size="sm"
+                  onClick={() => setExportDialogOpen(true)}
+                  className="retro-btn bg-primary text-white hover:bg-primary/90 h-8"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  导出报告
+                </Button>
               </div>
-            </CardHeader>
-            <CardContent>
+            </div>
+            <div className="p-6">
               {/* 核心指标 */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                <div className="text-center p-4 bg-white rounded-lg border border-red-200">
-                  <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center mx-auto mb-3">
-                    <Target className="w-6 h-6 text-white" />
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 font-mono">
+                <div className="text-center p-4 bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                  <div className="w-12 h-12 bg-primary border-2 border-black flex items-center justify-center mx-auto mb-3 text-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                    <Target className="w-6 h-6" />
                   </div>
-                  <div className="text-2xl font-bold text-primary mb-1">
+                  <div className="text-3xl font-bold text-primary mb-1">
                     {result.quality_score.toFixed(1)}
                   </div>
-                  <p className="text-xs font-medium text-primary/80 mb-2">质量评分</p>
-                  <Progress value={result.quality_score} className="h-1" />
+                  <p className="text-xs font-bold text-gray-600 uppercase mb-2">质量评分</p>
+                  <Progress value={result.quality_score} className="h-2 border-2 border-black rounded-none bg-gray-200 [&>div]:bg-primary" />
                 </div>
 
-                <div className="text-center p-4 bg-white rounded-lg border border-red-200">
-                  <div className="w-12 h-12 bg-red-600 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <AlertTriangle className="w-6 h-6 text-white" />
+                <div className="text-center p-4 bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                  <div className="w-12 h-12 bg-red-600 border-2 border-black flex items-center justify-center mx-auto mb-3 text-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                    <AlertTriangle className="w-6 h-6" />
                   </div>
-                  <div className="text-2xl font-bold text-red-600 mb-1">
+                  <div className="text-3xl font-bold text-red-600 mb-1">
                     {result.summary.critical_issues + result.summary.high_issues}
                   </div>
-                  <p className="text-xs font-medium text-red-700 mb-1">严重问题</p>
-                  <div className="text-xs text-red-600">需要立即处理</div>
+                  <p className="text-xs font-bold text-red-700 uppercase mb-1">严重问题</p>
+                  <div className="text-xs text-red-600 font-bold uppercase">需要立即处理</div>
                 </div>
 
-                <div className="text-center p-4 bg-white rounded-lg border border-yellow-200">
-                  <div className="w-12 h-12 bg-yellow-600 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <Info className="w-6 h-6 text-white" />
+                <div className="text-center p-4 bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                  <div className="w-12 h-12 bg-yellow-400 border-2 border-black flex items-center justify-center mx-auto mb-3 text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                    <Info className="w-6 h-6" />
                   </div>
-                  <div className="text-2xl font-bold text-yellow-600 mb-1">
+                  <div className="text-3xl font-bold text-yellow-600 mb-1">
                     {result.summary.medium_issues + result.summary.low_issues}
                   </div>
-                  <p className="text-xs font-medium text-yellow-700 mb-1">一般问题</p>
-                  <div className="text-xs text-yellow-600">建议优化</div>
+                  <p className="text-xs font-bold text-yellow-700 uppercase mb-1">一般问题</p>
+                  <div className="text-xs text-yellow-600 font-bold uppercase">建议优化</div>
                 </div>
 
-                <div className="text-center p-4 bg-white rounded-lg border border-green-200">
-                  <div className="w-12 h-12 bg-green-600 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <FileText className="w-6 h-6 text-white" />
+                <div className="text-center p-4 bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                  <div className="w-12 h-12 bg-green-600 border-2 border-black flex items-center justify-center mx-auto mb-3 text-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                    <FileText className="w-6 h-6" />
                   </div>
-                  <div className="text-2xl font-bold text-green-600 mb-1">
+                  <div className="text-3xl font-bold text-green-600 mb-1">
                     {result.issues.length}
                   </div>
-                  <p className="text-xs font-medium text-green-700 mb-1">总问题数</p>
-                  <div className="text-xs text-green-600">已全部识别</div>
+                  <p className="text-xs font-bold text-green-700 uppercase mb-1">总问题数</p>
+                  <div className="text-xs text-green-600 font-bold uppercase">已全部识别</div>
                 </div>
               </div>
 
               {/* 详细指标 */}
-              <div className="bg-gray-50 rounded-lg p-4">
-                <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center">
-                  <TrendingUp className="w-4 h-4 mr-1" />
+              <div className="bg-gray-50 border-2 border-black p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                <h3 className="text-sm font-bold text-black uppercase mb-4 flex items-center font-mono border-b-2 border-black pb-2 w-fit">
+                  <TrendingUp className="w-4 h-4 mr-2" />
                   详细指标
                 </h3>
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 font-mono">
                   <div className="text-center">
-                    <div className="text-lg font-bold text-gray-900 mb-1">{result.metrics.complexity}</div>
-                    <p className="text-xs text-gray-600 mb-2">复杂度</p>
-                    <Progress value={result.metrics.complexity} className="h-1" />
+                    <div className="text-xl font-bold text-black mb-1">{result.metrics.complexity}</div>
+                    <p className="text-xs text-gray-600 uppercase mb-2">复杂度</p>
+                    <Progress value={result.metrics.complexity} className="h-2 border-2 border-black rounded-none bg-gray-200 [&>div]:bg-black" />
                   </div>
                   <div className="text-center">
-                    <div className="text-lg font-bold text-gray-900 mb-1">{result.metrics.maintainability}</div>
-                    <p className="text-xs text-gray-600 mb-2">可维护性</p>
-                    <Progress value={result.metrics.maintainability} className="h-1" />
+                    <div className="text-xl font-bold text-black mb-1">{result.metrics.maintainability}</div>
+                    <p className="text-xs text-gray-600 uppercase mb-2">可维护性</p>
+                    <Progress value={result.metrics.maintainability} className="h-2 border-2 border-black rounded-none bg-gray-200 [&>div]:bg-black" />
                   </div>
                   <div className="text-center">
-                    <div className="text-lg font-bold text-gray-900 mb-1">{result.metrics.security}</div>
-                    <p className="text-xs text-gray-600 mb-2">安全性</p>
-                    <Progress value={result.metrics.security} className="h-1" />
+                    <div className="text-xl font-bold text-black mb-1">{result.metrics.security}</div>
+                    <p className="text-xs text-gray-600 uppercase mb-2">安全性</p>
+                    <Progress value={result.metrics.security} className="h-2 border-2 border-black rounded-none bg-gray-200 [&>div]:bg-black" />
                   </div>
                   <div className="text-center">
-                    <div className="text-lg font-bold text-gray-900 mb-1">{result.metrics.performance}</div>
-                    <p className="text-xs text-gray-600 mb-2">性能</p>
-                    <Progress value={result.metrics.performance} className="h-1" />
+                    <div className="text-xl font-bold text-black mb-1">{result.metrics.performance}</div>
+                    <p className="text-xs text-gray-600 uppercase mb-2">性能</p>
+                    <Progress value={result.metrics.performance} className="h-2 border-2 border-black rounded-none bg-gray-200 [&>div]:bg-black" />
                   </div>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
           {/* 问题详情 */}
-          <Card className="card-modern">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center text-base">
+          <div className="retro-card bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-0">
+            <div className="p-4 border-b-2 border-black bg-gray-50">
+              <h3 className="text-lg font-display font-bold uppercase flex items-center">
                 <Shield className="w-5 h-5 mr-2 text-orange-600" />
                 发现的问题 ({result.issues.length})
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
+              </h3>
+            </div>
+            <div className="p-6">
               {result.issues.length > 0 ? (
                 <Tabs defaultValue="all" className="w-full">
-                  <TabsList className="grid w-full grid-cols-4 mb-4">
-                    <TabsTrigger value="all" className="text-xs">
+                  <TabsList className="grid w-full grid-cols-4 mb-6 bg-transparent border-2 border-black p-0 h-auto gap-0">
+                    <TabsTrigger value="all" className="rounded-none border-r-2 border-black data-[state=active]:bg-black data-[state=active]:text-white font-mono font-bold uppercase h-10 text-xs">
                       全部 ({result.issues.length})
                     </TabsTrigger>
-                    <TabsTrigger value="critical" className="text-xs">
+                    <TabsTrigger value="critical" className="rounded-none border-r-2 border-black data-[state=active]:bg-red-600 data-[state=active]:text-white font-mono font-bold uppercase h-10 text-xs">
                       严重 ({result.issues.filter(i => i.severity === 'critical').length})
                     </TabsTrigger>
-                    <TabsTrigger value="high" className="text-xs">
+                    <TabsTrigger value="high" className="rounded-none border-r-2 border-black data-[state=active]:bg-orange-500 data-[state=active]:text-white font-mono font-bold uppercase h-10 text-xs">
                       高 ({result.issues.filter(i => i.severity === 'high').length})
                     </TabsTrigger>
-                    <TabsTrigger value="medium" className="text-xs">
+                    <TabsTrigger value="medium" className="rounded-none data-[state=active]:bg-yellow-400 data-[state=active]:text-black font-mono font-bold uppercase h-10 text-xs">
                       中等 ({result.issues.filter(i => i.severity === 'medium').length})
                     </TabsTrigger>
                   </TabsList>
 
-                  <TabsContent value="all" className="space-y-3 mt-4">
+                  <TabsContent value="all" className="space-y-4 mt-0">
                     {result.issues.map((issue, index) => renderIssue(issue, index))}
                   </TabsContent>
 
                   {['critical', 'high', 'medium'].map(severity => (
-                    <TabsContent key={severity} value={severity} className="space-y-3 mt-4">
+                    <TabsContent key={severity} value={severity} className="space-y-4 mt-0">
                       {result.issues.filter(issue => issue.severity === severity).length > 0 ? (
                         result.issues.filter(issue => issue.severity === severity).map((issue, index) => renderIssue(issue, index))
                       ) : (
-                        <div className="text-center py-12">
+                        <div className="text-center py-12 border-2 border-dashed border-black bg-gray-50">
                           <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
-                          <h3 className="text-lg font-medium text-gray-900 mb-2">
+                          <h3 className="text-lg font-bold text-black uppercase mb-2 font-mono">
                             没有发现{severity === 'critical' ? '严重' : severity === 'high' ? '高优先级' : '中等优先级'}问题
                           </h3>
-                          <p className="text-gray-500">
+                          <p className="text-gray-500 font-mono">
                             代码在此级别的检查中表现良好
                           </p>
                         </div>
@@ -838,47 +838,45 @@ class UserManager {
                     </TabsContent>
                   ))}
                 </Tabs>
-
-
               ) : (
-                <div className="text-center py-16">
-                  <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                <div className="text-center py-16 border-2 border-dashed border-black bg-green-50">
+                  <div className="w-20 h-20 bg-green-100 border-2 border-black flex items-center justify-center mx-auto mb-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
                     <CheckCircle className="w-12 h-12 text-green-600" />
                   </div>
-                  <h3 className="text-2xl font-bold text-green-800 mb-3">代码质量优秀！</h3>
-                  <p className="text-green-600 text-lg mb-6">恭喜！没有发现任何问题</p>
-                  <div className="bg-green-50 rounded-lg p-6 max-w-md mx-auto">
-                    <p className="text-green-700 text-sm">
+                  <h3 className="text-2xl font-display font-bold text-green-800 mb-3 uppercase">代码质量优秀！</h3>
+                  <p className="text-green-700 text-lg mb-6 font-mono font-bold">恭喜！没有发现任何问题</p>
+                  <div className="bg-white border-2 border-black p-6 max-w-md mx-auto shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                    <p className="text-black text-sm font-mono">
                       您的代码通过了所有质量检查，包括安全性、性能、可维护性等各个方面的评估。
                     </p>
                   </div>
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
       )}
 
       {/* 分析进行中状态 */}
       {analyzing && (
-        <Card className="card-modern">
-          <CardContent className="py-16">
+        <div className="retro-card bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-0">
+          <div className="py-16 px-6">
             <div ref={loadingCardRef} className="text-center">
-              <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6">
-                <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent"></div>
+              <div className="w-20 h-20 bg-red-50 border-2 border-black flex items-center justify-center mx-auto mb-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                <div className="animate-spin rounded-none h-12 w-12 border-4 border-primary border-t-transparent"></div>
               </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-3">AI正在分析您的代码</h3>
-              <p className="text-gray-600 text-lg mb-6">请稍候，这通常需要至少30秒钟...</p>
-              <p className="text-gray-600 text-lg mb-6">分析时长取决于您的网络环境、代码长度以及使用的模型等因素</p>
-              <div className="bg-red-50 rounded-lg p-6 max-w-md mx-auto">
-                <p className="text-red-700 text-sm">
+              <h3 className="text-2xl font-display font-bold text-black uppercase mb-3">AI正在分析您的代码</h3>
+              <p className="text-gray-600 text-lg mb-6 font-mono">请稍候，这通常需要至少30秒钟...</p>
+              <p className="text-gray-600 text-sm mb-6 font-mono">分析时长取决于您的网络环境、代码长度以及使用的模型等因素</p>
+              <div className="bg-red-50 border-2 border-black p-6 max-w-md mx-auto shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                <p className="text-red-700 text-sm font-mono font-bold">
                   正在进行安全检测、性能分析、代码风格检查等多维度评估<br />
                   请勿离开页面！
                 </p>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
 
       {/* 导出报告对话框 */}

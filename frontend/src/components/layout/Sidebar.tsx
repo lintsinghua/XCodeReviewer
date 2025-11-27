@@ -13,7 +13,8 @@ import {
     FileText,
     ChevronLeft,
     ChevronRight,
-    Github
+    Github,
+    Terminal
 } from "lucide-react";
 import routes from "@/app/routes";
 
@@ -45,7 +46,7 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
             <Button
                 variant="ghost"
                 size="sm"
-                className="fixed top-4 left-4 z-50 md:hidden bg-white shadow-md border border-gray-200 text-gray-700 hover:bg-gray-50"
+                className="fixed top-4 left-4 z-50 md:hidden bg-white border-2 border-black shadow-retro text-black hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-retro-hover transition-all"
                 onClick={() => setMobileOpen(!mobileOpen)}
             >
                 {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -54,7 +55,7 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
             {/* Overlay for mobile */}
             {mobileOpen && (
                 <div
-                    className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 md:hidden transition-opacity"
+                    className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 md:hidden"
                     onClick={() => setMobileOpen(false)}
                 />
             )}
@@ -62,41 +63,37 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
             {/* Sidebar */}
             <aside
                 className={`
-          fixed top-0 left-0 h-screen bg-white/95 backdrop-blur-xl
-          border-r border-gray-200/80 shadow-[4px_0_24px_-12px_rgba(0,0,0,0.1)]
+          fixed top-0 left-0 h-screen bg-background
+          border-r-2 border-black
           z-40 transition-all duration-300 ease-in-out
           ${collapsed ? "w-20" : "w-64"}
           ${mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
         `}
             >
-                <div className="flex flex-col h-full">
+                <div className="flex flex-col h-full relative">
+                    {/* Decorative Grid Background */}
+                    <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
+
                     {/* Logo Section */}
-                    <div className="relative flex items-center h-[72px] px-4 border-b border-gray-100">
+                    <div className="relative flex items-center h-[72px] px-4 border-b-2 border-black bg-white z-10">
                         <Link
                             to="/"
                             className={`flex items-center space-x-3 group overflow-hidden transition-all duration-300 ${collapsed ? 'justify-center w-full' : ''}`}
                             onClick={() => setMobileOpen(false)}
                         >
-                            <div className="relative flex-shrink-0">
-                                <div className="absolute inset-0 bg-red-500/20 blur-lg rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                                <img
-                                    src="/logo_xcodereviewer.png"
-                                    alt="XCodeReviewer Logo"
-                                    className="w-9 h-9 rounded-xl shadow-sm relative z-10 group-hover:scale-105 transition-transform duration-300"
-                                />
+                            <div className="relative flex-shrink-0 border-2 border-black bg-primary p-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                                <Terminal className="w-6 h-6 text-white" />
                             </div>
                             <div className={`transition-all duration-300 ${collapsed ? 'w-0 opacity-0 overflow-hidden' : 'w-auto opacity-100'}`}>
-                                <span className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-700 group-hover:from-red-700 group-hover:to-red-500 whitespace-nowrap">
-                                    XCodeReviewer
+                                <span className="text-lg font-display font-bold text-black tracking-tighter uppercase">
+                                    XCode<span className="text-primary">Reviewer</span>
                                 </span>
                             </div>
                         </Link>
 
-                        {/* Collapse button for desktop - Absolute Positioned */}
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="hidden md:flex absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-white text-gray-400 hover:text-gray-900 border border-gray-200 shadow-sm z-50 hover:bg-gray-50"
+                        {/* Collapse button for desktop */}
+                        <button
+                            className="hidden md:flex absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-white border-2 border-black items-center justify-center hover:bg-primary hover:text-white transition-colors z-50 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
                             onClick={() => setCollapsed(!collapsed)}
                         >
                             {collapsed ? (
@@ -104,12 +101,12 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
                             ) : (
                                 <ChevronLeft className="w-3 h-3" />
                             )}
-                        </Button>
+                        </button>
                     </div>
 
                     {/* Navigation */}
-                    <nav className="flex-1 overflow-y-auto py-6 px-3">
-                        <div className="space-y-1.5">
+                    <nav className="flex-1 overflow-y-auto py-6 px-3 z-10">
+                        <div className="space-y-2">
                             {visibleRoutes.map((route) => {
                                 const isActive = location.pathname === route.path;
                                 return (
@@ -117,39 +114,37 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
                                         key={route.path}
                                         to={route.path}
                                         className={`
-                      flex items-center space-x-3 px-3 py-2.5 rounded-xl
-                      transition-all duration-200 group relative overflow-hidden
+                      flex items-center space-x-3 px-3 py-3
+                      transition-all duration-200 group relative
+                      border-2 
                       ${isActive
-                                                ? "bg-red-50 text-red-700 font-medium shadow-sm ring-1 ring-red-100"
-                                                : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                                                ? "bg-primary border-black shadow-retro text-white"
+                                                : "bg-transparent border-transparent hover:border-black hover:bg-white hover:shadow-retro-hover text-gray-600 hover:text-black"
                                             }
                     `}
                                         onClick={() => setMobileOpen(false)}
                                         title={collapsed ? route.name : undefined}
                                     >
-                                        {/* Active Indicator Bar */}
-                                        {isActive && (
-                                            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-red-600 rounded-r-full opacity-0 md:opacity-100 transition-opacity" />
-                                        )}
-
                                         {/* Icon */}
                                         <span className={`
                       flex-shrink-0 transition-colors duration-200
-                      ${isActive ? "text-red-600" : "text-gray-400 group-hover:text-gray-600"}
+                      ${isActive ? "text-white" : "text-black group-hover:text-black"}
                     `}>
                                             {routeIcons[route.path] || <LayoutDashboard className="w-5 h-5" />}
                                         </span>
 
                                         {/* Label */}
                                         {!collapsed && (
-                                            <span className="whitespace-nowrap z-10">
+                                            <span className="font-mono font-bold tracking-tight uppercase text-sm">
                                                 {route.name}
                                             </span>
                                         )}
 
-                                        {/* Hover Effect Background (Subtle) */}
-                                        {!isActive && (
-                                            <div className="absolute inset-0 bg-gray-100 opacity-0 group-hover:opacity-100 transition-opacity duration-200 -z-0 rounded-xl" />
+                                        {/* Glitch Effect on Hover (Optional) */}
+                                        {!isActive && !collapsed && (
+                                            <span className="absolute right-2 opacity-0 group-hover:opacity-100 text-xs font-bold text-primary animate-pulse">
+                                                &lt;/&gt;
+                                            </span>
                                         )}
                                     </Link>
                                 );
@@ -158,23 +153,23 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
                     </nav>
 
                     {/* Footer with GitHub Link */}
-                    <div className="p-4 border-t border-gray-100 bg-gray-50/50">
+                    <div className="p-4 border-t-2 border-black bg-white z-10">
                         <a
                             href="https://github.com/lintsinghua/XCodeReviewer"
                             target="_blank"
                             rel="noopener noreferrer"
                             className={`
-                flex items-center space-x-3 px-3 py-2.5 rounded-xl
-                text-gray-500 hover:bg-white hover:text-gray-900 hover:shadow-sm hover:ring-1 hover:ring-gray-200
+                flex items-center space-x-3 px-3 py-2.5
+                text-black border-2 border-transparent hover:border-black hover:shadow-retro-hover hover:bg-white
                 transition-all duration-200 group
               `}
-                            title={collapsed ? "GitHub Repository" : undefined}
+                            title={collapsed ? "GitHub 仓库" : undefined}
                         >
-                            <Github className="w-5 h-5 flex-shrink-0 text-gray-400 group-hover:text-gray-900 transition-colors" />
+                            <Github className="w-5 h-5 flex-shrink-0" />
                             {!collapsed && (
                                 <div className="flex flex-col">
-                                    <span className="font-medium text-sm">GitHub</span>
-                                    <span className="text-xs text-gray-400 group-hover:text-gray-500">View Source</span>
+                                    <span className="font-mono font-bold text-sm uppercase">GitHub</span>
+                                    <span className="text-xs text-gray-500 font-mono">v1.0.0</span>
                                 </div>
                             )}
                         </a>
