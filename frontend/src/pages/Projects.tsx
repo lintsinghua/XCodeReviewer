@@ -665,7 +665,7 @@ export default function Projects() {
                   </div>
 
                   <div className="flex justify-end space-x-4 pt-4 border-t-2 border-dashed border-gray-200 mt-auto">
-                    <Button variant="outline" onClick={() => setShowCreateDialog(false)} className="terminal-btn-primary bg-white text-black hover:bg-gray-100">
+                    <Button variant="outline" onClick={() => setShowCreateDialog(false)} disabled={uploading} className="terminal-btn-primary bg-white text-black hover:bg-gray-100">
                       取消
                     </Button>
                     <Button
@@ -674,12 +674,6 @@ export default function Projects() {
                       disabled={!selectedFile || uploading}
                     >
                       {uploading ? '上传中...' : '执行创建'}
-                    </Button>
-                  </div>
-
-                  <div className="flex justify-end space-x-4 pt-4 border-t-2 border-dashed border-gray-200">
-                    <Button variant="outline" onClick={() => setShowCreateDialog(false)} disabled={uploading} className="terminal-btn-primary bg-white text-black hover:bg-gray-100">
-                      取消
                     </Button>
                   </div>
                 </TabsContent>
