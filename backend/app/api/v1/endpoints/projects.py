@@ -102,9 +102,11 @@ async def read_projects(
     current_user: User = Depends(deps.get_current_user),
 ) -> Any:
     """
-    Retrieve projects.
+    Retrieve projects for current user.
     """
     query = select(Project).options(selectinload(Project.owner))
+    # 只返回当前用户的项目
+    query = query.where(Project.owner_id == current_user.id)
     if not include_deleted:
         query = query.where(Project.is_active == True)
     query = query.order_by(Project.created_at.desc()).offset(skip).limit(limit)
@@ -134,15 +136,26 @@ async def get_stats(
     current_user: User = Depends(deps.get_current_user),
 ) -> Any:
     """
-    Get overall statistics.
+    Get statistics for current user.
     """
-    projects_result = await db.execute(select(Project))
+    # 只统计当前用户的项目
+    projects_result = await db.execute(
+        select(Project).where(Project.owner_id == current_user.id)
+    )
     projects = projects_result.scalars().all()
+    project_ids = [p.id for p in projects]
     
-    tasks_result = await db.execute(select(AuditTask))
+    # 只统计当前用户项目的任务
+    tasks_result = await db.execute(
+        select(AuditTask).where(AuditTask.project_id.in_(project_ids)) if project_ids else select(AuditTask).where(False)
+    )
     tasks = tasks_result.scalars().all()
+    task_ids = [t.id for t in tasks]
     
-    issues_result = await db.execute(select(AuditIssue))
+    # 只统计当前用户任务的问题
+    issues_result = await db.execute(
+        select(AuditIssue).where(AuditIssue.task_id.in_(task_ids)) if task_ids else select(AuditIssue).where(False)
+    )
     issues = issues_result.scalars().all()
     
     return {

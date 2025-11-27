@@ -91,9 +91,17 @@ async def list_tasks(
     current_user: User = Depends(deps.get_current_user),
 ) -> Any:
     """
-    List all tasks, optionally filtered by project.
+    List tasks for current user's projects.
     """
+    # 先获取当前用户的项目ID列表
+    projects_result = await db.execute(
+        select(Project.id).where(Project.owner_id == current_user.id)
+    )
+    user_project_ids = [p[0] for p in projects_result.fetchall()]
+    
     query = select(AuditTask).options(selectinload(AuditTask.project))
+    # 只返回当前用户项目的任务
+    query = query.where(AuditTask.project_id.in_(user_project_ids)) if user_project_ids else query.where(False)
     if project_id:
         query = query.where(AuditTask.project_id == project_id)
     query = query.order_by(AuditTask.created_at.desc())
