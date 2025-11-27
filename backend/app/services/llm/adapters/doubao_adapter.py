@@ -85,3 +85,4 @@ class DoubaoAdapter(BaseLLMAdapter):
     def get_model(self) -> str:
         return self.config.model or "doubao-pro-32k"
 
+

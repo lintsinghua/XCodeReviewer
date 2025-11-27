@@ -82,3 +82,4 @@ class MinimaxAdapter(BaseLLMAdapter):
     def get_model(self) -> str:
         return self.config.model or "abab6.5-chat"
 
+

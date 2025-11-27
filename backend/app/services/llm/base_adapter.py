@@ -132,3 +132,4 @@ class BaseLLMAdapter(ABC):
             await self._client.aclose()
             self._client = None
 
+

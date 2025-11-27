@@ -77,3 +77,4 @@ class MoonshotAdapter(BaseLLMAdapter):
             raise Exception("未指定Moonshot模型")
         return True
 
+

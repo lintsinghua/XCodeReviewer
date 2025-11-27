@@ -77,3 +77,4 @@ class ZhipuAdapter(BaseLLMAdapter):
             raise Exception("未指定智谱AI模型")
         return True
 
+

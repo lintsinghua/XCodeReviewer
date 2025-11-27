@@ -205,7 +205,7 @@ export function SystemConfig() {
         doubaoApiKey: config.doubaoApiKey,
         ollamaBaseUrl: config.ollamaBaseUrl,
       };
-      
+
       const otherConfig = {
         githubToken: config.githubToken,
         gitlabToken: config.gitlabToken,
@@ -219,7 +219,7 @@ export function SystemConfig() {
         llmConfig,
         otherConfig,
       });
-      
+
       setHasChanges(false);
       setConfigSource('runtime');
 
@@ -232,7 +232,7 @@ export function SystemConfig() {
           concurrency: config.llmConcurrency,
           language: config.outputLanguage,
         });
-      }).catch(() => {});
+      }).catch(() => { });
 
       toast.success("配置已保存到后端！刷新页面后生效");
 
@@ -254,7 +254,7 @@ export function SystemConfig() {
       try {
         // 删除后端配置
         await api.deleteUserConfig();
-        
+
         // 重新加载配置（会使用后端默认配置）
         await loadConfig();
         setHasChanges(false);
@@ -262,7 +262,7 @@ export function SystemConfig() {
         // 记录用户操作
         import('@/shared/utils/logger').then(({ logger }) => {
           logger.logUserAction('重置系统配置', { action: 'reset_to_default' });
-        }).catch(() => {});
+        }).catch(() => { });
 
         toast.success("已重置为默认配置");
       } catch (error) {

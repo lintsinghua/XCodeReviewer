@@ -91,3 +91,4 @@ class ClaudeAdapter(BaseLLMAdapter):
             raise Exception(f"无效的Claude模型: {self.config.model}")
         return True
 
+

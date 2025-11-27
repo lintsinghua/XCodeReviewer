@@ -8,11 +8,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  GitBranch, 
-  Settings, 
-  FileText, 
-  AlertCircle, 
+import {
+  GitBranch,
+  Settings,
+  FileText,
+  AlertCircle,
   Info,
   Zap,
   Shield,
@@ -43,7 +43,7 @@ export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, pr
   const [zipFile, setZipFile] = useState<File | null>(null);
   const [loadingZipFile, setLoadingZipFile] = useState(false);
   const [hasLoadedZip, setHasLoadedZip] = useState(false);
-  
+
   const [taskForm, setTaskForm] = useState<CreateAuditTaskForm>({
     project_id: "",
     task_type: "repository",
@@ -77,7 +77,7 @@ export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, pr
           // 后端 MAX_FILE_SIZE_BYTES 是 200 * 1024 = 204800 bytes = 200KB
           // 转换为KB用于前端显示
           const maxFileSizeKB = 200; // 后端默认值 200KB
-          
+
           setTaskForm(prev => ({
             ...prev,
             scan_config: {
@@ -111,14 +111,14 @@ export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, pr
   useEffect(() => {
     const autoLoadZipFile = async () => {
       if (!taskForm.project_id || hasLoadedZip) return;
-      
+
       const project = projects.find(p => p.id === taskForm.project_id);
       if (!project || project.repository_type !== 'other') return;
-      
+
       try {
         setLoadingZipFile(true);
         const savedFile = await loadZipFile(taskForm.project_id);
-        
+
         if (savedFile) {
           setZipFile(savedFile);
           setHasLoadedZip(true);
@@ -167,11 +167,11 @@ export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, pr
 
     try {
       setCreating(true);
-      
-      console.log('🎯 开始创建审计任务...', { 
-        projectId: project.id, 
+
+      console.log('🎯 开始创建审计任务...', {
+        projectId: project.id,
         projectName: project.name,
-        repositoryType: project.repository_type 
+        repositoryType: project.repository_type
       });
 
       let taskId: string;
@@ -183,7 +183,7 @@ export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, pr
           toast.error("请上传ZIP文件进行扫描");
           return;
         }
-        
+
         console.log('📦 调用 scanZipFile...');
         taskId = await scanZipFile({
           projectId: project.id,
@@ -194,7 +194,7 @@ export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, pr
       } else {
         // GitHub/GitLab等远程仓库
         console.log('📡 调用 runRepositoryAudit...');
-        
+
         // 后端会从用户配置中读取 GitHub/GitLab Token，前端不需要传递
         taskId = await runRepositoryAudit({
           projectId: project.id,
@@ -204,9 +204,9 @@ export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, pr
           createdBy: 'local-user'
         });
       }
-      
+
       console.log('✅ 任务创建成功:', taskId);
-      
+
       // 记录用户操作
       import('@/shared/utils/logger').then(({ logger, LogCategory }) => {
         logger.logUserAction('创建审计任务', {
@@ -218,25 +218,25 @@ export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, pr
           hasZipFile: !!zipFile,
         });
       });
-      
+
       // 关闭创建对话框
       onOpenChange(false);
       resetForm();
       onTaskCreated();
-      
+
       // 显示终端进度窗口
       setCurrentTaskId(taskId);
       setShowTerminalDialog(true);
-      
+
       toast.success("审计任务已创建并启动");
     } catch (error) {
       console.error('❌ 创建任务失败:', error);
-      
+
       // 记录错误并显示详细信息
       import('@/shared/utils/errorHandler').then(({ handleError }) => {
         handleError(error, '创建审计任务失败');
       });
-      
+
       const errorMessage = error instanceof Error ? error.message : '未知错误';
       toast.error(`创建任务失败: ${errorMessage}`);
     } finally {
@@ -336,13 +336,12 @@ export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, pr
                 </div>
               ) : filteredProjects.length > 0 ? (
                 filteredProjects.map((project) => (
-                  <Card 
-                    key={project.id} 
-                    className={`cursor-pointer transition-all hover:shadow-md ${
-                      taskForm.project_id === project.id 
-                        ? 'ring-2 ring-primary bg-primary/5' 
+                  <Card
+                    key={project.id}
+                    className={`cursor-pointer transition-all hover:shadow-md ${taskForm.project_id === project.id
+                        ? 'ring-2 ring-primary bg-primary/5'
                         : 'hover:bg-gray-50'
-                    }`}
+                      }`}
                     onClick={() => setTaskForm({ ...taskForm, project_id: project.id })}
                   >
                     <CardContent className="p-4">
@@ -415,11 +414,11 @@ export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, pr
                               <p className="font-medium text-green-900 text-sm">已准备就绪</p>
                               <p className="text-xs text-green-700 mt-1">
                                 使用保存的ZIP文件: {zipFile.name} (
-                                {zipFile.size >= 1024 * 1024 
+                                {zipFile.size >= 1024 * 1024
                                   ? `${(zipFile.size / 1024 / 1024).toFixed(2)} MB`
                                   : zipFile.size >= 1024
-                                  ? `${(zipFile.size / 1024).toFixed(2)} KB`
-                                  : `${zipFile.size} B`
+                                    ? `${(zipFile.size / 1024).toFixed(2)} KB`
+                                    : `${zipFile.size} B`
                                 })
                               </p>
                             </div>
@@ -445,7 +444,7 @@ export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, pr
                                 </p>
                               </div>
                             </div>
-                            
+
                             <div className="space-y-2">
                               <Label htmlFor="zipFile">上传ZIP文件</Label>
                               <Input
@@ -461,7 +460,7 @@ export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, pr
                                       type: file.type,
                                       sizeMB: (file.size / 1024 / 1024).toFixed(2)
                                     });
-                                    
+
                                     const validation = validateZipFile(file);
                                     if (!validation.valid) {
                                       toast.error(validation.error || "文件无效");
@@ -470,11 +469,11 @@ export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, pr
                                     }
                                     setZipFile(file);
                                     setHasLoadedZip(true);
-                                    
+
                                     const sizeMB = (file.size / 1024 / 1024).toFixed(2);
                                     const sizeKB = (file.size / 1024).toFixed(2);
                                     const sizeText = file.size >= 1024 * 1024 ? `${sizeMB} MB` : `${sizeKB} KB`;
-                                    
+
                                     toast.success(`已选择文件: ${file.name} (${sizeText})`);
                                   }
                                 }}
@@ -491,8 +490,8 @@ export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, pr
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="task_type">任务类型</Label>
-                    <Select 
-                      value={taskForm.task_type} 
+                    <Select
+                      value={taskForm.task_type}
                       onValueChange={(value: any) => setTaskForm({ ...taskForm, task_type: value })}
                     >
                       <SelectTrigger>
@@ -588,8 +587,8 @@ export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, pr
                           }
                         }}
                       />
-                      <Button 
-                        type="button" 
+                      <Button
+                        type="button"
                         variant="outline"
                         onClick={(e) => {
                           const input = e.currentTarget.previousElementSibling as HTMLInputElement;
@@ -608,9 +607,9 @@ export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, pr
                       <Label>已选择的排除模式</Label>
                       <div className="flex flex-wrap gap-2">
                         {taskForm.exclude_patterns.map((pattern) => (
-                          <Badge 
-                            key={pattern} 
-                            variant="secondary" 
+                          <Badge
+                            key={pattern}
+                            variant="secondary"
                             className="cursor-pointer hover:bg-red-100 hover:text-red-800"
                             onClick={() => removeExcludePattern(pattern)}
                           >
@@ -637,7 +636,7 @@ export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, pr
                       <div className="flex items-center space-x-3">
                         <Checkbox
                           checked={taskForm.scan_config.include_tests}
-                          onCheckedChange={(checked) => 
+                          onCheckedChange={(checked) =>
                             setTaskForm({
                               ...taskForm,
                               scan_config: { ...taskForm.scan_config, include_tests: !!checked }
@@ -653,7 +652,7 @@ export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, pr
                       <div className="flex items-center space-x-3">
                         <Checkbox
                           checked={taskForm.scan_config.include_docs}
-                          onCheckedChange={(checked) => 
+                          onCheckedChange={(checked) =>
                             setTaskForm({
                               ...taskForm,
                               scan_config: { ...taskForm.scan_config, include_docs: !!checked }
@@ -674,12 +673,12 @@ export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, pr
                           id="max_file_size"
                           type="number"
                           value={taskForm.scan_config.max_file_size}
-                          onChange={(e) => 
+                          onChange={(e) =>
                             setTaskForm({
                               ...taskForm,
-                              scan_config: { 
-                                ...taskForm.scan_config, 
-                                max_file_size: parseInt(e.target.value) || 200 
+                              scan_config: {
+                                ...taskForm.scan_config,
+                                max_file_size: parseInt(e.target.value) || 200
                               }
                             })
                           }
@@ -690,9 +689,9 @@ export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, pr
 
                       <div className="space-y-2">
                         <Label htmlFor="analysis_depth">分析深度</Label>
-                        <Select 
-                          value={taskForm.scan_config.analysis_depth} 
-                          onValueChange={(value: any) => 
+                        <Select
+                          value={taskForm.scan_config.analysis_depth}
+                          onValueChange={(value: any) =>
                             setTaskForm({
                               ...taskForm,
                               scan_config: { ...taskForm.scan_config, analysis_depth: value }
@@ -738,8 +737,8 @@ export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, pr
             <Button variant="outline" onClick={() => onOpenChange(false)} disabled={creating}>
               取消
             </Button>
-            <Button 
-              onClick={handleCreateTask} 
+            <Button
+              onClick={handleCreateTask}
               disabled={!taskForm.project_id || creating}
               className="btn-primary"
             >

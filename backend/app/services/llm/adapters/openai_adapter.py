@@ -90,3 +90,4 @@ class OpenAIAdapter(BaseLLMAdapter):
             raise Exception("未指定OpenAI模型")
         return True
 
+

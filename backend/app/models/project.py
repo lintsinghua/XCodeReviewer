@@ -42,3 +42,4 @@ class ProjectMember(Base):
     project = relationship("Project", back_populates="members")
     user = relationship("User", backref="project_memberships")
 
+

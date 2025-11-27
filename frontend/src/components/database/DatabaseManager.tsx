@@ -9,13 +9,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { 
-  Download, 
-  Upload, 
-  Trash2, 
-  AlertCircle, 
-  CheckCircle2, 
-  Server, 
+import {
+  Download,
+  Upload,
+  Trash2,
+  AlertCircle,
+  CheckCircle2,
+  Server,
   Activity,
   RefreshCw,
   Database,
@@ -95,16 +95,16 @@ export function DatabaseManager() {
     try {
       setLoading(true);
       setMessage(null);
-      
+
       const exportData = await api.exportDatabase();
-      
+
       // 构建完整的导出数据
       const fullData = {
         version: "1.0.0",
         export_date: exportData.export_date,
         data: exportData.data
       };
-      
+
       const blob = new Blob([JSON.stringify(fullData, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -114,10 +114,10 @@ export function DatabaseManager() {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      
+
       toast.success('数据导出成功！');
       setMessage({ type: 'success', text: '数据导出成功！' });
-      
+
       // 刷新统计信息
       loadStats();
     } catch (error: any) {
@@ -152,9 +152,9 @@ export function DatabaseManager() {
     try {
       setLoading(true);
       setMessage(null);
-      
+
       const result = await api.importDatabase(file);
-      
+
       const imported = result.imported;
       const summary = [
         imported.projects > 0 && `${imported.projects} 个项目`,
@@ -163,17 +163,17 @@ export function DatabaseManager() {
         imported.analyses > 0 && `${imported.analyses} 条分析记录`,
         imported.config > 0 && '用户配置',
       ].filter(Boolean).join('、');
-      
+
       toast.success(`数据导入成功！已导入：${summary}`);
       setMessage({ type: 'success', text: `数据导入成功！已导入：${summary}` });
-      
+
       // 清空文件输入
       event.target.value = '';
-      
+
       // 刷新统计信息和健康检查
       loadStats();
       loadHealth();
-      
+
       // 延迟刷新页面
       setTimeout(() => window.location.reload(), 2000);
     } catch (error: any) {
@@ -202,9 +202,9 @@ export function DatabaseManager() {
     try {
       setLoading(true);
       setMessage(null);
-      
+
       const result = await api.clearDatabase();
-      
+
       const deleted = result.deleted;
       const summary = [
         deleted.projects > 0 && `${deleted.projects} 个项目`,
@@ -213,14 +213,14 @@ export function DatabaseManager() {
         deleted.analyses > 0 && `${deleted.analyses} 条分析记录`,
         deleted.config > 0 && '用户配置',
       ].filter(Boolean).join('、');
-      
+
       toast.success(`数据已清空！已删除：${summary}`);
       setMessage({ type: 'success', text: `数据已清空！已删除：${summary}` });
-      
+
       // 刷新统计信息和健康检查
       loadStats();
       loadHealth();
-      
+
       // 延迟刷新页面
       setTimeout(() => window.location.reload(), 2000);
     } catch (error: any) {
@@ -306,7 +306,7 @@ export function DatabaseManager() {
                     </Badge>
                   </div>
                   <div className="text-sm mt-1">
-                    数据库连接：{health.database_connected ? '正常' : '异常'} | 
+                    数据库连接：{health.database_connected ? '正常' : '异常'} |
                     总记录数：{health.total_records.toLocaleString()}
                   </div>
                 </div>
@@ -507,7 +507,7 @@ export function DatabaseManager() {
             <Info className="h-4 w-4" />
             <AlertDescription>
               <strong>提示：</strong>
-              {dbMode === 'api' 
+              {dbMode === 'api'
                 ? '数据存储在后端 PostgreSQL 数据库中，支持多用户、多设备同步。建议定期导出备份。'
                 : '建议定期导出数据备份，以防意外数据丢失。'}
             </AlertDescription>

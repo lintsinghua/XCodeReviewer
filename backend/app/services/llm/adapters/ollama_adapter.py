@@ -80,3 +80,4 @@ class OllamaAdapter(BaseLLMAdapter):
             raise Exception("未指定Ollama模型")
         return True
 
+

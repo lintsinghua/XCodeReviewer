@@ -79,3 +79,4 @@ class DeepSeekAdapter(BaseLLMAdapter):
             raise Exception("未指定DeepSeek模型")
         return True
 
+

@@ -28,3 +28,4 @@ class UserConfig(Base):
     # Relationships
     user = relationship("User", backref="config")
 
+

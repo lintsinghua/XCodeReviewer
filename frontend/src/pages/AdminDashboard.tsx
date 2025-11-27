@@ -384,9 +384,9 @@ export default function AdminDashboard() {
                 <AlertDescription>
                   <strong>当前数据库模式：</strong> {
                     dbMode === 'api' ? '后端 PostgreSQL 数据库' :
-                    dbMode === 'local' ? '本地 IndexedDB' :
-                    dbMode === 'supabase' ? 'Supabase 云端（已废弃）' :
-                    '演示模式'
+                      dbMode === 'local' ? '本地 IndexedDB' :
+                        dbMode === 'supabase' ? 'Supabase 云端（已废弃）' :
+                          '演示模式'
                   }
                 </AlertDescription>
               </Alert>

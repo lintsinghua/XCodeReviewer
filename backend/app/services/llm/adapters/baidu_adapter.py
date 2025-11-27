@@ -135,3 +135,4 @@ class BaiduAdapter(BaseLLMAdapter):
     def get_model(self) -> str:
         return self.config.model or "ERNIE-3.5-8K"
 
+

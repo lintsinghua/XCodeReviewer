@@ -109,8 +109,8 @@ export default function ExportReportDialog({
                                     <Label
                                         htmlFor={format.value}
                                         className={`flex items-start space-x-4 p-4 rounded-lg border-2 cursor-pointer transition-all ${isSelected
-                                                ? `${format.borderColor} ${format.bgColor} shadow-md`
-                                                : "border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm"
+                                            ? `${format.borderColor} ${format.bgColor} shadow-md`
+                                            : "border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm"
                                             }`}
                                     >
                                         <div

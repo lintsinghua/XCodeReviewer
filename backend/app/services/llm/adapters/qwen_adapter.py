@@ -77,3 +77,4 @@ class QwenAdapter(BaseLLMAdapter):
             raise Exception("未指定通义千问模型")
         return True
 
+

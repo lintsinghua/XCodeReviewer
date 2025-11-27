@@ -1,6 +1,7 @@
-import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
+import { useState } from "react";
+import { BrowserRouter, Routes, Route, Outlet } from "react-router-dom";
 import { Toaster } from "sonner";
-import Header from "@/components/layout/Header";
+import Sidebar from "@/components/layout/Sidebar";
 import routes from "./routes";
 import { AuthProvider } from "@/shared/context/AuthContext";
 import { ProtectedRoute } from "./ProtectedRoute";
@@ -9,12 +10,19 @@ import Register from "@/pages/Register";
 import NotFound from "@/pages/NotFound";
 
 function AppLayout() {
+  const [collapsed, setCollapsed] = useState(false);
+
   return (
     <div className="min-h-screen gradient-bg">
-        <Header />
-        <main className="container-responsive py-4 md:py-6">
-            <Outlet />
-        </main>
+      <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} />
+      <main
+        className={`transition-all duration-300 min-h-screen ${collapsed ? "md:ml-20" : "md:ml-64"
+          }`}
+      >
+        <div className="container mx-auto px-4 py-6 md:py-8 pt-16 md:pt-8">
+          <Outlet />
+        </div>
+      </main>
     </div>
   );
 }
@@ -28,17 +36,17 @@ function App() {
           {/* Public Routes */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
-          
+
           {/* Protected Routes */}
           <Route element={<ProtectedRoute />}>
             <Route element={<AppLayout />}>
-                {routes.map((route) => (
-                  <Route
-                    key={route.path}
-                    path={route.path}
-                    element={route.element}
-                  />
-                ))}
+              {routes.map((route) => (
+                <Route
+                  key={route.path}
+                  path={route.path}
+                  element={route.element}
+                />
+              ))}
             </Route>
           </Route>
 

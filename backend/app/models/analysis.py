@@ -22,3 +22,4 @@ class InstantAnalysis(Base):
     # Relationships
     user = relationship("User", backref="instant_analyses")
 
+
