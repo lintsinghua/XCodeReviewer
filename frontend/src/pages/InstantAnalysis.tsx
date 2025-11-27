@@ -535,7 +535,7 @@ class UserManager {
   );
 
   return (
-    <div className="space-y-6 px-6 py-4 bg-background min-h-screen font-mono relative overflow-hidden">
+    <div className="flex flex-col gap-6 px-6 pt-0 pb-4 bg-background min-h-screen font-mono relative overflow-hidden">
       {/* Decorative Background */}
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
 
@@ -685,7 +685,7 @@ class UserManager {
 
       {/* 分析结果区域 */}
       {result && (
-        <div className="space-y-6">
+        <div className="flex flex-col gap-6">
           {/* 结果概览 */}
           <div className="retro-card bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-0">
             <div className="p-4 border-b-2 border-black bg-gray-50 flex items-center justify-between">

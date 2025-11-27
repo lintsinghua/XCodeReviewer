@@ -123,7 +123,7 @@ export default function RecycleBin() {
   }
 
   return (
-    <div className="space-y-6 px-6 py-4 bg-background min-h-screen font-mono relative overflow-hidden">
+    <div className="flex flex-col gap-6 px-6 pt-0 pb-4 bg-background min-h-screen font-mono relative overflow-hidden">
       {/* Decorative Background */}
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
 

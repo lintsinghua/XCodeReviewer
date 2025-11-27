@@ -422,7 +422,7 @@ export default function TaskDetail() {
 
   if (!task) {
     return (
-      <div className="space-y-6 animate-fade-in font-mono">
+      <div className="flex flex-col gap-6 animate-fade-in font-mono">
         <div className="flex items-center space-x-4">
           <Link to="/audit-tasks">
             <Button variant="outline" size="sm" className="retro-btn bg-white text-black hover:bg-gray-100">
@@ -448,7 +448,7 @@ export default function TaskDetail() {
   const progressPercentage = calculateTaskProgress(task.scanned_files, task.total_files);
 
   return (
-    <div className="space-y-6 animate-fade-in font-mono">
+    <div className="flex flex-col gap-6 animate-fade-in font-mono">
       {/* 页面标题 */}
       <div className="flex items-center justify-between border-b-4 border-black pb-6 bg-white/50 backdrop-blur-sm p-4 retro-border">
         <div className="flex items-center space-x-4">

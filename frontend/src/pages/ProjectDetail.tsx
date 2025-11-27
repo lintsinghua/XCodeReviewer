@@ -313,7 +313,7 @@ export default function ProjectDetail() {
 
 
   return (
-    <div className="space-y-6 px-6 py-4 bg-background min-h-screen font-mono relative overflow-hidden">
+    <div className="flex flex-col gap-6 px-6 pt-0 pb-4 bg-background min-h-screen font-mono relative overflow-hidden">
       {/* Decorative Background */}
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
 
@@ -420,7 +420,7 @@ export default function ProjectDetail() {
           <TabsTrigger value="settings" className="rounded-none data-[state=active]:bg-primary data-[state=active]:text-white font-mono font-bold uppercase h-10">项目设置</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="overview" className="space-y-6 mt-6">
+        <TabsContent value="overview" className="flex flex-col gap-6 mt-6">
           {/* ... (overview content remains same) ... */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* 项目信息 */}
@@ -531,7 +531,7 @@ export default function ProjectDetail() {
           </div>
         </TabsContent>
 
-        <TabsContent value="tasks" className="space-y-6 mt-6">
+        <TabsContent value="tasks" className="flex flex-col gap-6 mt-6">
           {/* ... (tasks content remains same) ... */}
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-display font-bold uppercase">审计任务列表</h3>
@@ -619,7 +619,7 @@ export default function ProjectDetail() {
           )}
         </TabsContent>
 
-        <TabsContent value="issues" className="space-y-6 mt-6">
+        <TabsContent value="issues" className="flex flex-col gap-6 mt-6">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-display font-bold uppercase">最新发现的问题</h3>
             {tasks.length > 0 && (
@@ -680,7 +680,7 @@ export default function ProjectDetail() {
           )}
         </TabsContent>
 
-        <TabsContent value="settings" className="space-y-6 mt-6">
+        <TabsContent value="settings" className="flex flex-col gap-6 mt-6">
           <div className="retro-card bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-6">
             <div className="pb-4 border-b-2 border-black mb-6">
               <h3 className="text-lg font-display font-bold uppercase flex items-center">
@@ -689,7 +689,7 @@ export default function ProjectDetail() {
               </h3>
             </div>
 
-            <div className="space-y-6">
+            <div className="flex flex-col gap-6">
               {/* 基本信息 */}
               <div className="space-y-4">
                 <div>

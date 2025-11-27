@@ -105,7 +105,7 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="space-y-6 px-6 py-4 bg-background min-h-screen font-mono relative overflow-hidden">
+    <div className="flex flex-col gap-6 px-6 pt-0 pb-4 bg-background min-h-screen font-mono relative overflow-hidden">
       {/* Decorative Background */}
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
 
@@ -137,12 +137,12 @@ export default function AdminDashboard() {
         </TabsList>
 
         {/* 系统配置 */}
-        <TabsContent value="config" className="space-y-6">
+        <TabsContent value="config" className="flex flex-col gap-6">
           <SystemConfig />
         </TabsContent>
 
         {/* 数据概览 */}
-        <TabsContent value="overview" className="space-y-6">
+        <TabsContent value="overview" className="flex flex-col gap-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* 任务完成率 */}
             <div className="retro-card bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-0">
@@ -269,7 +269,7 @@ export default function AdminDashboard() {
         </TabsContent>
 
         {/* 存储管理 */}
-        <TabsContent value="storage" className="space-y-6">
+        <TabsContent value="storage" className="flex flex-col gap-6">
           <div className="retro-card bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-0">
             <div className="p-4 border-b-2 border-black bg-gray-50">
               <h3 className="text-lg font-display font-bold uppercase flex items-center gap-2">
@@ -280,7 +280,7 @@ export default function AdminDashboard() {
                 浏览器 IndexedDB 存储空间的使用详情
               </p>
             </div>
-            <div className="p-6 space-y-6 font-mono">
+            <div className="p-6 flex flex-col gap-6 font-mono">
               {storageDetails ? (
                 <>
                   <div className="space-y-2">
@@ -375,12 +375,12 @@ export default function AdminDashboard() {
         </TabsContent>
 
         {/* 数据操作 */}
-        <TabsContent value="operations" className="space-y-6">
+        <TabsContent value="operations" className="flex flex-col gap-6">
           <DatabaseManager />
         </TabsContent>
 
         {/* 设置 */}
-        <TabsContent value="settings" className="space-y-6">
+        <TabsContent value="settings" className="flex flex-col gap-6">
           <div className="retro-card bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-0">
             <div className="p-4 border-b-2 border-black bg-gray-50">
               <h3 className="text-lg font-display font-bold uppercase">数据库设置</h3>

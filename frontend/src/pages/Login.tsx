@@ -85,7 +85,7 @@ export default function Login() {
           <div className="absolute bottom-3 left-3 w-1.5 h-1.5 bg-primary/20 rounded-sm" />
           <div className="absolute bottom-3 right-3 w-1.5 h-1.5 bg-primary/20 rounded-sm" />
 
-          <form onSubmit={handleSubmit} className="space-y-6 mt-4">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-6 mt-4">
             <div className="space-y-2">
               <Label htmlFor="email" className="font-mono uppercase text-xs font-bold">身份 / 邮箱</Label>
               <div className="relative">

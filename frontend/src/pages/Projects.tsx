@@ -68,6 +68,8 @@ export default function Projects() {
     programming_languages: []
   });
 
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
   // 将小写语言名转换为显示格式
   const formatLanguageName = (lang: string): string => {
     const nameMap: Record<string, string> = {
@@ -153,9 +155,13 @@ export default function Projects() {
       default_branch: "main",
       programming_languages: []
     });
+    setSelectedFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -163,6 +169,17 @@ export default function Projects() {
     const validation = validateZipFile(file);
     if (!validation.valid) {
       toast.error(validation.error);
+      return;
+    }
+
+    setSelectedFile(file);
+    // 清空 input value 以便可以再次选择同一个文件（虽然状态已经处理了）
+    event.target.value = '';
+  };
+
+  const handleUploadAndCreate = async () => {
+    if (!selectedFile) {
+      toast.error("请先选择ZIP文件");
       return;
     }
 
@@ -195,7 +212,7 @@ export default function Projects() {
 
       // 保存ZIP文件到IndexedDB（使用项目ID作为key）
       try {
-        await saveZipFile(project.id, file);
+        await saveZipFile(project.id, selectedFile);
       } catch (error) {
         console.error('保存ZIP文件失败:', error);
       }
@@ -207,8 +224,8 @@ export default function Projects() {
       import('@/shared/utils/logger').then(({ logger }) => {
         logger.logUserAction('上传ZIP文件创建项目', {
           projectName: project.name,
-          fileName: file.name,
-          fileSize: file.size,
+          fileName: selectedFile.name,
+          fileSize: selectedFile.size,
         });
       });
 
@@ -235,9 +252,6 @@ export default function Projects() {
     } finally {
       setUploading(false);
       setUploadProgress(0);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
     }
   };
 
@@ -361,20 +375,17 @@ export default function Projects() {
   }
 
   return (
-    <div className="space-y-6 px-6 py-4 bg-background min-h-screen font-mono relative overflow-hidden">
+    <div className="flex flex-col gap-6 px-6 pt-0 pb-4 bg-background min-h-screen font-mono relative overflow-hidden">
       {/* Decorative Background */}
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
 
       {/* Header Section */}
-      <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6 border-b-4 border-black pb-6 bg-white/50 backdrop-blur-sm p-4 retro-border">
+      <div className="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b-4 border-black pb-6 bg-white/50 backdrop-blur-sm p-4 retro-border">
         <div>
-          <h1 className="text-4xl font-display font-bold uppercase tracking-tighter mb-2">
+          <h1 className="text-3xl font-display font-bold text-black uppercase tracking-tighter">
             项目<span className="text-primary">_管理</span>
           </h1>
-          <p className="text-gray-500 font-mono text-sm flex items-center gap-2">
-            <Terminal className="w-4 h-4" />
-            // 管理仓库 // 配置审计
-          </p>
+          <p className="text-gray-600 mt-1 font-mono border-l-2 border-primary pl-2">管理代码仓库和配置审计任务</p>
         </div>
 
         <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
@@ -384,7 +395,7 @@ export default function Projects() {
               初始化项目
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-3xl terminal-card border-2 border-primary/20 shadow-lg bg-white p-0 overflow-hidden">
+          <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto retro-card border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] bg-white p-0">
             <DialogHeader className="bg-black text-white p-4 border-b-4 border-black">
               <DialogTitle className="font-mono text-xl uppercase tracking-widest flex items-center gap-2">
                 <Terminal className="w-5 h-5" />
@@ -394,24 +405,24 @@ export default function Projects() {
 
             <div className="p-6">
               <Tabs defaultValue="repository" className="w-full">
-                <TabsList className="grid w-full grid-cols-2 bg-gray-100 border border-border p-1 h-auto">
+                <TabsList className="flex w-full bg-gray-100 border border-border p-1 h-auto gap-1">
                   <TabsTrigger
                     value="repository"
-                    className="data-[state=active]:bg-primary data-[state=active]:text-white font-mono font-bold uppercase py-2 border-2 border-transparent data-[state=active]:border-black data-[state=active]:shadow-sm transition-all"
+                    className="flex-1 data-[state=active]:bg-primary data-[state=active]:text-white font-mono font-bold uppercase py-2 border-2 border-transparent data-[state=active]:border-black data-[state=active]:shadow-sm transition-all"
                   >
                     Git 仓库
                   </TabsTrigger>
                   <TabsTrigger
                     value="upload"
-                    className="data-[state=active]:bg-primary data-[state=active]:text-white font-mono font-bold uppercase py-2 border-2 border-transparent data-[state=active]:border-black data-[state=active]:shadow-sm transition-all"
+                    className="flex-1 data-[state=active]:bg-primary data-[state=active]:text-white font-mono font-bold uppercase py-2 border-2 border-transparent data-[state=active]:border-black data-[state=active]:shadow-sm transition-all"
                   >
                     上传源码
                   </TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="repository" className="space-y-6 mt-6">
-                  <div className="grid grid-cols-2 gap-6">
-                    <div className="space-y-2">
+                <TabsContent value="repository" className="flex flex-col gap-5 mt-5">
+                  <div className="grid grid-cols-2 gap-5">
+                    <div className="space-y-1.5">
                       <Label htmlFor="name" className="font-mono font-bold uppercase text-xs">项目名称 *</Label>
                       <Input
                         id="name"
@@ -421,7 +432,7 @@ export default function Projects() {
                         className="terminal-input"
                       />
                     </div>
-                    <div className="space-y-2">
+                    <div className="space-y-1.5">
                       <Label htmlFor="repository_type" className="font-mono font-bold uppercase text-xs">仓库类型</Label>
                       <Select
                         value={createForm.repository_type}
@@ -439,7 +450,7 @@ export default function Projects() {
                     </div>
                   </div>
 
-                  <div className="space-y-2">
+                  <div className="space-y-1.5">
                     <Label htmlFor="description" className="font-mono font-bold uppercase text-xs">描述</Label>
                     <Textarea
                       id="description"
@@ -447,12 +458,12 @@ export default function Projects() {
                       onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })}
                       placeholder="// 项目描述..."
                       rows={3}
-                      className="terminal-input min-h-[100px]"
+                      className="terminal-input min-h-[80px]"
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-6">
-                    <div className="space-y-2">
+                  <div className="grid grid-cols-2 gap-5">
+                    <div className="space-y-1.5">
                       <Label htmlFor="repository_url" className="font-mono font-bold uppercase text-xs">仓库地址</Label>
                       <Input
                         id="repository_url"
@@ -462,7 +473,7 @@ export default function Projects() {
                         className="terminal-input"
                       />
                     </div>
-                    <div className="space-y-2">
+                    <div className="space-y-1.5">
                       <Label htmlFor="default_branch" className="font-mono font-bold uppercase text-xs">默认分支</Label>
                       <Input
                         id="default_branch"
@@ -474,11 +485,11 @@ export default function Projects() {
                     </div>
                   </div>
 
-                  <div className="space-y-3">
+                  <div className="space-y-2">
                     <Label className="font-mono font-bold uppercase text-xs">技术栈</Label>
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="flex flex-wrap gap-2">
                       {supportedLanguages.map((lang) => (
-                        <label key={lang} className={`flex items-center space-x-3 p-2 border-2 cursor-pointer transition-all ${createForm.programming_languages.includes(lang)
+                        <label key={lang} className={`flex items-center space-x-2 px-3 py-1.5 border cursor-pointer transition-all ${createForm.programming_languages.includes(lang)
                           ? 'border-black bg-primary/10 shadow-sm'
                           : 'border-gray-200 hover:border-black'
                           }`}>
@@ -498,9 +509,9 @@ export default function Projects() {
                                 });
                               }
                             }}
-                            className="rounded border border-border w-4 h-4 text-primary focus:ring-0"
+                            className="rounded border border-border w-3.5 h-3.5 text-primary focus:ring-0"
                           />
-                          <span className="text-sm font-mono font-bold uppercase">{lang}</span>
+                          <span className="text-xs font-mono font-bold uppercase">{lang}</span>
                         </label>
                       ))}
                     </div>
@@ -516,9 +527,9 @@ export default function Projects() {
                   </div>
                 </TabsContent>
 
-                <TabsContent value="upload" className="space-y-6 mt-6">
+                <TabsContent value="upload" className="flex flex-col gap-5 mt-5">
                   {/* Upload Tab Content - Similar styling */}
-                  <div className="space-y-2">
+                  <div className="space-y-1.5">
                     <Label htmlFor="upload-name" className="font-mono font-bold uppercase text-xs">项目名称 *</Label>
                     <Input
                       id="upload-name"
@@ -529,7 +540,7 @@ export default function Projects() {
                     />
                   </div>
 
-                  <div className="space-y-2">
+                  <div className="space-y-1.5">
                     <Label htmlFor="upload-description" className="font-mono font-bold uppercase text-xs">描述</Label>
                     <Textarea
                       id="upload-description"
@@ -537,15 +548,15 @@ export default function Projects() {
                       onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })}
                       placeholder="// 项目描述..."
                       rows={3}
-                      className="terminal-input min-h-[100px]"
+                      className="terminal-input min-h-[80px]"
                     />
                   </div>
 
-                  <div className="space-y-3">
+                  <div className="space-y-2">
                     <Label className="font-mono font-bold uppercase text-xs">技术栈</Label>
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="flex flex-wrap gap-2">
                       {supportedLanguages.map((lang) => (
-                        <label key={lang} className={`flex items-center space-x-3 p-2 border-2 cursor-pointer transition-all ${createForm.programming_languages.includes(lang)
+                        <label key={lang} className={`flex items-center space-x-2 px-3 py-1.5 border cursor-pointer transition-all ${createForm.programming_languages.includes(lang)
                           ? 'border-black bg-primary/10 shadow-sm'
                           : 'border-gray-200 hover:border-black'
                           }`}>
@@ -565,9 +576,9 @@ export default function Projects() {
                                 });
                               }
                             }}
-                            className="rounded border border-border w-4 h-4 text-primary focus:ring-0"
+                            className="rounded border border-border w-3.5 h-3.5 text-primary focus:ring-0"
                           />
-                          <span className="text-sm font-mono font-bold uppercase">{lang}</span>
+                          <span className="text-xs font-mono font-bold uppercase">{lang}</span>
                         </label>
                       ))}
                     </div>
@@ -575,59 +586,95 @@ export default function Projects() {
 
                   <div className="space-y-4">
                     <Label className="font-mono font-bold uppercase text-xs">源代码</Label>
-                    <div className="border-2 border-dashed border-black bg-gray-50 rounded-none p-8 text-center hover:bg-white transition-colors cursor-pointer group" onClick={() => fileInputRef.current?.click()}>
-                      <Upload className="w-12 h-12 text-black mx-auto mb-4 group-hover:scale-110 transition-transform" />
-                      <h3 className="text-lg font-bold font-display uppercase mb-2">上传 ZIP 归档</h3>
-                      <p className="text-xs font-mono text-gray-500 mb-4">
-                        最大: 100MB // 格式: .ZIP
-                      </p>
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept=".zip"
-                        onChange={handleFileUpload}
-                        className="hidden"
-                        disabled={uploading}
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="terminal-btn-primary bg-white text-black"
-                        disabled={uploading || !createForm.name.trim()}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          fileInputRef.current?.click();
-                        }}
-                      >
-                        <FileText className="w-4 h-4 mr-2" />
-                        选择文件
-                      </Button>
-                    </div>
+
+                    {!selectedFile ? (
+                      <div className="border-2 border-dashed border-black bg-gray-50 rounded-none p-6 text-center hover:bg-white transition-colors cursor-pointer group" onClick={() => fileInputRef.current?.click()}>
+                        <Upload className="w-10 h-10 text-black mx-auto mb-3 group-hover:scale-110 transition-transform" />
+                        <h3 className="text-base font-bold font-display uppercase mb-1">上传 ZIP 归档</h3>
+                        <p className="text-[10px] font-mono text-gray-500 mb-3">
+                          最大: 100MB // 格式: .ZIP
+                        </p>
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept=".zip"
+                          onChange={handleFileSelect}
+                          className="hidden"
+                          disabled={uploading}
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="terminal-btn-primary bg-white text-black h-8 text-xs"
+                          disabled={uploading || !createForm.name.trim()}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            fileInputRef.current?.click();
+                          }}
+                        >
+                          <FileText className="w-3 h-3 mr-2" />
+                          选择文件
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="border-2 border-black bg-white p-4 flex items-center justify-between shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                        <div className="flex items-center space-x-3 overflow-hidden">
+                          <div className="w-10 h-10 bg-gray-100 border border-black flex items-center justify-center flex-shrink-0">
+                            <FileText className="w-5 h-5" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-mono font-bold text-sm truncate">{selectedFile.name}</p>
+                            <p className="font-mono text-xs text-gray-500">{(selectedFile.size / 1024 / 1024).toFixed(2)} MB</p>
+                          </div>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setSelectedFile(null)}
+                          disabled={uploading}
+                          className="hover:bg-red-50 hover:text-red-600"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    )}
 
                     {uploading && (
-                      <div className="space-y-2">
+                      <div className="space-y-1.5">
                         <div className="flex items-center justify-between text-xs font-mono">
                           <span>上传并分析中...</span>
                           <span>{uploadProgress}%</span>
                         </div>
-                        <Progress value={uploadProgress} className="h-4 border border-border rounded-none bg-white [&>div]:bg-primary" />
+                        <Progress value={uploadProgress} className="h-3 border border-border rounded-none bg-white [&>div]:bg-primary" />
                       </div>
                     )}
 
-                    <div className="bg-yellow-50 border border-border p-4 shadow-md">
+                    <div className="bg-yellow-50 border-2 border-black p-3 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                       <div className="flex items-start space-x-3">
-                        <AlertCircle className="w-5 h-5 text-black mt-0.5" />
-                        <div className="text-xs font-mono text-black">
+                        <AlertCircle className="w-4 h-4 text-black mt-0.5" />
+                        <div className="text-[10px] font-mono text-black">
                           <p className="font-bold mb-1 uppercase">上传协议:</p>
-                          <ul className="space-y-1">
-                            <li>&gt; 确保完整的项目代码</li>
-                            <li>&gt; 排除: node_modules, .git</li>
-                            <li>&gt; 归档将被存储</li>
-                            <li>&gt; 支持多次审计</li>
+                          <ul className="space-y-0.5 list-disc list-inside">
+                            <li>确保完整的项目代码</li>
+                            <li>移除 node_modules 等依赖目录</li>
+                            <li>包含必要的配置文件</li>
                           </ul>
                         </div>
                       </div>
                     </div>
+                  </div>
+
+                  <div className="flex justify-end space-x-4 pt-4 border-t-2 border-dashed border-gray-200 mt-auto">
+                    <Button variant="outline" onClick={() => setShowCreateDialog(false)} className="terminal-btn-primary bg-white text-black hover:bg-gray-100">
+                      取消
+                    </Button>
+                    <Button
+                      onClick={handleUploadAndCreate}
+                      className="terminal-btn-primary"
+                      disabled={!selectedFile || uploading}
+                    >
+                      {uploading ? '上传中...' : '执行创建'}
+                    </Button>
                   </div>
 
                   <div className="flex justify-end space-x-4 pt-4 border-t-2 border-dashed border-gray-200">
@@ -645,7 +692,7 @@ export default function Projects() {
       {/* Stats Section */}
       {projects.length > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 relative z-10">
-          <div className="retro-card p-4 bg-white border border-border shadow-md">
+          <div className="retro-card p-4 bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
             <div className="flex items-center justify-between">
               <div>
                 <p className="font-mono text-xs font-bold uppercase text-gray-500">项目总数</p>
@@ -657,7 +704,7 @@ export default function Projects() {
             </div>
           </div>
 
-          <div className="retro-card p-4 bg-white border border-border shadow-md">
+          <div className="retro-card p-4 bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
             <div className="flex items-center justify-between">
               <div>
                 <p className="font-mono text-xs font-bold uppercase text-gray-500">活跃</p>
@@ -669,7 +716,7 @@ export default function Projects() {
             </div>
           </div>
 
-          <div className="retro-card p-4 bg-white border border-border shadow-md">
+          <div className="retro-card p-4 bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
             <div className="flex items-center justify-between">
               <div>
                 <p className="font-mono text-xs font-bold uppercase text-gray-500">GitHub</p>
@@ -681,7 +728,7 @@ export default function Projects() {
             </div>
           </div>
 
-          <div className="retro-card p-4 bg-white border border-border shadow-md">
+          <div className="retro-card p-4 bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
             <div className="flex items-center justify-between">
               <div>
                 <p className="font-mono text-xs font-bold uppercase text-gray-500">GitLab</p>
@@ -696,7 +743,7 @@ export default function Projects() {
       )}
 
       {/* Search and Filter */}
-      <div className="retro-card p-4 flex items-center gap-4 bg-white border border-border shadow-md relative z-10">
+      <div className="retro-card p-4 flex items-center gap-4 bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] relative z-10">
         <div className="flex-1 relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-black w-4 h-4" />
           <Input
@@ -716,7 +763,7 @@ export default function Projects() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 relative z-10">
         {filteredProjects.length > 0 ? (
           filteredProjects.map((project) => (
-            <div key={project.id} className="retro-card bg-white border border-border shadow-md hover:shadow-lg transition-all group flex flex-col h-full">
+            <div key={project.id} className="retro-card bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-lg transition-all group flex flex-col h-full">
               <div className="p-4 border-b-2 border-black bg-gray-50 flex justify-between items-start">
                 <div className="flex items-center space-x-3">
                   <div className="w-10 h-10 border border-border bg-white flex items-center justify-center text-2xl shadow-sm">
@@ -834,7 +881,7 @@ export default function Projects() {
 
       {/* Edit Dialog */}
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent className="max-w-2xl terminal-card border-2 border-primary/20 shadow-lg bg-white p-0">
+        <DialogContent className="max-w-2xl retro-card border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] bg-white p-0">
           <DialogHeader className="bg-black text-white p-4 border-b-4 border-black">
             <DialogTitle className="font-mono text-xl uppercase tracking-widest flex items-center gap-2">
               <Edit className="w-5 h-5" />
@@ -842,7 +889,7 @@ export default function Projects() {
             </DialogTitle>
           </DialogHeader>
 
-          <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
+          <div className="p-6 flex flex-col gap-6 max-h-[70vh] overflow-y-auto">
             <div className="space-y-4">
               <div>
                 <Label htmlFor="edit-name" className="font-mono font-bold uppercase text-xs">项目名称 *</Label>
@@ -950,7 +997,7 @@ export default function Projects() {
 
       {/* Delete Dialog */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent className="terminal-card border-2 border-primary/20 shadow-lg bg-white p-0">
+        <AlertDialogContent className="retro-card border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] bg-white p-0">
           <AlertDialogHeader className="bg-red-600 text-white p-4 border-b-4 border-black">
             <AlertDialogTitle className="font-mono text-xl uppercase tracking-widest flex items-center gap-2">
               <Trash2 className="w-5 h-5" />
