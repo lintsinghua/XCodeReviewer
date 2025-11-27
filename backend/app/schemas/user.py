@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 from pydantic import BaseModel, EmailStr
 
 class UserBase(BaseModel):
@@ -32,5 +32,11 @@ class UserInDBBase(UserBase):
 
 class User(UserInDBBase):
     pass
+
+class UserListResponse(BaseModel):
+    users: List[User]
+    total: int
+    skip: int
+    limit: int
 
 

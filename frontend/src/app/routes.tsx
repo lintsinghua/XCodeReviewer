@@ -7,6 +7,7 @@ import AuditTasks from "@/pages/AuditTasks";
 import TaskDetail from "@/pages/TaskDetail";
 import AdminDashboard from "@/pages/AdminDashboard";
 import LogsPage from "@/pages/LogsPage";
+import Account from "@/pages/Account";
 import type { ReactNode } from 'react';
 
 export interface RouteConfig {
@@ -70,6 +71,12 @@ const routes: RouteConfig[] = [
     path: "/logs",
     element: <LogsPage />,
     visible: true,
+  },
+  {
+    name: "账号管理",
+    path: "/account",
+    element: <Account />,
+    visible: false, // 不在主导航显示，在侧边栏底部单独显示
   },
 ];
 

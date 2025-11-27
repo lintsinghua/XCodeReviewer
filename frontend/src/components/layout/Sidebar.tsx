@@ -13,7 +13,8 @@ import {
     FileText,
     ChevronLeft,
     ChevronRight,
-    Github
+    Github,
+    UserCircle
 } from "lucide-react";
 import routes from "@/app/routes";
 
@@ -152,8 +153,30 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
                         </div>
                     </nav>
 
-                    {/* Footer with GitHub Link */}
-                    <div className="p-4 border-t border-border bg-card z-10">
+                    {/* Footer with Account & GitHub Link */}
+                    <div className="p-4 border-t border-border bg-card z-10 space-y-2">
+                        {/* Account Link */}
+                        <Link
+                            to="/account"
+                            className={`
+                flex items-center space-x-3 px-3 py-2.5 rounded-sm
+                transition-all duration-200 group
+                border 
+                ${location.pathname === '/account'
+                                    ? "bg-primary border-primary/30 shadow-md text-white"
+                                    : "bg-transparent border-transparent hover:border-border hover:bg-card hover:shadow-sm text-gray-600 hover:text-foreground"
+                                }
+              `}
+                            onClick={() => setMobileOpen(false)}
+                            title={collapsed ? "账号管理" : undefined}
+                        >
+                            <UserCircle className={`w-5 h-5 flex-shrink-0 ${location.pathname === '/account' ? 'text-white' : ''}`} />
+                            {!collapsed && (
+                                <span className="font-mono font-bold text-sm uppercase">账号管理</span>
+                            )}
+                        </Link>
+
+                        {/* GitHub Link */}
                         <a
                             href="https://github.com/lintsinghua/XCodeReviewer"
                             target="_blank"
