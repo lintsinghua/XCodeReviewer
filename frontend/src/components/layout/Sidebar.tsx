@@ -13,8 +13,7 @@ import {
     FileText,
     ChevronLeft,
     ChevronRight,
-    Github,
-    Terminal
+    Github
 } from "lucide-react";
 import routes from "@/app/routes";
 
@@ -46,7 +45,7 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
             <Button
                 variant="ghost"
                 size="sm"
-                className="fixed top-4 left-4 z-50 md:hidden bg-white border-2 border-black shadow-retro text-black hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-retro-hover transition-all"
+                className="fixed top-4 left-4 z-50 md:hidden terminal-btn-ghost text-black"
                 onClick={() => setMobileOpen(!mobileOpen)}
             >
                 {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -64,7 +63,7 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
             <aside
                 className={`
           fixed top-0 left-0 h-screen bg-background
-          border-r-2 border-black
+          border-r border-border
           z-40 transition-all duration-300 ease-in-out
           ${collapsed ? "w-20" : "w-64"}
           ${mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
@@ -75,17 +74,17 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
                     <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
 
                     {/* Logo Section */}
-                    <div className="relative flex items-center h-[72px] px-4 border-b-2 border-black bg-white z-10">
+                    <div className={`relative flex items-center h-[72px] border-b border-border bg-card z-10 ${collapsed ? 'px-3 justify-center' : 'px-4 pr-6'}`}>
                         <Link
                             to="/"
-                            className={`flex items-center space-x-3 group overflow-hidden transition-all duration-300 ${collapsed ? 'justify-center w-full' : ''}`}
+                            className={`flex items-center space-x-3 group transition-all duration-300 ${collapsed ? 'justify-center' : 'flex-1 min-w-0'}`}
                             onClick={() => setMobileOpen(false)}
                         >
-                            <div className="relative flex-shrink-0 border-2 border-black bg-primary p-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                                <Terminal className="w-6 h-6 text-white" />
+                            <div className="relative flex-shrink-0 border border-primary bg-white p-1 shadow-sm rounded-sm overflow-hidden">
+                                <img src="/logo_xcodereviewer.png" alt="XCodeReviewer" className="w-7 h-7 object-contain" />
                             </div>
-                            <div className={`transition-all duration-300 ${collapsed ? 'w-0 opacity-0 overflow-hidden' : 'w-auto opacity-100'}`}>
-                                <span className="text-lg font-display font-bold text-black tracking-tighter uppercase">
+                            <div className={`transition-all duration-300 ${collapsed ? 'w-0 opacity-0 overflow-hidden' : 'flex-1 min-w-0 opacity-100'}`}>
+                                <span className="text-lg font-display font-bold text-black tracking-tighter uppercase whitespace-nowrap">
                                     XCode<span className="text-primary">Reviewer</span>
                                 </span>
                             </div>
@@ -93,8 +92,9 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
 
                         {/* Collapse button for desktop */}
                         <button
-                            className="hidden md:flex absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-white border-2 border-black items-center justify-center hover:bg-primary hover:text-white transition-colors z-50 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
+                            className="hidden md:flex absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-card border border-border items-center justify-center hover:bg-primary hover:text-white transition-all shadow-sm rounded-sm"
                             onClick={() => setCollapsed(!collapsed)}
+                            style={{ zIndex: 100 }}
                         >
                             {collapsed ? (
                                 <ChevronRight className="w-3 h-3" />
@@ -115,11 +115,11 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
                                         to={route.path}
                                         className={`
                       flex items-center space-x-3 px-3 py-3
-                      transition-all duration-200 group relative
-                      border-2 
+                      transition-all duration-200 group relative rounded-sm
+                      border 
                       ${isActive
-                                                ? "bg-primary border-black shadow-retro text-white"
-                                                : "bg-transparent border-transparent hover:border-black hover:bg-white hover:shadow-retro-hover text-gray-600 hover:text-black"
+                                                ? "bg-primary border-primary/30 shadow-md text-white"
+                                                : "bg-transparent border-transparent hover:border-border hover:bg-card hover:shadow-sm text-gray-600 hover:text-foreground"
                                             }
                     `}
                                         onClick={() => setMobileOpen(false)}
@@ -153,14 +153,14 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
                     </nav>
 
                     {/* Footer with GitHub Link */}
-                    <div className="p-4 border-t-2 border-black bg-white z-10">
+                    <div className="p-4 border-t border-border bg-card z-10">
                         <a
                             href="https://github.com/lintsinghua/XCodeReviewer"
                             target="_blank"
                             rel="noopener noreferrer"
                             className={`
-                flex items-center space-x-3 px-3 py-2.5
-                text-black border-2 border-transparent hover:border-black hover:shadow-retro-hover hover:bg-white
+                flex items-center space-x-3 px-3 py-2.5 rounded-sm
+                text-foreground border border-transparent hover:border-border hover:shadow-sm hover:bg-muted
                 transition-all duration-200 group
               `}
                             title={collapsed ? "GitHub 仓库" : undefined}

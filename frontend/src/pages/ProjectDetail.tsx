@@ -313,9 +313,12 @@ export default function ProjectDetail() {
 
 
   return (
-    <div className="space-y-6 font-mono">
+    <div className="space-y-6 px-6 py-4 bg-background min-h-screen font-mono relative overflow-hidden">
+      {/* Decorative Background */}
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
+
       {/* 页面标题 */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b-4 border-black pb-6 bg-white/50 backdrop-blur-sm p-4 retro-border">
+      <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b-4 border-black pb-6 bg-white/50 backdrop-blur-sm p-4 retro-border">
         <div className="flex items-start space-x-4">
           <Link to="/projects">
             <Button variant="outline" size="sm" className="retro-btn bg-white text-black hover:bg-gray-100 h-10 w-10 p-0 flex items-center justify-center">

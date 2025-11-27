@@ -2,67 +2,110 @@
 @tailwind components;
 @tailwind utilities;
 
+/* 
+  XCodeReviewer Design System
+  Aesthetic: Terminal Retro + Pixel Art + Mechanical + Cassette Futurism
+  Core Palette: Orange, Deep Red, Signal Green, Grey
+  Philosophy: Clean, legible, harmonious - simplified linework for reduced eye strain
+*/
+
 @layer base {
   :root {
-    --background: 210 20% 98%;
-    --foreground: 220 10% 10%;
+    /* Background & Surface - Soft light grey for comfort */
+    --background: 0 0% 96%;
+    --foreground: 0 0% 15%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 220 10% 10%;
+    /* Card & Surfaces - Clean white with subtle warmth */
+    --card: 0 0% 98%;
+    --card-foreground: 0 0% 15%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 220 10% 10%;
+    /* Popover */
+    --popover: 0 0% 98%;
+    --popover-foreground: 0 0% 15%;
 
-    --primary: 220 100% 50%;
+    /* Primary - Vibrant Orange (Core brand color) */
+    --primary: 16 100% 58%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 15 100% 50%;
+    /* Secondary - Deep Red (Accent & warnings) */
+    --secondary: 4 70% 52%;
     --secondary-foreground: 0 0% 100%;
 
-    --muted: 210 20% 90%;
-    --muted-foreground: 220 10% 40%;
+    /* Success/Active - Signal Green */
+    --success: 145 100% 45%;
+    --success-foreground: 0 0% 100%;
 
-    --accent: 180 100% 40%;
+    /* Muted - Neutral Grey tones */
+    --muted: 0 0% 88%;
+    --muted-foreground: 0 0% 45%;
+
+    /* Accent - Mechanical Grey-Blue */
+    --accent: 210 15% 50%;
     --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 100% 50%;
+    /* Destructive - Deep Red variant */
+    --destructive: 4 70% 52%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 0 0% 0%;
-    --input: 0 0% 0%;
-    --ring: 220 100% 50%;
+    /* Borders & Inputs - Simplified grey */
+    --border: 0 0% 75%;
+    --input: 0 0% 75%;
+    --ring: 16 100% 58%;
 
-    --radius: 0rem;
+    /* Border radius - Sharp pixel aesthetic */
+    --radius: 2px;
+
+    /* Simplified shadows - subtle depth */
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.08);
+    --shadow-md: 0 2px 4px rgba(0, 0, 0, 0.1);
+    --shadow-focus: 0 0 0 2px rgba(255, 107, 44, 0.25);
   }
 
   .dark {
-    --background: 220 10% 10%;
-    --foreground: 210 20% 98%;
+    /* Dark mode - balanced, not too dim */
+    --background: 220 15% 12%;
+    --foreground: 0 0% 92%;
 
-    --card: 220 10% 15%;
-    --card-foreground: 210 20% 98%;
+    /* Surfaces - subtle elevation */
+    --card: 220 15% 16%;
+    --card-foreground: 0 0% 92%;
 
-    --popover: 220 10% 15%;
-    --popover-foreground: 210 20% 98%;
+    --popover: 220 15% 16%;
+    --popover-foreground: 0 0% 92%;
 
-    --primary: 220 100% 50%;
-    --primary-foreground: 0 0% 100%;
+    /* Primary - Orange (slightly desaturated for dark mode) */
+    --primary: 16 95% 60%;
+    --primary-foreground: 0 0% 10%;
 
-    --secondary: 15 100% 50%;
-    --secondary-foreground: 0 0% 100%;
+    /* Secondary - Deep Red */
+    --secondary: 4 65% 55%;
+    --secondary-foreground: 0 0% 10%;
 
-    --muted: 220 10% 20%;
-    --muted-foreground: 210 20% 60%;
+    /* Success - Signal Green (slightly muted) */
+    --success: 145 90% 48%;
+    --success-foreground: 0 0% 10%;
 
-    --accent: 180 100% 40%;
-    --accent-foreground: 0 0% 100%;
+    /* Muted - Darker grey tones */
+    --muted: 220 15% 22%;
+    --muted-foreground: 0 0% 60%;
 
-    --destructive: 0 100% 50%;
-    --destructive-foreground: 0 0% 100%;
+    /* Accent */
+    --accent: 210 15% 45%;
+    --accent-foreground: 0 0% 95%;
 
-    --border: 0 0% 100%;
-    --input: 0 0% 100%;
-    --ring: 220 100% 50%;
+    /* Destructive */
+    --destructive: 4 65% 55%;
+    --destructive-foreground: 0 0% 10%;
+
+    /* Borders - softer in dark mode */
+    --border: 220 15% 28%;
+    --input: 220 15% 28%;
+    --ring: 16 95% 60%;
+
+    /* Dark mode shadows */
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 2px 4px rgba(0, 0, 0, 0.4);
+    --shadow-focus: 0 0 0 2px rgba(255, 107, 44, 0.3);
   }
 }
 
@@ -73,45 +116,249 @@
 
   body {
     @apply bg-background text-foreground font-mono antialiased;
+    /* Smooth transitions for theme changes */
+    transition: background-color 0.2s ease, color 0.2s ease;
   }
 
-  h1,
-  h2,
-  h3,
-  h4,
+  /* Typography Hierarchy - Clean & Legible */
+  h1 {
+    @apply font-display font-bold tracking-tight text-3xl;
+    letter-spacing: -0.02em;
+  }
+
+  h2 {
+    @apply font-display font-bold tracking-tight text-2xl;
+    letter-spacing: -0.01em;
+  }
+
+  h3 {
+    @apply font-display font-bold tracking-tight text-xl;
+  }
+
+  h4 {
+    @apply font-display font-semibold tracking-tight text-lg;
+  }
+
   h5,
   h6 {
-    @apply font-display font-bold tracking-tight;
+    @apply font-display font-semibold text-base;
+  }
+
+  /* Improved focus states */
+  button:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible {
+    outline: none;
+    box-shadow: var(--shadow-focus);
+  }
+
+  /* Smooth scrolling */
+  html {
+    scroll-behavior: smooth;
   }
 }
 
 @layer utilities {
-  .retro-border {
-    @apply border-2 border-black;
-    box-shadow: 4px 4px 0px 0px rgba(0, 0, 0, 1);
+
+  /* Simplified Terminal Border - 1px for cleaner look */
+  .terminal-border {
+    @apply border border-border;
+    box-shadow: var(--shadow-sm);
   }
 
-  .retro-card {
-    @apply bg-white border-2 border-black p-4;
-    box-shadow: 4px 4px 0px 0px rgba(0, 0, 0, 1);
+  /* Enhanced Terminal Border with subtle elevation */
+  .terminal-border-elevated {
+    @apply border border-border;
+    box-shadow: var(--shadow-md);
   }
 
-  .retro-btn {
-    @apply bg-primary text-white font-bold py-2 px-4 border-2 border-black transition-all;
-    box-shadow: 4px 4px 0px 0px rgba(0, 0, 0, 1);
+  /* Terminal Card - Clean and minimal */
+  .terminal-card {
+    @apply bg-card border border-border p-4 rounded-sm;
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow 0.2s ease;
   }
 
-  .retro-btn:hover {
-    box-shadow: 2px 2px 0px 0px rgba(0, 0, 0, 1);
-    transform: translate(2px, 2px);
+  .terminal-card:hover {
+    box-shadow: var(--shadow-md);
   }
 
-  .retro-btn:active {
+  /* Button Variants - Simplified with 1px borders */
+  .terminal-btn {
+    @apply font-mono font-semibold py-2 px-4 border border-border rounded-sm transition-all duration-150;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .terminal-btn:hover:not(:disabled) {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+  }
+
+  .terminal-btn:active:not(:disabled) {
     box-shadow: none;
-    transform: translate(4px, 4px);
+    transform: translateY(0);
   }
 
-  .retro-input {
-    @apply bg-white border-2 border-black p-2 focus:outline-none focus:ring-2 focus:ring-primary shadow-none;
+  .terminal-btn:disabled {
+    @apply opacity-50 cursor-not-allowed;
+  }
+
+  /* Primary Button - Orange */
+  .terminal-btn-primary {
+    @apply terminal-btn bg-primary text-primary-foreground;
+    border-color: hsl(16 100% 50%);
+  }
+
+  .terminal-btn-primary:hover:not(:disabled) {
+    background: hsl(16 100% 52%);
+  }
+
+  /* Secondary Button - Deep Red */
+  .terminal-btn-secondary {
+    @apply terminal-btn bg-secondary text-secondary-foreground;
+    border-color: hsl(4 70% 45%);
+  }
+
+  .terminal-btn-secondary:hover:not(:disabled) {
+    background: hsl(4 70% 56%);
+  }
+
+  /* Success Button - Signal Green */
+  .terminal-btn-success {
+    @apply terminal-btn text-white;
+    background: hsl(var(--success));
+    border-color: hsl(145 100% 38%);
+  }
+
+  .terminal-btn-success:hover:not(:disabled) {
+    background: hsl(145 100% 48%);
+  }
+
+  /* Ghost Button - Outline only */
+  .terminal-btn-ghost {
+    @apply terminal-btn bg-transparent;
+  }
+
+  .terminal-btn-ghost:hover:not(:disabled) {
+    @apply bg-muted;
+  }
+
+  /* Input Fields - Simplified */
+  .terminal-input {
+    @apply bg-background border border-input px-3 py-2 rounded-sm font-mono text-sm;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  .terminal-input:focus {
+    outline: none;
+    border-color: hsl(var(--primary));
+    box-shadow: var(--shadow-focus);
+  }
+
+  .terminal-input::placeholder {
+    @apply text-muted-foreground;
+    opacity: 0.6;
+  }
+
+  /* Badge Components */
+  .terminal-badge {
+    @apply inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-mono font-semibold;
+    border: 1px solid transparent;
+  }
+
+  .terminal-badge-orange {
+    @apply terminal-badge bg-primary text-primary-foreground;
+    border-color: hsl(16 100% 50%);
+  }
+
+  .terminal-badge-red {
+    @apply terminal-badge bg-secondary text-secondary-foreground;
+    border-color: hsl(4 70% 45%);
+  }
+
+  .terminal-badge-green {
+    @apply terminal-badge text-white;
+    background: hsl(var(--success));
+    border-color: hsl(145 100% 38%);
+  }
+
+  .terminal-badge-grey {
+    @apply terminal-badge bg-muted text-muted-foreground;
+    border-color: hsl(var(--border));
+  }
+
+  /* Code Block Styling */
+  .terminal-code {
+    @apply bg-muted border border-border rounded-sm p-3 font-mono text-sm overflow-x-auto;
+  }
+
+  /* Scanline Effect - Subtle CRT aesthetic */
+  .terminal-scanline {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .terminal-scanline::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(to bottom,
+        transparent 50%,
+        rgba(0, 0, 0, 0.02) 50%);
+    background-size: 100% 4px;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  /* Pixel Grid Background - Very subtle */
+  .terminal-pixel-grid {
+    background-image:
+      linear-gradient(rgba(0, 0, 0, 0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0, 0, 0, 0.02) 1px, transparent 1px);
+    background-size: 8px 8px;
+  }
+
+  /* Status Indicators */
+  .status-indicator {
+    @apply w-2 h-2 rounded-full inline-block;
+  }
+
+  .status-active {
+    background: hsl(var(--success));
+    box-shadow: 0 0 4px hsl(var(--success));
+  }
+
+  .status-warning {
+    background: hsl(var(--primary));
+    box-shadow: 0 0 4px hsl(var(--primary));
+  }
+
+  .status-error {
+    background: hsl(var(--secondary));
+    box-shadow: 0 0 4px hsl(var(--secondary));
+  }
+
+  .status-inactive {
+    @apply bg-muted-foreground;
+  }
+
+  /* Divider */
+  .terminal-divider {
+    @apply border-t border-border my-4;
+  }
+
+  /* Panel - For sections/containers */
+  .terminal-panel {
+    @apply bg-card border border-border rounded-sm p-6;
+    box-shadow: var(--shadow-sm);
+  }
+
+  /* Smooth transitions */
+  .terminal-transition {
+    transition: all 0.15s ease;
   }
 }

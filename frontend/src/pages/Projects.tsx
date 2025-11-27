@@ -361,7 +361,7 @@ export default function Projects() {
   }
 
   return (
-    <div className="space-y-8 p-6 bg-background min-h-screen font-mono relative overflow-hidden">
+    <div className="space-y-6 px-6 py-4 bg-background min-h-screen font-mono relative overflow-hidden">
       {/* Decorative Background */}
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
 
@@ -379,12 +379,12 @@ export default function Projects() {
 
         <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
           <DialogTrigger asChild>
-            <Button className="retro-btn h-12 text-lg">
+            <Button className="terminal-btn-primary h-12 text-lg">
               <Plus className="w-5 h-5 mr-2" />
               初始化项目
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-3xl retro-card border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] bg-white p-0 overflow-hidden">
+          <DialogContent className="max-w-3xl terminal-card border-2 border-primary/20 shadow-lg bg-white p-0 overflow-hidden">
             <DialogHeader className="bg-black text-white p-4 border-b-4 border-black">
               <DialogTitle className="font-mono text-xl uppercase tracking-widest flex items-center gap-2">
                 <Terminal className="w-5 h-5" />
@@ -394,7 +394,7 @@ export default function Projects() {
 
             <div className="p-6">
               <Tabs defaultValue="repository" className="w-full">
-                <TabsList className="grid w-full grid-cols-2 bg-gray-100 border-2 border-black p-1 h-auto">
+                <TabsList className="grid w-full grid-cols-2 bg-gray-100 border border-border p-1 h-auto">
                   <TabsTrigger
                     value="repository"
                     className="data-[state=active]:bg-primary data-[state=active]:text-white font-mono font-bold uppercase py-2 border-2 border-transparent data-[state=active]:border-black data-[state=active]:shadow-sm transition-all"
@@ -418,7 +418,7 @@ export default function Projects() {
                         value={createForm.name}
                         onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
                         placeholder="输入项目名称"
-                        className="retro-input"
+                        className="terminal-input"
                       />
                     </div>
                     <div className="space-y-2">
@@ -427,10 +427,10 @@ export default function Projects() {
                         value={createForm.repository_type}
                         onValueChange={(value: any) => setCreateForm({ ...createForm, repository_type: value })}
                       >
-                        <SelectTrigger className="retro-input">
+                        <SelectTrigger className="terminal-input">
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent className="retro-card border-2 border-black">
+                        <SelectContent className="retro-card border border-border">
                           <SelectItem value="github">GITHUB</SelectItem>
                           <SelectItem value="gitlab">GITLAB</SelectItem>
                           <SelectItem value="other">OTHER</SelectItem>
@@ -447,7 +447,7 @@ export default function Projects() {
                       onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })}
                       placeholder="// 项目描述..."
                       rows={3}
-                      className="retro-input min-h-[100px]"
+                      className="terminal-input min-h-[100px]"
                     />
                   </div>
 
@@ -459,7 +459,7 @@ export default function Projects() {
                         value={createForm.repository_url}
                         onChange={(e) => setCreateForm({ ...createForm, repository_url: e.target.value })}
                         placeholder="https://github.com/user/repo"
-                        className="retro-input"
+                        className="terminal-input"
                       />
                     </div>
                     <div className="space-y-2">
@@ -469,7 +469,7 @@ export default function Projects() {
                         value={createForm.default_branch}
                         onChange={(e) => setCreateForm({ ...createForm, default_branch: e.target.value })}
                         placeholder="main"
-                        className="retro-input"
+                        className="terminal-input"
                       />
                     </div>
                   </div>
@@ -479,7 +479,7 @@ export default function Projects() {
                     <div className="grid grid-cols-3 gap-3">
                       {supportedLanguages.map((lang) => (
                         <label key={lang} className={`flex items-center space-x-3 p-2 border-2 cursor-pointer transition-all ${createForm.programming_languages.includes(lang)
-                          ? 'border-black bg-primary/10 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]'
+                          ? 'border-black bg-primary/10 shadow-sm'
                           : 'border-gray-200 hover:border-black'
                           }`}>
                           <input
@@ -498,7 +498,7 @@ export default function Projects() {
                                 });
                               }
                             }}
-                            className="rounded border-2 border-black w-4 h-4 text-primary focus:ring-0"
+                            className="rounded border border-border w-4 h-4 text-primary focus:ring-0"
                           />
                           <span className="text-sm font-mono font-bold uppercase">{lang}</span>
                         </label>
@@ -507,10 +507,10 @@ export default function Projects() {
                   </div>
 
                   <div className="flex justify-end space-x-4 pt-4 border-t-2 border-dashed border-gray-200">
-                    <Button variant="outline" onClick={() => setShowCreateDialog(false)} className="retro-btn bg-white text-black hover:bg-gray-100">
+                    <Button variant="outline" onClick={() => setShowCreateDialog(false)} className="terminal-btn-primary bg-white text-black hover:bg-gray-100">
                       取消
                     </Button>
-                    <Button onClick={handleCreateProject} className="retro-btn">
+                    <Button onClick={handleCreateProject} className="terminal-btn-primary">
                       执行创建
                     </Button>
                   </div>
@@ -525,7 +525,7 @@ export default function Projects() {
                       value={createForm.name}
                       onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
                       placeholder="输入项目名称"
-                      className="retro-input"
+                      className="terminal-input"
                     />
                   </div>
 
@@ -537,7 +537,7 @@ export default function Projects() {
                       onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })}
                       placeholder="// 项目描述..."
                       rows={3}
-                      className="retro-input min-h-[100px]"
+                      className="terminal-input min-h-[100px]"
                     />
                   </div>
 
@@ -546,7 +546,7 @@ export default function Projects() {
                     <div className="grid grid-cols-3 gap-3">
                       {supportedLanguages.map((lang) => (
                         <label key={lang} className={`flex items-center space-x-3 p-2 border-2 cursor-pointer transition-all ${createForm.programming_languages.includes(lang)
-                          ? 'border-black bg-primary/10 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]'
+                          ? 'border-black bg-primary/10 shadow-sm'
                           : 'border-gray-200 hover:border-black'
                           }`}>
                           <input
@@ -565,7 +565,7 @@ export default function Projects() {
                                 });
                               }
                             }}
-                            className="rounded border-2 border-black w-4 h-4 text-primary focus:ring-0"
+                            className="rounded border border-border w-4 h-4 text-primary focus:ring-0"
                           />
                           <span className="text-sm font-mono font-bold uppercase">{lang}</span>
                         </label>
@@ -592,7 +592,7 @@ export default function Projects() {
                       <Button
                         type="button"
                         variant="outline"
-                        className="retro-btn bg-white text-black"
+                        className="terminal-btn-primary bg-white text-black"
                         disabled={uploading || !createForm.name.trim()}
                         onClick={(e) => {
                           e.stopPropagation();
@@ -610,11 +610,11 @@ export default function Projects() {
                           <span>上传并分析中...</span>
                           <span>{uploadProgress}%</span>
                         </div>
-                        <Progress value={uploadProgress} className="h-4 border-2 border-black rounded-none bg-white [&>div]:bg-primary" />
+                        <Progress value={uploadProgress} className="h-4 border border-border rounded-none bg-white [&>div]:bg-primary" />
                       </div>
                     )}
 
-                    <div className="bg-yellow-50 border-2 border-black p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                    <div className="bg-yellow-50 border border-border p-4 shadow-md">
                       <div className="flex items-start space-x-3">
                         <AlertCircle className="w-5 h-5 text-black mt-0.5" />
                         <div className="text-xs font-mono text-black">
@@ -631,7 +631,7 @@ export default function Projects() {
                   </div>
 
                   <div className="flex justify-end space-x-4 pt-4 border-t-2 border-dashed border-gray-200">
-                    <Button variant="outline" onClick={() => setShowCreateDialog(false)} disabled={uploading} className="retro-btn bg-white text-black hover:bg-gray-100">
+                    <Button variant="outline" onClick={() => setShowCreateDialog(false)} disabled={uploading} className="terminal-btn-primary bg-white text-black hover:bg-gray-100">
                       取消
                     </Button>
                   </div>
@@ -645,49 +645,49 @@ export default function Projects() {
       {/* Stats Section */}
       {projects.length > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 relative z-10">
-          <div className="retro-card p-4 bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+          <div className="retro-card p-4 bg-white border border-border shadow-md">
             <div className="flex items-center justify-between">
               <div>
                 <p className="font-mono text-xs font-bold uppercase text-gray-500">项目总数</p>
                 <p className="font-display text-2xl font-bold">{projects.length}</p>
               </div>
-              <div className="w-10 h-10 border-2 border-black bg-primary flex items-center justify-center text-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+              <div className="w-10 h-10 border border-border bg-primary flex items-center justify-center text-white shadow-sm">
                 <Code className="w-5 h-5" />
               </div>
             </div>
           </div>
 
-          <div className="retro-card p-4 bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+          <div className="retro-card p-4 bg-white border border-border shadow-md">
             <div className="flex items-center justify-between">
               <div>
                 <p className="font-mono text-xs font-bold uppercase text-gray-500">活跃</p>
                 <p className="font-display text-2xl font-bold">{projects.filter(p => p.is_active).length}</p>
               </div>
-              <div className="w-10 h-10 border-2 border-black bg-green-500 flex items-center justify-center text-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+              <div className="w-10 h-10 border border-border bg-green-500 flex items-center justify-center text-white shadow-sm">
                 <Activity className="w-5 h-5" />
               </div>
             </div>
           </div>
 
-          <div className="retro-card p-4 bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+          <div className="retro-card p-4 bg-white border border-border shadow-md">
             <div className="flex items-center justify-between">
               <div>
                 <p className="font-mono text-xs font-bold uppercase text-gray-500">GitHub</p>
                 <p className="font-display text-2xl font-bold">{projects.filter(p => p.repository_type === 'github').length}</p>
               </div>
-              <div className="w-10 h-10 border-2 border-black bg-gray-800 flex items-center justify-center text-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+              <div className="w-10 h-10 border border-border bg-gray-800 flex items-center justify-center text-white shadow-sm">
                 <GitBranch className="w-5 h-5" />
               </div>
             </div>
           </div>
 
-          <div className="retro-card p-4 bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+          <div className="retro-card p-4 bg-white border border-border shadow-md">
             <div className="flex items-center justify-between">
               <div>
                 <p className="font-mono text-xs font-bold uppercase text-gray-500">GitLab</p>
                 <p className="font-display text-2xl font-bold">{projects.filter(p => p.repository_type === 'gitlab').length}</p>
               </div>
-              <div className="w-10 h-10 border-2 border-black bg-orange-500 flex items-center justify-center text-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+              <div className="w-10 h-10 border border-border bg-orange-500 flex items-center justify-center text-white shadow-sm">
                 <Shield className="w-5 h-5" />
               </div>
             </div>
@@ -696,17 +696,17 @@ export default function Projects() {
       )}
 
       {/* Search and Filter */}
-      <div className="retro-card p-4 flex items-center gap-4 bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] relative z-10">
+      <div className="retro-card p-4 flex items-center gap-4 bg-white border border-border shadow-md relative z-10">
         <div className="flex-1 relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-black w-4 h-4" />
           <Input
             placeholder="搜索项目..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="retro-input pl-10 w-full"
+            className="terminal-input pl-10 w-full"
           />
         </div>
-        <Button variant="outline" className="retro-btn bg-white text-black hover:bg-gray-100">
+        <Button variant="outline" className="terminal-btn-primary bg-white text-black hover:bg-gray-100">
           <Settings className="w-4 h-4 mr-2" />
           筛选选项
         </Button>
@@ -716,10 +716,10 @@ export default function Projects() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 relative z-10">
         {filteredProjects.length > 0 ? (
           filteredProjects.map((project) => (
-            <div key={project.id} className="retro-card bg-white border-2 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] transition-all group flex flex-col h-full">
+            <div key={project.id} className="retro-card bg-white border border-border shadow-md hover:shadow-lg transition-all group flex flex-col h-full">
               <div className="p-4 border-b-2 border-black bg-gray-50 flex justify-between items-start">
                 <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 border-2 border-black bg-white flex items-center justify-center text-2xl shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                  <div className="w-10 h-10 border border-border bg-white flex items-center justify-center text-2xl shadow-sm">
                     {getRepositoryIcon(project.repository_type)}
                   </div>
                   <div>
@@ -783,20 +783,20 @@ export default function Projects() {
 
               <div className="p-4 border-t-2 border-black bg-gray-50 grid grid-cols-2 gap-2">
                 <Link to={`/projects/${project.id}`} className="col-span-2">
-                  <Button variant="outline" className="w-full retro-btn bg-white text-black h-8 text-xs">
+                  <Button variant="outline" className="w-full terminal-btn-primary bg-white text-black h-8 text-xs">
                     <Code className="w-3 h-3 mr-2" />
                     查看详情
                   </Button>
                 </Link>
-                <Button size="sm" className="retro-btn h-8 text-xs" onClick={() => handleCreateTask(project.id)}>
+                <Button size="sm" className="terminal-btn-primary h-8 text-xs" onClick={() => handleCreateTask(project.id)}>
                   <Shield className="w-3 h-3 mr-2" />
                   审计
                 </Button>
                 <div className="grid grid-cols-2 gap-2">
-                  <Button size="sm" variant="outline" className="retro-btn bg-white text-black h-8 px-0" onClick={() => handleEditClick(project)}>
+                  <Button size="sm" variant="outline" className="terminal-btn-primary bg-white text-black h-8 px-0" onClick={() => handleEditClick(project)}>
                     <Edit className="w-3 h-3" />
                   </Button>
-                  <Button size="sm" variant="outline" className="retro-btn bg-white text-red-600 border-red-600 h-8 px-0 hover:bg-red-50" onClick={() => handleDeleteClick(project)}>
+                  <Button size="sm" variant="outline" className="terminal-btn-primary bg-white text-red-600 border-red-600 h-8 px-0 hover:bg-red-50" onClick={() => handleDeleteClick(project)}>
                     <Trash2 className="w-3 h-3" />
                   </Button>
                 </div>
@@ -805,7 +805,7 @@ export default function Projects() {
           ))
         ) : (
           <div className="col-span-full">
-            <div className="retro-card border-2 border-black p-16 text-center bg-white border-dashed">
+            <div className="retro-card border border-border p-16 text-center bg-white border-dashed">
               <Code className="w-16 h-16 text-gray-300 mx-auto mb-4" />
               <h3 className="text-xl font-display font-bold text-gray-900 mb-2">
                 {searchTerm ? '未找到匹配项' : '未初始化项目'}
@@ -814,7 +814,7 @@ export default function Projects() {
                 {searchTerm ? '调整搜索参数' : '初始化第一个项目以开始'}
               </p>
               {!searchTerm && (
-                <Button onClick={() => setShowCreateDialog(true)} className="retro-btn">
+                <Button onClick={() => setShowCreateDialog(true)} className="terminal-btn-primary">
                   <Plus className="w-4 h-4 mr-2" />
                   初始化项目
                 </Button>
@@ -834,7 +834,7 @@ export default function Projects() {
 
       {/* Edit Dialog */}
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent className="max-w-2xl retro-card border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] bg-white p-0">
+        <DialogContent className="max-w-2xl terminal-card border-2 border-primary/20 shadow-lg bg-white p-0">
           <DialogHeader className="bg-black text-white p-4 border-b-4 border-black">
             <DialogTitle className="font-mono text-xl uppercase tracking-widest flex items-center gap-2">
               <Edit className="w-5 h-5" />
@@ -850,7 +850,7 @@ export default function Projects() {
                   id="edit-name"
                   value={editForm.name}
                   onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                  className="retro-input"
+                  className="terminal-input"
                 />
               </div>
               <div>
@@ -860,7 +860,7 @@ export default function Projects() {
                   value={editForm.description}
                   onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
                   rows={3}
-                  className="retro-input"
+                  className="terminal-input"
                 />
               </div>
             </div>
@@ -874,7 +874,7 @@ export default function Projects() {
                   id="edit-repo-url"
                   value={editForm.repository_url}
                   onChange={(e) => setEditForm({ ...editForm, repository_url: e.target.value })}
-                  className="retro-input"
+                  className="terminal-input"
                 />
               </div>
 
@@ -885,10 +885,10 @@ export default function Projects() {
                     value={editForm.repository_type}
                     onValueChange={(value: any) => setEditForm({ ...editForm, repository_type: value })}
                   >
-                    <SelectTrigger id="edit-repo-type" className="retro-input">
+                    <SelectTrigger id="edit-repo-type" className="terminal-input">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="retro-card border-2 border-black">
+                    <SelectContent className="retro-card border border-border">
                       <SelectItem value="github">GITHUB</SelectItem>
                       <SelectItem value="gitlab">GITLAB</SelectItem>
                       <SelectItem value="other">OTHER</SelectItem>
@@ -902,7 +902,7 @@ export default function Projects() {
                     id="edit-default-branch"
                     value={editForm.default_branch}
                     onChange={(e) => setEditForm({ ...editForm, default_branch: e.target.value })}
-                    className="retro-input"
+                    className="terminal-input"
                   />
                 </div>
               </div>
@@ -915,7 +915,7 @@ export default function Projects() {
                   <div
                     key={lang}
                     className={`flex items-center space-x-2 p-2 border-2 cursor-pointer transition-all ${editForm.programming_languages?.includes(lang)
-                      ? 'border-black bg-primary/10 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]'
+                      ? 'border-black bg-primary/10 shadow-sm'
                       : 'border-gray-200 hover:border-black'
                       }`}
                     onClick={() => handleToggleLanguage(lang)}
@@ -938,10 +938,10 @@ export default function Projects() {
           </div>
 
           <div className="flex justify-end space-x-3 p-4 border-t-2 border-black bg-gray-50">
-            <Button variant="outline" onClick={() => setShowEditDialog(false)} className="retro-btn bg-white text-black hover:bg-gray-100">
+            <Button variant="outline" onClick={() => setShowEditDialog(false)} className="terminal-btn-primary bg-white text-black hover:bg-gray-100">
               取消
             </Button>
-            <Button onClick={handleSaveEdit} className="retro-btn">
+            <Button onClick={handleSaveEdit} className="terminal-btn-primary">
               保存更改
             </Button>
           </div>
@@ -950,7 +950,7 @@ export default function Projects() {
 
       {/* Delete Dialog */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent className="retro-card border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] bg-white p-0">
+        <AlertDialogContent className="terminal-card border-2 border-primary/20 shadow-lg bg-white p-0">
           <AlertDialogHeader className="bg-red-600 text-white p-4 border-b-4 border-black">
             <AlertDialogTitle className="font-mono text-xl uppercase tracking-widest flex items-center gap-2">
               <Trash2 className="w-5 h-5" />
@@ -962,7 +962,7 @@ export default function Projects() {
           </AlertDialogHeader>
 
           <div className="p-6">
-            <div className="bg-blue-50 border-2 border-black p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+            <div className="bg-blue-50 border border-border p-4 shadow-md">
               <p className="text-blue-900 font-bold mb-2 font-mono uppercase">系统通知:</p>
               <ul className="list-disc list-inside text-blue-800 space-y-1 text-xs font-mono">
                 <li>&gt; 项目移至回收站</li>
@@ -974,10 +974,10 @@ export default function Projects() {
           </div>
 
           <AlertDialogFooter className="p-4 border-t-2 border-black bg-gray-50">
-            <AlertDialogCancel className="retro-btn bg-white text-black hover:bg-gray-100 border-2 border-black">取消</AlertDialogCancel>
+            <AlertDialogCancel className="terminal-btn-primary bg-white text-black hover:bg-gray-100 border border-border">取消</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleConfirmDelete}
-              className="retro-btn bg-red-600 text-white hover:bg-red-700 border-2 border-black"
+              className="terminal-btn-primary bg-red-600 text-white hover:bg-red-700 border border-border"
             >
               确认删除
             </AlertDialogAction>

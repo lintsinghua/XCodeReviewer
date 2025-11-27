@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
 import { toast } from 'sonner';
-import { Terminal, Lock, Cpu } from 'lucide-react';
+import { Lock, Cpu } from 'lucide-react';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -69,8 +69,8 @@ export default function Login() {
       {/* Main Card */}
       <div className="w-full max-w-md relative z-10 p-4">
         <div className="mb-8 text-center">
-          <div className="inline-flex items-center justify-center p-4 bg-primary border-2 border-black shadow-retro mb-4">
-            <Terminal className="w-8 h-8 text-white" />
+          <div className="inline-flex items-center justify-center p-4 bg-white border border-border shadow-md mb-4 rounded-sm">
+            <img src="/logo_xcodereviewer.png" alt="XCodeReviewer" className="w-16 h-16 object-contain" />
           </div>
           <h1 className="text-4xl font-display font-bold tracking-tighter uppercase">
             XCode<span className="text-primary">Reviewer</span>
@@ -78,12 +78,12 @@ export default function Login() {
           <p className="text-sm font-mono text-gray-500 mt-2">输入凭据以继续</p>
         </div>
 
-        <div className="bg-white border-2 border-black shadow-retro p-8 relative">
-          {/* Decorative Corner Markers */}
-          <div className="absolute top-2 left-2 w-2 h-2 bg-black" />
-          <div className="absolute top-2 right-2 w-2 h-2 bg-black" />
-          <div className="absolute bottom-2 left-2 w-2 h-2 bg-black" />
-          <div className="absolute bottom-2 right-2 w-2 h-2 bg-black" />
+        <div className="terminal-card p-8 relative">
+          {/* Decorative Corner Markers - Subtle */}
+          <div className="absolute top-3 left-3 w-1.5 h-1.5 bg-primary/20 rounded-sm" />
+          <div className="absolute top-3 right-3 w-1.5 h-1.5 bg-primary/20 rounded-sm" />
+          <div className="absolute bottom-3 left-3 w-1.5 h-1.5 bg-primary/20 rounded-sm" />
+          <div className="absolute bottom-3 right-3 w-1.5 h-1.5 bg-primary/20 rounded-sm" />
 
           <form onSubmit={handleSubmit} className="space-y-6 mt-4">
             <div className="space-y-2">
@@ -96,7 +96,7 @@ export default function Login() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="retro-input font-mono pl-10"
+                  className="terminal-input font-mono pl-10"
                 />
                 <Cpu className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               </div>
@@ -112,7 +112,7 @@ export default function Login() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="retro-input font-mono pl-10"
+                  className="terminal-input font-mono pl-10"
                 />
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               </div>
@@ -120,7 +120,7 @@ export default function Login() {
 
             <Button
               type="submit"
-              className="w-full retro-btn text-lg h-12 mt-4"
+              className="w-full terminal-btn-primary text-lg h-12 mt-4"
               disabled={loading}
             >
               {loading ? (
@@ -131,7 +131,7 @@ export default function Login() {
             </Button>
           </form>
 
-          <div className="mt-6 pt-6 border-t-2 border-dashed border-gray-200 text-center">
+          <div className="mt-6 pt-6 terminal-divider text-center">
             <div className="text-xs font-mono text-gray-500">
               没有访问令牌？ <span className="text-primary font-bold cursor-pointer hover:underline" onClick={() => navigate('/register')}>申请访问</span>
             </div>

@@ -535,9 +535,12 @@ class UserManager {
   );
 
   return (
-    <div className="space-y-6 animate-fade-in font-mono">
+    <div className="space-y-6 px-6 py-4 bg-background min-h-screen font-mono relative overflow-hidden">
+      {/* Decorative Background */}
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
+
       {/* 页面标题 */}
-      <div className="border-b-4 border-black pb-6 bg-white/50 backdrop-blur-sm p-4 retro-border">
+      <div className="relative z-10 border-b-4 border-black pb-6 bg-white/50 backdrop-blur-sm p-4 retro-border">
         <h1 className="text-3xl font-display font-bold text-black uppercase tracking-tighter">即时代码分析</h1>
         <p className="text-gray-600 mt-1 font-mono border-l-2 border-primary pl-2">快速分析代码片段，发现潜在问题并获得修复建议</p>
       </div>

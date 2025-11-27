@@ -18,11 +18,22 @@ export default {
       },
     },
     extend: {
+      // Typography - Pixel-perfect monospace for terminal aesthetic
       fontFamily: {
-        mono: ['"Space Mono"', '"Courier New"', 'monospace'],
+        mono: ['"JetBrains Mono"', '"Roboto Mono"', '"Courier New"', 'monospace'],
         sans: ['"Inter"', 'system-ui', 'sans-serif'],
-        display: ['"Orbitron"', 'sans-serif'],
+        display: ['"Orbitron"', '"Rajdhani"', 'sans-serif'],
       },
+      fontSize: {
+        'xs': ['0.75rem', { lineHeight: '1rem', letterSpacing: '0.01em' }],
+        'sm': ['0.875rem', { lineHeight: '1.25rem', letterSpacing: '0.01em' }],
+        'base': ['1rem', { lineHeight: '1.5rem', letterSpacing: '0' }],
+        'lg': ['1.125rem', { lineHeight: '1.75rem', letterSpacing: '-0.01em' }],
+        'xl': ['1.25rem', { lineHeight: '1.75rem', letterSpacing: '-0.01em' }],
+        '2xl': ['1.5rem', { lineHeight: '2rem', letterSpacing: '-0.02em' }],
+        '3xl': ['1.875rem', { lineHeight: '2.25rem', letterSpacing: '-0.02em' }],
+      },
+      // Extended Color System
       colors: {
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
@@ -36,6 +47,10 @@ export default {
         secondary: {
           DEFAULT: 'hsl(var(--secondary))',
           foreground: 'hsl(var(--secondary-foreground))',
+        },
+        success: {
+          DEFAULT: 'hsl(var(--success))',
+          foreground: 'hsl(var(--success-foreground))',
         },
         destructive: {
           DEFAULT: 'hsl(var(--destructive))',
@@ -57,27 +72,50 @@ export default {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
         },
-        // Cassette Futurism Palette
-        retro: {
-          orange: '#FF3D00',
-          teal: '#00E5FF',
-          pink: '#FF00FF',
-          yellow: '#FFEA00',
-          dark: '#1A1A1A',
-          light: '#F5F7FA',
+        // Core Palette - Direct color access
+        terminal: {
+          orange: '#FF6B2C',      // Vibrant Orange
+          'orange-dark': '#E55A1F',
+          red: '#D32F2F',         // Deep Red
+          'red-dark': '#B71C1C',
+          green: '#00E676',       // Signal Green
+          'green-dark': '#00C853',
+          grey: {
+            50: '#F5F5F5',
+            100: '#E0E0E0',
+            200: '#BDBDBD',
+            300: '#9E9E9E',
+            400: '#757575',
+            500: '#616161',
+            600: '#424242',
+            700: '#303030',
+            800: '#212121',
+            900: '#1A1A1A',
+          }
         }
       },
+      // Simplified Border Radius
       borderRadius: {
         lg: 'var(--radius)',
-        md: 'calc(var(--radius) - 2px)',
-        sm: 'calc(var(--radius) - 4px)',
+        md: 'var(--radius)',
+        sm: 'var(--radius)',
         none: '0',
       },
+      // Refined Shadows - Subtle and clean
       boxShadow: {
-        'retro': '4px 4px 0px 0px rgba(0,0,0,1)',
-        'retro-hover': '2px 2px 0px 0px rgba(0,0,0,1)',
-        'neon': '0 0 5px theme("colors.primary.DEFAULT"), 0 0 20px theme("colors.primary.DEFAULT")',
+        'sm': 'var(--shadow-sm)',
+        'md': 'var(--shadow-md)',
+        'lg': '0 4px 6px rgba(0, 0, 0, 0.12)',
+        'focus': 'var(--shadow-focus)',
+        // Minimal retro effect for special cases
+        'terminal': '1px 1px 0px rgba(0, 0, 0, 0.15)',
+        'terminal-md': '2px 2px 0px rgba(0, 0, 0, 0.15)',
+        // Glow effects for status indicators
+        'glow-orange': '0 0 8px rgba(255, 107, 44, 0.4)',
+        'glow-red': '0 0 8px rgba(211, 47, 47, 0.4)',
+        'glow-green': '0 0 8px rgba(0, 230, 118, 0.4)',
       },
+      // Refined Animations
       keyframes: {
         'accordion-down': {
           from: { height: '0' },
@@ -87,28 +125,45 @@ export default {
           from: { height: 'var(--radix-accordion-content-height)' },
           to: { height: '0' },
         },
-        'glitch': {
-          '0%, 100%': { transform: 'translate(0)' },
-          '20%': { transform: 'translate(-2px, 2px)' },
-          '40%': { transform: 'translate(-2px, -2px)' },
-          '60%': { transform: 'translate(2px, 2px)' },
-          '80%': { transform: 'translate(2px, -2px)' },
+        // Subtle fade in
+        'fade-in': {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
         },
+        // Slide in from bottom
+        'slide-up': {
+          '0%': { transform: 'translateY(10px)', opacity: '0' },
+          '100%': { transform: 'translateY(0)', opacity: '1' },
+        },
+        // Subtle pulse for status indicators
+        'pulse-glow': {
+          '0%, 100%': { opacity: '1' },
+          '50%': { opacity: '0.7' },
+        },
+        // Terminal cursor blink
+        'blink': {
+          '0%, 100%': { opacity: '1' },
+          '50%': { opacity: '0' },
+        },
+        // Simplified scanline
         'scanline': {
           '0%': { transform: 'translateY(-100%)' },
           '100%': { transform: 'translateY(100%)' },
         },
-        'pulse-slow': {
-          '0%, 100%': { opacity: '1' },
-          '50%': { opacity: '0.5' },
-        }
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
-        'glitch': 'glitch 0.3s cubic-bezier(.25, .46, .45, .94) both infinite',
+        'fade-in': 'fade-in 0.15s ease-out',
+        'slide-up': 'slide-up 0.2s ease-out',
+        'pulse-glow': 'pulse-glow 2s ease-in-out infinite',
+        'blink': 'blink 1s step-end infinite',
         'scanline': 'scanline 8s linear infinite',
-        'pulse-slow': 'pulse-slow 3s ease-in-out infinite',
+      },
+      // Spacing adjustments for pixel-perfect layouts
+      spacing: {
+        '18': '4.5rem',
+        '88': '22rem',
       },
     },
   },

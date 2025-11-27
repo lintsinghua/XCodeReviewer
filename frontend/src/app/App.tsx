@@ -19,9 +19,7 @@ function AppLayout() {
         className={`transition-all duration-300 min-h-screen ${collapsed ? "md:ml-20" : "md:ml-64"
           }`}
       >
-        <div className="container mx-auto px-4 py-6 md:py-8 pt-16 md:pt-8">
-          <Outlet />
-        </div>
+        <Outlet />
       </main>
     </div>
   );

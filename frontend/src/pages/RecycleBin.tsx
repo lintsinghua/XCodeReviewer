@@ -113,19 +113,22 @@ export default function RecycleBin() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-100">
+      <div className="flex items-center justify-center min-h-screen bg-background">
         <div className="text-center">
-          <div className="animate-spin rounded-none h-12 w-12 border-4 border-black border-t-transparent mx-auto mb-4"></div>
-          <p className="text-black font-mono font-bold uppercase">加载中...</p>
+          <div className="animate-spin rounded-none h-12 w-12 border-4 border-border border-t-transparent mx-auto mb-4"></div>
+          <p className="text-foreground font-mono font-bold uppercase">加载中...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-6 px-6 py-4 bg-background min-h-screen font-mono relative overflow-hidden">
+      {/* Decorative Background */}
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
+
       {/* 页面标题 */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b-4 border-black pb-6 bg-white/50 backdrop-blur-sm p-4 retro-border">
+      <div className="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b-4 border-black pb-6 bg-white/50 backdrop-blur-sm p-4 retro-border">
         <div>
           <h1 className="text-3xl font-display font-bold text-black uppercase tracking-tighter flex items-center gap-2">
             <Trash2 className="w-8 h-8 text-black" />
