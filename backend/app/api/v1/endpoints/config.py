@@ -216,3 +216,109 @@ async def delete_my_config(
     
     return {"message": "配置已删除"}
 
+
+class LLMTestRequest(BaseModel):
+    """LLM测试请求"""
+    provider: str
+    apiKey: str
+    model: Optional[str] = None
+    baseUrl: Optional[str] = None
+
+
+class LLMTestResponse(BaseModel):
+    """LLM测试响应"""
+    success: bool
+    message: str
+    model: Optional[str] = None
+    response: Optional[str] = None
+
+
+@router.post("/test-llm", response_model=LLMTestResponse)
+async def test_llm_connection(
+    request: LLMTestRequest,
+    current_user: User = Depends(deps.get_current_user),
+) -> Any:
+    """测试LLM连接是否正常"""
+    from app.services.llm.factory import LLMFactory
+    from app.services.llm.types import LLMConfig, LLMProvider, LLMRequest, LLMMessage, DEFAULT_MODELS
+    
+    try:
+        # 解析provider
+        provider_map = {
+            'gemini': LLMProvider.GEMINI,
+            'openai': LLMProvider.OPENAI,
+            'claude': LLMProvider.CLAUDE,
+            'qwen': LLMProvider.QWEN,
+            'deepseek': LLMProvider.DEEPSEEK,
+            'zhipu': LLMProvider.ZHIPU,
+            'moonshot': LLMProvider.MOONSHOT,
+            'baidu': LLMProvider.BAIDU,
+            'minimax': LLMProvider.MINIMAX,
+            'doubao': LLMProvider.DOUBAO,
+            'ollama': LLMProvider.OLLAMA,
+        }
+        
+        provider = provider_map.get(request.provider.lower())
+        if not provider:
+            return LLMTestResponse(
+                success=False,
+                message=f"不支持的LLM提供商: {request.provider}"
+            )
+        
+        # 获取默认模型
+        model = request.model or DEFAULT_MODELS.get(provider)
+        
+        # 创建配置
+        config = LLMConfig(
+            provider=provider,
+            api_key=request.apiKey,
+            model=model,
+            base_url=request.baseUrl,
+            timeout=30,  # 测试使用较短的超时时间
+            max_tokens=50,  # 测试使用较少的token
+        )
+        
+        # 创建适配器并测试
+        adapter = LLMFactory.create_adapter(config)
+        
+        test_request = LLMRequest(
+            messages=[
+                LLMMessage(role="user", content="Say 'Hello' in one word.")
+            ],
+            max_tokens=50,
+        )
+        
+        response = await adapter.complete(test_request)
+        
+        return LLMTestResponse(
+            success=True,
+            message="LLM连接测试成功",
+            model=model,
+            response=response.content[:100] if response.content else None
+        )
+        
+    except Exception as e:
+        return LLMTestResponse(
+            success=False,
+            message=f"LLM连接测试失败: {str(e)}"
+        )
+
+
+@router.get("/llm-providers")
+async def get_llm_providers() -> Any:
+    """获取支持的LLM提供商列表"""
+    from app.services.llm.factory import LLMFactory
+    from app.services.llm.types import LLMProvider, DEFAULT_BASE_URLS
+    
+    providers = []
+    for provider in LLMFactory.get_supported_providers():
+        providers.append({
+            "id": provider.value,
+            "name": provider.value.upper(),
+            "defaultModel": LLMFactory.get_default_model(provider),
+            "models": LLMFactory.get_available_models(provider),
+            "defaultBaseUrl": DEFAULT_BASE_URLS.get(provider, ""),
+        })
+    
+    return {"providers": providers}
+

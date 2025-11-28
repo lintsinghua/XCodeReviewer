@@ -18,4 +18,5 @@ dependencies = [
     "email-validator",
     "greenlet",
     "bcrypt<5.0.0",
+    "litellm>=1.0.0",
 ]

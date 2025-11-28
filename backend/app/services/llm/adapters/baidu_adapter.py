@@ -3,10 +3,9 @@
 """
 
 import httpx
-import json
 from typing import Optional
 from ..base_adapter import BaseLLMAdapter
-from ..types import LLMConfig, LLMRequest, LLMResponse, LLMError
+from ..types import LLMConfig, LLMRequest, LLMResponse, LLMError, LLMProvider, LLMUsage
 
 
 class BaiduAdapter(BaseLLMAdapter):
@@ -70,8 +69,16 @@ class BaiduAdapter(BaseLLMAdapter):
             
             return self._access_token
     
-    async def _do_complete(self, request: LLMRequest) -> LLMResponse:
+    async def complete(self, request: LLMRequest) -> LLMResponse:
         """执行实际的API调用"""
+        try:
+            await self.validate_config()
+            return await self.retry(lambda: self._send_request(request))
+        except Exception as error:
+            self.handle_error(error, "百度文心一言 API调用失败")
+    
+    async def _send_request(self, request: LLMRequest) -> LLMResponse:
+        """发送请求"""
         access_token = await self._get_access_token()
         
         # 获取模型对应的API端点
@@ -84,55 +91,56 @@ class BaiduAdapter(BaseLLMAdapter):
         
         payload = {
             "messages": messages,
-            "temperature": request.temperature or self.config.temperature,
-            "top_p": request.top_p or self.config.top_p,
+            "temperature": request.temperature if request.temperature is not None else self.config.temperature,
+            "top_p": request.top_p if request.top_p is not None else self.config.top_p,
         }
         
         if request.max_tokens or self.config.max_tokens:
             payload["max_output_tokens"] = request.max_tokens or self.config.max_tokens
         
-        async with httpx.AsyncClient(timeout=self.config.timeout) as client:
-            response = await client.post(
-                url,
-                json=payload,
-                headers={"Content-Type": "application/json"}
+        response = await self.client.post(
+            url,
+            headers=self.build_headers(),
+            json=payload
+        )
+        
+        if response.status_code != 200:
+            error_data = response.json() if response.text else {}
+            error_msg = error_data.get("error_msg", f"HTTP {response.status_code}")
+            raise Exception(f"{error_msg}")
+        
+        data = response.json()
+        
+        if "error_code" in data:
+            raise Exception(f"百度API错误: {data.get('error_msg', '未知错误')}")
+        
+        usage = None
+        if "usage" in data:
+            usage = LLMUsage(
+                prompt_tokens=data["usage"].get("prompt_tokens", 0),
+                completion_tokens=data["usage"].get("completion_tokens", 0),
+                total_tokens=data["usage"].get("total_tokens", 0)
             )
-            
-            if response.status_code != 200:
-                raise LLMError(
-                    f"百度API错误: {response.text}",
-                    provider="baidu",
-                    status_code=response.status_code
-                )
-            
-            data = response.json()
-            
-            if "error_code" in data:
-                raise LLMError(
-                    f"百度API错误: {data.get('error_msg', '未知错误')}",
-                    provider="baidu",
-                    status_code=data.get("error_code")
-                )
-            
-            return LLMResponse(
-                content=data.get("result", ""),
-                model=model,
-                usage=data.get("usage"),
-                finish_reason=data.get("finish_reason")
-            )
+        
+        return LLMResponse(
+            content=data.get("result", ""),
+            model=model,
+            usage=usage,
+            finish_reason=data.get("finish_reason")
+        )
     
     async def validate_config(self) -> bool:
         """验证配置是否有效"""
-        try:
-            await self._get_access_token()
-            return True
-        except Exception:
-            return False
-    
-    def get_provider(self) -> str:
-        return "baidu"
-    
-    def get_model(self) -> str:
-        return self.config.model or "ERNIE-3.5-8K"
+        if not self.config.api_key:
+            raise LLMError(
+                "API Key未配置",
+                provider=LLMProvider.BAIDU
+            )
+        if ":" not in self.config.api_key:
+            raise LLMError(
+                "百度API需要同时提供API Key和Secret Key，格式：api_key:secret_key",
+                provider=LLMProvider.BAIDU
+            )
+        return True
 
 

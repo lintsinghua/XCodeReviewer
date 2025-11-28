@@ -1,30 +1,22 @@
 """
 LLM适配器模块
+
+适配器分为两类:
+1. LiteLLM 统一适配器 - 支持 OpenAI, Claude, Gemini, DeepSeek, Qwen, Zhipu, Moonshot, Ollama
+2. 原生适配器 - 用于 API 格式特殊的提供商: Baidu, MiniMax, Doubao
 """
 
-from .openai_adapter import OpenAIAdapter
-from .gemini_adapter import GeminiAdapter
-from .claude_adapter import ClaudeAdapter
-from .deepseek_adapter import DeepSeekAdapter
-from .qwen_adapter import QwenAdapter
-from .zhipu_adapter import ZhipuAdapter
-from .moonshot_adapter import MoonshotAdapter
+# LiteLLM 统一适配器
+from .litellm_adapter import LiteLLMAdapter
+
+# 原生适配器 (用于 API 格式特殊的提供商)
 from .baidu_adapter import BaiduAdapter
 from .minimax_adapter import MinimaxAdapter
 from .doubao_adapter import DoubaoAdapter
-from .ollama_adapter import OllamaAdapter
 
 __all__ = [
-    'OpenAIAdapter',
-    'GeminiAdapter', 
-    'ClaudeAdapter',
-    'DeepSeekAdapter',
-    'QwenAdapter',
-    'ZhipuAdapter',
-    'MoonshotAdapter',
-    'BaiduAdapter',
-    'MinimaxAdapter',
-    'DoubaoAdapter',
-    'OllamaAdapter',
+    "LiteLLMAdapter",
+    "BaiduAdapter",
+    "MinimaxAdapter",
+    "DoubaoAdapter",
 ]
-

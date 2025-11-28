@@ -273,6 +273,34 @@ export const api = {
     await apiClient.delete('/config/me');
   },
 
+  async testLLMConnection(params: {
+    provider: string;
+    apiKey: string;
+    model?: string;
+    baseUrl?: string;
+  }): Promise<{
+    success: boolean;
+    message: string;
+    model?: string;
+    response?: string;
+  }> {
+    const res = await apiClient.post('/config/test-llm', params);
+    return res.data;
+  },
+
+  async getLLMProviders(): Promise<{
+    providers: Array<{
+      id: string;
+      name: string;
+      defaultModel: string;
+      models: string[];
+      defaultBaseUrl: string;
+    }>;
+  }> {
+    const res = await apiClient.get('/config/llm-providers');
+    return res.data;
+  },
+
   // ==================== 数据库管理相关方法 ====================
 
   async exportDatabase(): Promise<{
