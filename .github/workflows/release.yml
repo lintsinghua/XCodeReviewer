@@ -41,32 +41,47 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'pnpm'
-          cache-dependency-path: frontend/pnpm-lock.yaml
       
       # 3. 安装 pnpm
       - name: 安装 pnpm
-        run: npm install -g pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 8
       
-      # 4. 安装前端依赖
+      # 4. 获取 pnpm store 目录
+      - name: 获取 pnpm store 目录
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+      
+      # 5. 设置 pnpm 缓存
+      - name: 设置 pnpm 缓存
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+      
+      # 6. 安装前端依赖
       - name: 安装前端依赖
         working-directory: ./frontend
         run: pnpm install --frozen-lockfile
       
-      # 5. 构建前端项目
+      # 7. 构建前端项目
       - name: 构建前端项目
         working-directory: ./frontend
         run: pnpm build
         env:
           VITE_USE_LOCAL_DB: 'true'
       
-      # 6. 设置 Python 环境（用于后端）
+      # 8. 设置 Python 环境（用于后端）
       - name: 设置 Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.13'
       
-      # 7. 确定版本号
+      # 9. 确定版本号
       - name: 确定版本号
         id: version
         run: |
@@ -80,7 +95,7 @@ jobs:
           VERSION_NO_V="${VERSION#v}"
           echo "VERSION_NO_V=$VERSION_NO_V" >> $GITHUB_OUTPUT
       
-      # 8. 打包构建产物
+      # 10. 打包构建产物
       - name: 打包构建产物
         run: |
           # 创建发布目录
@@ -123,7 +138,7 @@ jobs:
           sha256sum * > checksums.txt
           cd ..
       
-      # 9. 生成更新日志
+      # 11. 生成更新日志
       - name: 生成更新日志
         id: changelog
         run: |
@@ -160,7 +175,7 @@ jobs:
           echo "docker-compose up -d" >> CHANGELOG.md
           echo "\`\`\`" >> CHANGELOG.md
       
-      # 10. 创建 GitHub Release
+      # 12. 创建 GitHub Release
       - name: 创建 Release
         uses: softprops/action-gh-release@v2
         with:
@@ -175,7 +190,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       
-      # 11. 登录 GitHub Container Registry
+      # 13. 登录 GitHub Container Registry
       - name: 登录到 GitHub Container Registry
         uses: docker/login-action@v3
         with:
@@ -183,15 +198,15 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       
-      # 12. 设置 QEMU（用于多架构构建）
+      # 14. 设置 QEMU（用于多架构构建）
       - name: 设置 QEMU
         uses: docker/setup-qemu-action@v3
       
-      # 13. 设置 Docker Buildx
+      # 15. 设置 Docker Buildx
       - name: 设置 Docker Buildx
         uses: docker/setup-buildx-action@v3
       
-      # 14. 构建并推送前端 Docker 镜像（生产环境 Nginx）
+      # 16. 构建并推送前端 Docker 镜像（生产环境 Nginx）
       - name: 构建并推送前端 Docker 镜像
         uses: docker/build-push-action@v5
         with:
@@ -205,7 +220,7 @@ jobs:
           cache-from: type=gha,scope=frontend
           cache-to: type=gha,mode=max,scope=frontend
       
-      # 15. 构建并推送后端 Docker 镜像
+      # 17. 构建并推送后端 Docker 镜像
       - name: 构建并推送后端 Docker 镜像
         uses: docker/build-push-action@v5
         with:
@@ -219,7 +234,7 @@ jobs:
           cache-from: type=gha,scope=backend
           cache-to: type=gha,mode=max,scope=backend
       
-      # 16. 更新 README 中的版本号
+      # 18. 更新 README 中的版本号
       - name: 更新 README 版本号
         if: github.event_name == 'push'
         run: |
