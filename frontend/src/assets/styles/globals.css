@@ -2,6 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
+@font-face {
+  font-family: 'ArkPixel';
+  src: url('/fonts/ark-pixel-12px-monospaced-zh_cn.ttf.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
 /* 
   XCodeReviewer Design System
   Aesthetic: Terminal Retro + Pixel Art + Mechanical + Cassette Futurism
@@ -358,7 +366,29 @@
   }
 
   /* Smooth transitions */
+  /* Smooth transitions */
   .terminal-transition {
     transition: all 0.15s ease;
+  }
+
+  /* Text Glow Effect */
+  .text-shadow-glow {
+    text-shadow: 0 0 2px currentColor;
+  }
+
+  /* Custom Scrollbar for Terminal */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 10px;
+    background-color: #1a1a1a;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background-color: #4a4a4a;
+    border: 2px solid #1a1a1a;
+    border-radius: 0;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: #666;
   }
 }

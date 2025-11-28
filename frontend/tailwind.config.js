@@ -20,7 +20,7 @@ export default {
     extend: {
       // Typography - Pixel-perfect monospace for terminal aesthetic
       fontFamily: {
-        mono: ['"JetBrains Mono"', '"Roboto Mono"', '"Courier New"', 'monospace'],
+        mono: ['"ArkPixel"', '"JetBrains Mono"', '"Roboto Mono"', '"Courier New"', 'monospace'],
         sans: ['"Inter"', 'system-ui', 'sans-serif'],
         display: ['"Orbitron"', '"Rajdhani"', 'sans-serif'],
       },
