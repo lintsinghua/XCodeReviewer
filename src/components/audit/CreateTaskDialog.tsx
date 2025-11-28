@@ -24,7 +24,7 @@ import { toast } from "sonner";
 import TerminalProgressDialog from "./TerminalProgressDialog";
 import { runRepositoryAudit } from "@/features/projects/services/repoScan";
 import { scanZipFile, validateZipFile } from "@/features/projects/services/repoZipScan";
-import { loadZipFile } from "@/shared/utils/zipStorage";
+import { loadZipFile, saveZipFile } from "@/shared/utils/zipStorage";
 import { env } from "@/shared/config/env";
 
 interface CreateTaskDialogProps {
@@ -44,6 +44,7 @@ export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, pr
   const [zipFile, setZipFile] = useState<File | null>(null);
   const [loadingZipFile, setLoadingZipFile] = useState(false);
   const [hasLoadedZip, setHasLoadedZip] = useState(false);
+  const [skipAutoLoad, setSkipAutoLoad] = useState(false); // 用户主动更换文件时跳过自动加载
   
   const [taskForm, setTaskForm] = useState<CreateAuditTaskForm>({
     project_id: "",
@@ -79,13 +80,15 @@ export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, pr
       // 重置ZIP文件状态
       setZipFile(null);
       setHasLoadedZip(false);
+      setSkipAutoLoad(false); // 重置跳过自动加载标志
     }
   }, [open, preselectedProjectId]);
 
   // 当项目ID变化时，尝试自动加载保存的ZIP文件
   useEffect(() => {
     const autoLoadZipFile = async () => {
-      if (!taskForm.project_id || hasLoadedZip) return;
+      // 如果用户主动更换文件，跳过自动加载
+      if (!taskForm.project_id || hasLoadedZip || skipAutoLoad) return;
       
       const project = projects.find(p => p.id === taskForm.project_id);
       if (!project || project.repository_type !== 'other') return;
@@ -108,7 +111,7 @@ export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, pr
     };
 
     autoLoadZipFile();
-  }, [taskForm.project_id, projects, hasLoadedZip]);
+  }, [taskForm.project_id, projects, hasLoadedZip, skipAutoLoad]);
 
   const loadProjects = async () => {
     try {
@@ -409,6 +412,7 @@ export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, pr
                               onClick={() => {
                                 setZipFile(null);
                                 setHasLoadedZip(false);
+                                setSkipAutoLoad(true); // 阻止自动重新加载
                               }}
                             >
                               更换文件
@@ -432,7 +436,7 @@ export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, pr
                                 id="zipFile"
                                 type="file"
                                 accept=".zip"
-                                onChange={(e) => {
+                                onChange={async (e) => {
                                   const file = e.target.files?.[0];
                                   if (file) {
                                     console.log('📁 选择的文件:', {
@@ -448,6 +452,18 @@ export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, pr
                                       e.target.value = '';
                                       return;
                                     }
+                                    
+                                    // 保存到 IndexedDB
+                                    try {
+                                      await saveZipFile(taskForm.project_id, file);
+                                      console.log('✓ ZIP文件已保存到数据库');
+                                    } catch (error) {
+                                      console.error('保存ZIP文件到数据库失败:', error);
+                                      toast.error('保存文件失败，请重试');
+                                      e.target.value = '';
+                                      return;
+                                    }
+                                    
                                     setZipFile(file);
                                     setHasLoadedZip(true);
                                     

@@ -31,7 +31,7 @@ import {
 import { api } from "@/shared/config/database";
 import { validateZipFile } from "@/features/projects/services";
 import type { Project, CreateProjectForm } from "@/shared/types";
-import { saveZipFile } from "@/shared/utils/zipStorage";
+import { saveZipFile, loadZipFile } from "@/shared/utils/zipStorage";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import CreateTaskDialog from "@/components/audit/CreateTaskDialog";
@@ -51,6 +51,8 @@ export default function Projects() {
   const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [projectToEdit, setProjectToEdit] = useState<Project | null>(null);
+  const [editZipFile, setEditZipFile] = useState<File | null>(null);
+  const [loadingEditZipFile, setLoadingEditZipFile] = useState(false);
   const [editForm, setEditForm] = useState<CreateProjectForm>({
     name: "",
     description: "",
@@ -263,7 +265,7 @@ export default function Projects() {
     setShowCreateTaskDialog(true);
   };
 
-  const handleEditClick = (project: Project) => {
+  const handleEditClick = async (project: Project) => {
     setProjectToEdit(project);
     setEditForm({
       name: project.name,
@@ -273,7 +275,23 @@ export default function Projects() {
       default_branch: project.default_branch || "main",
       programming_languages: project.programming_languages ? JSON.parse(project.programming_languages) : []
     });
+    setEditZipFile(null);
     setShowEditDialog(true);
+    
+    // 如果是 ZIP 上传的项目，尝试加载已保存的 ZIP 文件
+    if (!project.repository_url || project.repository_url.trim() === '') {
+      try {
+        setLoadingEditZipFile(true);
+        const savedFile = await loadZipFile(project.id);
+        if (savedFile) {
+          setEditZipFile(savedFile);
+        }
+      } catch (error) {
+        console.error('加载ZIP文件失败:', error);
+      } finally {
+        setLoadingEditZipFile(false);
+      }
+    }
   };
 
   const handleSaveEdit = async () => {
@@ -904,6 +922,107 @@ export default function Projects() {
                   />
                 </div>
               </div>
+
+              {/* ZIP 文件管理 - 仅对无仓库地址的项目显示 */}
+              {projectToEdit && (!projectToEdit.repository_url || projectToEdit.repository_url.trim() === '') && (
+                <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg space-y-3">
+                  <div className="flex items-center space-x-2">
+                    <Upload className="w-4 h-4 text-amber-600" />
+                    <span className="text-sm font-medium text-amber-900">ZIP 文件管理</span>
+                  </div>
+                  
+                  {loadingEditZipFile ? (
+                    <div className="flex items-center space-x-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                      <p className="text-sm text-blue-800">正在加载ZIP文件...</p>
+                    </div>
+                  ) : editZipFile ? (
+                    <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg">
+                      <div className="flex items-center space-x-2">
+                        <FileText className="w-4 h-4 text-green-600" />
+                        <div>
+                          <p className="text-sm font-medium text-green-900">{editZipFile.name}</p>
+                          <p className="text-xs text-green-700">
+                            {editZipFile.size >= 1024 * 1024 
+                              ? `${(editZipFile.size / 1024 / 1024).toFixed(2)} MB`
+                              : `${(editZipFile.size / 1024).toFixed(2)} KB`
+                            }
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Label htmlFor="edit-zip-file" className="cursor-pointer">
+                          <Button size="sm" variant="outline" asChild>
+                            <span>更换文件</span>
+                          </Button>
+                        </Label>
+                        <Input
+                          id="edit-zip-file"
+                          type="file"
+                          accept=".zip"
+                          className="hidden"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (file && projectToEdit) {
+                              const validation = validateZipFile(file);
+                              if (!validation.valid) {
+                                toast.error(validation.error || "文件无效");
+                                e.target.value = '';
+                                return;
+                              }
+                              try {
+                                await saveZipFile(projectToEdit.id, file);
+                                setEditZipFile(file);
+                                toast.success(`已更换文件: ${file.name}`);
+                              } catch (error) {
+                                console.error('保存ZIP文件失败:', error);
+                                toast.error('保存文件失败，请重试');
+                              }
+                              e.target.value = '';
+                            }
+                          }}
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <div className="flex items-center space-x-2 text-amber-700">
+                        <AlertCircle className="w-4 h-4" />
+                        <p className="text-sm">未找到已保存的ZIP文件</p>
+                      </div>
+                      <div>
+                        <Label htmlFor="edit-zip-upload">上传ZIP文件</Label>
+                        <Input
+                          id="edit-zip-upload"
+                          type="file"
+                          accept=".zip"
+                          className="mt-1"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (file && projectToEdit) {
+                              const validation = validateZipFile(file);
+                              if (!validation.valid) {
+                                toast.error(validation.error || "文件无效");
+                                e.target.value = '';
+                                return;
+                              }
+                              try {
+                                await saveZipFile(projectToEdit.id, file);
+                                setEditZipFile(file);
+                                toast.success(`已上传文件: ${file.name}`);
+                              } catch (error) {
+                                console.error('保存ZIP文件失败:', error);
+                                toast.error('保存文件失败，请重试');
+                              }
+                              e.target.value = '';
+                            }
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* 编程语言 */}
