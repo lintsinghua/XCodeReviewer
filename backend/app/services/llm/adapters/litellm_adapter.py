@@ -102,6 +102,9 @@ class LiteLLMAdapter(BaseLLMAdapter):
         """发送请求到 LiteLLM"""
         import litellm
         
+        # 禁用 LiteLLM 的缓存，确保每次都实际调用 API
+        litellm.cache = None
+        
         # 构建消息
         messages = [{"role": msg.role, "content": msg.content} for msg in request.messages]
 
@@ -130,10 +133,30 @@ class LiteLLMAdapter(BaseLLMAdapter):
             kwargs["frequency_penalty"] = self.config.frequency_penalty
             kwargs["presence_penalty"] = self.config.presence_penalty
 
-        # 调用 LiteLLM
-        response = await litellm.acompletion(**kwargs)
+        try:
+            # 调用 LiteLLM
+            response = await litellm.acompletion(**kwargs)
+        except litellm.exceptions.AuthenticationError as e:
+            raise LLMError(f"API Key 无效或已过期: {str(e)}", self.config.provider, 401)
+        except litellm.exceptions.RateLimitError as e:
+            raise LLMError(f"API 调用频率超限: {str(e)}", self.config.provider, 429)
+        except litellm.exceptions.APIConnectionError as e:
+            raise LLMError(f"无法连接到 API 服务: {str(e)}", self.config.provider)
+        except litellm.exceptions.APIError as e:
+            raise LLMError(f"API 错误: {str(e)}", self.config.provider, getattr(e, 'status_code', None))
+        except Exception as e:
+            # 捕获其他异常并重新抛出
+            error_msg = str(e)
+            if "invalid_api_key" in error_msg.lower() or "incorrect api key" in error_msg.lower():
+                raise LLMError(f"API Key 无效: {error_msg}", self.config.provider, 401)
+            elif "authentication" in error_msg.lower():
+                raise LLMError(f"认证失败: {error_msg}", self.config.provider, 401)
+            raise
 
         # 解析响应
+        if not response:
+            raise LLMError("API 返回空响应", self.config.provider)
+            
         choice = response.choices[0] if response.choices else None
         if not choice:
             raise LLMError("API响应格式异常: 缺少choices字段", self.config.provider)

@@ -239,7 +239,8 @@ async def test_llm_connection(
     current_user: User = Depends(deps.get_current_user),
 ) -> Any:
     """测试LLM连接是否正常"""
-    from app.services.llm.factory import LLMFactory
+    from app.services.llm.factory import LLMFactory, NATIVE_ONLY_PROVIDERS
+    from app.services.llm.adapters import LiteLLMAdapter, BaiduAdapter, MinimaxAdapter, DoubaoAdapter
     from app.services.llm.types import LLMConfig, LLMProvider, LLMRequest, LLMMessage, DEFAULT_MODELS
     
     try:
@@ -278,8 +279,16 @@ async def test_llm_connection(
             max_tokens=50,  # 测试使用较少的token
         )
         
-        # 创建适配器并测试
-        adapter = LLMFactory.create_adapter(config)
+        # 直接创建新的适配器实例（不使用缓存），确保使用最新的配置
+        if provider in NATIVE_ONLY_PROVIDERS:
+            native_adapter_map = {
+                LLMProvider.BAIDU: BaiduAdapter,
+                LLMProvider.MINIMAX: MinimaxAdapter,
+                LLMProvider.DOUBAO: DoubaoAdapter,
+            }
+            adapter = native_adapter_map[provider](config)
+        else:
+            adapter = LiteLLMAdapter(config)
         
         test_request = LLMRequest(
             messages=[
@@ -290,6 +299,13 @@ async def test_llm_connection(
         
         response = await adapter.complete(test_request)
         
+        # 验证响应内容
+        if not response or not response.content:
+            return LLMTestResponse(
+                success=False,
+                message="LLM 返回空响应，请检查 API Key 和配置"
+            )
+        
         return LLMTestResponse(
             success=True,
             message="LLM连接测试成功",
@@ -298,9 +314,32 @@ async def test_llm_connection(
         )
         
     except Exception as e:
+        error_msg = str(e)
+        # 提供更友好的错误信息
+        if "401" in error_msg or "invalid_api_key" in error_msg.lower() or "incorrect api key" in error_msg.lower():
+            return LLMTestResponse(
+                success=False,
+                message="API Key 无效或已过期，请检查后重试"
+            )
+        elif "authentication" in error_msg.lower():
+            return LLMTestResponse(
+                success=False,
+                message="认证失败，请检查 API Key 是否正确"
+            )
+        elif "timeout" in error_msg.lower():
+            return LLMTestResponse(
+                success=False,
+                message="连接超时，请检查网络或 API 地址是否正确"
+            )
+        elif "connection" in error_msg.lower():
+            return LLMTestResponse(
+                success=False,
+                message="无法连接到 API 服务，请检查网络或 API 地址"
+            )
+        
         return LLMTestResponse(
             success=False,
-            message=f"LLM连接测试失败: {str(e)}"
+            message=f"LLM连接测试失败: {error_msg}"
         )
 
 

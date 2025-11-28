@@ -11,25 +11,25 @@ import {
 import { toast } from "sonner";
 import { api } from "@/shared/api/database";
 
-// LLM 提供商配置 - 简化分类
+// LLM 提供商配置 - 2025年最新
 const LLM_PROVIDERS = [
-  { value: 'openai', label: 'OpenAI GPT', icon: '🟢', category: 'litellm', hint: 'gpt-4o, gpt-4o-mini 等' },
-  { value: 'claude', label: 'Anthropic Claude', icon: '🟣', category: 'litellm', hint: 'claude-3.5-sonnet 等' },
-  { value: 'gemini', label: 'Google Gemini', icon: '🔵', category: 'litellm', hint: 'gemini-1.5-flash 等' },
-  { value: 'deepseek', label: 'DeepSeek', icon: '🔷', category: 'litellm', hint: 'deepseek-chat, deepseek-coder' },
-  { value: 'qwen', label: '通义千问', icon: '🟠', category: 'litellm', hint: 'qwen-turbo, qwen-max 等' },
-  { value: 'zhipu', label: '智谱AI (GLM)', icon: '🔴', category: 'litellm', hint: 'glm-4-flash, glm-4 等' },
-  { value: 'moonshot', label: 'Moonshot (Kimi)', icon: '🌙', category: 'litellm', hint: 'moonshot-v1-8k 等' },
-  { value: 'ollama', label: 'Ollama 本地', icon: '🖥️', category: 'litellm', hint: 'llama3, codellama 等' },
-  { value: 'baidu', label: '百度文心', icon: '📘', category: 'native', hint: 'ERNIE-3.5-8K (需要 API_KEY:SECRET_KEY)' },
-  { value: 'minimax', label: 'MiniMax', icon: '⚡', category: 'native', hint: 'abab6.5-chat 等' },
-  { value: 'doubao', label: '字节豆包', icon: '🎯', category: 'native', hint: 'doubao-pro-32k 等' },
+  { value: 'openai', label: 'OpenAI GPT', icon: '🟢', category: 'litellm', hint: 'gpt-5, gpt-5-mini, o3 等' },
+  { value: 'claude', label: 'Anthropic Claude', icon: '🟣', category: 'litellm', hint: 'claude-sonnet-4.5, claude-opus-4 等' },
+  { value: 'gemini', label: 'Google Gemini', icon: '🔵', category: 'litellm', hint: 'gemini-3-pro, gemini-3-flash 等' },
+  { value: 'deepseek', label: 'DeepSeek', icon: '🔷', category: 'litellm', hint: 'deepseek-v3.1-terminus, deepseek-v3 等' },
+  { value: 'qwen', label: '通义千问', icon: '🟠', category: 'litellm', hint: 'qwen3-max-instruct, qwen3-plus 等' },
+  { value: 'zhipu', label: '智谱AI (GLM)', icon: '🔴', category: 'litellm', hint: 'glm-4.6, glm-4.5-flash 等' },
+  { value: 'moonshot', label: 'Moonshot (Kimi)', icon: '🌙', category: 'litellm', hint: 'kimi-k2, kimi-k1.5 等' },
+  { value: 'ollama', label: 'Ollama 本地', icon: '🖥️', category: 'litellm', hint: 'llama3.3-70b, qwen3-8b 等' },
+  { value: 'baidu', label: '百度文心', icon: '📘', category: 'native', hint: 'ernie-4.5 (需要 API_KEY:SECRET_KEY)' },
+  { value: 'minimax', label: 'MiniMax', icon: '⚡', category: 'native', hint: 'minimax-m2, minimax-m1 等' },
+  { value: 'doubao', label: '字节豆包', icon: '🎯', category: 'native', hint: 'doubao-1.6-pro, doubao-1.5-pro 等' },
 ];
 
 const DEFAULT_MODELS: Record<string, string> = {
-  openai: 'gpt-4o-mini', claude: 'claude-3-5-sonnet-20241022', gemini: 'gemini-2.5-flash',
-  deepseek: 'deepseek-chat', qwen: 'qwen-turbo', zhipu: 'glm-4-flash', moonshot: 'moonshot-v1-8k',
-  ollama: 'llama3', baidu: 'ERNIE-3.5-8K', minimax: 'abab6.5-chat', doubao: 'doubao-pro-32k',
+  openai: 'gpt-5', claude: 'claude-sonnet-4.5', gemini: 'gemini-3-pro',
+  deepseek: 'deepseek-v3.1-terminus', qwen: 'qwen3-max-instruct', zhipu: 'glm-4.6', moonshot: 'kimi-k2',
+  ollama: 'llama3.3-70b', baidu: 'ernie-4.5', minimax: 'minimax-m2', doubao: 'doubao-1.6-pro',
 };
 
 interface SystemConfigData {

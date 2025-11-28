@@ -87,19 +87,19 @@ class LLMError(Exception):
         self.original_error = original_error
 
 
-# 各平台默认模型
+# 各平台默认模型 (2025年最新推荐)
 DEFAULT_MODELS: Dict[LLMProvider, str] = {
-    LLMProvider.GEMINI: "gemini-2.5-flash",
-    LLMProvider.OPENAI: "gpt-4o-mini",
-    LLMProvider.CLAUDE: "claude-3-5-sonnet-20241022",
-    LLMProvider.QWEN: "qwen-turbo",
-    LLMProvider.DEEPSEEK: "deepseek-chat",
-    LLMProvider.ZHIPU: "glm-4-flash",
-    LLMProvider.MOONSHOT: "moonshot-v1-8k",
-    LLMProvider.BAIDU: "ERNIE-3.5-8K",
-    LLMProvider.MINIMAX: "abab6.5-chat",
-    LLMProvider.DOUBAO: "doubao-pro-32k",
-    LLMProvider.OLLAMA: "llama3",
+    LLMProvider.GEMINI: "gemini-3-pro",
+    LLMProvider.OPENAI: "gpt-5",
+    LLMProvider.CLAUDE: "claude-sonnet-4.5",
+    LLMProvider.QWEN: "qwen3-max-instruct",
+    LLMProvider.DEEPSEEK: "deepseek-v3.1-terminus",
+    LLMProvider.ZHIPU: "glm-4.6",
+    LLMProvider.MOONSHOT: "kimi-k2",
+    LLMProvider.BAIDU: "ernie-4.5",
+    LLMProvider.MINIMAX: "minimax-m2",
+    LLMProvider.DOUBAO: "doubao-1.6-pro",
+    LLMProvider.OLLAMA: "llama3.3-70b",
 }
 
 
