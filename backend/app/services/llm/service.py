@@ -303,6 +303,9 @@ Note:
         """
         分析代码并返回结构化问题
         支持中英文输出
+        
+        Raises:
+            Exception: 当LLM调用失败或返回无效响应时抛出异常
         """
         # 获取输出语言配置
         output_language = self._get_output_language()
@@ -350,26 +353,35 @@ Please analyze the following code:
             
             # 检查响应内容是否为空
             if not content or not content.strip():
-                logger.warning(f"LLM返回空响应 - Provider: {self.config.provider.value}, Model: {self.config.model}")
-                logger.warning(f"响应详情 - Finish Reason: {response.finish_reason}, Usage: {response.usage}")
-                return self._get_default_response()
+                error_msg = f"LLM返回空响应 - Provider: {self.config.provider.value}, Model: {self.config.model}"
+                logger.error(error_msg)
+                logger.error(f"响应详情 - Finish Reason: {response.finish_reason}, Usage: {response.usage}")
+                raise Exception(error_msg)
             
             # 尝试从响应中提取JSON
             result = self._parse_json(content)
+            
+            # 检查解析结果是否有效（不是默认响应）
+            if result == self._get_default_response():
+                error_msg = f"无法解析LLM响应为有效的分析结果 - Provider: {self.config.provider.value}"
+                logger.error(error_msg)
+                raise Exception(error_msg)
+            
             return result
             
         except Exception as e:
             logger.error(f"LLM Analysis failed: {e}", exc_info=True)
             logger.error(f"Provider: {self.config.provider.value}, Model: {self.config.model}")
-            return self._get_default_response()
+            # 重新抛出异常，让调用者处理
+            raise
     
     def _parse_json(self, text: str) -> Dict[str, Any]:
         """从LLM响应中解析JSON（增强版）"""
         
         # 检查输入是否为空
         if not text or not text.strip():
-            logger.warning("LLM响应内容为空，无法解析JSON")
-            return self._get_default_response()
+            logger.error("LLM响应内容为空，无法解析JSON")
+            raise ValueError("LLM响应内容为空")
         
         def clean_text(s: str) -> str:
             """清理文本中的控制字符"""
@@ -462,13 +474,14 @@ Please analyze the following code:
                     logger.debug(f"直接解析失败，尝试其他方法... {e}")
         
         # 所有尝试都失败
-        logger.warning("⚠️ 无法解析LLM响应为JSON")
-        logger.warning(f"原始内容长度: {len(text)} 字符")
-        logger.warning(f"原始内容（前500字符）: {text[:500]}")
-        logger.warning(f"原始内容（后500字符）: {text[-500:] if len(text) > 500 else text}")
+        logger.error("❌ 无法解析LLM响应为JSON")
+        logger.error(f"原始内容长度: {len(text)} 字符")
+        logger.error(f"原始内容（前500字符）: {text[:500]}")
+        logger.error(f"原始内容（后500字符）: {text[-500:] if len(text) > 500 else text}")
         if last_error:
-            logger.warning(f"最后错误: {type(last_error).__name__}: {str(last_error)}")
-        return self._get_default_response()
+            logger.error(f"最后错误: {type(last_error).__name__}: {str(last_error)}")
+        # 抛出异常而不是返回默认响应
+        raise ValueError(f"无法解析LLM响应为有效的JSON格式: {str(last_error) if last_error else '未知错误'}")
     
     def _extract_from_markdown(self, text: str) -> Dict[str, Any]:
         """从markdown代码块提取JSON"""

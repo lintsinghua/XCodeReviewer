@@ -199,6 +199,11 @@ async def read_project(
     project = result.scalars().first()
     if not project:
         raise HTTPException(status_code=404, detail="项目不存在")
+    
+    # 检查权限：只有项目所有者可以查看
+    if project.owner_id != current_user.id:
+        raise HTTPException(status_code=403, detail="无权查看此项目")
+    
     return project
 
 @router.put("/{id}", response_model=ProjectResponse)
@@ -217,6 +222,10 @@ async def update_project(
     project = result.scalars().first()
     if not project:
         raise HTTPException(status_code=404, detail="项目不存在")
+    
+    # 检查权限：只有项目所有者可以更新
+    if project.owner_id != current_user.id:
+        raise HTTPException(status_code=403, detail="无权更新此项目")
     
     update_data = project_in.model_dump(exclude_unset=True)
     if "programming_languages" in update_data and update_data["programming_languages"] is not None:
@@ -331,18 +340,41 @@ async def scan_project(
     await db.commit()
     await db.refresh(task)
 
-    # 获取用户配置
+    # 获取用户配置（包含解密敏感字段）
     from sqlalchemy.future import select
+    from app.core.encryption import decrypt_sensitive_data
     import json
+
+    # 需要解密的敏感字段列表
+    SENSITIVE_LLM_FIELDS = [
+        'llmApiKey', 'geminiApiKey', 'openaiApiKey', 'claudeApiKey',
+        'qwenApiKey', 'deepseekApiKey', 'zhipuApiKey', 'moonshotApiKey',
+        'baiduApiKey', 'minimaxApiKey', 'doubaoApiKey'
+    ]
+    SENSITIVE_OTHER_FIELDS = ['githubToken', 'gitlabToken']
+
+    def decrypt_config(config_dict: dict, sensitive_fields: list) -> dict:
+        """解密配置中的敏感字段"""
+        decrypted = config_dict.copy()
+        for field in sensitive_fields:
+            if field in decrypted and decrypted[field]:
+                decrypted[field] = decrypt_sensitive_data(decrypted[field])
+        return decrypted
+
     result = await db.execute(
         select(UserConfig).where(UserConfig.user_id == current_user.id)
     )
     config = result.scalar_one_or_none()
     user_config = {}
     if config:
+        llm_config = json.loads(config.llm_config) if config.llm_config else {}
+        other_config = json.loads(config.other_config) if config.other_config else {}
+        # 解密敏感字段
+        llm_config = decrypt_config(llm_config, SENSITIVE_LLM_FIELDS)
+        other_config = decrypt_config(other_config, SENSITIVE_OTHER_FIELDS)
         user_config = {
-            'llmConfig': json.loads(config.llm_config) if config.llm_config else {},
-            'otherConfig': json.loads(config.other_config) if config.other_config else {},
+            'llmConfig': llm_config,
+            'otherConfig': other_config,
         }
 
     # Trigger Background Task

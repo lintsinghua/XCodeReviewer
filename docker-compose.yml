@@ -22,13 +22,13 @@ services:
       context: ./backend
     volumes:
       - ./backend:/app
+      - ./backend/uploads:/app/uploads
     ports:
       - "8000:8000"
+    env_file:
+      - ./backend/.env
     environment:
       - DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/xcodereviewer
-      - SECRET_KEY=changethisdevsecret
-      - ALGORITHM=HS256
-      - ACCESS_TOKEN_EXPIRE_MINUTES=30
     depends_on:
       db:
         condition: service_healthy
@@ -43,7 +43,7 @@ services:
     ports:
       - "5173:5173"
     environment:
-      - VITE_API_BASE_URL=/api
+      - VITE_API_BASE_URL=http://localhost:8000/api/v1
     depends_on:
       - backend
     command: npm run dev -- --host

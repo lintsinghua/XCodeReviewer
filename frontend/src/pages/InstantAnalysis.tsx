@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   AlertTriangle,
   CheckCircle,
@@ -20,13 +21,15 @@ import {
   Upload,
   Zap,
   X,
-  Download
+  Download,
+  History,
+  ChevronRight
 } from "lucide-react";
 import { CodeAnalysisEngine } from "@/features/analysis/services";
 import { api } from "@/shared/config/database";
-import type { CodeAnalysisResult, AuditTask, AuditIssue } from "@/shared/types";
+import type { CodeAnalysisResult, InstantAnalysis as InstantAnalysisType } from "@/shared/types";
 import { toast } from "sonner";
-import ExportReportDialog from "@/components/reports/ExportReportDialog";
+import InstantExportDialog from "@/components/reports/InstantExportDialog";
 
 // AI解释解析函数
 function parseAIExplanation(aiExplanation: string) {
@@ -56,10 +59,99 @@ export default function InstantAnalysis() {
   const [result, setResult] = useState<CodeAnalysisResult | null>(null);
   const [analysisTime, setAnalysisTime] = useState(0);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [currentAnalysisId, setCurrentAnalysisId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const loadingCardRef = useRef<HTMLDivElement>(null);
+  
+  // 历史记录相关状态
+  const [showHistory, setShowHistory] = useState(false);
+  const [historyRecords, setHistoryRecords] = useState<InstantAnalysisType[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+  const [selectedHistoryId, setSelectedHistoryId] = useState<string | null>(null);
 
   const supportedLanguages = CodeAnalysisEngine.getSupportedLanguages();
+
+  // 加载历史记录
+  const loadHistory = async () => {
+    setLoadingHistory(true);
+    try {
+      const records = await api.getInstantAnalyses();
+      setHistoryRecords(records);
+    } catch (error) {
+      console.error('Failed to load history:', error);
+      toast.error('加载历史记录失败');
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
+  // 查看历史记录详情
+  const viewHistoryRecord = (record: InstantAnalysisType) => {
+    try {
+      const analysisResult = JSON.parse(record.analysis_result) as CodeAnalysisResult;
+      setResult(analysisResult);
+      setLanguage(record.language);
+      setAnalysisTime(record.analysis_time);
+      setSelectedHistoryId(record.id);
+      setCurrentAnalysisId(record.id);  // 设置当前分析 ID 用于导出
+      setShowHistory(false);
+      toast.success('已加载历史分析结果');
+    } catch (error) {
+      console.error('Failed to parse history record:', error);
+      toast.error('解析历史记录失败');
+    }
+  };
+
+  // 格式化日期
+  const formatDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return date.toLocaleString('zh-CN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  // 删除单条历史记录
+  const deleteHistoryRecord = async (e: React.MouseEvent, recordId: string) => {
+    e.stopPropagation(); // 阻止触发查看详情
+    try {
+      await api.deleteInstantAnalysis(recordId);
+      setHistoryRecords(prev => prev.filter(r => r.id !== recordId));
+      if (selectedHistoryId === recordId) {
+        setSelectedHistoryId(null);
+        setResult(null);
+      }
+      toast.success('删除成功');
+    } catch (error) {
+      console.error('Failed to delete history:', error);
+      toast.error('删除失败');
+    }
+  };
+
+  // 清空所有历史记录
+  const clearAllHistory = async () => {
+    if (!confirm('确定要清空所有历史记录吗？此操作不可恢复。')) return;
+    try {
+      await api.deleteAllInstantAnalyses();
+      setHistoryRecords([]);
+      setSelectedHistoryId(null);
+      toast.success('已清空所有历史记录');
+    } catch (error) {
+      console.error('Failed to clear history:', error);
+      toast.error('清空失败');
+    }
+  };
+
+  // 切换历史记录面板
+  const toggleHistory = () => {
+    if (!showHistory) {
+      loadHistory();
+    }
+    setShowHistory(!showHistory);
+  };
 
   // 监听analyzing状态变化，自动滚动到加载卡片
   useEffect(() => {
@@ -236,26 +328,17 @@ class UserManager {
       const duration = (endTime - startTime) / 1000;
 
       setResult(analysisResult);
-      setAnalysisTime(duration);
-
-      // 保存分析记录（可选，未登录时跳过）
-      if (user) {
-        await api.createInstantAnalysis({
-          user_id: user.id,
-          language,
-          // 不存储代码内容，仅存储摘要
-          code_content: '',
-          analysis_result: JSON.stringify(analysisResult),
-          issues_count: analysisResult.issues.length,
-          quality_score: analysisResult.quality_score,
-          analysis_time: duration
-        });
-      }
+      // 使用后端返回的 analysis_time，如果没有则使用前端计算的
+      setAnalysisTime(analysisResult.analysis_time || duration);
+      // 保存后端返回的 analysis_id 用于导出
+      setCurrentAnalysisId(analysisResult.analysis_id || null);
 
       toast.success(`分析完成！发现 ${analysisResult.issues.length} 个问题`);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Analysis failed:', error);
-      toast.error("分析失败，请稍后重试");
+      // 显示详细的错误信息
+      const errorMessage = error?.message || "分析失败，请稍后重试";
+      toast.error(errorMessage);
     } finally {
       setAnalyzing(false);
       // 即时分析结束后清空前端内存中的代码（满足NFR-2销毁要求）
@@ -337,65 +420,6 @@ class UserManager {
     setLanguage("");
     setResult(null);
     setAnalysisTime(0);
-  };
-
-  // 构造临时任务和问题数据用于导出
-  const getTempTaskAndIssues = () => {
-    if (!result) return null;
-
-    const tempTask: AuditTask = {
-      id: 'instant-' + Date.now(),
-      project_id: 'instant-analysis',
-      task_type: 'instant',
-      status: 'completed',
-      branch_name: undefined,
-      exclude_patterns: '[]',
-      scan_config: JSON.stringify({ language }),
-      total_files: 1,
-      scanned_files: 1,
-      total_lines: code.split('\n').length,
-      issues_count: result.issues.length,
-      quality_score: result.quality_score,
-      started_at: undefined,
-      completed_at: new Date().toISOString(),
-      created_by: 'local-user',
-      created_at: new Date().toISOString(),
-      project: {
-        id: 'instant',
-        owner_id: 'local-user',
-        name: '即时分析',
-        description: `${language} 代码即时分析`,
-        source_type: 'zip',
-        repository_type: 'other',
-        repository_url: undefined,
-        default_branch: 'instant',
-        programming_languages: JSON.stringify([language]),
-        is_active: true,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      }
-    };
-
-    const tempIssues: AuditIssue[] = result.issues.map((issue, index) => ({
-      id: `instant-issue-${index}`,
-      task_id: tempTask.id,
-      file_path: `instant-analysis.${language}`,
-      line_number: issue.line || undefined,
-      column_number: issue.column || undefined,
-      issue_type: issue.type as any,
-      severity: issue.severity as any,
-      title: issue.title,
-      description: issue.description || undefined,
-      suggestion: issue.suggestion || undefined,
-      code_snippet: issue.code_snippet || undefined,
-      ai_explanation: issue.ai_explanation || (issue.xai ? JSON.stringify(issue.xai) : undefined),
-      status: 'open',
-      resolved_by: undefined,
-      resolved_at: undefined,
-      created_at: new Date().toISOString()
-    }));
-
-    return { task: tempTask, issues: tempIssues };
   };
 
   // 渲染问题的函数，使用复古样式
@@ -540,6 +564,107 @@ class UserManager {
       {/* Decorative Background */}
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
 
+      {/* 历史记录面板 */}
+      {showHistory && (
+        <div className="retro-card bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-0">
+          <div className="p-4 border-b-2 border-black bg-gray-50 flex items-center justify-between">
+            <h3 className="text-lg font-display font-bold uppercase flex items-center">
+              <History className="w-5 h-5 mr-2" />
+              分析历史记录
+            </h3>
+            <div className="flex items-center gap-2">
+              {historyRecords.length > 0 && (
+                <Button 
+                  variant="outline" 
+                  onClick={clearAllHistory} 
+                  size="sm" 
+                  className="retro-btn bg-red-50 text-red-600 hover:bg-red-100 h-8 border-red-300"
+                >
+                  清空全部
+                </Button>
+              )}
+              <Button 
+                variant="outline" 
+                onClick={() => setShowHistory(false)} 
+                size="sm" 
+                className="retro-btn bg-white text-black hover:bg-gray-100 h-8"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+          <div className="p-4">
+            {loadingHistory ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-none h-8 w-8 border-4 border-primary border-t-transparent mx-auto mb-4"></div>
+                <p className="text-gray-600 font-mono">加载中...</p>
+              </div>
+            ) : historyRecords.length === 0 ? (
+              <div className="text-center py-12 border-2 border-dashed border-gray-300 bg-gray-50">
+                <History className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <h4 className="text-lg font-bold text-gray-600 uppercase mb-2 font-mono">暂无历史记录</h4>
+                <p className="text-gray-500 font-mono text-sm">完成代码分析后，记录将显示在这里</p>
+              </div>
+            ) : (
+              <ScrollArea className="h-[400px]">
+                <div className="space-y-3">
+                  {historyRecords.map((record) => (
+                    <div 
+                      key={record.id} 
+                      className={`border-2 border-black p-4 hover:bg-gray-50 transition-colors cursor-pointer ${
+                        selectedHistoryId === record.id ? 'bg-primary/10 border-primary' : 'bg-white'
+                      }`}
+                      onClick={() => viewHistoryRecord(record)}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <Badge className="rounded-none border-2 border-black bg-gray-100 text-black font-mono uppercase">
+                            {record.language}
+                          </Badge>
+                          <span className="text-sm font-mono text-gray-600">
+                            {formatDate(record.created_at)}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge 
+                            className={`rounded-none border-2 border-black font-mono ${
+                              record.quality_score >= 80 ? 'bg-green-100 text-green-800' :
+                              record.quality_score >= 60 ? 'bg-yellow-100 text-yellow-800' :
+                              'bg-red-100 text-red-800'
+                            }`}
+                          >
+                            评分: {record.quality_score.toFixed(1)}
+                          </Badge>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => deleteHistoryRecord(e, record.id)}
+                            className="h-6 w-6 p-0 hover:bg-red-100 hover:text-red-600"
+                          >
+                            <X className="w-3 h-3" />
+                          </Button>
+                          <ChevronRight className="w-4 h-4 text-gray-400" />
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4 text-xs font-mono text-gray-500">
+                        <span className="flex items-center gap-1">
+                          <AlertTriangle className="w-3 h-3" />
+                          {record.issues_count} 个问题
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          {record.analysis_time.toFixed(2)}s
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* 代码输入区域 */}
       <div className="retro-card bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-0">
         <div className="p-4 border-b-2 border-black bg-gray-50 flex items-center justify-between">
@@ -547,12 +672,23 @@ class UserManager {
             <Code className="w-5 h-5 mr-2" />
             代码分析
           </h3>
-          {result && (
-            <Button variant="outline" onClick={clearAnalysis} size="sm" className="retro-btn bg-white text-black hover:bg-gray-100 h-8">
-              <X className="w-4 h-4 mr-2" />
-              重新分析
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="outline" 
+              onClick={toggleHistory} 
+              size="sm" 
+              className={`retro-btn h-8 ${showHistory ? 'bg-primary text-white' : 'bg-white text-black hover:bg-gray-100'}`}
+            >
+              <History className="w-4 h-4 mr-2" />
+              历史记录
             </Button>
-          )}
+            {result && (
+              <Button variant="outline" onClick={clearAnalysis} size="sm" className="retro-btn bg-white text-black hover:bg-gray-100 h-8">
+                <X className="w-4 h-4 mr-2" />
+                重新分析
+              </Button>
+            )}
+          </div>
         </div>
 
         <div className="p-6 space-y-4">
@@ -878,17 +1014,16 @@ class UserManager {
       )}
 
       {/* 导出报告对话框 */}
-      {result && (() => {
-        const data = getTempTaskAndIssues();
-        return data ? (
-          <ExportReportDialog
-            open={exportDialogOpen}
-            onOpenChange={setExportDialogOpen}
-            task={data.task}
-            issues={data.issues}
-          />
-        ) : null;
-      })()}
+      {result && (
+        <InstantExportDialog
+          open={exportDialogOpen}
+          onOpenChange={setExportDialogOpen}
+          analysisId={currentAnalysisId}
+          analysisResult={result}
+          language={language}
+          analysisTime={analysisTime}
+        />
+      )}
     </div>
   );
 }

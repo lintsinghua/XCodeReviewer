@@ -190,6 +190,10 @@ async def scan_zip(
     if not project:
         raise HTTPException(status_code=404, detail="项目不存在")
     
+    # 检查权限：只有项目所有者可以上传
+    if project.owner_id != current_user.id:
+        raise HTTPException(status_code=403, detail="无权操作此项目")
+    
     # Validate file
     if not file.filename.lower().endswith('.zip'):
         raise HTTPException(status_code=400, detail="请上传ZIP格式文件")
@@ -246,6 +250,10 @@ async def scan_stored_zip(
     if not project:
         raise HTTPException(status_code=404, detail="项目不存在")
     
+    # 检查权限：只有项目所有者可以扫描
+    if project.owner_id != current_user.id:
+        raise HTTPException(status_code=403, detail="无权操作此项目")
+    
     # 检查是否有存储的ZIP文件
     stored_zip_path = await load_project_zip(project_id)
     if not stored_zip_path:
@@ -284,6 +292,7 @@ class InstantAnalysisResponse(BaseModel):
     issues_count: int
     quality_score: float
     analysis_time: float
+    analysis_result: str  # JSON字符串，包含完整的分析结果
     created_at: datetime
 
     class Config:
@@ -291,7 +300,25 @@ class InstantAnalysisResponse(BaseModel):
 
 
 async def get_user_config_dict(db: AsyncSession, user_id: str) -> dict:
-    """获取用户配置字典"""
+    """获取用户配置字典（包含解密敏感字段）"""
+    from app.core.encryption import decrypt_sensitive_data
+    
+    # 需要解密的敏感字段列表（与 config.py 保持一致）
+    SENSITIVE_LLM_FIELDS = [
+        'llmApiKey', 'geminiApiKey', 'openaiApiKey', 'claudeApiKey',
+        'qwenApiKey', 'deepseekApiKey', 'zhipuApiKey', 'moonshotApiKey',
+        'baiduApiKey', 'minimaxApiKey', 'doubaoApiKey'
+    ]
+    SENSITIVE_OTHER_FIELDS = ['githubToken', 'gitlabToken']
+    
+    def decrypt_config(config: dict, sensitive_fields: list) -> dict:
+        """解密配置中的敏感字段"""
+        decrypted = config.copy()
+        for field in sensitive_fields:
+            if field in decrypted and decrypted[field]:
+                decrypted[field] = decrypt_sensitive_data(decrypted[field])
+        return decrypted
+    
     result = await db.execute(
         select(UserConfig).where(UserConfig.user_id == user_id)
     )
@@ -299,9 +326,17 @@ async def get_user_config_dict(db: AsyncSession, user_id: str) -> dict:
     if not config:
         return {}
     
+    # 解析配置
+    llm_config = json.loads(config.llm_config) if config.llm_config else {}
+    other_config = json.loads(config.other_config) if config.other_config else {}
+    
+    # 解密敏感字段
+    llm_config = decrypt_config(llm_config, SENSITIVE_LLM_FIELDS)
+    other_config = decrypt_config(other_config, SENSITIVE_OTHER_FIELDS)
+    
     return {
-        'llmConfig': json.loads(config.llm_config) if config.llm_config else {},
-        'otherConfig': json.loads(config.other_config) if config.other_config else {},
+        'llmConfig': llm_config,
+        'otherConfig': other_config,
     }
 
 
@@ -321,7 +356,18 @@ async def instant_analysis(
     llm_service = LLMService(user_config=user_config)
     
     start_time = datetime.utcnow()
-    result = await llm_service.analyze_code(req.code, req.language)
+    
+    try:
+        result = await llm_service.analyze_code(req.code, req.language)
+    except Exception as e:
+        # 分析失败，返回错误信息
+        error_msg = str(e)
+        print(f"❌ 即时分析失败: {error_msg}")
+        raise HTTPException(
+            status_code=500, 
+            detail=f"代码分析失败: {error_msg}"
+        )
+    
     end_time = datetime.utcnow()
     duration = (end_time - start_time).total_seconds()
 
@@ -339,8 +385,12 @@ async def instant_analysis(
     await db.commit()
     await db.refresh(analysis)
     
-    # Return result directly to frontend
-    return result
+    # Return result with analysis ID for export functionality
+    return {
+        **result,
+        "analysis_id": analysis.id,
+        "analysis_time": duration
+    }
 
 
 @router.get("/instant/history", response_model=List[InstantAnalysisResponse])
@@ -359,3 +409,93 @@ async def get_instant_analysis_history(
         .limit(limit)
     )
     return result.scalars().all()
+
+
+@router.delete("/instant/history/{analysis_id}")
+async def delete_instant_analysis(
+    analysis_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(deps.get_current_user),
+) -> Any:
+    """
+    Delete a specific instant analysis record.
+    """
+    result = await db.execute(
+        select(InstantAnalysis)
+        .where(InstantAnalysis.id == analysis_id)
+        .where(InstantAnalysis.user_id == current_user.id)
+    )
+    analysis = result.scalar_one_or_none()
+    
+    if not analysis:
+        raise HTTPException(status_code=404, detail="分析记录不存在")
+    
+    await db.delete(analysis)
+    await db.commit()
+    
+    return {"message": "删除成功"}
+
+
+@router.delete("/instant/history")
+async def delete_all_instant_analyses(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(deps.get_current_user),
+) -> Any:
+    """
+    Delete all instant analysis records for current user.
+    """
+    from sqlalchemy import delete
+    
+    await db.execute(
+        delete(InstantAnalysis).where(InstantAnalysis.user_id == current_user.id)
+    )
+    await db.commit()
+    
+    return {"message": "已清空所有历史记录"}
+
+
+@router.get("/instant/history/{analysis_id}/report/pdf")
+async def export_instant_report_pdf(
+    analysis_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(deps.get_current_user),
+) -> Any:
+    """
+    Export instant analysis report as PDF by analysis ID.
+    """
+    from fastapi.responses import Response
+    from app.services.report_generator import ReportGenerator
+    
+    # 获取即时分析记录
+    result = await db.execute(
+        select(InstantAnalysis)
+        .where(InstantAnalysis.id == analysis_id)
+        .where(InstantAnalysis.user_id == current_user.id)
+    )
+    analysis = result.scalar_one_or_none()
+    
+    if not analysis:
+        raise HTTPException(status_code=404, detail="分析记录不存在")
+    
+    # 解析分析结果
+    try:
+        analysis_result = json.loads(analysis.analysis_result) if analysis.analysis_result else {}
+    except json.JSONDecodeError:
+        analysis_result = {}
+    
+    # 生成 PDF
+    pdf_bytes = ReportGenerator.generate_instant_report(
+        analysis_result,
+        analysis.language,
+        analysis.analysis_time
+    )
+    
+    # 返回 PDF 文件
+    filename = f"instant-analysis-{analysis.language}-{analysis.id[:8]}.pdf"
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"'
+        }
+    )

@@ -209,6 +209,9 @@ export interface CodeAnalysisResult {
     security: number;
     performance: number;
   };
+  // 后端返回的额外字段
+  analysis_id?: string;
+  analysis_time?: number;
 }
 
 // GitHub/GitLab集成类型

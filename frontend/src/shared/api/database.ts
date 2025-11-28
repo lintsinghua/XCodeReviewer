@@ -196,6 +196,30 @@ export const api = {
     return {} as InstantAnalysis;
   },
 
+  async deleteInstantAnalysis(analysisId: string): Promise<void> {
+    await apiClient.delete(`/scan/instant/history/${analysisId}`);
+  },
+
+  async deleteAllInstantAnalyses(): Promise<void> {
+    await apiClient.delete('/scan/instant/history');
+  },
+
+  // ==================== 报告导出方法 ====================
+
+  async exportTaskReportPDF(taskId: string): Promise<Blob> {
+    const res = await apiClient.get(`/tasks/${taskId}/report/pdf`, {
+      responseType: 'blob'
+    });
+    return res.data;
+  },
+
+  async exportInstantReportPDF(analysisId: string): Promise<Blob> {
+    const res = await apiClient.get(`/scan/instant/history/${analysisId}/report/pdf`, {
+      responseType: 'blob'
+    });
+    return res.data;
+  },
+
   // ==================== 统计相关方法 ====================
 
   async getProjectStats(): Promise<{

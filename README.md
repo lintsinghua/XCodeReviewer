@@ -4,20 +4,16 @@
   <img src="public/images/logo.png" alt="XCodeReviewer Logo" style="width: 100%; height: auto; display: block; margin: 0 auto;">
 </div>
 
-<div align="center">
-  <p>
-    <a href="README.md">中文</a> •
-    <a href="README_EN.md">English</a>
-  </p>
-</div>
+
 
 <div align="center">
 
-[![Version](https://img.shields.io/badge/version-1.2.0-blue.svg)](https://github.com/lintsinghua/XCodeReviewer/releases)
+[![Version](https://img.shields.io/badge/version-1.3.4-blue.svg)](https://github.com/lintsinghua/XCodeReviewer/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![React](https://img.shields.io/badge/React-18-61dafb.svg)](https://reactjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178c6.svg)](https://www.typescriptlang.org/)
-[![Vite](https://img.shields.io/badge/Vite-5.1-646cff.svg)](https://vitejs.dev/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688.svg)](https://fastapi.tiangolo.com/)
+[![Python](https://img.shields.io/badge/Python-3.13+-3776ab.svg)](https://www.python.org/)
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/lintsinghua/XCodeReviewer)
 
 [![Stars](https://img.shields.io/github/stars/lintsinghua/XCodeReviewer?style=social)](https://github.com/lintsinghua/XCodeReviewer/stargazers)
@@ -32,13 +28,7 @@
   </a>
 </div>
 
-**XCodeReviewer** 是一个由大型语言模型（LLM）驱动的现代化代码审计平台，旨在为开发者提供智能、全面且极具深度的代码质量分析和审查服务。
-
-#### 🌐 在线演示
-
-无需部署，直接访问在线演示（数据存储在浏览器本地，支持所有核心功能）：
-
-**[https://xcodereviewer-preview.vercel.app](https://xcodereviewer-preview.vercel.app)**
+**XCodeReviewer** 是一个由大型语言模型（LLM）驱动的现代化代码审计平台，采用前后端分离架构，旨在为开发者提供智能、全面且极具深度的代码质量分析和审查服务。
 
 ## 🌟 为什么选择 XCodeReviewer？
 
@@ -58,6 +48,7 @@
 - **多维度、全方位评估**：从**安全性**、**性能**、**可维护性**到**代码风格**，提供 360 度无死角的质量评估。
 - **清晰、可行的修复建议**：独创 **What-Why-How** 模式，不仅告诉您"是什么"问题，还解释"为什么"，并提供"如何修复"的具体代码示例。
 - **多平台LLM/本地LLM支持**: 已实现 10+ 主流平台API调用功能（Gemini、OpenAI、Claude、通义千问、DeepSeek、智谱AI、Kimi、文心一言、MiniMax、豆包、Ollama本地大模型），支持用户自由配置和切换。
+- **前后端分离架构**：采用 React + FastAPI 现代化架构，支持独立部署和扩展，后端使用 LiteLLM 统一适配多种 LLM 平台。
 - **可视化运行时配置**：无需重新构建镜像，直接在浏览器中配置所有 LLM 参数和 API Keys，支持 API 中转站，配置保存在本地浏览器，安全便捷。
 - **现代化、高颜值的用户界面**：基于 React + TypeScript 构建，提供流畅、直观的操作体验。
 
@@ -79,119 +70,51 @@
 
 ## 🚀 快速开始
 
-### ☁️ Vercel 一键部署
+### 🐳 Docker Compose 部署（推荐）
 
-适合快速部署和体验，无需服务器，全球 CDN 加速。
-
-#### 方式一：一键部署按钮（推荐）⭐
-
-点击下方按钮直接部署到 Vercel：
-
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/lintsinghua/XCodeReviewer)
-
-#### 方式二：通过 Vercel CLI 部署
-
-```bash
-# 1. 安装 Vercel CLI
-npm i -g vercel
-
-# 2. 登录 Vercel
-vercel login
-
-# 3. 部署项目
-vercel
-
-# 4. 部署到生产环境
-vercel --prod
-```
-
-#### 方式三：通过 Vercel Dashboard 部署
-
-1. 访问 [Vercel Dashboard](https://vercel.com/dashboard)
-2. 点击 "Add New..." → "Project"
-3. 导入你的 GitHub 仓库
-4. Vercel 会自动检测 Vite 项目配置
-5. 配置环境变量（至少需要）：
-   ```
-   VITE_LLM_PROVIDER=your_llm_provider
-   VITE_LLM_API_KEY=your_api_key_here
-   VITE_USE_LOCAL_DB=true
-   ```
-6. 点击 "Deploy"
-
-**✨ Vercel 部署优势**：
-- ✅ 全球 CDN 加速，访问速度快
-- ✅ 自动 HTTPS 和域名配置
-- ✅ 零配置，开箱即用
-- ✅ 支持自定义域名
-- ✅ 自动部署（Git 推送后自动更新）
-
-**✨ 数据库模式**：
-- 默认自动使用**本地数据库模式**（IndexedDB），数据存储在浏览器中
-- 无需配置任何数据库，开箱即用
-- 如需使用 Supabase 云端数据库，可在环境变量中配置
-
-**⚠️ 注意事项**：
-- Vercel 主要用于前端部署，后端 API 需单独部署
-- 部署后可在 `/admin` 页面进行运行时配置
-
----
-
-### 🐳 Docker 部署（推荐生产环境）
-
-#### 方式一：使用发布的镜像（最简单）⭐
-
-直接使用最新发布的 Docker 镜像，支持 x86、ARM64（Mac M系列）、ARMv7 架构：
-
-```bash
-# 1. 拉取最新版本镜像
-docker pull ghcr.io/lintsinghua/xcodereviewer:latest
-
-# 2. 运行容器
-docker run -d \
-  -p 8888:80 \
-  --name xcodereviewer \
-  --restart unless-stopped \
-  ghcr.io/lintsinghua/xcodereviewer:latest
-
-# 3. 访问应用
-# 浏览器打开 http://localhost:8888
-```
-
-**使用特定版本**：
-```bash
-# 拉取指定版本（如 v1.1.0）
-docker pull ghcr.io/lintsinghua/xcodereviewer:v1.1.0
-
-# 运行
-docker run -d -p 8888:80 --name xcodereviewer ghcr.io/lintsinghua/xcodereviewer:v1.1.0
-```
-
-#### 方式二：本地构建（可选）
-
-如果需要自定义构建：
+完整的前后端分离部署方案，包含前端、后端和 PostgreSQL 数据库，一键启动所有服务。
 
 ```bash
 # 1. 克隆项目
 git clone https://github.com/lintsinghua/XCodeReviewer.git
 cd XCodeReviewer
 
-# 2. 使用 Docker Compose 构建并启动
+# 2. 配置后端环境变量
+cp backend/env.example backend/.env
+# 编辑 backend/.env 文件，配置 LLM API Key 等参数
+
+# 3. 使用 Docker Compose 启动所有服务
 docker-compose up -d
 
-# 3. 访问应用
-# 浏览器打开 http://localhost:8888
+# 4. 访问应用
+# 前端: http://localhost:5173
+# 后端 API: http://localhost:8000
+# API 文档: http://localhost:8000/docs
 ```
 
-**✨ 运行时配置（推荐）**
+**服务说明**：
+| 服务 | 端口 | 说明 |
+|------|------|------|
+| `frontend` | 5173 | React 前端应用（开发模式） |
+| `backend` | 8000 | FastAPI 后端 API |
+| `db` | 5432 | PostgreSQL 数据库 |
 
-Docker 部署后，您可以直接在浏览器中配置所有设置，无需重新构建镜像：
+**生产环境部署**：
 
-1. 访问 `http://localhost:8888/admin`（系统管理页面）
-2. 在"系统配置"标签页中配置 LLM API Keys 和其他参数
-3. 点击保存并刷新页面即可使用
+如需生产环境部署，可使用根目录的 `Dockerfile` 构建前端静态文件并通过 Nginx 提供服务：
 
-> 📖 **详细配置说明请参考**：[系统配置使用指南](#系统配置首次使用必看)
+```bash
+# 构建前端生产镜像
+docker build -t xcodereviewer-frontend .
+
+# 运行前端容器（端口 8888）
+docker run -d -p 8888:80 --name xcodereviewer-frontend xcodereviewer-frontend
+
+# 后端和数据库仍使用 docker-compose
+docker-compose up -d db backend
+```
+
+---
 
 ### 💻 本地开发部署
 
@@ -199,21 +122,46 @@ Docker 部署后，您可以直接在浏览器中配置所有设置，无需重�
 
 #### 环境要求
 - Node.js 18+
+- Python 3.13+
+- PostgreSQL 15+
 - pnpm 8+ (推荐) 或 npm/yarn
 
-#### 快速启动
+#### 后端启动
 
 ```bash
-# 1. 克隆项目
-git clone https://github.com/lintsinghua/XCodeReviewer.git
-cd XCodeReviewer
+# 1. 进入后端目录
+cd backend
+
+# 2. 创建虚拟环境（推荐使用 uv）
+uv venv
+source .venv/bin/activate  # Linux/macOS
+# 或 .venv\Scripts\activate  # Windows
+
+# 3. 安装依赖
+uv pip install -e .
+
+# 4. 配置环境变量
+cp env.example .env
+# 编辑 .env 文件，配置数据库和 LLM 参数
+
+# 5. 初始化数据库
+alembic upgrade head
+
+# 6. 启动后端服务
+uvicorn app.main:app --reload --port 8000
+```
+
+#### 前端启动
+
+```bash
+# 1. 进入前端目录
+cd frontend
 
 # 2. 安装依赖
 pnpm install  # 或 npm install / yarn install
 
-# 3. 配置环境变量
+# 3. 配置环境变量（可选，也可使用运行时配置）
 cp .env.example .env
-# 编辑 .env 文件，配置必要参数（见下方配置说明）
 
 # 4. 启动开发服务器
 pnpm dev
@@ -222,56 +170,38 @@ pnpm dev
 # 浏览器打开 http://localhost:5173
 ```
 
-#### 核心配置说明
+#### 后端核心配置说明
 
-编辑 `.env` 文件，配置以下必需参数：
-
-```env
-# ========== 必需配置 ==========
-# LLM 提供商选择 (gemini|openai|claude|qwen|deepseek|zhipu|moonshot|baidu|minimax|doubao|ollama)
-VITE_LLM_PROVIDER=gemini
-# 对应的 API Key
-VITE_LLM_API_KEY=your_api_key_here
-
-# ========== 数据库配置（三选一）==========
-# 方式1：本地数据库（推荐，开箱即用）
-VITE_USE_LOCAL_DB=true
-
-# 方式2：Supabase 云端数据库（支持多设备同步）
-# VITE_SUPABASE_URL=https://your-project.supabase.co
-# VITE_SUPABASE_ANON_KEY=your_anon_key
-
-# 方式3：演示模式（不配置任何数据库，数据不持久化）
-
-# ========== 可选配置 ==========
-# GitHub 集成（用于仓库分析）
-# VITE_GITHUB_TOKEN=your_github_token
-
-# 输出语言（zh-CN: 中文 | en-US: 英文）
-VITE_OUTPUT_LANGUAGE=zh-CN
-
-# 分析参数调优
-VITE_MAX_ANALYZE_FILES=40    # 单次最大分析文件数
-VITE_LLM_CONCURRENCY=2       # 并发请求数
-VITE_LLM_GAP_MS=500          # 请求间隔(ms)
-```
-
-#### 高级配置
-
-遇到超时或连接问题时，可调整以下参数：
+编辑 `backend/.env` 文件：
 
 ```env
-VITE_LLM_TIMEOUT=300000                      # 增加超时时间
-VITE_LLM_BASE_URL=https://your-proxy.com/v1 # 使用代理或中转服务
-VITE_LLM_CONCURRENCY=1                       # 降低并发数
-VITE_LLM_GAP_MS=1000                         # 增加请求间隔
-```
+# ========== 数据库配置 ==========
+POSTGRES_SERVER=localhost
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=postgres
+POSTGRES_DB=xcodereviewer
 
-**自定义请求头示例**（针对特殊中转站）：
+# ========== 安全配置 ==========
+SECRET_KEY=your-super-secret-key-change-this-in-production
+ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=11520
 
-```env
-# JSON 格式字符串
-VITE_LLM_CUSTOM_HEADERS='{"X-API-Version":"v1","X-Custom-Auth":"token123"}'
+# ========== LLM配置 ==========
+# 支持的provider: openai, gemini, claude, qwen, deepseek, zhipu, moonshot, baidu, minimax, doubao, ollama
+LLM_PROVIDER=openai
+LLM_API_KEY=sk-your-api-key
+LLM_MODEL=gpt-4o-mini
+LLM_BASE_URL=  # API中转站地址（可选）
+LLM_TIMEOUT=150
+LLM_TEMPERATURE=0.1
+LLM_MAX_TOKENS=4096
+
+# ========== 仓库扫描配置 ==========
+GITHUB_TOKEN=your_github_token
+GITLAB_TOKEN=your_gitlab_token
+MAX_ANALYZE_FILES=50
+LLM_CONCURRENCY=3
+LLM_GAP_MS=2000
 ```
 
 ### 常见问题
@@ -281,33 +211,33 @@ VITE_LLM_CUSTOM_HEADERS='{"X-API-Version":"v1","X-Custom-Auth":"token123"}'
 
 **方式一：浏览器配置（推荐）**
 
-1. 访问 `http://localhost:8888/admin` 系统管理页面
+1. 访问 `http://localhost:5173/admin` 系统管理页面
 2. 在"系统配置"标签页选择不同的 LLM 提供商
 3. 填入对应的 API Key
 4. 保存并刷新页面
 
-**方式二：环境变量配置**
+**方式二：后端环境变量配置**
 
-修改 `.env` 中的配置：
+修改 `backend/.env` 中的配置：
 
 ```env
 # 切换到 OpenAI
-VITE_LLM_PROVIDER=openai
-VITE_OPENAI_API_KEY=your_key
+LLM_PROVIDER=openai
+LLM_API_KEY=your_key
 
 # 切换到通义千问
-VITE_LLM_PROVIDER=qwen
-VITE_QWEN_API_KEY=your_key
+LLM_PROVIDER=qwen
+LLM_API_KEY=your_key
 ```
 </details>
 
 <details>
 <summary><b>遇到请求超时怎么办？</b></summary>
 
-1. 增加超时时间：`VITE_LLM_TIMEOUT=300000`
-2. 使用代理：配置 `VITE_LLM_BASE_URL`
+1. 增加超时时间：`LLM_TIMEOUT=300`
+2. 使用代理：配置 `LLM_BASE_URL`
 3. 切换到国内平台：通义千问、DeepSeek、智谱AI 等
-4. 降低并发：`VITE_LLM_CONCURRENCY=1`
+4. 降低并发：`LLM_CONCURRENCY=1`
 </details>
 
 <details>
@@ -324,7 +254,7 @@ VITE_SUPABASE_URL=https://your-project.supabase.co
 VITE_SUPABASE_ANON_KEY=your_key
 ```
 
-**演示模式**：不配置任何数据库，数据不持久化
+**后端数据库模式**：使用 PostgreSQL 存储，适合团队协作
 </details>
 
 <details>
@@ -338,11 +268,11 @@ curl -fsSL https://ollama.com/install.sh | sh  # macOS/Linux
 # 2. 拉取模型
 ollama pull llama3  # 或 codellama、qwen2.5、deepseek-coder
 
-# 3. 配置 XCodeReviewer
-# 在 .env 中设置：
-VITE_LLM_PROVIDER=ollama
-VITE_LLM_MODEL=llama3
-VITE_LLM_BASE_URL=http://localhost:11434/v1
+# 3. 配置后端
+# 在 backend/.env 中设置：
+LLM_PROVIDER=ollama
+LLM_MODEL=llama3
+LLM_BASE_URL=http://localhost:11434/v1
 ```
 
 推荐模型：`llama3`（综合）、`codellama`（代码专用）、`qwen2.5`（中文）
@@ -353,8 +283,8 @@ VITE_LLM_BASE_URL=http://localhost:11434/v1
 
 百度需要同时提供 API Key 和 Secret Key，用冒号分隔：
 ```env
-VITE_LLM_PROVIDER=baidu
-VITE_BAIDU_API_KEY=your_api_key:your_secret_key
+LLM_PROVIDER=baidu
+LLM_API_KEY=your_api_key:your_secret_key
 ```
 获取地址：https://console.bce.baidu.com/qianfan/
 </details>
@@ -364,80 +294,18 @@ VITE_BAIDU_API_KEY=your_api_key:your_secret_key
 
 许多用户使用 API 中转服务来访问 LLM（更稳定、更便宜）。配置方法：
 
+**后端配置**（推荐）：
+```env
+LLM_PROVIDER=openai
+LLM_API_KEY=中转站提供的Key
+LLM_BASE_URL=https://your-proxy.com/v1
+LLM_MODEL=gpt-4o-mini
+```
+
+**前端运行时配置**：
 1. 访问系统管理页面（`/admin`）
-2. 在"系统配置"标签页中：
-   - 选择 LLM 提供商（如 OpenAI）
-   - **API 基础 URL**: 填入中转站地址（如 `https://your-proxy.com/v1`）
-   - **API Key**: 填入中转站提供的密钥（而非官方密钥）
+2. 在"系统配置"标签页中配置 API 基础 URL 和 Key
 3. 保存并刷新页面
-
-**注意**：
-- 中转站 URL 通常以 `/v1` 结尾（OpenAI 兼容格式）
-- 使用中转站的 API Key，不是官方的
-- 确认中转站支持你选择的 AI 模型
-</details>
-
-<details>
-<summary><b>如何备份本地数据库？</b></summary>
-
-本地数据存储在浏览器 IndexedDB 中：
-- 在应用的"系统管理"页面导出为 JSON 文件
-- 通过导入 JSON 文件恢复数据
-- 注意：清除浏览器数据会删除所有本地数据
-</details>
-
-<details>
-<summary><b>如何设置输出语言？</b></summary>
-
-```env
-VITE_OUTPUT_LANGUAGE=zh-CN  # 中文（默认）
-VITE_OUTPUT_LANGUAGE=en-US  # 英文
-```
-</details>
-
-<details>
-<summary><b>如何配置多个平台并快速切换？</b></summary>
-
-在 `.env` 中预配置所有平台的 Key，切换时只需修改 `VITE_LLM_PROVIDER`：
-```env
-VITE_LLM_PROVIDER=gemini  # 当前使用的平台
-
-# 预配置所有平台
-VITE_GEMINI_API_KEY=key1
-VITE_OPENAI_API_KEY=key2
-VITE_QWEN_API_KEY=key3
-```
-</details>
-
-<details>
-<summary><b>如何查看系统日志和调试信息？</b></summary>
-
-XCodeReviewer 内置了日志系统，记录核心操作和错误：
-
-**查看日志**：
-- 导航栏 -> 系统日志
-- 或访问：`http://localhost:5173/logs` (开发) / `http://localhost:8888/logs` (生产)
-
-**记录内容**：
-- ✅ 用户核心操作（创建项目、审计任务、修改配置等）
-- ✅ API 请求失败和错误
-- ✅ 控制台错误（自动捕获）
-- ✅ 未处理的异常
-
-**功能特性**：
-- 日志筛选、搜索
-- 导出日志（JSON/CSV）
-- 错误详情查看
-
-**手动记录用户操作**：
-```typescript
-import { logger, LogCategory } from '@/shared/utils/logger';
-
-// 记录用户操作
-logger.logUserAction('创建项目', { projectName, projectType });
-logger.logUserAction('开始审计', { taskId, fileCount });
-```
-
 </details>
 
 ### 🔑 获取 API Key
@@ -460,49 +328,31 @@ XCodeReviewer 支持 10+ 主流 LLM 平台，可根据需求自由选择：
 | | 字节豆包 | 高性价比 | [获取](https://console.volcengine.com/ark) |
 | **本地部署** | Ollama | 完全本地化，隐私安全 | [安装](https://ollama.com/) |
 
-#### 配置示例
-
-```env
-# 通用配置（推荐）
-VITE_LLM_PROVIDER=gemini
-VITE_LLM_API_KEY=your_api_key_here
-
-# 或使用平台专用配置
-VITE_GEMINI_API_KEY=your_gemini_key
-VITE_OPENAI_API_KEY=your_openai_key
-# ... 更多平台配置见 .env.example
-```
-
-#### Supabase 配置（可选）
-
-如需云端数据同步：
-1. 访问 [Supabase](https://supabase.com/) 创建项目
-2. 获取 URL 和匿名密钥
-3. 在 Supabase SQL 编辑器执行 `supabase/migrations/full_schema.sql`
-4. 在 `.env` 中配置相关参数
-
 ## ✨ 核心功能
 
 <details>
 <summary><b>🚀 项目管理</b></summary>
 
 - **一键集成代码仓库**：无缝对接 GitHub、GitLab 等主流平台。
-- **多语言“全家桶”支持**：覆盖 JavaScript, TypeScript, Python, Java, Go, Rust 等热门语言。
+- **多语言"全家桶"支持**：覆盖 JavaScript, TypeScript, Python, Java, Go, Rust 等热门语言。
 - **灵活的分支审计**：支持对指定代码分支进行精确分析。
+- **ZIP 文件上传**：支持直接上传 ZIP 压缩包进行代码审计。
 </details>
 
 <details>
 <summary><b>⚡ 即时分析</b></summary>
 
-- **代码片段“随手贴”**：直接在 Web 界面粘贴代码，立即获得分析结果。
+- **代码片段"随手贴"**：直接在 Web 界面粘贴代码，立即获得分析结果。
 - **10+ 种语言即时支持**：满足您多样化的代码分析需求。
 - **毫秒级响应**：快速获取代码质量评分和优化建议。
+- **历史记录功能**：自动保存分析历史，支持查看和导出历史分析报告。
+- **报告导出**：支持将即时分析结果导出为 JSON 或 PDF 格式。
 </details>
 
 <details>
 <summary><b>🧠 智能审计</b></summary>
 
-- **AI 深度代码理解**：支持多个主流 LLM 平台（Gemini、OpenAI、Claude、通义千问、DeepSeek 等），提供超越关键词匹配的智能分析。
+- **AI 深度代码理解**：支持多个主流 LLM 平台，后端使用 LiteLLM 统一适配，提供超越关键词匹配的智能分析。
 - **五大核心维度检测**：
   - 🐛 **潜在 Bug**：精准捕捉逻辑错误、边界条件和空指针等问题。
   - 🔒 **安全漏洞**：识别 SQL 注入、XSS、敏感信息泄露等安全风险。
@@ -526,6 +376,7 @@ VITE_OPENAI_API_KEY=your_openai_key
 - **代码质量仪表盘**：提供 0-100 分的综合质量评估，让代码健康状况一目了然。
 - **多维度问题统计**：按类型和严重程度对问题进行分类统计。
 - **质量趋势分析**：通过图表展示代码质量随时间的变化趋势。
+- **报告导出**：支持 JSON 和 PDF 格式导出审计报告。
 </details>
 
 <details>
@@ -538,22 +389,25 @@ VITE_OPENAI_API_KEY=your_openai_key
   - 🔑 **平台密钥**：管理 10+ LLM 平台的 API Keys，支持快速切换
   - ⚡ **分析参数**：调整并发数、间隔时间、最大文件数等
   - 🌐 **API 中转站支持**：轻松配置第三方 API 代理服务
-  - 💾 **配置优先级**：运行时配置 > 构建时配置，无需重新构建镜像
   
 - **💾 数据库管理**：
-  - 🏠 **三种模式**：本地 IndexedDB / Supabase 云端 / 演示模式
+  - 🏠 **三种模式**：本地 IndexedDB / Supabase 云端 / PostgreSQL 后端
   - 📤 **导出备份**：将数据导出为 JSON 文件
   - 📥 **导入恢复**：从备份文件恢复数据
   - 🗑️ **清空数据**：一键清理所有本地数据
-  - 📊 **存储监控**：实时查看存储空间使用情况
-  
-- **📈 数据概览**：
-  - 项目、任务、问题的完整统计
-  - 可视化图表展示质量趋势
-  - 存储使用情况分析
+</details>
+
+<details>
+<summary><b>👥 用户管理</b></summary>
+
+- **用户注册与登录**：支持用户账户系统
+- **JWT 认证**：安全的 Token 认证机制
+- **权限控制**：基于角色的访问控制
 </details>
 
 ## 🛠️ 技术栈
+
+### 前端技术栈
 
 | 分类 | 技术 | 说明 |
 | :--- | :--- | :--- |
@@ -562,56 +416,122 @@ VITE_OPENAI_API_KEY=your_openai_key
 | **数据可视化** | `Recharts` | 专业的图表库，支持多种图表类型 |
 | **路由管理** | `React Router v6` | 单页应用路由解决方案 |
 | **状态管理** | `React Hooks` `Sonner` | 轻量级状态管理和通知系统 |
-| **AI 引擎** | `多平台 LLM` | 支持 Gemini、OpenAI、Claude、通义千问、DeepSeek 等 10+ 主流平台 |
-| **数据存储** | `IndexedDB` `Supabase` `PostgreSQL` | 本地数据库 + 云端数据库双模式支持 |
 | **HTTP 客户端** | `Axios` `Ky` | 现代化的 HTTP 请求库 |
 | **代码质量** | `Biome` `Ast-grep` `TypeScript` | 代码格式化、静态分析和类型检查 |
 | **构建工具** | `Vite` `PostCSS` `Autoprefixer` | 快速的构建工具和 CSS 处理 |
+
+### 后端技术栈
+
+| 分类 | 技术 | 说明 |
+| :--- | :--- | :--- |
+| **Web 框架** | `FastAPI` | 高性能异步 Python Web 框架 |
+| **数据库** | `PostgreSQL` `SQLAlchemy` `Alembic` | 关系型数据库 + ORM + 数据库迁移 |
+| **认证授权** | `python-jose` `passlib` `bcrypt` | JWT Token 认证和密码加密 |
+| **LLM 集成** | `LiteLLM` | 统一的 LLM API 适配层，支持 10+ 平台 |
+| **HTTP 客户端** | `httpx` | 异步 HTTP 客户端 |
+| **数据验证** | `Pydantic` | 数据验证和序列化 |
+
+### 数据存储
+
+| 分类 | 技术 | 说明 |
+| :--- | :--- | :--- |
+| **前端本地存储** | `IndexedDB` | 浏览器本地数据库，开箱即用 |
+| **云端数据库** | `Supabase` | 可选的云端数据同步 |
+| **后端数据库** | `PostgreSQL` | 生产环境推荐的关系型数据库 |
 
 ## 📁 项目结构
 
 ```
 XCodeReviewer/
-├── src/
-│   ├── app/                # 应用配置
-│   │   ├── App.tsx         # 主应用组件
-│   │   ├── main.tsx        # 应用入口点
-│   │   └── routes.tsx      # 路由配置
-│   ├── components/         # React 组件
-│   │   ├── layout/         # 布局组件 (Header, Footer, PageMeta)
-│   │   ├── ui/             # UI 组件库 (基于 Radix UI)
-│   │   ├── system/         # 系统配置组件
-│   │   ├── database/       # 数据库管理组件
-│   │   └── debug/          # 调试组件
-│   ├── pages/              # 页面组件
-│   │   ├── Dashboard.tsx   # 仪表盘
-│   │   ├── Projects.tsx    # 项目管理
-│   │   ├── InstantAnalysis.tsx # 即时分析
-│   │   ├── AuditTasks.tsx  # 审计任务
-│   │   └── AdminDashboard.tsx # 系统管理
-│   ├── features/           # 功能模块
-│   │   ├── analysis/       # 分析相关服务
-│   │   │   └── services/   # AI 代码分析引擎
-│   │   └── projects/       # 项目相关服务
-│   │       └── services/   # 仓库扫描、ZIP 文件扫描
-│   ├── shared/             # 共享工具
-│   │   ├── config/         # 配置文件
-│   │   │   ├── database.ts      # 数据库统一接口
-│   │   │   ├── localDatabase.ts # IndexedDB 实现
-│   │   │   └── env.ts           # 环境变量配置
-│   │   ├── types/          # TypeScript 类型定义
-│   │   ├── hooks/          # 自定义 React Hooks
-│   │   ├── utils/          # 工具函数
-│   │   │   └── initLocalDB.ts   # 本地数据库初始化
-│   │   └── constants/      # 常量定义
-│   └── assets/             # 静态资源
-│       └── styles/         # 样式文件
-├── supabase/
-│   └── migrations/         # 数据库迁移文件
-├── public/
-│   └── images/             # 图片资源
-├── scripts/                # 构建和设置脚本
-└── rules/                  # 代码规则配置
+├── frontend/                    # 前端项目
+│   ├── src/
+│   │   ├── app/                 # 应用配置和路由
+│   │   │   ├── App.tsx          # 主应用组件
+│   │   │   ├── main.tsx         # 应用入口点
+│   │   │   ├── routes.tsx       # 路由配置
+│   │   │   └── ProtectedRoute.tsx # 路由守卫
+│   │   ├── components/          # React 组件
+│   │   │   ├── layout/          # 布局组件 (Sidebar, PageMeta)
+│   │   │   ├── ui/              # UI 组件库 (基于 Radix UI)
+│   │   │   ├── system/          # 系统配置组件
+│   │   │   ├── database/        # 数据库管理组件
+│   │   │   ├── audit/           # 审计任务组件
+│   │   │   ├── analysis/        # 分析进度组件
+│   │   │   ├── reports/         # 报告导出组件
+│   │   │   └── debug/           # 调试组件
+│   │   ├── pages/               # 页面组件
+│   │   │   ├── Dashboard.tsx    # 仪表盘
+│   │   │   ├── Projects.tsx     # 项目管理
+│   │   │   ├── InstantAnalysis.tsx # 即时分析
+│   │   │   ├── AuditTasks.tsx   # 审计任务
+│   │   │   ├── AdminDashboard.tsx # 系统管理
+│   │   │   ├── Login.tsx        # 登录页面
+│   │   │   ├── Register.tsx     # 注册页面
+│   │   │   └── Account.tsx      # 账户管理
+│   │   ├── features/            # 功能模块
+│   │   │   ├── analysis/        # 代码分析服务
+│   │   │   ├── projects/        # 项目扫描服务
+│   │   │   └── reports/         # 报告生成服务
+│   │   ├── shared/              # 共享工具
+│   │   │   ├── api/             # API 客户端
+│   │   │   ├── config/          # 配置文件
+│   │   │   ├── context/         # React Context
+│   │   │   ├── hooks/           # 自定义 Hooks
+│   │   │   ├── i18n/            # 国际化
+│   │   │   ├── types/           # TypeScript 类型
+│   │   │   └── utils/           # 工具函数
+│   │   └── assets/              # 静态资源
+│   └── public/                  # 公共资源
+│
+├── backend/                     # 后端项目
+│   ├── app/
+│   │   ├── api/                 # API 路由
+│   │   │   └── v1/
+│   │   │       └── endpoints/   # API 端点
+│   │   │           ├── auth.py      # 认证接口
+│   │   │           ├── users.py     # 用户管理
+│   │   │           ├── projects.py  # 项目管理
+│   │   │           ├── tasks.py     # 任务管理
+│   │   │           ├── scan.py      # 代码扫描
+│   │   │           ├── config.py    # 配置管理
+│   │   │           └── database.py  # 数据库操作
+│   │   ├── core/                # 核心模块
+│   │   │   ├── config.py        # 配置管理
+│   │   │   ├── security.py      # 安全认证
+│   │   │   └── encryption.py    # 加密工具
+│   │   ├── db/                  # 数据库
+│   │   │   ├── base.py          # 数据库基类
+│   │   │   └── session.py       # 数据库会话
+│   │   ├── models/              # 数据模型
+│   │   │   ├── user.py          # 用户模型
+│   │   │   ├── project.py       # 项目模型
+│   │   │   ├── audit.py         # 审计模型
+│   │   │   └── analysis.py      # 分析模型
+│   │   ├── schemas/             # Pydantic 模式
+│   │   │   ├── user.py          # 用户模式
+│   │   │   └── token.py         # Token 模式
+│   │   ├── services/            # 业务服务
+│   │   │   ├── llm/             # LLM 服务
+│   │   │   │   ├── factory.py       # LLM 工厂
+│   │   │   │   ├── service.py       # LLM 服务
+│   │   │   │   ├── base_adapter.py  # 基础适配器
+│   │   │   │   └── adapters/        # 平台适配器
+│   │   │   │       ├── litellm_adapter.py  # LiteLLM 统一适配
+│   │   │   │       ├── baidu_adapter.py    # 百度适配器
+│   │   │   │       ├── minimax_adapter.py  # MiniMax 适配器
+│   │   │   │       └── doubao_adapter.py   # 豆包适配器
+│   │   │   ├── scanner.py       # 代码扫描服务
+│   │   │   └── zip_storage.py   # ZIP 文件存储
+│   │   └── main.py              # 应用入口
+│   ├── alembic/                 # 数据库迁移
+│   └── uploads/                 # 上传文件存储
+│
+├── supabase/                    # Supabase 配置
+│   └── migrations/              # 数据库迁移文件
+├── docker-compose.yml           # Docker Compose 配置（开发环境）
+├── Dockerfile                   # 前端生产环境 Docker 镜像
+├── nginx.conf                   # Nginx 配置（生产环境）
+└── scripts/                     # 构建和设置脚本
 ```
 
 ## 🎯 使用指南
@@ -664,100 +584,54 @@ XCodeReviewer/
    - **PDF 格式**：专业报告，适合打印和分享（通过浏览器打印功能）
 3. JSON 报告包含完整的任务信息、问题详情和统计数据
 4. PDF 报告提供美观的可视化展示，支持中文显示
-5. 报告内容包括：项目信息、审计统计、问题详情（按严重程度分类）、修复建议等
-
-**PDF 导出提示：**
-- 点击"导出 PDF"后会弹出浏览器打印对话框
-- 建议在打印设置中**取消勾选"页眉和页脚"选项**，以获得更干净的报告（避免显示 URL 等信息）
-- 在打印对话框中选择"另存为 PDF"即可保存报告文件
 
 ### 构建和部署
 
 ```bash
-# 开发模式
-pnpm dev
+# 前端开发模式
+cd frontend && pnpm dev
 
-# 构建生产版本
-pnpm build
+# 前端构建生产版本
+cd frontend && pnpm build
 
-# 预览构建结果
-pnpm preview
+# 后端开发模式
+cd backend && uvicorn app.main:app --reload
 
 # 代码检查
-pnpm lint
+cd frontend && pnpm lint
 ```
 
-### 环境变量说明
+### 后端环境变量说明
 
-#### 核心LLM配置
+#### 核心配置
 | 变量名 | 必需 | 默认值 | 说明 |
 |--------|------|--------|------|
-| `VITE_LLM_PROVIDER` | ✅ | `gemini` | LLM提供商：`gemini`\|`openai`\|`claude`\|`qwen`\|`deepseek`\|`zhipu`\|`moonshot`\|`baidu`\|`minimax`\|`doubao`\|`ollama` |
-| `VITE_LLM_API_KEY` | ✅ | - | 通用API Key（优先级高于平台专用配置） |
-| `VITE_LLM_MODEL` | ❌ | 自动 | 模型名称（不指定则使用各平台默认模型） |
-| `VITE_LLM_BASE_URL` | ❌ | - | 自定义API端点（**支持所有平台的中转站**、代理或私有部署） |
-| `VITE_LLM_TIMEOUT` | ❌ | `150000` | 请求超时时间（毫秒） |
-| `VITE_LLM_TEMPERATURE` | ❌ | `0.2` | 温度参数（0.0-2.0），控制输出随机性 |
-| `VITE_LLM_MAX_TOKENS` | ❌ | `4096` | 最大输出token数 |
-| `VITE_LLM_CUSTOM_HEADERS` | ❌ | - | 自定义HTTP请求头（JSON格式字符串），用于特殊中转站或自建服务 |
+| `POSTGRES_SERVER` | ✅ | `localhost` | PostgreSQL 服务器地址 |
+| `POSTGRES_USER` | ✅ | `postgres` | 数据库用户名 |
+| `POSTGRES_PASSWORD` | ✅ | `postgres` | 数据库密码 |
+| `POSTGRES_DB` | ✅ | `xcodereviewer` | 数据库名称 |
+| `SECRET_KEY` | ✅ | - | JWT 密钥（生产环境必须修改） |
 
-> 💡 **API 格式支持**：XCodeReviewer 支持三种主流 API 格式：
-> - **OpenAI 兼容格式**（最常见）：适用于大多数中转站和 OpenRouter
-> - **Gemini 格式**：Google Gemini 官方及兼容服务
-> - **Claude 格式**：Anthropic Claude 官方及兼容服务
-> 
-> 配置时只需选择对应的 LLM 提供商，填入中转站地址和 Key 即可。自定义请求头功能可满足特殊中转站的额外要求。
+#### LLM 配置
+| 变量名 | 必需 | 默认值 | 说明 |
+|--------|------|--------|------|
+| `LLM_PROVIDER` | ✅ | `openai` | LLM 提供商 |
+| `LLM_API_KEY` | ✅ | - | API Key |
+| `LLM_MODEL` | ❌ | 自动 | 模型名称 |
+| `LLM_BASE_URL` | ❌ | - | API 中转站地址 |
+| `LLM_TIMEOUT` | ❌ | `150` | 请求超时（秒） |
+| `LLM_TEMPERATURE` | ❌ | `0.1` | 温度参数 |
+| `LLM_MAX_TOKENS` | ❌ | `4096` | 最大输出 Token |
 
-#### 平台专用API Key配置（可选）
-| 变量名 | 说明 | 特殊要求 |
-|--------|------|---------|
-| `VITE_GEMINI_API_KEY` | Google Gemini API Key | - |
-| `VITE_GEMINI_MODEL` | Gemini模型 (默认: gemini-1.5-flash) | - |
-| `VITE_OPENAI_API_KEY` | OpenAI API Key | - |
-| `VITE_OPENAI_MODEL` | OpenAI模型 (默认: gpt-4o-mini) | - |
-| `VITE_OPENAI_BASE_URL` | OpenAI自定义端点 | 用于中转服务 |
-| `VITE_CLAUDE_API_KEY` | Anthropic Claude API Key | - |
-| `VITE_CLAUDE_MODEL` | Claude模型 (默认: claude-3-5-sonnet-20241022) | - |
-| `VITE_QWEN_API_KEY` | 阿里云通义千问 API Key | - |
-| `VITE_QWEN_MODEL` | 通义千问模型 (默认: qwen-turbo) | - |
-| `VITE_DEEPSEEK_API_KEY` | DeepSeek API Key | - |
-| `VITE_DEEPSEEK_MODEL` | DeepSeek模型 (默认: deepseek-chat) | - |
-| `VITE_ZHIPU_API_KEY` | 智谱AI API Key | - |
-| `VITE_ZHIPU_MODEL` | 智谱模型 (默认: glm-4-flash) | - |
-| `VITE_MOONSHOT_API_KEY` | 月之暗面 Kimi API Key | - |
-| `VITE_MOONSHOT_MODEL` | Kimi模型 (默认: moonshot-v1-8k) | - |
-| `VITE_BAIDU_API_KEY` | 百度文心一言 API Key | ⚠️ 格式: `API_KEY:SECRET_KEY` |
-| `VITE_BAIDU_MODEL` | 文心模型 (默认: ERNIE-3.5-8K) | - |
-| `VITE_MINIMAX_API_KEY` | MiniMax API Key | - |
-| `VITE_MINIMAX_MODEL` | MiniMax模型 (默认: abab6.5-chat) | - |
-| `VITE_DOUBAO_API_KEY` | 字节豆包 API Key | - |
-| `VITE_DOUBAO_MODEL` | 豆包模型 (默认: doubao-pro-32k) | - |
-
-#### 数据库配置（可选）
-| 变量名 | 必需 | 说明 |
-|--------|------|------|
-| `VITE_SUPABASE_URL` | ❌ | Supabase项目URL（用于数据持久化） |
-| `VITE_SUPABASE_ANON_KEY` | ❌ | Supabase匿名密钥 |
-
-> 💡 **提示**：不配置Supabase时，系统以演示模式运行，数据不持久化
-
-#### Git仓库集成配置
-| 变量名 | 必需 | 说明 |
-|--------|------|------|
-| `VITE_GITHUB_TOKEN` | ✅ | GitHub Personal Access Token |
-| `VITE_GITLAB_TOKEN` | ✅ | GitLab Personal Access Token 或 Project Access Token |
-
-#### 分析行为配置
+#### 仓库扫描配置
 | 变量名 | 默认值 | 说明 |
 |--------|--------|------|
-| `VITE_MAX_ANALYZE_FILES` | `40` | 单次分析的最大文件数 |
-| `VITE_LLM_CONCURRENCY` | `2` | LLM并发请求数（降低可避免频率限制） |
-| `VITE_LLM_GAP_MS` | `500` | LLM请求间隔（毫秒，增加可避免频率限制） |
-
-#### 应用配置
-| 变量名 | 默认值 | 说明 |
-|--------|--------|------|
-| `VITE_APP_ID` | `xcodereviewer` | 应用标识符 |
+| `GITHUB_TOKEN` | - | GitHub Personal Access Token |
+| `GITLAB_TOKEN` | - | GitLab Personal Access Token |
+| `MAX_ANALYZE_FILES` | `50` | 单次最大分析文件数 |
+| `MAX_FILE_SIZE_BYTES` | `204800` | 单文件最大大小（字节） |
+| `LLM_CONCURRENCY` | `3` | LLM 并发请求数 |
+| `LLM_GAP_MS` | `2000` | 请求间隔（毫秒） |
 
 ## 🤝 贡献指南
 
@@ -775,9 +649,11 @@ pnpm lint
 
 ### 核心技术支持
 - **[React](https://reactjs.org/)** & **[Vite](https://vitejs.dev/)**: 提供现代化的前端开发体验
+- **[FastAPI](https://fastapi.tiangolo.com/)**: 高性能 Python Web 框架
 - **[TypeScript](https://www.typescriptlang.org/)**: 提供类型安全保障
 - **[Tailwind CSS](https://tailwindcss.com/)**: 提供现代化的 CSS 框架
 - **[Radix UI](https://www.radix-ui.com/)**: 提供无障碍的 UI 组件库
+- **[LiteLLM](https://github.com/BerriAI/litellm)**: 统一的 LLM API 适配层
 
 ### AI 平台支持
 - **[Google Gemini AI](https://ai.google.dev/)**: 提供强大的 AI 分析能力
@@ -790,6 +666,7 @@ pnpm lint
 - **[Ollama](https://ollama.com/)**: 本地模型部署方案
 
 ### 数据存储
+- **[PostgreSQL](https://www.postgresql.org/)**: 强大的关系型数据库
 - **[Supabase](https://supabase.com/)**: 提供便捷的后端即服务支持
 - **[IndexedDB](https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API)**: 浏览器本地存储方案
 
@@ -821,20 +698,22 @@ pnpm lint
 
 目前 XCodeReviewer 定位为快速原型验证阶段，功能需要逐渐完善，根据项目后续发展和大家的建议，未来开发计划如下（尽快实现）：
 
-- **✅ 多平台LLM支持**: 已实现 10+ 主流平台API调用功能（Gemini、OpenAI、Claude、通义千问、DeepSeek、智谱AI、Kimi、文心一言、MiniMax、豆包、Ollama本地大模型），支持用户自由配置和切换
-- **✅ 本地模型支持**: 已加入对 Ollama 本地大模型的调用功能，满足数据隐私需求
-- **✅ 可视化配置管理**: 已实现运行时配置系统，支持在浏览器中直接配置所有 LLM 参数、API Keys，支持 API 中转站，无需重新构建镜像
-- **✅ 专业报告文件生成**: 根据不同的需求生成相关格式的专业审计报告文件，支持文件报告格式定制等
-- **✅ 全平台中转站支持**: 所有 LLM 平台均支持 API 中转站、自建服务和 OpenRouter，支持自定义请求头，覆盖 99.9% 的使用场景
-- **🚧 CI/CD 集成与 PR 自动审查**: 计划实现 GitHub/GitLab CI 集成，支持 PR 自动触发审查、智能评论、质量门禁、增量分析等完整的代码审查工作流
-- **Multi-Agent Collaboration**: 考虑引入多智能体协作架构，实现`Agent+人工对话`反馈功能，包括多轮对话流程展示、人工干预等，以获得更清晰、透明、可监督的审计过程
-- **审计标准自定义**: 支持通过 YAML/JSON 定义团队特定的编码规范和审计规则，提供常见框架的最佳实践模板，结合强化学习和监督学习微调，获得更符合需求和标准的审计结果
----
+- **✅ 多平台LLM支持**: 已实现 10+ 主流平台API调用功能
+- **✅ 本地模型支持**: 已加入对 Ollama 本地大模型的调用功能
+- **✅ 可视化配置管理**: 已实现运行时配置系统
+- **✅ 专业报告文件生成**: 支持 JSON 和 PDF 格式导出
+- **✅ 前后端分离架构**: 采用 FastAPI + React 现代化架构
+- **✅ 用户认证系统**: JWT Token 认证和用户管理
+- **🚧 CI/CD 集成与 PR 自动审查**: 计划实现 GitHub/GitLab CI 集成
+- **Multi-Agent Collaboration**: 考虑引入多智能体协作架构
+- **审计标准自定义**: 支持通过 YAML/JSON 定义团队特定的编码规范
 
+---
 
 ⭐ 如果这个项目对您有帮助，请给我们一个 **Star**！您的支持是我们不断前进的动力！
 
 [![Star History](https://api.star-history.com/svg?repos=lintsinghua/XCodeReviewer&type=Date)](https://star-history.com/#lintsinghua/XCodeReviewer&Date)
+
 ---
 
 ## 📄 免责声明 (Disclaimer)
@@ -850,7 +729,7 @@ pnpm lint
   - 受法律法规限制不得外传的代码
   - 客户或第三方的专有代码（未经授权）
 - 用户**必须自行评估代码的敏感性**，对上传代码及其可能导致的信息泄露承担全部责任。
-- **建议**：对于敏感代码，请等待本项目未来支持本地模型部署功能，或使用私有部署的LLM服务。
+- **建议**：对于敏感代码，请使用 Ollama 本地模型部署功能，或使用私有部署的LLM服务。
 - 项目作者、贡献者和维护者**对因用户上传敏感代码导致的任何信息泄露、知识产权侵权、法律纠纷或其他损失不承担任何责任**。
 
 #### 2. **非专业建议 (Non-Professional Advice)**
@@ -858,11 +737,11 @@ pnpm lint
 - 用户必须结合人工审查、专业工具及其他可靠资源，对关键代码（尤其是涉及安全、金融、医疗等高风险领域）进行全面验证。
 
 #### 3. **无担保与免责 (No Warranty and Liability Disclaimer)**
-- 本项目以“原样”形式提供，**不附带任何明示或默示担保**，包括但不限于适销性、特定用途适用性及非侵权性。
+- 本项目以"原样"形式提供，**不附带任何明示或默示担保**，包括但不限于适销性、特定用途适用性及非侵权性。
 - 作者、贡献者和维护者**不对任何直接、间接、附带、特殊、惩戒性或后果性损害承担责任**，包括但不限于数据丢失、系统中断、安全漏洞或商业损失，即使已知此类风险存在。
 
 #### 4. **AI 分析局限性 (Limitations of AI Analysis)**
-- 本工具依赖 Google Gemini 等 AI 模型，分析结果可能包含**错误、遗漏或不准确信息**，无法保证100% 可靠性。
+- 本工具依赖多种 AI 模型，分析结果可能包含**错误、遗漏或不准确信息**，无法保证100% 可靠性。
 - AI 输出**不能替代人类专家判断**，用户应对最终代码质量及应用后果全权负责。
 
 #### 5. **第三方服务与数据隐私 (Third-Party Services and Data Privacy)**
@@ -870,7 +749,6 @@ pnpm lint
 - **代码传输说明**：用户提交的代码将通过API发送到所选LLM服务商进行分析，传输过程和数据处理遵循各服务商的隐私政策。
 - 用户需自行获取、管理 API 密钥，本项目**不存储、传输或处理用户的API密钥和敏感信息**。
 - 第三方服务的可用性、准确性、隐私保护、数据留存政策或中断风险，由服务提供商负责，本项目作者不承担任何连带责任。
-- **数据留存警告**：不同LLM服务商对API请求数据的留存和使用政策各不相同，请用户在使用前仔细阅读所选服务商的隐私政策和使用条款。
 
 #### 6. **用户责任 (User Responsibilities)**
 - 用户在使用前须确保其代码不侵犯第三方知识产权，不包含保密信息，并严格遵守开源许可证及相关法规。
@@ -879,7 +757,7 @@ pnpm lint
   - 确保拥有代码的使用和分析权限
   - 遵守所在国家/地区关于数据保护和隐私的法律法规
   - 遵守公司或组织的保密协议和安全政策
-- **严禁将本工具用于非法、恶意或损害他人权益的活动**，用户对所有使用后果承担全部法律与经济责任。作者、贡献者和维护者对此类活动及其后果**不承担任何责任**，并保留追究滥用者的权利。
+- **严禁将本工具用于非法、恶意或损害他人权益的活动**，用户对所有使用后果承担全部法律与经济责任。
 
 #### 7. **开源贡献 (Open Source Contributions)**
 - 贡献者的代码、内容或建议**不代表项目官方观点**，其准确性、安全性及合规性由贡献者自行负责。

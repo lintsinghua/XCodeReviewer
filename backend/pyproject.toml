@@ -19,4 +19,7 @@ dependencies = [
     "greenlet",
     "bcrypt<5.0.0",
     "litellm>=1.0.0",
+    "reportlab>=4.0.0",
+    "weasyprint>=66.0",
+    "jinja2>=3.1.6",
 ]

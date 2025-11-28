@@ -302,7 +302,8 @@ async def scan_repo_task(task_id: str, db_session_factory, user_config: dict = N
                     if len(content) > settings.MAX_FILE_SIZE_BYTES:
                         continue
                     
-                    total_lines += content.count('\n') + 1
+                    file_lines = content.split('\n')
+                    total_lines = len(file_lines) + 1
                     language = get_language_from_path(file_info["path"])
                     
                     # LLM分析
@@ -320,17 +321,33 @@ async def scan_repo_task(task_id: str, db_session_factory, user_config: dict = N
                     # 保存问题
                     issues = analysis.get("issues", [])
                     for issue in issues:
+                        line_num = issue.get("line", 1)
+                        
+                        # 健壮的代码片段提取逻辑
+                        # 优先使用 LLM 返回的片段，如果为空则从源码提取
+                        code_snippet = issue.get("code_snippet")
+                        if not code_snippet or len(code_snippet.strip()) < 5:
+                            # 从源码提取上下文 (前后2行)
+                            try:
+                                # line_num 是 1-based
+                                idx = max(0, int(line_num) - 1)
+                                start = max(0, idx - 2)
+                                end = min(len(file_lines), idx + 3)
+                                code_snippet = '\n'.join(file_lines[start:end])
+                            except Exception:
+                                code_snippet = ""
+
                         audit_issue = AuditIssue(
                             task_id=task.id,
                             file_path=file_info["path"],
-                            line_number=issue.get("line", 1),
+                            line_number=line_num,
                             column_number=issue.get("column"),
                             issue_type=issue.get("type", "maintainability"),
                             severity=issue.get("severity", "low"),
                             title=issue.get("title", "Issue"),
                             message=issue.get("description") or issue.get("title", "Issue"),
                             suggestion=issue.get("suggestion"),
-                            code_snippet=issue.get("code_snippet"),
+                            code_snippet=code_snippet,
                             ai_explanation=issue.get("ai_explanation"),
                             status="open"
                         )
