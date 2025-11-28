@@ -1,14 +1,14 @@
 # XCodeReviewer - 您的智能代码审计伙伴 🚀
 
 <div style="width: 100%; max-width: 600px; margin: 0 auto;">
-  <img src="public/images/logo.png" alt="XCodeReviewer Logo" style="width: 100%; height: auto; display: block; margin: 0 auto;">
+  <img src="frontend/public/images/logo.png" alt="XCodeReviewer Logo" style="width: 100%; height: auto; display: block; margin: 0 auto;">
 </div>
 
 
 
 <div align="center">
 
-[![Version](https://img.shields.io/badge/version-1.3.4-blue.svg)](https://github.com/lintsinghua/XCodeReviewer/releases)
+[![Version](https://img.shields.io/badge/version-2.0.0--beta.1-blue.svg)](https://github.com/lintsinghua/XCodeReviewer/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![React](https://img.shields.io/badge/React-18-61dafb.svg)](https://reactjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178c6.svg)](https://www.typescriptlang.org/)
@@ -24,7 +24,7 @@
 
 <div style="width: 100%; max-width: 600px; margin: 0 auto;">
   <a href="https://github.com/lintsinghua/XCodeReviewer">
-    <img src="public/star-me-cn.svg" alt="Star this project" style="width: 100%; height: auto; display: block; margin: 0 auto;" />
+    <img src="frontend/public/star-me-cn.svg" alt="Star this project" style="width: 100%; height: auto; display: block; margin: 0 auto;" />
   </a>
 </div>
 
@@ -34,7 +34,7 @@
 
 在快节奏的软件开发中，保证代码质量至关重要。传统代码审计工具规则死板、效率低下，而人工审计则耗时耗力。XCodeReviewer 借助 LLM 的强大能力，彻底改变了代码审查的方式：
 
-![系统架构图](public/diagram.svg)
+![系统架构图](frontend/public/diagram.svg)
 
 <div div align="center">
   <em>
@@ -57,15 +57,15 @@
 ### 主要功能界面
 
 #### 智能仪表盘
-![智能仪表盘](public/images/example1.png)
+![智能仪表盘](frontend/public/images/example1.png)
 *实时展示项目统计、质量趋势和系统性能，提供全面的代码审计概览*
 
 #### 即时分析
-![即时分析](public/images/example2.png)
+![即时分析](frontend/public/images/example2.png)
 *支持代码片段快速分析，提供详细的 What-Why-How 解释和修复建议*
 
 #### 项目管理
-![项目管理](public/images/example3.png)
+![项目管理](frontend/public/images/example3.png)
 *集成 GitHub/GitLab 仓库，支持多语言项目审计和批量代码分析*
 
 ## 🚀 快速开始
