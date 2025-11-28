@@ -33,7 +33,7 @@ jobs:
           
           if [ -z "$LAST_TAG" ]; then
             echo "has_changes=true" >> $GITHUB_OUTPUT
-            echo "version=v0.1.0" >> $GITHUB_OUTPUT
+            echo "version=v2.0.0" >> $GITHUB_OUTPUT
           else
             # 检查自上次 tag 以来是否有新的提交
             COMMITS_SINCE_TAG=$(git rev-list $LAST_TAG..HEAD --count)
@@ -71,7 +71,9 @@ jobs:
       - name: 触发发布
         if: steps.check.outputs.has_changes == 'true'
         run: |
-          echo "新版本 ${{ steps.check.outputs.version }} 已创建，将触发发布流程"
-          echo "请查看 Release 工作流的执行情况"
-
-
+          echo "✅ 新版本 ${{ steps.check.outputs.version }} 已创建"
+          echo "🚀 Release 工作流将自动开始构建和发布"
+          echo "📦 将发布以下组件："
+          echo "  - 前端 Docker 镜像"
+          echo "  - 后端 Docker 镜像"
+          echo "  - 构建产物和源码包"

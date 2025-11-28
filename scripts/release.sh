@@ -40,8 +40,13 @@ if [ -n "$(git status --porcelain)" ]; then
     fi
 fi
 
-# 获取当前版本号
-CURRENT_VERSION=$(node -p "require('./package.json').version")
+# 获取当前版本号（从前端项目）
+if [ -f "frontend/package.json" ]; then
+    CURRENT_VERSION=$(node -p "require('./frontend/package.json').version")
+else
+    print_error "找不到 frontend/package.json 文件"
+    exit 1
+fi
 print_info "当前版本: v$CURRENT_VERSION"
 
 # 解析版本号
@@ -94,13 +99,17 @@ if [[ ! $REPLY =~ ^[Yy]$ ]]; then
     exit 0
 fi
 
-# 更新 package.json
-print_info "更新 package.json..."
+# 更新前端 package.json
+print_info "更新前端 package.json..."
+cd frontend
 npm version "$NEW_VERSION" --no-git-tag-version
+cd ..
 
 # 提交更改
 print_info "提交版本更改..."
-git add package.json package-lock.json 2>/dev/null || true
+git add frontend/package.json frontend/package-lock.json 2>/dev/null || true
+git add frontend/pnpm-lock.yaml 2>/dev/null || true
+git add README.md 2>/dev/null || true
 git commit -m "chore: bump version to v$NEW_VERSION" || true
 
 # 创建 tag

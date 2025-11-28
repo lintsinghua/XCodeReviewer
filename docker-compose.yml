@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   db:
     image: postgres:15-alpine
@@ -16,6 +14,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - xcodereviewer-network
 
   backend:
     build: 
@@ -33,6 +33,8 @@ services:
       db:
         condition: service_healthy
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    networks:
+      - xcodereviewer-network
 
   frontend:
     build:
@@ -43,10 +45,16 @@ services:
     ports:
       - "5173:5173"
     environment:
-      - VITE_API_BASE_URL=http://localhost:8000/api/v1
+      - VITE_API_BASE_URL=http://backend:8000/api/v1
     depends_on:
       - backend
     command: npm run dev -- --host
+    networks:
+      - xcodereviewer-network
+
+networks:
+  xcodereviewer-network:
+    driver: bridge
 
 volumes:
   postgres_data:
