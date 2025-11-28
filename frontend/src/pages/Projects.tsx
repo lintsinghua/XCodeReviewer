@@ -16,7 +16,6 @@ import {
   GitBranch,
   Calendar,
   Users,
-  Settings,
   Code,
   Shield,
   Activity,
@@ -26,7 +25,9 @@ import {
   Trash2,
   Edit,
   CheckCircle,
-  Terminal
+  Terminal,
+  Github,
+  Folder
 } from "lucide-react";
 import { api } from "@/shared/config/database";
 import { validateZipFile } from "@/features/projects/services";
@@ -262,9 +263,9 @@ export default function Projects() {
 
   const getRepositoryIcon = (type?: string) => {
     switch (type) {
-      case 'github': return '🐙';
-      case 'gitlab': return '🦊';
-      default: return '📁';
+      case 'github': return <Github className="w-5 h-5" />;
+      case 'gitlab': return <GitBranch className="w-5 h-5 text-orange-500" />;
+      default: return <Folder className="w-5 h-5 text-gray-600" />;
     }
   };
 
@@ -375,21 +376,13 @@ export default function Projects() {
   }
 
   return (
-    <div className="flex flex-col gap-6 px-6 pt-0 pb-4 bg-background min-h-screen font-mono relative overflow-hidden">
+    <div className="flex flex-col gap-6 px-6 py-4 bg-background min-h-screen font-mono relative overflow-hidden">
       {/* Decorative Background */}
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
 
-      {/* Header Section */}
-      <div className="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b-4 border-black pb-6 bg-white/50 backdrop-blur-sm p-4 retro-border">
-        <div>
-          <h1 className="text-3xl font-display font-bold text-black uppercase tracking-tighter">
-            项目<span className="text-primary">_管理</span>
-          </h1>
-          <p className="text-gray-600 mt-1 font-mono border-l-2 border-primary pl-2">管理代码仓库和配置审计任务</p>
-        </div>
-
-        <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-          <DialogTrigger asChild>
+      {/* 创建项目对话框 */}
+      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+          <DialogTrigger asChild className="hidden">
             <Button className="terminal-btn-primary h-12 text-lg">
               <Plus className="w-5 h-5 mr-2" />
               初始化项目
@@ -681,7 +674,6 @@ export default function Projects() {
             </div>
           </DialogContent>
         </Dialog>
-      </div>
 
       {/* Stats Section */}
       {projects.length > 0 && (
@@ -739,17 +731,17 @@ export default function Projects() {
       {/* Search and Filter */}
       <div className="retro-card p-4 flex items-center gap-4 bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] relative z-10">
         <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-black w-4 h-4" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-4 h-4 z-10" />
           <Input
             placeholder="搜索项目..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="terminal-input pl-10 w-full"
+            className="bg-background border border-input pr-3 py-2 rounded-sm font-mono text-sm w-full pl-10"
           />
         </div>
-        <Button variant="outline" className="terminal-btn-primary bg-white text-black hover:bg-gray-100">
-          <Settings className="w-4 h-4 mr-2" />
-          筛选选项
+        <Button className="terminal-btn-primary h-10" onClick={() => setShowCreateDialog(true)}>
+          <Plus className="w-4 h-4 mr-2" />
+          新建项目
         </Button>
       </div>
 
@@ -760,7 +752,7 @@ export default function Projects() {
             <div key={project.id} className="retro-card bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-lg transition-all group flex flex-col h-full">
               <div className="p-4 border-b-2 border-black bg-gray-50 flex justify-between items-start">
                 <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 border border-border bg-white flex items-center justify-center text-2xl shadow-sm">
+                  <div className="w-10 h-10 border-2 border-black bg-white flex items-center justify-center text-xl shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                     {getRepositoryIcon(project.repository_type)}
                   </div>
                   <div>

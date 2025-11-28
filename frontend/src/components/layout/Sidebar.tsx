@@ -17,6 +17,7 @@ import {
     UserCircle
 } from "lucide-react";
 import routes from "@/app/routes";
+import { version } from "../../../package.json";
 
 // Icon mapping for routes
 const routeIcons: Record<string, React.ReactNode> = {
@@ -192,7 +193,7 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
                             {!collapsed && (
                                 <div className="flex flex-col">
                                     <span className="font-mono font-bold text-sm uppercase">GitHub</span>
-                                    <span className="text-xs text-gray-500 font-mono">v1.0.0</span>
+                                    <span className="text-xs text-gray-500 font-mono">v{version}</span>
                                 </div>
                             )}
                         </a>

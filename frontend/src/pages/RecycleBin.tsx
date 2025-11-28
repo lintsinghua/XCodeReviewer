@@ -123,20 +123,9 @@ export default function RecycleBin() {
   }
 
   return (
-    <div className="flex flex-col gap-6 px-6 pt-0 pb-4 bg-background min-h-screen font-mono relative overflow-hidden">
+    <div className="flex flex-col gap-6 px-6 py-4 bg-background min-h-screen font-mono relative overflow-hidden">
       {/* Decorative Background */}
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
-
-      {/* 页面标题 */}
-      <div className="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b-4 border-black pb-6 bg-white/50 backdrop-blur-sm p-4 retro-border">
-        <div>
-          <h1 className="text-3xl font-display font-bold text-black uppercase tracking-tighter flex items-center gap-2">
-            <Trash2 className="w-8 h-8 text-black" />
-            回收站
-          </h1>
-          <p className="text-gray-600 mt-1 font-mono border-l-2 border-primary pl-2">管理已删除的项目，可以恢复或永久删除</p>
-        </div>
-      </div>
 
       {/* 搜索 */}
       <div className="retro-card bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-4">

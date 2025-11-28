@@ -448,24 +448,18 @@ export default function TaskDetail() {
   const progressPercentage = calculateTaskProgress(task.scanned_files, task.total_files);
 
   return (
-    <div className="flex flex-col gap-6 animate-fade-in font-mono">
-      {/* 页面标题 */}
-      <div className="flex items-center justify-between border-b-4 border-black pb-6 bg-white/50 backdrop-blur-sm p-4 retro-border">
-        <div className="flex items-center space-x-4">
-          <Link to="/audit-tasks">
-            <Button variant="outline" size="sm" className="retro-btn bg-white text-black hover:bg-gray-100 h-10">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              返回任务列表
-            </Button>
-          </Link>
-          <div>
-            <h1 className="text-3xl font-display font-bold text-black uppercase tracking-tighter">任务详情</h1>
-            <p className="text-gray-600 mt-1 font-mono border-l-2 border-primary pl-2">{task.project?.name || '未知项目'} - 审计任务</p>
-          </div>
-        </div>
+    <div className="flex flex-col gap-6 px-6 py-4 animate-fade-in font-mono">
+      {/* 顶部操作栏 */}
+      <div className="flex items-center justify-between">
+        <Link to="/audit-tasks">
+          <Button variant="outline" size="sm" className="retro-btn bg-white text-black hover:bg-gray-100 h-10">
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            返回任务列表
+          </Button>
+        </Link>
 
         <div className="flex items-center space-x-3">
-          <Badge className={`rounded - none border - 2 border - black font - bold uppercase px - 3 py - 1 text - sm ${getStatusColor(task.status)} `}>
+          <Badge className={`rounded-none border-2 border-black font-bold uppercase px-3 py-1 text-sm ${getStatusColor(task.status)}`}>
             {getStatusIcon(task.status)}
             <span className="ml-2">
               {task.status === 'completed' ? '已完成' :

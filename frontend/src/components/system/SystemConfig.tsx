@@ -371,7 +371,7 @@ export function SystemConfig() {
             <Settings className="w-3 h-3 mr-2" />
             分析参数
           </TabsTrigger>
-          <TabsTrigger value="other" className="rounded-none data-[state=active]:bg-black data-[state=active]:text-white font-mono font-bold uppercase h-10 text-xs">
+          <TabsTrigger value="other" className="rounded-none border-r-2 border-black data-[state=active]:bg-black data-[state=active]:text-white font-mono font-bold uppercase h-10 text-xs">
             <Globe className="w-3 h-3 mr-2" />
             其他配置
           </TabsTrigger>

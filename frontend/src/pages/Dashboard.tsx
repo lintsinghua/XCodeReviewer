@@ -11,7 +11,7 @@ import {
 import {
   Activity, AlertTriangle, Clock, Code,
   FileText, GitBranch, Shield, TrendingUp, Zap,
-  BarChart3, Target, ArrowUpRight, Calendar, Terminal
+  BarChart3, Target, ArrowUpRight, Calendar
 } from "lucide-react";
 import { api, dbMode, isDemoMode } from "@/shared/config/database";
 import type { Project, AuditTask, ProjectStats } from "@/shared/types";
@@ -169,34 +169,6 @@ export default function Dashboard() {
       {/* Decorative Background */}
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
 
-      {/* Header Section */}
-      <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6 border-b-4 border-black pb-6 bg-white/50 backdrop-blur-sm p-4 retro-border">
-        <div>
-          <h1 className="text-4xl font-display font-bold uppercase tracking-tighter mb-2">
-            系统<span className="text-primary">_仪表盘</span>
-          </h1>
-          <p className="text-gray-500 font-mono text-sm flex items-center gap-2">
-            <Terminal className="w-4 h-4" />
-            // 监控状态 // 代码质量概览
-            {isDemoMode && <Badge variant="outline" className="ml-2 border-black bg-yellow-100 text-yellow-800 rounded-none">演示模式</Badge>}
-          </p>
-        </div>
-        <div className="flex gap-3">
-          <Link to="/instant-analysis">
-            <Button className="retro-btn h-12">
-              <Zap className="w-4 h-4 mr-2" />
-              即时分析
-            </Button>
-          </Link>
-          <Link to="/projects">
-            <Button variant="outline" className="retro-btn bg-white text-black hover:bg-gray-100 h-12">
-              <GitBranch className="w-4 h-4 mr-2" />
-              新建项目
-            </Button>
-          </Link>
-        </div>
-      </div>
-
       {/* 数据库模式提示 */}
       {isDemoMode && (
         <div className="relative z-10 bg-yellow-50 border-2 border-black p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-start gap-3">
@@ -337,15 +309,15 @@ export default function Dashboard() {
               </div>
               <div>
                 {issueTypeData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={250}>
+                  <ResponsiveContainer width="100%" height={280}>
                     <PieChart>
                       <Pie
                         data={issueTypeData}
                         cx="50%"
-                        cy="50%"
+                        cy="45%"
                         labelLine={true}
                         label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                        outerRadius={80}
+                        outerRadius={70}
                         fill="#8884d8"
                         dataKey="value"
                         stroke="#000"
@@ -367,7 +339,7 @@ export default function Dashboard() {
                     </PieChart>
                   </ResponsiveContainer>
                 ) : (
-                  <div className="flex items-center justify-center h-[250px] text-gray-400 border-2 border-dashed border-gray-300">
+                  <div className="flex items-center justify-center h-[280px] text-gray-400 border-2 border-dashed border-gray-300">
                     <div className="text-center">
                       <BarChart3 className="w-12 h-12 mx-auto mb-2 opacity-50" />
                       <p className="text-sm font-mono uppercase">暂无问题分布数据</p>
