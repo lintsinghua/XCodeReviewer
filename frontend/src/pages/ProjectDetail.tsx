@@ -25,9 +25,9 @@ import {
   GitBranch
 } from "lucide-react";
 import { api } from "@/shared/config/database";
-import { runRepositoryAudit, scanZipFile } from "@/features/projects/services";
+import { runRepositoryAudit, scanStoredZipFile } from "@/features/projects/services";
 import type { Project, AuditTask, CreateProjectForm } from "@/shared/types";
-import { loadZipFile } from "@/shared/utils/zipStorage";
+import { hasZipFile } from "@/shared/utils/zipStorage";
 import { isRepositoryProject, getSourceTypeLabel } from "@/shared/utils/projectUtils";
 import { toast } from "sonner";
 import CreateTaskDialog from "@/components/audit/CreateTaskDialog";
@@ -173,18 +173,17 @@ export default function ProjectDetail() {
         setScanning(false);
       }
     } else {
-      // 没有仓库地址，尝试从IndexedDB加载保存的ZIP文件
+      // 没有仓库地址，尝试使用后端存储的ZIP文件
       try {
         setScanning(true);
-        const file = await loadZipFile(id);
+        const hasFile = await hasZipFile(id);
 
-        if (file) {
-          console.log('找到保存的ZIP文件，开始启动审计...');
+        if (hasFile) {
+          console.log('找到后端存储的ZIP文件，开始启动审计...');
           try {
-            // 启动ZIP文件审计
-            const taskId = await scanZipFile({
+            // 使用后端存储的ZIP文件启动审计
+            const taskId = await scanStoredZipFile({
               projectId: id,
-              zipFile: file,
               excludePatterns: ['node_modules/**', '.git/**', 'dist/**', 'build/**'],
               createdBy: 'local-user'
             });
@@ -206,7 +205,6 @@ export default function ProjectDetail() {
         } else {
           setScanning(false);
           toast.warning('此项目未配置仓库地址，也未上传ZIP文件。请先在项目设置中配置仓库地址，或通过"新建任务"上传ZIP文件。');
-          // 不自动打开对话框，让用户自己选择
         }
       } catch (error) {
         console.error('启动审计失败:', error);

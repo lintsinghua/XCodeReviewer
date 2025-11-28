@@ -91,29 +91,4 @@ export function formatFileSize(bytes: number): string {
   return `${bytes} B`;
 }
 
-// ============ 兼容旧API（已废弃，保留以避免编译错误） ============
 
-/**
- * @deprecated 使用 uploadZipFile 代替
- */
-export async function saveZipFile(projectId: string, file: File): Promise<void> {
-  const result = await uploadZipFile(projectId, file);
-  if (!result.success) {
-    throw new Error(result.message || '保存ZIP文件失败');
-  }
-}
-
-/**
- * @deprecated 使用 getZipFileInfo 代替
- */
-export async function loadZipFile(projectId: string): Promise<File | null> {
-  // 后端不再返回文件内容，只返回元数据
-  // 如果需要文件，应该在创建任务时直接使用后端存储的文件
-  const info = await getZipFileInfo(projectId);
-  if (info.has_file && info.original_filename) {
-    // 返回一个虚拟的File对象，仅包含元数据
-    const blob = new Blob([], { type: 'application/zip' });
-    return new File([blob], info.original_filename, { type: 'application/zip' });
-  }
-  return null;
-}

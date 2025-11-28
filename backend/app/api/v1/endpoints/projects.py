@@ -294,6 +294,14 @@ async def permanently_delete_project(
     if project.owner_id != current_user.id:
         raise HTTPException(status_code=403, detail="无权永久删除此项目")
     
+    # 如果是ZIP类型项目，删除关联的ZIP文件和元数据
+    if project.source_type == "zip":
+        try:
+            await delete_project_zip(id)
+            print(f"[Project] 已删除项目 {id} 的ZIP文件")
+        except Exception as e:
+            print(f"[Warning] 删除ZIP文件失败: {e}")
+    
     await db.delete(project)
     await db.commit()
     return {"message": "项目已永久删除"}
