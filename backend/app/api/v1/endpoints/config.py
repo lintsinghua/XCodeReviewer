@@ -14,8 +14,35 @@ from app.db.session import get_db
 from app.models.user_config import UserConfig
 from app.models.user import User
 from app.core.config import settings
+from app.core.encryption import encrypt_sensitive_data, decrypt_sensitive_data
 
 router = APIRouter()
+
+# 需要加密的敏感字段列表
+SENSITIVE_LLM_FIELDS = [
+    'llmApiKey', 'geminiApiKey', 'openaiApiKey', 'claudeApiKey',
+    'qwenApiKey', 'deepseekApiKey', 'zhipuApiKey', 'moonshotApiKey',
+    'baiduApiKey', 'minimaxApiKey', 'doubaoApiKey'
+]
+SENSITIVE_OTHER_FIELDS = ['githubToken', 'gitlabToken']
+
+
+def encrypt_config(config: dict, sensitive_fields: list) -> dict:
+    """加密配置中的敏感字段"""
+    encrypted = config.copy()
+    for field in sensitive_fields:
+        if field in encrypted and encrypted[field]:
+            encrypted[field] = encrypt_sensitive_data(encrypted[field])
+    return encrypted
+
+
+def decrypt_config(config: dict, sensitive_fields: list) -> dict:
+    """解密配置中的敏感字段"""
+    decrypted = config.copy()
+    for field in sensitive_fields:
+        if field in decrypted and decrypted[field]:
+            decrypted[field] = decrypt_sensitive_data(decrypted[field])
+    return decrypted
 
 
 class LLMConfigSchema(BaseModel):
@@ -128,6 +155,7 @@ async def get_my_config(
     default_config = get_default_config()
     
     if not config:
+        print(f"[Config] 用户 {current_user.id} 没有保存的配置，返回默认配置")
         # 返回系统默认配置
         return UserConfigResponse(
             id="",
@@ -140,6 +168,15 @@ async def get_my_config(
     # 合并用户配置和默认配置（用户配置优先）
     user_llm_config = json.loads(config.llm_config) if config.llm_config else {}
     user_other_config = json.loads(config.other_config) if config.other_config else {}
+    
+    # 解密敏感字段
+    user_llm_config = decrypt_config(user_llm_config, SENSITIVE_LLM_FIELDS)
+    user_other_config = decrypt_config(user_other_config, SENSITIVE_OTHER_FIELDS)
+    
+    print(f"[Config] 用户 {current_user.id} 的保存配置:")
+    print(f"  - llmProvider: {user_llm_config.get('llmProvider')}")
+    print(f"  - llmApiKey: {'***' + user_llm_config.get('llmApiKey', '')[-4:] if user_llm_config.get('llmApiKey') else '(空)'}")
+    print(f"  - llmModel: {user_llm_config.get('llmModel')}")
     
     merged_llm_config = {**default_config["llmConfig"], **user_llm_config}
     merged_other_config = {**default_config["otherConfig"], **user_other_config}
@@ -166,34 +203,58 @@ async def update_my_config(
     )
     config = result.scalar_one_or_none()
     
+    # 准备要保存的配置数据（加密敏感字段）
+    llm_data = config_in.llmConfig.dict(exclude_none=True) if config_in.llmConfig else {}
+    other_data = config_in.otherConfig.dict(exclude_none=True) if config_in.otherConfig else {}
+    
+    # 加密敏感字段
+    llm_data_encrypted = encrypt_config(llm_data, SENSITIVE_LLM_FIELDS)
+    other_data_encrypted = encrypt_config(other_data, SENSITIVE_OTHER_FIELDS)
+    
     if not config:
         # 创建新配置
         config = UserConfig(
             user_id=current_user.id,
-            llm_config=json.dumps(config_in.llmConfig.dict(exclude_none=True) if config_in.llmConfig else {}),
-            other_config=json.dumps(config_in.otherConfig.dict(exclude_none=True) if config_in.otherConfig else {}),
+            llm_config=json.dumps(llm_data_encrypted),
+            other_config=json.dumps(other_data_encrypted),
         )
         db.add(config)
     else:
         # 更新现有配置
         if config_in.llmConfig:
             existing_llm = json.loads(config.llm_config) if config.llm_config else {}
-            existing_llm.update(config_in.llmConfig.dict(exclude_none=True))
-            config.llm_config = json.dumps(existing_llm)
+            # 先解密现有数据，再合并新数据，最后加密
+            existing_llm = decrypt_config(existing_llm, SENSITIVE_LLM_FIELDS)
+            existing_llm.update(llm_data)  # 使用未加密的新数据合并
+            config.llm_config = json.dumps(encrypt_config(existing_llm, SENSITIVE_LLM_FIELDS))
         
         if config_in.otherConfig:
             existing_other = json.loads(config.other_config) if config.other_config else {}
-            existing_other.update(config_in.otherConfig.dict(exclude_none=True))
-            config.other_config = json.dumps(existing_other)
+            # 先解密现有数据，再合并新数据，最后加密
+            existing_other = decrypt_config(existing_other, SENSITIVE_OTHER_FIELDS)
+            existing_other.update(other_data)  # 使用未加密的新数据合并
+            config.other_config = json.dumps(encrypt_config(existing_other, SENSITIVE_OTHER_FIELDS))
     
     await db.commit()
     await db.refresh(config)
     
+    # 获取系统默认配置并合并（与 get_my_config 保持一致）
+    default_config = get_default_config()
+    user_llm_config = json.loads(config.llm_config) if config.llm_config else {}
+    user_other_config = json.loads(config.other_config) if config.other_config else {}
+    
+    # 解密后返回给前端
+    user_llm_config = decrypt_config(user_llm_config, SENSITIVE_LLM_FIELDS)
+    user_other_config = decrypt_config(user_other_config, SENSITIVE_OTHER_FIELDS)
+    
+    merged_llm_config = {**default_config["llmConfig"], **user_llm_config}
+    merged_other_config = {**default_config["otherConfig"], **user_other_config}
+    
     return UserConfigResponse(
         id=config.id,
         user_id=config.user_id,
-        llmConfig=json.loads(config.llm_config) if config.llm_config else {},
-        otherConfig=json.loads(config.other_config) if config.other_config else {},
+        llmConfig=merged_llm_config,
+        otherConfig=merged_other_config,
         created_at=config.created_at.isoformat() if config.created_at else "",
         updated_at=config.updated_at.isoformat() if config.updated_at else None,
     )

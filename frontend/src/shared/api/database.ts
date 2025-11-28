@@ -248,8 +248,14 @@ export const api = {
   } | null> {
     try {
       const res = await apiClient.get('/config/me');
+      console.log('[API] getUserConfig 成功:', {
+        hasLlmConfig: !!res.data?.llmConfig,
+        hasApiKey: !!res.data?.llmConfig?.llmApiKey,
+        provider: res.data?.llmConfig?.llmProvider,
+      });
       return res.data;
-    } catch (e) {
+    } catch (e: any) {
+      console.error('[API] getUserConfig 失败:', e?.response?.status, e?.message);
       return null;
     }
   },

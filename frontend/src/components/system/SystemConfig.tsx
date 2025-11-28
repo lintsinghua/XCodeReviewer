@@ -52,25 +52,52 @@ export function SystemConfig() {
   const loadConfig = async () => {
     try {
       setLoading(true);
-      const defaultConfig = await api.getDefaultConfig();
+      console.log('[SystemConfig] 开始加载配置...');
+      
+      // 后端 /config/me 已经返回合并后的配置（用户配置优先，然后是系统默认配置）
       const backendConfig = await api.getUserConfig();
       
-      const merged: SystemConfigData = {
-        llmProvider: backendConfig?.llmConfig?.llmProvider || defaultConfig?.llmConfig?.llmProvider || 'openai',
-        llmApiKey: backendConfig?.llmConfig?.llmApiKey || '',
-        llmModel: backendConfig?.llmConfig?.llmModel || '',
-        llmBaseUrl: backendConfig?.llmConfig?.llmBaseUrl || '',
-        llmTimeout: backendConfig?.llmConfig?.llmTimeout || defaultConfig?.llmConfig?.llmTimeout || 150000,
-        llmTemperature: backendConfig?.llmConfig?.llmTemperature ?? defaultConfig?.llmConfig?.llmTemperature ?? 0.1,
-        llmMaxTokens: backendConfig?.llmConfig?.llmMaxTokens || defaultConfig?.llmConfig?.llmMaxTokens || 4096,
-        githubToken: backendConfig?.otherConfig?.githubToken || '',
-        gitlabToken: backendConfig?.otherConfig?.gitlabToken || '',
-        maxAnalyzeFiles: backendConfig?.otherConfig?.maxAnalyzeFiles || defaultConfig?.otherConfig?.maxAnalyzeFiles || 50,
-        llmConcurrency: backendConfig?.otherConfig?.llmConcurrency || defaultConfig?.otherConfig?.llmConcurrency || 3,
-        llmGapMs: backendConfig?.otherConfig?.llmGapMs || defaultConfig?.otherConfig?.llmGapMs || 2000,
-        outputLanguage: backendConfig?.otherConfig?.outputLanguage || defaultConfig?.otherConfig?.outputLanguage || 'zh-CN',
-      };
-      setConfig(merged);
+      console.log('[SystemConfig] 后端返回的原始数据:', JSON.stringify(backendConfig, null, 2));
+      
+      if (backendConfig) {
+        // 直接使用后端返回的合并配置
+        const llmConfig = backendConfig.llmConfig || {};
+        const otherConfig = backendConfig.otherConfig || {};
+        
+        const newConfig = {
+          llmProvider: llmConfig.llmProvider || 'openai',
+          llmApiKey: llmConfig.llmApiKey || '',
+          llmModel: llmConfig.llmModel || '',
+          llmBaseUrl: llmConfig.llmBaseUrl || '',
+          llmTimeout: llmConfig.llmTimeout || 150000,
+          llmTemperature: llmConfig.llmTemperature ?? 0.1,
+          llmMaxTokens: llmConfig.llmMaxTokens || 4096,
+          githubToken: otherConfig.githubToken || '',
+          gitlabToken: otherConfig.gitlabToken || '',
+          maxAnalyzeFiles: otherConfig.maxAnalyzeFiles || 50,
+          llmConcurrency: otherConfig.llmConcurrency || 3,
+          llmGapMs: otherConfig.llmGapMs || 2000,
+          outputLanguage: otherConfig.outputLanguage || 'zh-CN',
+        };
+        
+        console.log('[SystemConfig] 解析后的配置:', newConfig);
+        setConfig(newConfig);
+        
+        console.log('✓ 配置已加载:', {
+          provider: llmConfig.llmProvider,
+          hasApiKey: !!llmConfig.llmApiKey,
+          model: llmConfig.llmModel,
+        });
+      } else {
+        console.warn('[SystemConfig] 后端返回空数据，使用默认配置');
+        // 如果获取失败，使用默认值
+        setConfig({
+          llmProvider: 'openai', llmApiKey: '', llmModel: '', llmBaseUrl: '',
+          llmTimeout: 150000, llmTemperature: 0.1, llmMaxTokens: 4096,
+          githubToken: '', gitlabToken: '',
+          maxAnalyzeFiles: 50, llmConcurrency: 3, llmGapMs: 2000, outputLanguage: 'zh-CN',
+        });
+      }
     } catch (error) {
       console.error('Failed to load config:', error);
       setConfig({
@@ -87,7 +114,7 @@ export function SystemConfig() {
   const saveConfig = async () => {
     if (!config) return;
     try {
-      await api.updateUserConfig({
+      const savedConfig = await api.updateUserConfig({
         llmConfig: {
           llmProvider: config.llmProvider, llmApiKey: config.llmApiKey,
           llmModel: config.llmModel, llmBaseUrl: config.llmBaseUrl,
@@ -100,6 +127,28 @@ export function SystemConfig() {
           llmGapMs: config.llmGapMs, outputLanguage: config.outputLanguage,
         },
       });
+      
+      // 使用后端返回的数据更新本地状态，确保数据同步
+      if (savedConfig) {
+        const llmConfig = savedConfig.llmConfig || {};
+        const otherConfig = savedConfig.otherConfig || {};
+        setConfig({
+          llmProvider: llmConfig.llmProvider || config.llmProvider,
+          llmApiKey: llmConfig.llmApiKey || '',
+          llmModel: llmConfig.llmModel || '',
+          llmBaseUrl: llmConfig.llmBaseUrl || '',
+          llmTimeout: llmConfig.llmTimeout || 150000,
+          llmTemperature: llmConfig.llmTemperature ?? 0.1,
+          llmMaxTokens: llmConfig.llmMaxTokens || 4096,
+          githubToken: otherConfig.githubToken || '',
+          gitlabToken: otherConfig.gitlabToken || '',
+          maxAnalyzeFiles: otherConfig.maxAnalyzeFiles || 50,
+          llmConcurrency: otherConfig.llmConcurrency || 3,
+          llmGapMs: otherConfig.llmGapMs || 2000,
+          outputLanguage: otherConfig.outputLanguage || 'zh-CN',
+        });
+      }
+      
       setHasChanges(false);
       toast.success("配置已保存！");
     } catch (error) {
