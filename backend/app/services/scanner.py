@@ -219,14 +219,22 @@ async def scan_repo_task(task_id: str, db_session_factory, user_config: dict = N
 
             # 2. 获取项目信息
             project = await db.get(Project, task.project_id)
-            if not project or not project.repository_url:
+            if not project:
+                raise Exception("项目不存在")
+            
+            # 检查项目类型 - 仅支持仓库类型项目
+            source_type = getattr(project, 'source_type', 'repository')
+            if source_type == 'zip':
+                raise Exception("ZIP类型项目请使用ZIP上传扫描接口")
+            
+            if not project.repository_url:
                 raise Exception("仓库地址不存在")
 
             repo_url = project.repository_url
             branch = task.branch_name or project.default_branch or "main"
             repo_type = project.repository_type or "other"
 
-            print(f"🚀 开始扫描仓库: {repo_url}, 分支: {branch}, 类型: {repo_type}")
+            print(f"🚀 开始扫描仓库: {repo_url}, 分支: {branch}, 类型: {repo_type}, 来源: {source_type}")
 
             # 3. 获取文件列表
             # 从用户配置中读取 GitHub/GitLab Token（优先使用用户配置，然后使用系统配置）

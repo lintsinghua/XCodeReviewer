@@ -32,7 +32,8 @@ import {
 import { api } from "@/shared/config/database";
 import { validateZipFile } from "@/features/projects/services";
 import type { Project, CreateProjectForm } from "@/shared/types";
-import { saveZipFile } from "@/shared/utils/zipStorage";
+import { uploadZipFile, getZipFileInfo, type ZipFileMeta } from "@/shared/utils/zipStorage";
+import { isRepositoryProject, isZipProject, getSourceTypeBadge } from "@/shared/utils/projectUtils";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import CreateTaskDialog from "@/components/audit/CreateTaskDialog";
@@ -55,6 +56,7 @@ export default function Projects() {
   const [editForm, setEditForm] = useState<CreateProjectForm>({
     name: "",
     description: "",
+    source_type: "repository",
     repository_url: "",
     repository_type: "github",
     default_branch: "main",
@@ -63,6 +65,7 @@ export default function Projects() {
   const [createForm, setCreateForm] = useState<CreateProjectForm>({
     name: "",
     description: "",
+    source_type: "repository",
     repository_url: "",
     repository_type: "github",
     default_branch: "main",
@@ -70,6 +73,12 @@ export default function Projects() {
   });
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  
+  // 编辑对话框中的ZIP文件状态
+  const [editZipInfo, setEditZipInfo] = useState<ZipFileMeta | null>(null);
+  const [editZipFile, setEditZipFile] = useState<File | null>(null);
+  const [loadingEditZipInfo, setLoadingEditZipInfo] = useState(false);
+  const editZipInputRef = useRef<HTMLInputElement>(null);
 
   // 将小写语言名转换为显示格式
   const formatLanguageName = (lang: string): string => {
@@ -151,6 +160,7 @@ export default function Projects() {
     setCreateForm({
       name: "",
       description: "",
+      source_type: "repository",
       repository_url: "",
       repository_type: "github",
       default_branch: "main",
@@ -205,15 +215,17 @@ export default function Projects() {
         });
       }, 100);
 
-      // 创建项目
+      // 创建项目 - ZIP上传类型
       const project = await api.createProject({
         ...createForm,
-        repository_type: "other"
+        source_type: "zip",
+        repository_type: "other",
+        repository_url: undefined
       } as any);
 
-      // 保存ZIP文件到IndexedDB（使用项目ID作为key）
+      // 保存ZIP文件到后端持久化存储
       try {
-        await saveZipFile(project.id, selectedFile);
+        await uploadZipFile(project.id, selectedFile);
       } catch (error) {
         console.error('保存ZIP文件失败:', error);
       }
@@ -278,17 +290,33 @@ export default function Projects() {
     setShowCreateTaskDialog(true);
   };
 
-  const handleEditClick = (project: Project) => {
+  const handleEditClick = async (project: Project) => {
     setProjectToEdit(project);
     setEditForm({
       name: project.name,
       description: project.description || "",
+      source_type: project.source_type || "repository",
       repository_url: project.repository_url || "",
       repository_type: project.repository_type || "github",
       default_branch: project.default_branch || "main",
       programming_languages: project.programming_languages ? JSON.parse(project.programming_languages) : []
     });
+    setEditZipFile(null);
+    setEditZipInfo(null);
     setShowEditDialog(true);
+    
+    // 如果是ZIP项目，加载ZIP文件信息
+    if (project.source_type === 'zip') {
+      setLoadingEditZipInfo(true);
+      try {
+        const zipInfo = await getZipFileInfo(project.id);
+        setEditZipInfo(zipInfo);
+      } catch (error) {
+        console.error('加载ZIP文件信息失败:', error);
+      } finally {
+        setLoadingEditZipInfo(false);
+      }
+    }
   };
 
   const handleSaveEdit = async () => {
@@ -300,10 +328,24 @@ export default function Projects() {
     }
 
     try {
+      // 更新项目基本信息
       await api.updateProject(projectToEdit.id, editForm);
+      
+      // 如果有新的ZIP文件，上传它
+      if (editZipFile && editForm.source_type === 'zip') {
+        const result = await uploadZipFile(projectToEdit.id, editZipFile);
+        if (result.success) {
+          toast.success(`ZIP文件已更新: ${result.original_filename}`);
+        } else {
+          toast.error(`ZIP文件上传失败: ${result.message}`);
+        }
+      }
+      
       toast.success(`项目 "${editForm.name}" 已更新`);
       setShowEditDialog(false);
       setProjectToEdit(null);
+      setEditZipFile(null);
+      setEditZipInfo(null);
       loadProjects();
     } catch (error) {
       console.error('Failed to update project:', error);
@@ -705,10 +747,10 @@ export default function Projects() {
           <div className="retro-card p-4 bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-mono text-xs font-bold uppercase text-gray-500">GitHub</p>
-                <p className="font-display text-2xl font-bold">{projects.filter(p => p.repository_type === 'github').length}</p>
+                <p className="font-mono text-xs font-bold uppercase text-gray-500">远程仓库</p>
+                <p className="font-display text-2xl font-bold">{projects.filter(p => isRepositoryProject(p)).length}</p>
               </div>
-              <div className="w-10 h-10 border border-border bg-gray-800 flex items-center justify-center text-white shadow-sm">
+              <div className="w-10 h-10 border border-border bg-blue-600 flex items-center justify-center text-white shadow-sm">
                 <GitBranch className="w-5 h-5" />
               </div>
             </div>
@@ -717,11 +759,11 @@ export default function Projects() {
           <div className="retro-card p-4 bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-mono text-xs font-bold uppercase text-gray-500">GitLab</p>
-                <p className="font-display text-2xl font-bold">{projects.filter(p => p.repository_type === 'gitlab').length}</p>
+                <p className="font-mono text-xs font-bold uppercase text-gray-500">ZIP上传</p>
+                <p className="font-display text-2xl font-bold">{projects.filter(p => isZipProject(p)).length}</p>
               </div>
-              <div className="w-10 h-10 border border-border bg-orange-500 flex items-center justify-center text-white shadow-sm">
-                <Shield className="w-5 h-5" />
+              <div className="w-10 h-10 border border-border bg-amber-500 flex items-center justify-center text-white shadow-sm">
+                <Upload className="w-5 h-5" />
               </div>
             </div>
           </div>
@@ -764,6 +806,9 @@ export default function Projects() {
                     <div className="flex items-center mt-1 space-x-2">
                       <Badge variant="outline" className={`text-[10px] font-mono border-black ${project.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
                         {project.is_active ? '活跃' : '暂停'}
+                      </Badge>
+                      <Badge variant="outline" className={`text-[10px] font-mono border-black ${isRepositoryProject(project) ? 'bg-blue-100 text-blue-800' : 'bg-amber-100 text-amber-800'}`}>
+                        {getSourceTypeBadge(project.source_type)}
                       </Badge>
                     </div>
                   </div>
@@ -872,11 +917,18 @@ export default function Projects() {
             <DialogTitle className="font-mono text-xl uppercase tracking-widest flex items-center gap-2">
               <Edit className="w-5 h-5" />
               编辑项目配置
+              {projectToEdit && (
+                <Badge className={`ml-2 ${editForm.source_type === 'repository' ? 'bg-blue-600' : 'bg-amber-500'}`}>
+                  {editForm.source_type === 'repository' ? '远程仓库' : 'ZIP上传'}
+                </Badge>
+              )}
             </DialogTitle>
           </DialogHeader>
 
           <div className="p-6 flex flex-col gap-6 max-h-[70vh] overflow-y-auto">
+            {/* 基本信息 */}
             <div className="space-y-4">
+              <h3 className="font-mono font-bold uppercase text-sm border-b-2 border-black pb-1">基本信息</h3>
               <div>
                 <Label htmlFor="edit-name" className="font-mono font-bold uppercase text-xs">项目名称 *</Label>
                 <Input
@@ -898,49 +950,165 @@ export default function Projects() {
               </div>
             </div>
 
-            <div className="space-y-4">
-              <h3 className="font-mono font-bold uppercase text-sm border-b-2 border-black pb-1">仓库信息</h3>
-
-              <div>
-                <Label htmlFor="edit-repo-url" className="font-mono font-bold uppercase text-xs">仓库地址</Label>
-                <Input
-                  id="edit-repo-url"
-                  value={editForm.repository_url}
-                  onChange={(e) => setEditForm({ ...editForm, repository_url: e.target.value })}
-                  className="terminal-input"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="edit-repo-type" className="font-mono font-bold uppercase text-xs">仓库类型</Label>
-                  <Select
-                    value={editForm.repository_type}
-                    onValueChange={(value: any) => setEditForm({ ...editForm, repository_type: value })}
-                  >
-                    <SelectTrigger id="edit-repo-type" className="terminal-input">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="retro-card border border-border">
-                      <SelectItem value="github">GITHUB</SelectItem>
-                      <SelectItem value="gitlab">GITLAB</SelectItem>
-                      <SelectItem value="other">OTHER</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+            {/* 仓库信息 - 仅远程仓库类型显示 */}
+            {editForm.source_type === 'repository' && (
+              <div className="space-y-4">
+                <h3 className="font-mono font-bold uppercase text-sm border-b-2 border-black pb-1 flex items-center gap-2">
+                  <GitBranch className="w-4 h-4" />
+                  仓库信息
+                </h3>
 
                 <div>
-                  <Label htmlFor="edit-default-branch" className="font-mono font-bold uppercase text-xs">默认分支</Label>
+                  <Label htmlFor="edit-repo-url" className="font-mono font-bold uppercase text-xs">仓库地址</Label>
                   <Input
-                    id="edit-default-branch"
-                    value={editForm.default_branch}
-                    onChange={(e) => setEditForm({ ...editForm, default_branch: e.target.value })}
+                    id="edit-repo-url"
+                    value={editForm.repository_url}
+                    onChange={(e) => setEditForm({ ...editForm, repository_url: e.target.value })}
+                    placeholder="https://github.com/user/repo"
                     className="terminal-input"
                   />
                 </div>
-              </div>
-            </div>
 
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="edit-repo-type" className="font-mono font-bold uppercase text-xs">仓库平台</Label>
+                    <Select
+                      value={editForm.repository_type}
+                      onValueChange={(value: any) => setEditForm({ ...editForm, repository_type: value })}
+                    >
+                      <SelectTrigger id="edit-repo-type" className="terminal-input">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="retro-card border border-border">
+                        <SelectItem value="github">GITHUB</SelectItem>
+                        <SelectItem value="gitlab">GITLAB</SelectItem>
+                        <SelectItem value="other">OTHER</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="edit-default-branch" className="font-mono font-bold uppercase text-xs">默认分支</Label>
+                    <Input
+                      id="edit-default-branch"
+                      value={editForm.default_branch}
+                      onChange={(e) => setEditForm({ ...editForm, default_branch: e.target.value })}
+                      placeholder="main"
+                      className="terminal-input"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ZIP项目文件管理 */}
+            {editForm.source_type === 'zip' && (
+              <div className="space-y-4">
+                <h3 className="font-mono font-bold uppercase text-sm border-b-2 border-black pb-1 flex items-center gap-2">
+                  <Upload className="w-4 h-4" />
+                  ZIP文件管理
+                </h3>
+                
+                {loadingEditZipInfo ? (
+                  <div className="flex items-center space-x-3 p-4 bg-blue-50 border-2 border-black">
+                    <div className="animate-spin rounded-none h-5 w-5 border-4 border-blue-600 border-t-transparent"></div>
+                    <p className="text-sm text-blue-800 font-bold font-mono">正在加载ZIP文件信息...</p>
+                  </div>
+                ) : editZipInfo?.has_file ? (
+                  <div className="bg-green-50 border-2 border-black p-4 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                    <div className="flex items-start space-x-3">
+                      <FileText className="w-5 h-5 text-green-600 mt-0.5" />
+                      <div className="flex-1 text-sm font-mono">
+                        <p className="font-bold text-green-900 mb-1 uppercase">当前存储的ZIP文件</p>
+                        <p className="text-green-700 text-xs">
+                          文件名: {editZipInfo.original_filename}
+                          {editZipInfo.file_size && (
+                            <> ({editZipInfo.file_size >= 1024 * 1024
+                              ? `${(editZipInfo.file_size / 1024 / 1024).toFixed(2)} MB`
+                              : `${(editZipInfo.file_size / 1024).toFixed(2)} KB`
+                            })</>
+                          )}
+                        </p>
+                        {editZipInfo.uploaded_at && (
+                          <p className="text-green-600 text-xs mt-0.5">
+                            上传时间: {new Date(editZipInfo.uploaded_at).toLocaleString('zh-CN')}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-amber-50 border-2 border-black p-4 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                    <div className="flex items-start space-x-3">
+                      <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5" />
+                      <div className="text-sm font-mono">
+                        <p className="font-bold text-amber-900 mb-1 uppercase">暂无ZIP文件</p>
+                        <p className="text-amber-700 text-xs">
+                          此项目还没有上传ZIP文件，请上传文件以便进行代码审计。
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                {/* 上传新文件 */}
+                <div className="space-y-2">
+                  <Label className="font-mono font-bold uppercase text-xs">
+                    {editZipInfo?.has_file ? '更新ZIP文件' : '上传ZIP文件'}
+                  </Label>
+                  <input
+                    ref={editZipInputRef}
+                    type="file"
+                    accept=".zip"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const validation = validateZipFile(file);
+                        if (!validation.valid) {
+                          toast.error(validation.error || "文件无效");
+                          e.target.value = '';
+                          return;
+                        }
+                        setEditZipFile(file);
+                        toast.success(`已选择文件: ${file.name}`);
+                      }
+                    }}
+                  />
+                  
+                  {editZipFile ? (
+                    <div className="flex items-center justify-between p-3 bg-blue-50 border-2 border-black">
+                      <div className="flex items-center space-x-2">
+                        <FileText className="w-4 h-4 text-blue-600" />
+                        <span className="text-sm font-mono font-bold">{editZipFile.name}</span>
+                        <span className="text-xs text-gray-500">
+                          ({(editZipFile.size / 1024 / 1024).toFixed(2)} MB)
+                        </span>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setEditZipFile(null)}
+                        className="terminal-btn-primary bg-white text-black h-7 text-xs"
+                      >
+                        取消
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      onClick={() => editZipInputRef.current?.click()}
+                      className="terminal-btn-primary bg-white text-black w-full"
+                    >
+                      <Upload className="w-4 h-4 mr-2" />
+                      {editZipInfo?.has_file ? '选择新文件替换' : '选择ZIP文件'}
+                    </Button>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* 技术栈 */}
             <div className="space-y-4">
               <h3 className="font-mono font-bold uppercase text-sm border-b-2 border-black pb-1">技术栈</h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">

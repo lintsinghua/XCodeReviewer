@@ -1,10 +1,14 @@
 from typing import Any, List, Optional
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, UploadFile, File
+from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 from pydantic import BaseModel
 from datetime import datetime
+import shutil
+import os
+import uuid
 
 from app.api import deps
 from app.db.session import get_db, AsyncSessionLocal
@@ -13,20 +17,26 @@ from app.models.user import User
 from app.models.audit import AuditTask, AuditIssue
 from app.models.user_config import UserConfig
 from app.services.scanner import scan_repo_task
+from app.services.zip_storage import (
+    save_project_zip, load_project_zip, get_project_zip_meta,
+    delete_project_zip, has_project_zip
+)
 
 router = APIRouter()
 
 # Schemas
 class ProjectCreate(BaseModel):
     name: str
+    source_type: Optional[str] = "repository"  # 'repository' 或 'zip'
     repository_url: Optional[str] = None
-    repository_type: Optional[str] = "other"
+    repository_type: Optional[str] = "other"  # github, gitlab, other
     description: Optional[str] = None
     default_branch: Optional[str] = "main"
     programming_languages: Optional[List[str]] = None
 
 class ProjectUpdate(BaseModel):
     name: Optional[str] = None
+    source_type: Optional[str] = None
     repository_url: Optional[str] = None
     repository_type: Optional[str] = None
     description: Optional[str] = None
@@ -47,8 +57,9 @@ class ProjectResponse(BaseModel):
     id: str
     name: str
     description: Optional[str] = None
+    source_type: Optional[str] = "repository"  # 'repository' 或 'zip'
     repository_url: Optional[str] = None
-    repository_type: Optional[str] = None
+    repository_type: Optional[str] = None  # github, gitlab, other
     default_branch: Optional[str] = None
     programming_languages: Optional[str] = None
     owner_id: str
@@ -79,10 +90,14 @@ async def create_project(
     Create new project.
     """
     import json
+    # 根据 source_type 设置默认值
+    source_type = project_in.source_type or "repository"
+    
     project = Project(
         name=project_in.name,
-        repository_url=project_in.repository_url,
-        repository_type=project_in.repository_type or "other",
+        source_type=source_type,
+        repository_url=project_in.repository_url if source_type == "repository" else None,
+        repository_type=project_in.repository_type or "other" if source_type == "repository" else "other",
         description=project_in.description,
         default_branch=project_in.default_branch or "main",
         programming_languages=json.dumps(project_in.programming_languages or []),
@@ -326,3 +341,122 @@ async def scan_project(
     background_tasks.add_task(scan_repo_task, task.id, AsyncSessionLocal, user_config)
 
     return {"task_id": task.id, "status": "started"}
+
+
+# ============ ZIP文件管理端点 ============
+
+class ZipFileMetaResponse(BaseModel):
+    has_file: bool
+    original_filename: Optional[str] = None
+    file_size: Optional[int] = None
+    uploaded_at: Optional[str] = None
+
+
+@router.get("/{id}/zip", response_model=ZipFileMetaResponse)
+async def get_project_zip_info(
+    id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(deps.get_current_user),
+) -> Any:
+    """
+    获取项目ZIP文件信息
+    """
+    project = await db.get(Project, id)
+    if not project:
+        raise HTTPException(status_code=404, detail="项目不存在")
+    
+    # 检查是否有ZIP文件
+    has_file = await has_project_zip(id)
+    if not has_file:
+        return {"has_file": False}
+    
+    # 获取元数据
+    meta = await get_project_zip_meta(id)
+    if meta:
+        return {
+            "has_file": True,
+            "original_filename": meta.get("original_filename"),
+            "file_size": meta.get("file_size"),
+            "uploaded_at": meta.get("uploaded_at")
+        }
+    
+    return {"has_file": True}
+
+
+@router.post("/{id}/zip")
+async def upload_project_zip(
+    id: str,
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(deps.get_current_user),
+) -> Any:
+    """
+    上传或更新项目ZIP文件
+    """
+    project = await db.get(Project, id)
+    if not project:
+        raise HTTPException(status_code=404, detail="项目不存在")
+    
+    # 检查权限
+    if project.owner_id != current_user.id:
+        raise HTTPException(status_code=403, detail="无权操作此项目")
+    
+    # 检查项目类型
+    if project.source_type != "zip":
+        raise HTTPException(status_code=400, detail="仅ZIP类型项目可以上传ZIP文件")
+    
+    # 验证文件类型
+    if not file.filename.lower().endswith('.zip'):
+        raise HTTPException(status_code=400, detail="请上传ZIP格式文件")
+    
+    # 保存到临时文件
+    temp_file_id = str(uuid.uuid4())
+    temp_file_path = f"/tmp/{temp_file_id}.zip"
+    
+    try:
+        with open(temp_file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+        
+        # 检查文件大小
+        file_size = os.path.getsize(temp_file_path)
+        if file_size > 100 * 1024 * 1024:  # 100MB limit
+            raise HTTPException(status_code=400, detail="文件大小不能超过100MB")
+        
+        # 保存到持久化存储
+        meta = await save_project_zip(id, temp_file_path, file.filename)
+        
+        return {
+            "message": "ZIP文件上传成功",
+            "original_filename": meta["original_filename"],
+            "file_size": meta["file_size"],
+            "uploaded_at": meta["uploaded_at"]
+        }
+    finally:
+        # 清理临时文件
+        if os.path.exists(temp_file_path):
+            os.remove(temp_file_path)
+
+
+@router.delete("/{id}/zip")
+async def delete_project_zip_file(
+    id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(deps.get_current_user),
+) -> Any:
+    """
+    删除项目ZIP文件
+    """
+    project = await db.get(Project, id)
+    if not project:
+        raise HTTPException(status_code=404, detail="项目不存在")
+    
+    # 检查权限
+    if project.owner_id != current_user.id:
+        raise HTTPException(status_code=403, detail="无权操作此项目")
+    
+    deleted = await delete_project_zip(id)
+    
+    if deleted:
+        return {"message": "ZIP文件已删除"}
+    else:
+        return {"message": "没有找到ZIP文件"}

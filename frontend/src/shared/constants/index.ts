@@ -56,7 +56,13 @@ export const PROJECT_ROLES = {
   VIEWER: 'viewer',
 } as const;
 
-// 仓库类型
+// 项目来源类型
+export const PROJECT_SOURCE_TYPES = {
+  REPOSITORY: 'repository',
+  ZIP: 'zip',
+} as const;
+
+// 仓库平台类型
 export const REPOSITORY_TYPES = {
   GITHUB: 'github',
   GITLAB: 'gitlab',
@@ -92,3 +98,6 @@ export const STORAGE_KEYS = {
   USER_PREFERENCES: 'xcodereviewer-preferences',
   RECENT_PROJECTS: 'xcodereviewer-recent-projects',
 } as const;
+
+// 导出项目类型相关常量
+export * from './projectTypes';

@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS projects (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name VARCHAR(255) NOT NULL,
     description TEXT,
+    source_type VARCHAR(20) DEFAULT 'repository' CHECK (source_type IN ('repository', 'zip')),
     repository_url TEXT,
     repository_type VARCHAR(20) DEFAULT 'other' CHECK (repository_type IN ('github', 'gitlab', 'other')),
     default_branch VARCHAR(100) DEFAULT 'main',

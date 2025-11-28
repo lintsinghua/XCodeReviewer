@@ -19,6 +19,7 @@ import { api } from "@/shared/config/database";
 import type { Project } from "@/shared/types";
 import { toast } from "sonner";
 import { deleteZipFile } from "@/shared/utils/zipStorage";
+import { isRepositoryProject, getSourceTypeBadge } from "@/shared/utils/projectUtils";
 
 export default function RecycleBin() {
   const [deletedProjects, setDeletedProjects] = useState<Project[]>([]);
@@ -163,15 +164,20 @@ export default function RecycleBin() {
                     )}
                   </div>
                 </div>
-                <Badge variant="secondary" className="flex-shrink-0 bg-red-100 text-red-700 border-2 border-black rounded-none font-bold uppercase text-xs">
-                  已删除
-                </Badge>
+                <div className="flex flex-col items-end gap-1">
+                  <Badge variant="secondary" className="flex-shrink-0 bg-red-100 text-red-700 border-2 border-black rounded-none font-bold uppercase text-xs">
+                    已删除
+                  </Badge>
+                  <Badge variant="outline" className={`text-[10px] font-mono border-black ${isRepositoryProject(project) ? 'bg-blue-100 text-blue-800' : 'bg-amber-100 text-amber-800'}`}>
+                    {getSourceTypeBadge(project.source_type)}
+                  </Badge>
+                </div>
               </div>
 
               <div className="p-4 space-y-4 font-mono">
                 {/* 项目信息 */}
                 <div className="space-y-3">
-                  {project.repository_url && (
+                  {isRepositoryProject(project) && project.repository_url && (
                     <div className="flex items-center text-xs text-gray-600 font-bold">
                       <GitBranch className="w-4 h-4 mr-2 flex-shrink-0" />
                       <a

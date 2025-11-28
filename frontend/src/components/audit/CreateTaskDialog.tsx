@@ -22,8 +22,9 @@ import type { Project, CreateAuditTaskForm } from "@/shared/types";
 import { toast } from "sonner";
 import TerminalProgressDialog from "./TerminalProgressDialog";
 import { runRepositoryAudit } from "@/features/projects/services/repoScan";
-import { scanZipFile, validateZipFile } from "@/features/projects/services/repoZipScan";
-import { loadZipFile } from "@/shared/utils/zipStorage";
+import { scanZipFile, scanStoredZipFile, validateZipFile } from "@/features/projects/services/repoZipScan";
+import { getZipFileInfo, type ZipFileMeta } from "@/shared/utils/zipStorage";
+import { isRepositoryProject, isZipProject, getSourceTypeBadge } from "@/shared/utils/projectUtils";
 
 interface CreateTaskDialogProps {
   open: boolean;
@@ -41,7 +42,8 @@ export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, pr
   const [currentTaskId, setCurrentTaskId] = useState<string | null>(null);
   const [zipFile, setZipFile] = useState<File | null>(null);
   const [loadingZipFile, setLoadingZipFile] = useState(false);
-  const [hasLoadedZip, setHasLoadedZip] = useState(false);
+  const [storedZipInfo, setStoredZipInfo] = useState<ZipFileMeta | null>(null);
+  const [useStoredZip, setUseStoredZip] = useState(true); // 默认使用已存储的ZIP
 
   const [taskForm, setTaskForm] = useState<CreateAuditTaskForm>({
     project_id: "",
@@ -102,37 +104,47 @@ export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, pr
       }
       // 重置ZIP文件状态
       setZipFile(null);
-      setHasLoadedZip(false);
+      setStoredZipInfo(null);
+      setUseStoredZip(true);
     }
   }, [open, preselectedProjectId]);
 
-  // 当项目ID变化时，尝试自动加载保存的ZIP文件
+  // 当项目ID变化时，检查是否有已存储的ZIP文件（仅ZIP类型项目）
   useEffect(() => {
-    const autoLoadZipFile = async () => {
-      if (!taskForm.project_id || hasLoadedZip) return;
+    const checkStoredZipFile = async () => {
+      if (!taskForm.project_id) {
+        setStoredZipInfo(null);
+        return;
+      }
 
       const project = projects.find(p => p.id === taskForm.project_id);
-      if (!project || project.repository_type !== 'other') return;
+      // 使用 source_type 判断是否为ZIP项目
+      if (!project || !isZipProject(project)) {
+        setStoredZipInfo(null);
+        return;
+      }
 
       try {
         setLoadingZipFile(true);
-        const savedFile = await loadZipFile(taskForm.project_id);
-
-        if (savedFile) {
-          setZipFile(savedFile);
-          setHasLoadedZip(true);
-          console.log('✓ 已自动加载保存的ZIP文件:', savedFile.name);
-          toast.success(`已加载保存的ZIP文件: ${savedFile.name}`);
+        const zipInfo = await getZipFileInfo(taskForm.project_id);
+        setStoredZipInfo(zipInfo);
+        
+        if (zipInfo.has_file) {
+          console.log('✓ 项目有已存储的ZIP文件:', zipInfo.original_filename);
+          setUseStoredZip(true);
+        } else {
+          setUseStoredZip(false);
         }
       } catch (error) {
-        console.error('自动加载ZIP文件失败:', error);
+        console.error('检查ZIP文件失败:', error);
+        setStoredZipInfo(null);
       } finally {
         setLoadingZipFile(false);
       }
     };
 
-    autoLoadZipFile();
-  }, [taskForm.project_id, projects, hasLoadedZip]);
+    checkStoredZipFile();
+  }, [taskForm.project_id, projects]);
 
   const loadProjects = async () => {
     try {
@@ -170,34 +182,49 @@ export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, pr
       console.log('🎯 开始创建审计任务...', {
         projectId: project.id,
         projectName: project.name,
+        sourceType: project.source_type,
         repositoryType: project.repository_type
       });
 
       let taskId: string;
 
-      // 根据项目是否有repository_url判断使用哪种扫描方式
-      if (!project.repository_url || project.repository_url.trim() === '') {
-        // ZIP上传的项目：需要有ZIP文件才能扫描
-        if (!zipFile) {
-          toast.error("请上传ZIP文件进行扫描");
+      // 根据项目 source_type 判断使用哪种扫描方式
+      if (isZipProject(project)) {
+        // ZIP上传类型项目
+        if (useStoredZip && storedZipInfo?.has_file) {
+          // 使用已存储的ZIP文件
+          console.log('📦 ZIP项目 - 使用已存储的ZIP文件...');
+          taskId = await scanStoredZipFile({
+            projectId: project.id,
+            excludePatterns: taskForm.exclude_patterns,
+            createdBy: 'local-user'
+          });
+        } else if (zipFile) {
+          // 上传新的ZIP文件
+          console.log('📦 ZIP项目 - 上传新ZIP文件...');
+          taskId = await scanZipFile({
+            projectId: project.id,
+            zipFile: zipFile,
+            excludePatterns: taskForm.exclude_patterns,
+            createdBy: 'local-user'
+          });
+        } else {
+          toast.error("请上传ZIP文件或使用已存储的文件进行扫描");
+          return;
+        }
+      } else {
+        // 仓库类型项目：从远程仓库拉取代码
+        if (!project.repository_url) {
+          toast.error("仓库地址不能为空");
           return;
         }
 
-        console.log('📦 调用 scanZipFile...');
-        taskId = await scanZipFile({
-          projectId: project.id,
-          zipFile: zipFile,
-          excludePatterns: taskForm.exclude_patterns,
-          createdBy: 'local-user'
-        });
-      } else {
-        // GitHub/GitLab等远程仓库
-        console.log('📡 调用 runRepositoryAudit...');
+        console.log('📡 仓库项目 - 调用 runRepositoryAudit...');
 
         // 后端会从用户配置中读取 GitHub/GitLab Token，前端不需要传递
         taskId = await runRepositoryAudit({
           projectId: project.id,
-          repoUrl: project.repository_url!,
+          repoUrl: project.repository_url,
           branch: taskForm.branch_name || project.default_branch || 'main',
           exclude: taskForm.exclude_patterns,
           createdBy: 'local-user'
@@ -212,6 +239,7 @@ export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, pr
           taskId,
           projectId: project.id,
           projectName: project.name,
+          sourceType: project.source_type,
           taskType: taskForm.task_type,
           branch: taskForm.branch_name,
           hasZipFile: !!zipFile,
@@ -352,8 +380,15 @@ export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, pr
                           </p>
                         )}
                         <div className="flex items-center space-x-4 mt-2 text-xs text-gray-500 font-mono font-bold">
-                          <span className="uppercase">{project.repository_type?.toUpperCase() || 'OTHER'}</span>
-                          <span>{project.default_branch}</span>
+                          <span className={`px-1.5 py-0.5 ${isRepositoryProject(project) ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'}`}>
+                            {getSourceTypeBadge(project.source_type)}
+                          </span>
+                          {isRepositoryProject(project) && (
+                            <>
+                              <span className="uppercase">{project.repository_type?.toUpperCase() || 'OTHER'}</span>
+                              <span>{project.default_branch}</span>
+                            </>
+                          )}
                         </div>
                       </div>
                       {taskForm.project_id === project.id && (
@@ -403,50 +438,101 @@ export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, pr
               </TabsList>
 
               <TabsContent value="basic" className="space-y-4 mt-6 font-mono">
-                {/* ZIP项目文件上传 */}
-                {(!selectedProject.repository_url || selectedProject.repository_url.trim() === '') && (
+                {/* ZIP项目文件上传 - 仅ZIP类型项目显示 */}
+                {isZipProject(selectedProject) && (
                   <div className="bg-amber-50 border-2 border-black p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
                     <div className="space-y-3">
                       {loadingZipFile ? (
                         <div className="flex items-center space-x-3 p-4 bg-blue-50 border-2 border-black">
                           <div className="animate-spin rounded-none h-5 w-5 border-4 border-blue-600 border-t-transparent"></div>
-                          <p className="text-sm text-blue-800 font-bold">正在加载保存的ZIP文件...</p>
+                          <p className="text-sm text-blue-800 font-bold">正在检查ZIP文件...</p>
                         </div>
-                      ) : zipFile ? (
-                        <div className="flex items-start space-x-3 p-4 bg-green-50 border-2 border-black">
-                          <Info className="w-5 h-5 text-green-600 mt-0.5" />
-                          <div className="flex-1">
-                            <p className="font-bold text-green-900 text-sm uppercase">已准备就绪</p>
-                            <p className="text-xs text-green-700 mt-1 font-bold">
-                              使用保存的ZIP文件: {zipFile.name} (
-                              {zipFile.size >= 1024 * 1024
-                                ? `${(zipFile.size / 1024 / 1024).toFixed(2)} MB`
-                                : zipFile.size >= 1024
-                                  ? `${(zipFile.size / 1024).toFixed(2)} KB`
-                                  : `${zipFile.size} B`
-                              })
-                            </p>
+                      ) : storedZipInfo?.has_file ? (
+                        // 有已存储的ZIP文件
+                        <div className="space-y-3">
+                          <div className="flex items-start space-x-3 p-4 bg-green-50 border-2 border-black">
+                            <Info className="w-5 h-5 text-green-600 mt-0.5" />
+                            <div className="flex-1">
+                              <p className="font-bold text-green-900 text-sm uppercase">已有存储的ZIP文件</p>
+                              <p className="text-xs text-green-700 mt-1 font-bold">
+                                文件名: {storedZipInfo.original_filename}
+                                {storedZipInfo.file_size && (
+                                  <> ({storedZipInfo.file_size >= 1024 * 1024
+                                    ? `${(storedZipInfo.file_size / 1024 / 1024).toFixed(2)} MB`
+                                    : `${(storedZipInfo.file_size / 1024).toFixed(2)} KB`
+                                  })</>
+                                )}
+                              </p>
+                              {storedZipInfo.uploaded_at && (
+                                <p className="text-xs text-green-600 mt-0.5">
+                                  上传时间: {new Date(storedZipInfo.uploaded_at).toLocaleString('zh-CN')}
+                                </p>
+                              )}
+                            </div>
                           </div>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => {
-                              setZipFile(null);
-                              setHasLoadedZip(false);
-                            }}
-                            className="retro-btn bg-white text-black h-8 text-xs"
-                          >
-                            更换文件
-                          </Button>
+                          
+                          {/* 选择使用已存储文件还是上传新文件 */}
+                          <div className="flex items-center space-x-4">
+                            <label className="flex items-center space-x-2 cursor-pointer">
+                              <input
+                                type="radio"
+                                checked={useStoredZip}
+                                onChange={() => { setUseStoredZip(true); setZipFile(null); }}
+                                className="w-4 h-4"
+                              />
+                              <span className="text-sm font-bold">使用已存储的文件</span>
+                            </label>
+                            <label className="flex items-center space-x-2 cursor-pointer">
+                              <input
+                                type="radio"
+                                checked={!useStoredZip}
+                                onChange={() => setUseStoredZip(false)}
+                                className="w-4 h-4"
+                              />
+                              <span className="text-sm font-bold">上传新文件</span>
+                            </label>
+                          </div>
+
+                          {/* 上传新文件的输入框 */}
+                          {!useStoredZip && (
+                            <div className="space-y-2 pt-2 border-t border-amber-300">
+                              <Label htmlFor="zipFile" className="font-bold uppercase">选择新的ZIP文件</Label>
+                              <Input
+                                id="zipFile"
+                                type="file"
+                                accept=".zip"
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) {
+                                    const validation = validateZipFile(file);
+                                    if (!validation.valid) {
+                                      toast.error(validation.error || "文件无效");
+                                      e.target.value = '';
+                                      return;
+                                    }
+                                    setZipFile(file);
+                                    toast.success(`已选择文件: ${file.name}`);
+                                  }
+                                }}
+                                className="cursor-pointer retro-input pt-1.5"
+                              />
+                              {zipFile && (
+                                <p className="text-xs text-amber-700 font-bold">
+                                  新文件: {zipFile.name} ({(zipFile.size / 1024 / 1024).toFixed(2)} MB)
+                                </p>
+                              )}
+                            </div>
+                          )}
                         </div>
                       ) : (
+                        // 没有存储的ZIP文件
                         <>
                           <div className="flex items-start space-x-3">
                             <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5" />
                             <div>
                               <p className="font-bold text-amber-900 text-sm uppercase">需要上传ZIP文件</p>
                               <p className="text-xs text-amber-700 mt-1 font-bold">
-                                未找到保存的ZIP文件，请上传文件进行扫描
+                                此项目还没有存储的ZIP文件，请上传文件进行扫描
                               </p>
                             </div>
                           </div>
@@ -474,7 +560,6 @@ export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, pr
                                     return;
                                   }
                                   setZipFile(file);
-                                  setHasLoadedZip(true);
 
                                   const sizeMB = (file.size / 1024 / 1024).toFixed(2);
                                   const sizeKB = (file.size / 1024).toFixed(2);
@@ -519,7 +604,8 @@ export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, pr
                     </Select>
                   </div>
 
-                  {taskForm.task_type === "repository" && (selectedProject.repository_url) && (
+                  {/* 分支选择 - 仅仓库类型项目显示 */}
+                  {taskForm.task_type === "repository" && isRepositoryProject(selectedProject) && (
                     <div className="space-y-2">
                       <Label htmlFor="branch_name" className="font-bold uppercase">目标分支</Label>
                       <Input
@@ -540,10 +626,16 @@ export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, pr
                     <div className="text-sm font-mono">
                       <p className="font-bold text-blue-900 mb-1 uppercase">选中项目：{selectedProject.name}</p>
                       <div className="text-blue-800 space-y-1 font-bold">
+                        <p>项目类型：{isRepositoryProject(selectedProject) ? '远程仓库' : 'ZIP上传'}</p>
                         {selectedProject.description && (
                           <p>描述：{selectedProject.description}</p>
                         )}
-                        <p>默认分支：{selectedProject.default_branch}</p>
+                        {isRepositoryProject(selectedProject) && (
+                          <>
+                            <p>仓库平台：{selectedProject.repository_type?.toUpperCase() || 'OTHER'}</p>
+                            <p>默认分支：{selectedProject.default_branch}</p>
+                          </>
+                        )}
                         {selectedProject.programming_languages && (
                           <p>编程语言：{JSON.parse(selectedProject.programming_languages).join(', ')}</p>
                         )}

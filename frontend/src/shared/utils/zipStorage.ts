@@ -1,240 +1,119 @@
 /**
  * ZIP文件存储工具
- * 用于管理保存在IndexedDB中的ZIP文件
+ * 通过后端API管理项目的ZIP文件
  */
 
-const DB_NAME = 'xcodereviewer_files';
-const STORE_NAME = 'zipFiles';
+import { apiClient } from '@/shared/api/serverClient';
 
-/**
- * 保存ZIP文件到IndexedDB
- */
-export async function saveZipFile(projectId: string, file: File): Promise<void> {
-  // 检查浏览器是否支持IndexedDB
-  if (!window.indexedDB) {
-    throw new Error('您的浏览器不支持IndexedDB，无法保存ZIP文件');
-  }
-
-  return new Promise((resolve, reject) => {
-    // 不指定版本号，让IndexedDB使用当前最新版本
-    const dbRequest = indexedDB.open(DB_NAME);
-    
-    dbRequest.onupgradeneeded = (event) => {
-      try {
-        const db = (event.target as IDBOpenDBRequest).result;
-        if (!db.objectStoreNames.contains(STORE_NAME)) {
-          db.createObjectStore(STORE_NAME);
-        }
-      } catch (error) {
-        console.error('创建对象存储失败:', error);
-        reject(new Error('创建存储结构失败，请检查浏览器设置'));
-      }
-    };
-
-    dbRequest.onsuccess = async (event) => {
-      const db = (event.target as IDBOpenDBRequest).result;
-      
-      // 检查对象存储是否存在，如果不存在则需要升级数据库
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        db.close();
-        // 增加版本号以触发onupgradeneeded
-        const upgradeRequest = indexedDB.open(DB_NAME, db.version + 1);
-        
-        upgradeRequest.onupgradeneeded = (event) => {
-          try {
-            const upgradeDb = (event.target as IDBOpenDBRequest).result;
-            if (!upgradeDb.objectStoreNames.contains(STORE_NAME)) {
-              upgradeDb.createObjectStore(STORE_NAME);
-            }
-          } catch (error) {
-            console.error('升级数据库时创建对象存储失败:', error);
-          }
-        };
-        
-        upgradeRequest.onsuccess = async (event) => {
-          const upgradeDb = (event.target as IDBOpenDBRequest).result;
-          await performSave(upgradeDb, file, projectId, resolve, reject);
-        };
-        
-        upgradeRequest.onerror = (event) => {
-          const error = (event.target as IDBOpenDBRequest).error;
-          console.error('升级数据库失败:', error);
-          reject(new Error(`升级数据库失败: ${error?.message || '未知错误'}`));
-        };
-      } else {
-        await performSave(db, file, projectId, resolve, reject);
-      }
-    };
-
-    dbRequest.onerror = (event) => {
-      const error = (event.target as IDBOpenDBRequest).error;
-      console.error('打开IndexedDB失败:', error);
-      const errorMsg = error?.message || '未知错误';
-      reject(new Error(`无法打开本地存储，可能是隐私模式或存储权限问题: ${errorMsg}`));
-    };
-
-    dbRequest.onblocked = () => {
-      console.warn('数据库被阻塞，可能有其他标签页正在使用');
-      reject(new Error('数据库被占用，请关闭其他标签页后重试'));
-    };
-  });
+export interface ZipFileMeta {
+  has_file: boolean;
+  original_filename?: string;
+  file_size?: number;
+  uploaded_at?: string;
 }
 
-async function performSave(
-  db: IDBDatabase,
-  file: File,
-  projectId: string,
-  resolve: () => void,
-  reject: (error: Error) => void
-) {
+/**
+ * 获取项目ZIP文件信息
+ */
+export async function getZipFileInfo(projectId: string): Promise<ZipFileMeta> {
   try {
-    const arrayBuffer = await file.arrayBuffer();
-    const transaction = db.transaction([STORE_NAME], 'readwrite');
-    const store = transaction.objectStore(STORE_NAME);
-    
-    const putRequest = store.put({
-      buffer: arrayBuffer,
-      fileName: file.name,
-      fileSize: file.size,
-      uploadedAt: new Date().toISOString()
-    }, projectId);
-    
-    putRequest.onerror = (event) => {
-      const error = (event.target as IDBRequest).error;
-      console.error('写入数据失败:', error);
-      reject(new Error(`保存ZIP文件失败: ${error?.message || '未知错误'}`));
-    };
-    
-    transaction.oncomplete = () => {
-      console.log(`ZIP文件已保存到项目 ${projectId} (${(file.size / 1024 / 1024).toFixed(2)} MB)`);
-      db.close();
-      resolve();
-    };
-    
-    transaction.onerror = (event) => {
-      const error = (event.target as IDBTransaction).error;
-      console.error('事务失败:', error);
-      reject(new Error(`保存事务失败: ${error?.message || '未知错误'}`));
-    };
-    
-    transaction.onabort = () => {
-      console.error('事务被中止');
-      reject(new Error('保存操作被中止'));
-    };
+    const response = await apiClient.get(`/projects/${projectId}/zip`);
+    return response.data;
   } catch (error) {
-    console.error('保存ZIP文件时发生异常:', error);
-    reject(error as Error);
+    console.error('获取ZIP文件信息失败:', error);
+    return { has_file: false };
   }
 }
 
 /**
- * 从IndexedDB加载ZIP文件
+ * 上传项目ZIP文件
  */
-export async function loadZipFile(projectId: string): Promise<File | null> {
-  return new Promise((resolve, reject) => {
-    // 不指定版本号，让IndexedDB使用当前最新版本
-    const dbRequest = indexedDB.open(DB_NAME);
-    
-    dbRequest.onupgradeneeded = (event) => {
-      const db = (event.target as IDBOpenDBRequest).result;
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        db.createObjectStore(STORE_NAME);
-      }
-    };
-    
-    dbRequest.onsuccess = (event) => {
-      const db = (event.target as IDBOpenDBRequest).result;
-      
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        db.close();
-        resolve(null);
-        return;
-      }
-      
-      const transaction = db.transaction([STORE_NAME], 'readonly');
-      const store = transaction.objectStore(STORE_NAME);
-      const getRequest = store.get(projectId);
-      
-      getRequest.onsuccess = () => {
-        const savedFile = getRequest.result;
-        
-        if (savedFile && savedFile.buffer) {
-          const blob = new Blob([savedFile.buffer], { type: 'application/zip' });
-          const file = new File([blob], savedFile.fileName, { type: 'application/zip' });
-          resolve(file);
-        } else {
-          resolve(null);
-        }
-      };
-      
-      getRequest.onerror = () => {
-        reject(new Error('读取ZIP文件失败'));
-      };
-    };
+export async function uploadZipFile(projectId: string, file: File): Promise<{
+  success: boolean;
+  message?: string;
+  original_filename?: string;
+  file_size?: number;
+}> {
+  const formData = new FormData();
+  formData.append('file', file);
 
-    dbRequest.onerror = () => {
-      // 数据库打开失败，可能是首次使用，返回null而不是报错
-      console.warn('打开ZIP文件数据库失败，可能是首次使用');
-      resolve(null);
-    };
-  });
-}
-
-/**
- * 删除ZIP文件
- */
-export async function deleteZipFile(projectId: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    // 不指定版本号，让IndexedDB使用当前最新版本
-    const dbRequest = indexedDB.open(DB_NAME);
-    
-    dbRequest.onupgradeneeded = (event) => {
-      const db = (event.target as IDBOpenDBRequest).result;
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        db.createObjectStore(STORE_NAME);
-      }
-    };
-    
-    dbRequest.onsuccess = (event) => {
-      const db = (event.target as IDBOpenDBRequest).result;
-      
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        db.close();
-        resolve();
-        return;
-      }
-      
-      const transaction = db.transaction([STORE_NAME], 'readwrite');
-      const store = transaction.objectStore(STORE_NAME);
-      const deleteRequest = store.delete(projectId);
-      
-      deleteRequest.onsuccess = () => {
-        console.log(`已删除项目 ${projectId} 的ZIP文件`);
-        resolve();
-      };
-      
-      deleteRequest.onerror = () => {
-        reject(new Error('删除ZIP文件失败'));
-      };
-    };
-
-    dbRequest.onerror = () => {
-      // 数据库打开失败，可能文件不存在，直接resolve
-      console.warn('打开ZIP文件数据库失败，跳过删除操作');
-      resolve();
-    };
-  });
-}
-
-/**
- * 检查是否存在ZIP文件
- */
-export async function hasZipFile(projectId: string): Promise<boolean> {
   try {
-    const file = await loadZipFile(projectId);
-    return file !== null;
-  } catch {
+    const response = await apiClient.post(`/projects/${projectId}/zip`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return {
+      success: true,
+      message: response.data.message,
+      original_filename: response.data.original_filename,
+      file_size: response.data.file_size,
+    };
+  } catch (error: any) {
+    console.error('上传ZIP文件失败:', error);
+    return {
+      success: false,
+      message: error.response?.data?.detail || '上传失败',
+    };
+  }
+}
+
+/**
+ * 删除项目ZIP文件
+ */
+export async function deleteZipFile(projectId: string): Promise<boolean> {
+  try {
+    await apiClient.delete(`/projects/${projectId}/zip`);
+    return true;
+  } catch (error) {
+    console.error('删除ZIP文件失败:', error);
     return false;
   }
 }
 
+/**
+ * 检查项目是否有ZIP文件
+ */
+export async function hasZipFile(projectId: string): Promise<boolean> {
+  const info = await getZipFileInfo(projectId);
+  return info.has_file;
+}
+
+/**
+ * 格式化文件大小
+ */
+export function formatFileSize(bytes: number): string {
+  if (bytes >= 1024 * 1024) {
+    return `${(bytes / 1024 / 1024).toFixed(2)} MB`;
+  } else if (bytes >= 1024) {
+    return `${(bytes / 1024).toFixed(2)} KB`;
+  }
+  return `${bytes} B`;
+}
+
+// ============ 兼容旧API（已废弃，保留以避免编译错误） ============
+
+/**
+ * @deprecated 使用 uploadZipFile 代替
+ */
+export async function saveZipFile(projectId: string, file: File): Promise<void> {
+  const result = await uploadZipFile(projectId, file);
+  if (!result.success) {
+    throw new Error(result.message || '保存ZIP文件失败');
+  }
+}
+
+/**
+ * @deprecated 使用 getZipFileInfo 代替
+ */
+export async function loadZipFile(projectId: string): Promise<File | null> {
+  // 后端不再返回文件内容，只返回元数据
+  // 如果需要文件，应该在创建任务时直接使用后端存储的文件
+  const info = await getZipFileInfo(projectId);
+  if (info.has_file && info.original_filename) {
+    // 返回一个虚拟的File对象，仅包含元数据
+    const blob = new Blob([], { type: 'application/zip' });
+    return new File([blob], info.original_filename, { type: 'application/zip' });
+  }
+  return null;
+}

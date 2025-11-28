@@ -48,6 +48,7 @@ class ProjectSchema(BaseModel):
     id: str
     name: str
     description: Optional[str] = None
+    source_type: Optional[str] = None
     repository_url: Optional[str] = None
     repository_type: Optional[str] = None
     default_branch: Optional[str] = None

@@ -1,2 +1,6 @@
 .venv/
 venv/
+
+# Uploaded files
+uploads/zip_files/*.zip
+uploads/zip_files/*.meta

@@ -71,6 +71,9 @@ class Settings(BaseSettings):
     LLM_CONCURRENCY: int = 3  # LLM并发数
     LLM_GAP_MS: int = 2000  # LLM请求间隔（毫秒）
     
+    # ZIP文件存储配置
+    ZIP_STORAGE_PATH: str = "./uploads/zip_files"  # ZIP文件存储目录
+    
     # 输出语言配置 - 支持 zh-CN（中文）和 en-US（英文）
     OUTPUT_LANGUAGE: str = "zh-CN"
 

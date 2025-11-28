@@ -20,12 +20,15 @@ import {
   CheckCircle,
   Clock,
   Play,
-  FileText
+  FileText,
+  Upload,
+  GitBranch
 } from "lucide-react";
 import { api } from "@/shared/config/database";
 import { runRepositoryAudit, scanZipFile } from "@/features/projects/services";
 import type { Project, AuditTask, CreateProjectForm } from "@/shared/types";
 import { loadZipFile } from "@/shared/utils/zipStorage";
+import { isRepositoryProject, getSourceTypeLabel } from "@/shared/utils/projectUtils";
 import { toast } from "sonner";
 import CreateTaskDialog from "@/components/audit/CreateTaskDialog";
 import TerminalProgressDialog from "@/components/audit/TerminalProgressDialog";
@@ -43,6 +46,7 @@ export default function ProjectDetail() {
   const [editForm, setEditForm] = useState<CreateProjectForm>({
     name: "",
     description: "",
+    source_type: "repository",
     repository_url: "",
     repository_type: "github",
     default_branch: "main",
@@ -81,6 +85,7 @@ export default function ProjectDetail() {
     setEditForm({
       name: project.name,
       description: project.description || "",
+      source_type: project.source_type || "repository",
       repository_url: project.repository_url || "",
       repository_type: project.repository_type || "github",
       default_branch: project.default_branch || "main",
@@ -441,17 +446,28 @@ export default function ProjectDetail() {
                   )}
 
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-bold text-gray-600 uppercase">仓库类型</span>
-                    <Badge variant="outline" className="rounded-none border-black bg-gray-100 text-black">
-                      {project.repository_type === 'github' ? 'GitHub' :
-                        project.repository_type === 'gitlab' ? 'GitLab' : '其他'}
+                    <span className="text-sm font-bold text-gray-600 uppercase">项目类型</span>
+                    <Badge variant="outline" className={`rounded-none border-black ${isRepositoryProject(project) ? 'bg-blue-100 text-blue-800' : 'bg-amber-100 text-amber-800'}`}>
+                      {getSourceTypeLabel(project.source_type)}
                     </Badge>
                   </div>
 
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-bold text-gray-600 uppercase">默认分支</span>
-                    <span className="text-sm font-bold text-black bg-gray-100 px-2 border border-black">{project.default_branch}</span>
-                  </div>
+                  {isRepositoryProject(project) && (
+                    <>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-bold text-gray-600 uppercase">仓库平台</span>
+                        <Badge variant="outline" className="rounded-none border-black bg-gray-100 text-black">
+                          {project.repository_type === 'github' ? 'GitHub' :
+                            project.repository_type === 'gitlab' ? 'GitLab' : '其他'}
+                        </Badge>
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-bold text-gray-600 uppercase">默认分支</span>
+                        <span className="text-sm font-bold text-black bg-gray-100 px-2 border border-black">{project.default_branch}</span>
+                      </div>
+                    </>
+                  )}
 
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-bold text-gray-600 uppercase">创建时间</span>
@@ -711,51 +727,73 @@ export default function ProjectDetail() {
                 </div>
               </div>
 
-              {/* 仓库信息 */}
-              <div className="space-y-4 border-t-2 border-dashed border-gray-300 pt-4">
-                <h3 className="text-sm font-bold font-mono uppercase text-gray-900 bg-gray-100 inline-block px-2 border border-black">仓库信息</h3>
-
-                <div>
-                  <Label htmlFor="edit-repo-url" className="font-bold font-mono uppercase">仓库地址</Label>
-                  <Input
-                    id="edit-repo-url"
-                    value={editForm.repository_url}
-                    onChange={(e) => setEditForm({ ...editForm, repository_url: e.target.value })}
-                    placeholder="https://github.com/username/repo"
-                    className="retro-input mt-1"
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="edit-repo-type" className="font-bold font-mono uppercase">仓库类型</Label>
-                    <Select
-                      value={editForm.repository_type}
-                      onValueChange={(value: any) => setEditForm({ ...editForm, repository_type: value })}
-                    >
-                      <SelectTrigger id="edit-repo-type" className="retro-input mt-1 rounded-none border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] focus:ring-0">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="rounded-none border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                        <SelectItem value="github">GitHub</SelectItem>
-                        <SelectItem value="gitlab">GitLab</SelectItem>
-                        <SelectItem value="other">其他</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+              {/* 仓库信息 - 仅远程仓库类型显示 */}
+              {editForm.source_type === 'repository' && (
+                <div className="space-y-4 border-t-2 border-dashed border-gray-300 pt-4">
+                  <h3 className="text-sm font-bold font-mono uppercase text-gray-900 bg-blue-100 inline-block px-2 border border-black flex items-center gap-2">
+                    <GitBranch className="w-4 h-4" />
+                    仓库信息
+                  </h3>
 
                   <div>
-                    <Label htmlFor="edit-branch" className="font-bold font-mono uppercase">默认分支</Label>
+                    <Label htmlFor="edit-repo-url" className="font-bold font-mono uppercase">仓库地址</Label>
                     <Input
-                      id="edit-branch"
-                      value={editForm.default_branch}
-                      onChange={(e) => setEditForm({ ...editForm, default_branch: e.target.value })}
-                      placeholder="main"
+                      id="edit-repo-url"
+                      value={editForm.repository_url}
+                      onChange={(e) => setEditForm({ ...editForm, repository_url: e.target.value })}
+                      placeholder="https://github.com/username/repo"
                       className="retro-input mt-1"
                     />
                   </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="edit-repo-type" className="font-bold font-mono uppercase">仓库平台</Label>
+                      <Select
+                        value={editForm.repository_type}
+                        onValueChange={(value: any) => setEditForm({ ...editForm, repository_type: value })}
+                      >
+                        <SelectTrigger id="edit-repo-type" className="retro-input mt-1 rounded-none border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] focus:ring-0">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-none border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                          <SelectItem value="github">GitHub</SelectItem>
+                          <SelectItem value="gitlab">GitLab</SelectItem>
+                          <SelectItem value="other">其他</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="edit-branch" className="font-bold font-mono uppercase">默认分支</Label>
+                      <Input
+                        id="edit-branch"
+                        value={editForm.default_branch}
+                        onChange={(e) => setEditForm({ ...editForm, default_branch: e.target.value })}
+                        placeholder="main"
+                        className="retro-input mt-1"
+                      />
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
+
+              {/* ZIP项目提示 */}
+              {editForm.source_type === 'zip' && (
+                <div className="border-t-2 border-dashed border-gray-300 pt-4">
+                  <div className="bg-amber-50 border-2 border-black p-4 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                    <div className="flex items-start space-x-3">
+                      <Upload className="w-5 h-5 text-amber-600 mt-0.5" />
+                      <div className="text-sm font-mono">
+                        <p className="font-bold text-amber-900 mb-1 uppercase">ZIP上传项目</p>
+                        <p className="text-amber-700 text-xs">
+                          此项目通过ZIP文件上传创建。每次进行代码审计时，需要在创建任务时重新上传ZIP文件。
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* 编程语言 */}
               <div className="space-y-4 border-t-2 border-dashed border-gray-300 pt-4">

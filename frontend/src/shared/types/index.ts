@@ -20,13 +20,20 @@ export interface Profile {
   updated_at: string;
 }
 
+// 项目来源类型
+export type ProjectSourceType = 'repository' | 'zip';
+
+// 仓库平台类型
+export type RepositoryPlatform = 'github' | 'gitlab' | 'other';
+
 // 项目相关类型
 export interface Project {
   id: string;
   name: string;
   description?: string;
-  repository_url?: string;
-  repository_type?: 'github' | 'gitlab' | 'other';
+  source_type: ProjectSourceType;  // 项目来源: 'repository' (远程仓库) 或 'zip' (ZIP上传)
+  repository_url?: string;         // 仅 source_type='repository' 时有效
+  repository_type?: RepositoryPlatform;  // 仓库平台: github, gitlab, other
   default_branch: string;
   programming_languages: string;
   owner_id: string;
@@ -108,8 +115,9 @@ export interface InstantAnalysis {
 export interface CreateProjectForm {
   name: string;
   description?: string;
-  repository_url?: string;
-  repository_type?: 'github' | 'gitlab' | 'other';
+  source_type?: ProjectSourceType;  // 项目来源类型
+  repository_url?: string;          // 仅 source_type='repository' 时需要
+  repository_type?: RepositoryPlatform;  // 仓库平台
   default_branch?: string;
   programming_languages: string[];
 }

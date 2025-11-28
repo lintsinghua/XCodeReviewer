@@ -1,5 +1,8 @@
 import { apiClient } from "@/shared/api/serverClient";
 
+/**
+ * 上传ZIP文件并启动扫描
+ */
 export async function scanZipFile(params: {
   projectId: string;
   zipFile: File;
@@ -15,6 +18,21 @@ export async function scanZipFile(params: {
     headers: {
       "Content-Type": "multipart/form-data",
     },
+  });
+
+  return res.data.task_id;
+}
+
+/**
+ * 使用已存储的ZIP文件启动扫描（无需重新上传）
+ */
+export async function scanStoredZipFile(params: {
+  projectId: string;
+  excludePatterns?: string[];
+  createdBy?: string;
+}): Promise<string> {
+  const res = await apiClient.post(`/scan/scan-stored-zip`, null, {
+    params: { project_id: params.projectId },
   });
 
   return res.data.task_id;

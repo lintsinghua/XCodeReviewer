@@ -10,9 +10,15 @@ class Project(Base):
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     name = Column(String, index=True, nullable=False)
     description = Column(Text, nullable=True)
+    
+    # 项目来源类型: 'repository' (远程仓库) 或 'zip' (ZIP上传)
+    source_type = Column(String(20), default="repository", nullable=False)
+    
+    # 仓库相关字段 (仅 source_type='repository' 时使用)
     repository_url = Column(String, nullable=True)
-    repository_type = Column(String, default="other")
+    repository_type = Column(String, default="other")  # github, gitlab, other
     default_branch = Column(String, default="main")
+    
     programming_languages = Column(Text, default="[]")  # Stored as JSON string
     
     owner_id = Column(String, ForeignKey("users.id"), nullable=False)

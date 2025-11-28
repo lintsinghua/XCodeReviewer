@@ -21,6 +21,7 @@ from app.models.analysis import InstantAnalysis
 from app.models.user_config import UserConfig
 from app.services.llm.service import LLMService
 from app.services.scanner import task_control, is_text_file, should_exclude, get_language_from_path
+from app.services.zip_storage import load_project_zip, save_project_zip, has_project_zip
 from app.core.config import settings
 
 router = APIRouter()
@@ -167,9 +168,7 @@ async def process_zip_task(task_id: str, file_path: str, db_session_factory, use
             await db.commit()
             task_control.cleanup_task(task_id)
         finally:
-            # Cleanup
-            if os.path.exists(file_path):
-                os.remove(file_path)
+            # Cleanup - 只清理解压目录，不删除源ZIP文件（已持久化存储）
             if extract_dir.exists():
                 shutil.rmtree(extract_dir)
 
@@ -184,6 +183,7 @@ async def scan_zip(
 ) -> Any:
     """
     Upload and scan a ZIP file.
+    上传ZIP文件并启动扫描，同时将ZIP文件保存到持久化存储
     """
     # Verify project exists
     project = await db.get(Project, project_id)
@@ -194,7 +194,7 @@ async def scan_zip(
     if not file.filename.lower().endswith('.zip'):
         raise HTTPException(status_code=400, detail="请上传ZIP格式文件")
         
-    # Save Uploaded File
+    # Save Uploaded File to temp
     file_id = str(uuid.uuid4())
     file_path = f"/tmp/{file_id}.zip"
     with open(file_path, "wb") as buffer:
@@ -205,6 +205,51 @@ async def scan_zip(
     if file_size > 100 * 1024 * 1024:  # 100MB limit
         os.remove(file_path)
         raise HTTPException(status_code=400, detail="文件大小不能超过100MB")
+    
+    # 保存ZIP文件到持久化存储
+    await save_project_zip(project_id, file_path, file.filename)
+    
+    # Create Task
+    task = AuditTask(
+        project_id=project_id,
+        created_by=current_user.id,
+        task_type="zip_upload",
+        status="pending",
+        scan_config="{}"
+    )
+    db.add(task)
+    await db.commit()
+    await db.refresh(task)
+
+    # 获取用户配置
+    user_config = await get_user_config_dict(db, current_user.id)
+
+    # Trigger Background Task - 使用持久化存储的文件路径
+    stored_zip_path = await load_project_zip(project_id)
+    background_tasks.add_task(process_zip_task, task.id, stored_zip_path or file_path, AsyncSessionLocal, user_config)
+
+    return {"task_id": task.id, "status": "queued"}
+
+
+@router.post("/scan-stored-zip")
+async def scan_stored_zip(
+    project_id: str,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(deps.get_current_user),
+) -> Any:
+    """
+    使用已存储的ZIP文件启动扫描（无需重新上传）
+    """
+    # Verify project exists
+    project = await db.get(Project, project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="项目不存在")
+    
+    # 检查是否有存储的ZIP文件
+    stored_zip_path = await load_project_zip(project_id)
+    if not stored_zip_path:
+        raise HTTPException(status_code=400, detail="项目没有已存储的ZIP文件，请先上传")
     
     # Create Task
     task = AuditTask(
@@ -222,7 +267,7 @@ async def scan_zip(
     user_config = await get_user_config_dict(db, current_user.id)
 
     # Trigger Background Task
-    background_tasks.add_task(process_zip_task, task.id, file_path, AsyncSessionLocal, user_config)
+    background_tasks.add_task(process_zip_task, task.id, stored_zip_path, AsyncSessionLocal, user_config)
 
     return {"task_id": task.id, "status": "queued"}
 

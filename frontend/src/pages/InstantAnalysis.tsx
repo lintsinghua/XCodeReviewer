@@ -365,6 +365,7 @@ class UserManager {
         owner_id: 'local-user',
         name: '即时分析',
         description: `${language} 代码即时分析`,
+        source_type: 'zip',
         repository_type: 'other',
         repository_url: undefined,
         default_branch: 'instant',

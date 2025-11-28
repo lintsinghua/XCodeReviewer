@@ -27,6 +27,7 @@ import type { AuditTask, AuditIssue } from "@/shared/types";
 import { toast } from "sonner";
 import ExportReportDialog from "@/components/reports/ExportReportDialog";
 import { calculateTaskProgress } from "@/shared/utils/utils";
+import { isRepositoryProject, getSourceTypeLabel } from "@/shared/utils/projectUtils";
 
 // AI解释解析函数
 function parseAIExplanation(aiExplanation: string) {
@@ -631,9 +632,15 @@ export default function TaskDetail() {
                     </div>
                   )}
                   <div>
-                    <p className="text-xs font-bold text-gray-600 uppercase mb-1">仓库类型</p>
-                    <p className="text-base font-bold">{task.project.repository_type?.toUpperCase() || 'OTHER'}</p>
+                    <p className="text-xs font-bold text-gray-600 uppercase mb-1">项目类型</p>
+                    <p className="text-base font-bold">{getSourceTypeLabel(task.project.source_type)}</p>
                   </div>
+                  {isRepositoryProject(task.project) && (
+                    <div>
+                      <p className="text-xs font-bold text-gray-600 uppercase mb-1">仓库平台</p>
+                      <p className="text-base font-bold">{task.project.repository_type?.toUpperCase() || 'OTHER'}</p>
+                    </div>
+                  )}
                   {task.project.programming_languages && (
                     <div>
                       <p className="text-xs font-bold text-gray-600 uppercase mb-2">编程语言</p>
