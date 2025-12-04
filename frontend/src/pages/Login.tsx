@@ -59,7 +59,16 @@ export default function Login() {
       await login(response.data.access_token);
       toast.success("登录成功");
     } catch (error: any) {
-      toast.error(error.response?.data?.detail || "登录失败，请检查邮箱和密码");
+      const detail = error.response?.data?.detail;
+      // 处理 Pydantic 验证错误（数组格式）
+      if (Array.isArray(detail)) {
+        const messages = detail.map((err: any) => err.msg || err.message || JSON.stringify(err)).join('; ');
+        toast.error(messages || "登录失败");
+      } else if (typeof detail === 'object') {
+        toast.error(detail.msg || detail.message || JSON.stringify(detail));
+      } else {
+        toast.error(detail || "登录失败，请检查邮箱和密码");
+      }
     } finally {
       setLoading(false);
     }

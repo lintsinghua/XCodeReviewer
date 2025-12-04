@@ -105,6 +105,10 @@ class LiteLLMAdapter(BaseLLMAdapter):
         # 禁用 LiteLLM 的缓存，确保每次都实际调用 API
         litellm.cache = None
         
+        # 禁用 LiteLLM 自动添加的 reasoning_effort 参数
+        # 这可以防止模型名称被错误解析为 effort 参数
+        litellm.drop_params = True
+        
         # 构建消息
         messages = [{"role": msg.role, "content": msg.content} for msg in request.messages]
 

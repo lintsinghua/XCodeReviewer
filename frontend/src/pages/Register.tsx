@@ -26,7 +26,16 @@ export default function Register() {
       toast.success('注册成功，请登录');
       navigate('/login');
     } catch (error: any) {
-      toast.error(error.response?.data?.detail || '注册失败');
+      const detail = error.response?.data?.detail;
+      // 处理 Pydantic 验证错误（数组格式）
+      if (Array.isArray(detail)) {
+        const messages = detail.map((err: any) => err.msg || err.message || JSON.stringify(err)).join('; ');
+        toast.error(messages || '注册失败');
+      } else if (typeof detail === 'object') {
+        toast.error(detail.msg || detail.message || JSON.stringify(detail));
+      } else {
+        toast.error(detail || '注册失败');
+      }
     } finally {
       setLoading(false);
     }

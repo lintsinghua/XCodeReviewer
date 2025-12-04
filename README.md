@@ -284,6 +284,34 @@ LLM_API_KEY=your_api_key:your_secret_key
 </details>
 
 <details>
+<summary><b>Windows 导出 PDF 报错怎么办？</b></summary>
+
+PDF 导出功能使用 WeasyPrint 库，在 Windows 系统上需要安装 GTK 依赖：
+
+**方法一：使用 MSYS2 安装（推荐）**
+```bash
+# 1. 下载并安装 MSYS2: https://www.msys2.org/
+# 2. 打开 MSYS2 终端，执行：
+pacman -S mingw-w64-x86_64-pango mingw-w64-x86_64-gtk3
+
+# 3. 将 MSYS2 的 bin 目录添加到系统 PATH 环境变量：
+# C:\msys64\mingw64\bin
+```
+
+**方法二：使用 GTK3 Runtime 安装包**
+1. 下载 GTK3 Runtime: https://github.com/nickvidal/gtk3-runtime/releases
+2. 安装后将安装目录添加到系统 PATH
+
+**方法三：使用 Docker 部署（最简单）**
+使用 Docker 部署后端可以避免 Windows 上的依赖问题：
+```bash
+docker-compose up -d backend
+```
+
+安装完成后重启后端服务即可正常导出 PDF。
+</details>
+
+<details>
 <summary><b>如何使用 API 中转站？</b></summary>
 
 许多用户使用 API 中转服务来访问 LLM（更稳定、更便宜）。配置方法：

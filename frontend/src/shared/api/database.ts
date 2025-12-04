@@ -68,6 +68,7 @@ export const api = {
     const res = await apiClient.post('/projects/', {
       name: project.name,
       description: project.description,
+      source_type: project.source_type || 'repository',
       repository_url: project.repository_url,
       repository_type: project.repository_type,
       default_branch: project.default_branch,
