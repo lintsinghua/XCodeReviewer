@@ -1,135 +1,211 @@
-# XCodeReviewer - 您的智能代码审计伙伴 🚀
+<p align="center">
+  <img src="frontend/public/images/logo.png" alt="XCodeReviewer Logo" width="200">
+</p>
 
-> 多Agent、PR批量自动审计版本正在开发中，敬请期待......
+<h1 align="center">🛡️ XCodeReviewer</h1>
 
-<div style="width: 100%; max-width: 600px; margin: 0 auto;">
-  <img src="frontend/public/images/logo.png" alt="XCodeReviewer Logo" style="width: 100%; height: auto; display: block; margin: 0 auto;">
-</div>
+<p align="center">
+  <strong>让 AI 成为你的代码安全守护者</strong>
+</p>
 
-<div align="center">
+<p align="center">
+  <em>告别繁琐的人工审计，拥抱智能化代码安全新时代</em>
+</p>
 
-[![Version](https://img.shields.io/badge/version-2.0.0--beta.1-blue.svg)](https://github.com/lintsinghua/XCodeReviewer/releases)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![React](https://img.shields.io/badge/React-18-61dafb.svg)](https://reactjs.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178c6.svg)](https://www.typescriptlang.org/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688.svg)](https://fastapi.tiangolo.com/)
-[![Python](https://img.shields.io/badge/Python-3.13+-3776ab.svg)](https://www.python.org/)
-[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/lintsinghua/XCodeReviewer)
+<p align="center">
+  <a href="https://github.com/lintsinghua/XCodeReviewer/releases"><img src="https://img.shields.io/badge/version-2.0.0--beta.1-blue.svg" alt="Version"></a>
+  <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License"></a>
+  <a href="https://reactjs.org/"><img src="https://img.shields.io/badge/React-18-61dafb.svg" alt="React"></a>
+  <a href="https://fastapi.tiangolo.com/"><img src="https://img.shields.io/badge/FastAPI-0.100+-009688.svg" alt="FastAPI"></a>
+  <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.13+-3776ab.svg" alt="Python"></a>
+  <a href="https://deepwiki.com/lintsinghua/XCodeReviewer"><img src="https://deepwiki.com/badge.svg" alt="Ask DeepWiki"></a>
+</p>
 
-[![Stars](https://img.shields.io/github/stars/lintsinghua/XCodeReviewer?style=social)](https://github.com/lintsinghua/XCodeReviewer/stargazers)
-[![Forks](https://img.shields.io/github/forks/lintsinghua/XCodeReviewer?style=social)](https://github.com/lintsinghua/XCodeReviewer/network/members)
+<p align="center">
+  <a href="https://github.com/lintsinghua/XCodeReviewer/stargazers"><img src="https://img.shields.io/github/stars/lintsinghua/XCodeReviewer?style=social" alt="Stars"></a>
+  <a href="https://github.com/lintsinghua/XCodeReviewer/network/members"><img src="https://img.shields.io/github/forks/lintsinghua/XCodeReviewer?style=social" alt="Forks"></a>
+  <a href="https://github.com/lintsinghua/lintsinghua.github.io/issues/1"><img src="https://img.shields.io/badge/Sponsor-赞助-blueviolet" alt="Sponsor"></a>
+</p>
 
-[![Sponsor](https://img.shields.io/badge/Sponsor-赞助-blueviolet)](https://github.com/lintsinghua/lintsinghua.github.io/issues/1)
-</div>
+---
 
-<div style="width: 100%; max-width: 600px; margin: 0 auto;">
-  <a href="https://github.com/lintsinghua/XCodeReviewer">
-    <img src="frontend/public/star-me-cn.svg" alt="Star this project" style="width: 100%; height: auto; display: block; margin: 0 auto;" />
-  </a>
-</div>
+## 💡 这是什么？
 
-**XCodeReviewer** 是一个由大型语言模型（LLM）驱动的现代化代码审计平台，采用前后端分离架构，旨在为开发者提供智能、全面且极具深度的代码质量分析和审查服务。
+**你是否也有这样的困扰？**
 
-## 📚 文档导航
+- 😫 代码审计耗时耗力，人工 Review 效率低下
+- 🤯 传统 SAST 工具误报率高，修复建议不知所云
+- 😰 安全漏洞藏得太深，上线后才发现问题
+- 🥺 想用 AI 辅助审计，但配置复杂、门槛太高
+
+**XCodeReviewer 来拯救你！** 🦸‍♂️
+
+我们将 10+ 主流大模型的智慧注入代码审计，让你像和资深安全专家对话一样，轻松发现代码中的安全隐患、性能瓶颈和潜在 Bug。
+
+
+## ✨ 为什么选择我们？
+
+<table>
+<tr>
+<td width="50%">
+
+### 🧠 真正理解你的代码
+不是简单的关键词匹配，而是深度理解代码逻辑和业务意图，像人类专家一样思考。
+
+### 🎯 What-Why-How 三步修复
+- **What**: 精准定位问题所在
+- **Why**: 解释为什么这是个问题
+- **How**: 给出可直接使用的修复代码
+
+### 🔌 10+ LLM 平台任你选
+OpenAI、Claude、Gemini、通义千问、DeepSeek、智谱AI... 想用哪个用哪个，还支持 Ollama 本地部署！
+
+</td>
+<td width="50%">
+
+### ⚡ 5 分钟快速上手
+Docker 一键部署，浏览器配置 API Key，无需复杂环境搭建。
+
+### 🔒 代码隐私有保障
+支持 Ollama 本地模型，敏感代码不出内网，安全合规无忧。
+
+### 📊 专业报告一键导出
+JSON、PDF 格式随心选，审计报告直接交付，省去整理时间。
+
+</td>
+</tr>
+</table>
+
+## 🎬 眼见为实
+
+| 智能仪表盘 | 即时分析 |
+|:---:|:---:|
+| ![仪表盘](frontend/public/images/example1.png) | ![即时分析](frontend/public/images/example2.png) |
+| *一眼掌握项目安全态势* | *粘贴代码，秒出结果* |
+
+| 项目管理 | 审计报告 |
+|:---:|:---:|
+| ![项目管理](frontend/public/images/example3.png) | ![审计报告](frontend/public/images/审计报告示例.png) |
+| *GitHub/GitLab 无缝集成* | *专业报告，一键导出* |
+
+
+## 🚀 3 步开始你的智能审计之旅
+
+```bash
+# 1️⃣ 克隆项目
+git clone https://github.com/lintsinghua/XCodeReviewer.git && cd XCodeReviewer
+
+# 2️⃣ 配置你的 LLM API Key
+cp backend/env.example backend/.env
+# 编辑 backend/.env，填入你的 API Key
+
+# 3️⃣ 一键启动！
+docker-compose up -d
+```
+
+🎉 **搞定！** 打开 http://localhost:5173 开始体验吧！
+
+> 📖 更多部署方式请查看 [部署指南](docs/DEPLOYMENT.md)
+
+## 🛠️ 核心能力
+
+| 能力 | 描述 |
+|------|------|
+| 🚀 **项目管理** | GitHub/GitLab 一键导入，ZIP 上传，多语言支持 |
+| ⚡ **即时分析** | 代码片段秒级分析，10+ 编程语言全覆盖 |
+| 🧠 **智能审计** | Bug、安全、性能、风格、可维护性五维检测 |
+| 💡 **可解释分析** | What-Why-How 模式，精准定位 + 修复建议 |
+| 📊 **可视化报告** | 质量仪表盘、趋势分析、PDF/JSON 导出 |
+| ⚙️ **灵活配置** | 浏览器运行时配置，无需重启服务 |
+
+## 🤖 支持的 LLM 平台
+
+<table>
+<tr>
+<td align="center"><strong>🌍 国际平台</strong></td>
+<td>OpenAI GPT · Claude · Gemini · DeepSeek</td>
+</tr>
+<tr>
+<td align="center"><strong>🇨🇳 国内平台</strong></td>
+<td>通义千问 · 智谱AI · Kimi · 文心一言 · MiniMax · 豆包</td>
+</tr>
+<tr>
+<td align="center"><strong>🏠 本地部署</strong></td>
+<td>Ollama (Llama3, CodeLlama, Qwen2.5, DeepSeek-Coder...)</td>
+</tr>
+</table>
+
+> 📖 详细配置请查看 [LLM 平台支持](docs/LLM_PROVIDERS.md)
+
+
+## 🎯 未来蓝图
+
+> 🚀 **我们的愿景：打造下一代智能代码安全平台，让每一行代码都值得信赖！**
+
+| 计划 | 描述 |
+|------|------|
+| 🔄 **DevSecOps Pipeline** | GitHub/GitLab CI 集成，PR 级自动化安全审查 |
+| 🔬 **RAG-Enhanced Detection** | CWE/CVE 知识库增强，告别高误报 |
+| 🤖 **Multi-Agent Architecture** | 审计-修复-验证多智能体协同工作流 |
+| 🔧 **Auto Patch Generation** | 智能漏洞定位与修复补丁自动生成 |
+| 🛡️ **Hybrid Analysis Engine** | AI + SAST 工具双重验证机制 |
+| 📋 **Custom Security Policies** | 声明式规则引擎，团队规范定制 |
+
+## 📚 文档
 
 | 文档 | 说明 |
 |------|------|
-| [部署指南](docs/DEPLOYMENT.md) | Docker 和本地开发部署说明 |
-| [配置说明](docs/CONFIGURATION.md) | 后端配置、数据库模式、API 中转站 |
-| [LLM 平台支持](docs/LLM_PROVIDERS.md) | 10+ LLM 平台配置和 API Key 获取 |
-| [常见问题](docs/FAQ.md) | 常见问题解答 |
-| [贡献指南](CONTRIBUTING.md) | 如何参与项目贡献 |
-| [安全政策](SECURITY.md) | 代码隐私与安全说明 |
-| [免责声明](DISCLAIMER.md) | 使用条款与免责声明 |
+| [🚀 部署指南](docs/DEPLOYMENT.md) | Docker / 本地开发部署 |
+| [⚙️ 配置说明](docs/CONFIGURATION.md) | 后端配置、数据库、API 中转站 |
+| [🤖 LLM 平台](docs/LLM_PROVIDERS.md) | 10+ 平台配置与 API Key 获取 |
+| [❓ 常见问题](docs/FAQ.md) | FAQ |
+| [🤝 贡献指南](CONTRIBUTING.md) | 如何参与贡献 |
+| [🔒 安全政策](SECURITY.md) | 代码隐私与安全 |
+| [📜 免责声明](DISCLAIMER.md) | 使用条款 |
 
-## 🌟 为什么选择 XCodeReviewer？
+## 🤝 一起让它变得更好
 
-- **AI 驱动的深度分析**：超越传统静态分析，理解代码意图，发现深层逻辑问题
-- **多维度、全方位评估**：从安全性、性能、可维护性到代码风格，提供 360 度无死角的质量评估
-- **清晰、可行的修复建议**：独创 What-Why-How 模式，不仅告诉您"是什么"问题，还解释"为什么"，并提供"如何修复"的具体代码示例
-- **多平台 LLM 支持**: 已实现 10+ 主流平台 API 调用功能（Gemini、OpenAI、Claude、通义千问、DeepSeek、智谱AI、Kimi、文心一言、MiniMax、豆包、Ollama 本地大模型）
-- **前后端分离架构**：采用 React + FastAPI 现代化架构，后端使用 LiteLLM 统一适配多种 LLM 平台
-- **可视化运行时配置**：无需重新构建镜像，直接在浏览器中配置所有 LLM 参数和 API Keys
+我们相信开源的力量！无论是提 Issue、贡献代码，还是分享使用心得，你的每一份参与都让 XCodeReviewer 变得更强大。
 
-## 🎬 项目演示
+<p align="center">
+  <a href="CONTRIBUTING.md">
+    <img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square" alt="PRs Welcome">
+  </a>
+</p>
 
-#### 智能仪表盘
-![智能仪表盘](frontend/public/images/example1.png)
-*实时展示项目统计、质量趋势和系统性能*
+**感谢每一位贡献者！** 🙏
 
-#### 即时分析
-![即时分析](frontend/public/images/example2.png)
-*支持代码片段快速分析，提供详细的 What-Why-How 解释和修复建议*
+[![Contributors](https://contrib.rocks/image?repo=lintsinghua/XCodeReviewer)](https://github.com/lintsinghua/XCodeReviewer/graphs/contributors)
 
-#### 项目管理
-![项目管理](frontend/public/images/example3.png)
-*集成 GitHub/GitLab 仓库，支持多语言项目审计和批量代码分析*
-
-#### 审计报告
-![审计报告](frontend/public/images/审计报告示例.png)
-*专业的代码审计报告，支持导出 PDF/JSON 格式*
-
-## 🚀 快速开始
-
-### Docker Compose 部署（推荐）
-
-```bash
-# 克隆项目
-git clone https://github.com/lintsinghua/XCodeReviewer.git
-cd XCodeReviewer
-
-# 配置后端环境变量
-cp backend/env.example backend/.env
-# 编辑 backend/.env 文件，配置 LLM API Key 等参数
-
-# 启动所有服务
-docker-compose up -d
-
-# 访问应用
-# 前端: http://localhost:5173
-# 后端 API: http://localhost:8000
-# API 文档: http://localhost:8000/docs
-```
-
-更多部署方式请参考 [部署指南](docs/DEPLOYMENT.md)。
-
-## ✨ 核心功能
-
-- **🚀 项目管理**：一键集成 GitHub/GitLab，支持多语言项目审计，ZIP 文件上传
-- **⚡ 即时分析**：代码片段快速分析，10+ 种语言支持，历史记录和报告导出
-- **🧠 智能审计**：五大核心维度检测（Bug、安全、性能、风格、可维护性）
-- **💡 可解释性分析**：What-Why-How 模式，精准代码定位
-- **📊 可视化报告**：质量仪表盘、趋势分析、JSON/PDF 导出
-- **⚙️ 系统管理**：运行时配置、数据库管理、用户认证
-
-## 🎯 未来计划
-
-- **✅ 多平台 LLM 支持**: 已实现 10+ 主流平台 API 调用功能
-- **✅ 本地模型支持**: 已加入对 Ollama 本地大模型的调用功能
-- **✅ 可视化配置管理**: 已实现运行时配置系统
-- **✅ 专业报告文件生成**: 支持 JSON 和 PDF 格式导出
-- **✅ 前后端分离架构**: 采用 FastAPI + React 现代化架构
-- **✅ 用户认证系统**: JWT Token 认证和用户管理
-- **🚧 CI/CD 集成与 PR 自动审查**: 计划实现 GitHub/GitLab CI 集成
-- **Multi-Agent Collaboration**: 考虑引入多智能体协作架构
-- **审计标准自定义**: 支持通过 YAML/JSON 定义团队特定的编码规范
-
-## 🤝 贡献
-
-我们欢迎所有形式的贡献！详情请参考 [贡献指南](CONTRIBUTING.md)。
 
 ## 📞 联系我们
 
-- **项目链接**: [https://github.com/lintsinghua/XCodeReviewer](https://github.com/lintsinghua/XCodeReviewer)
-- **问题反馈**: [Issues](https://github.com/lintsinghua/XCodeReviewer/issues)
-- **作者邮箱**: lintsinghua@qq.com（合作请注明来意）
+<p align="center">
+  <a href="https://github.com/lintsinghua/XCodeReviewer">🏠 项目主页</a> ·
+  <a href="https://github.com/lintsinghua/XCodeReviewer/issues">🐛 问题反馈</a> ·
+  <a href="mailto:lintsinghua@qq.com">📧 联系作者</a>
+</p>
 
 ---
 
-⭐ 如果这个项目对您有帮助，请给我们一个 **Star**！
+<p align="center">
+  <strong>⭐ 如果这个项目对你有帮助，请给我们一个 Star！</strong>
+  <br>
+  <em>你的支持是我们持续迭代的最大动力 💪</em>
+</p>
 
-[![Star History](https://api.star-history.com/svg?repos=lintsinghua/XCodeReviewer&type=Date)](https://star-history.com/#lintsinghua/XCodeReviewer&Date)
+<p align="center">
+  <a href="https://star-history.com/#lintsinghua/XCodeReviewer&Date">
+    <img src="https://api.star-history.com/svg?repos=lintsinghua/XCodeReviewer&type=Date" alt="Star History">
+  </a>
+</p>
 
 ---
 
-⚠️ **重要提示**：使用本工具前，请务必阅读 [安全政策](SECURITY.md) 和 [免责声明](DISCLAIMER.md)。
+<p align="center">
+  ⚠️ 使用前请阅读 <a href="SECURITY.md">安全政策</a> 和 <a href="DISCLAIMER.md">免责声明</a>
+</p>
+
+<p align="center">
+  Made with ❤️ by <a href="https://github.com/lintsinghua">lintsinghua</a>
+</p>
