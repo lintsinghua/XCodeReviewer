@@ -118,10 +118,6 @@ docker-compose up -d
 
 我们欢迎所有形式的贡献！详情请参考 [贡献指南](CONTRIBUTING.md)。
 
-## 👥 贡献者
-
-[![Contributors](https://contrib.rocks/image?repo=lintsinghua/XCodeReviewer)](https://github.com/lintsinghua/XCodeReviewer/graphs/contributors)
-
 ## 📞 联系我们
 
 - **项目链接**: [https://github.com/lintsinghua/XCodeReviewer](https://github.com/lintsinghua/XCodeReviewer)
