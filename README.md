@@ -1,5 +1,7 @@
 # XCodeReviewer - 您的智能代码审计伙伴 🚀
 
+> 多Agent、PR批量自动审计版本正在开发中，敬请期待......
+
 <div style="width: 100%; max-width: 600px; margin: 0 auto;">
   <img src="frontend/public/images/logo.png" alt="XCodeReviewer Logo" style="width: 100%; height: auto; display: block; margin: 0 auto;">
 </div>
