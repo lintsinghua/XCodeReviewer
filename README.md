@@ -108,48 +108,35 @@ docker-compose up -d
 
 > 📖 更多部署方式请查看 [部署指南](docs/DEPLOYMENT.md)
 
-## 🛠️ 核心能力
+## ✨ 核心能力
 
-- 🚀 **项目管理** — GitHub/GitLab 一键导入，ZIP 上传，多语言支持
-- ⚡ **即时分析** — 代码片段秒级分析，10+ 编程语言全覆盖
-- 🧠 **智能审计** — Bug、安全、性能、风格、可维护性五维检测
-- 💡 **可解释分析** — What-Why-How 模式，精准定位 + 修复建议
-- 📊 **可视化报告** — 质量仪表盘、趋势分析、PDF/JSON 导出
-- ⚙️ **灵活配置** — 浏览器运行时配置，无需重启服务
+- **项目管理** — GitHub/GitLab 一键导入，ZIP 上传，多语言支持
+- **即时分析** — 代码片段秒级分析，10+ 编程语言全覆盖
+- **智能审计** — Bug、安全、性能、风格、可维护性五维检测
+- **可解释分析** — What-Why-How 模式，精准定位 + 修复建议
+- **可视化报告** — 质量仪表盘、趋势分析、PDF/JSON 导出
+- **灵活配置** — 浏览器运行时配置，无需重启服务
 
 ## 🤖 支持的 LLM 平台
 
-<table>
-<tr>
-<td align="center"><strong>🌍 国际平台</strong></td>
-<td>OpenAI GPT · Claude · Gemini · DeepSeek</td>
-</tr>
-<tr>
-<td align="center"><strong>🇨🇳 国内平台</strong></td>
-<td>通义千问 · 智谱AI · Kimi · 文心一言 · MiniMax · 豆包</td>
-</tr>
-<tr>
-<td align="center"><strong>🏠 本地部署</strong></td>
-<td>Ollama (Llama3, CodeLlama, Qwen2.5, DeepSeek-Coder...)</td>
-</tr>
-</table>
+- **国际平台**: OpenAI GPT · Claude · Gemini · DeepSeek
+- **国内平台**: 通义千问 · 智谱AI · Kimi · 文心一言 · MiniMax · 豆包
+- **本地部署**: Ollama (Llama3, CodeLlama, Qwen2.5, DeepSeek-Coder...)
 
-> 📖 详细配置请查看 [LLM 平台支持](docs/LLM_PROVIDERS.md)
-
+详细配置请查看 [LLM 平台支持](docs/LLM_PROVIDERS.md)
 
 ## 🎯 未来蓝图
 
-> 说实话，这个项目目前还比较初级，很多地方做得不够好：只能单文件分析、分析质量完全看 LLM 脸色、大项目跑起来慢得要命... 但我们一直在努力改进！接下来想做的事情：
+这个项目目前还比较初级，很多地方做得不够好，我们一直在努力改进！接下来想做的事情：
 
-- 🔄 **接入 CI/CD** — 让它能跑在 GitHub/GitLab 流水线里，提 PR 的时候自动帮你批量审代码
-- 🔬 **RAG 知识库** — 把 CWE/CVE 这些漏洞库喂给模型，让它真正懂安全，不再瞎报一通
-- 🤖 **多 Agent 协作** — 多智能体架构，模拟真实的安全团队工作流程
-- 🔧 **自动生成补丁** — 光说哪里有问题不够，还得能自动生成能用的修复代码并提交PR
-- 🛡️ **混合分析** — AI 分析完再用传统 SAST 工具验证一遍，两边互相补充，减少误报漏报
-- 📋 **自定义规则** — 支持用配置文件定义自己团队的编码规范
-- 🌐 **跨文件分析** — 做代码知识图谱，理解模块间的调用关系
-
-如果你觉得这个项目有点意思，欢迎 Star ⭐ 支持一下，有问题或者想法也可以提 Issue，一起交流！
+- **接入 CI/CD** — 让它能跑在 GitHub/GitLab 流水线里，提 PR 的时候自动帮你批量审代码
+- **RAG 知识库** — 把 CWE/CVE 这些漏洞库喂给模型，让它真正懂安全，不再瞎报一通
+- **多 Agent 协作** — 多智能体架构，模拟真实的安全团队工作流程
+- **自动生成补丁** — 光说哪里有问题不够，还得能自动生成能用的修复代码
+- **混合分析** — AI 分析完再用传统 SAST 工具验证一遍，两边互相补充，减少误报漏报
+- **自定义规则** — 支持用配置文件定义自己团队的编码规范
+- **跨文件分析** — 做代码知识图谱，理解模块间的调用关系
+💡 **您的 Star 和反馈是我们前进的最大动力！有任何想法欢迎提 Issue 一起讨论~**
 
 ## 📚 文档
 
@@ -162,12 +149,11 @@ docker-compose up -d
 - [贡献指南](CONTRIBUTING.md) - 想参与开发？看这个
 - [安全政策](SECURITY.md) / [免责声明](DISCLAIMER.md) - 使用前建议读一下
 
-## 🤝 一起让它变得更好
+## 🤝 贡献
 
-我们相信开源的力量！无论是提 Issue、贡献代码，还是分享使用心得，你的每一份参与都让 XCodeReviewer 变得更强大。
+开源项目离不开社区的支持！无论是提 Issue、贡献代码，还是分享使用心得，都非常欢迎。
 
-
-**感谢每一位贡献者！** 🙏
+**感谢每一位贡献者！**
 
 [![Contributors](https://contrib.rocks/image?repo=lintsinghua/XCodeReviewer)](https://github.com/lintsinghua/XCodeReviewer/graphs/contributors)
 
