@@ -56,7 +56,7 @@
 ### 🎯 What-Why-How 三步修复
 - **What**: 精准定位问题所在
 - **Why**: 解释为什么这是个问题
-- **How**: 给出可直接使用的修复代码
+- **How**: 给出可直接使用的修复建议
 
 ### 🔌 10+ LLM 平台任你选
 OpenAI、Claude、Gemini、通义千问、DeepSeek、智谱AI... 想用哪个用哪个，还支持 Ollama 本地部署！
