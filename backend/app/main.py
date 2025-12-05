@@ -22,12 +22,18 @@ async def lifespan(app: FastAPI):
     logger.info("XCodeReviewer 后端服务启动中...")
     
     # 初始化数据库（创建默认账户）
+    # 注意：需要先运行 alembic upgrade head 创建表结构
     try:
         async with AsyncSessionLocal() as db:
             await init_db(db)
         logger.info("✓ 数据库初始化完成")
     except Exception as e:
-        logger.warning(f"数据库初始化跳过（可能数据库未就绪）: {e}")
+        # 表不存在时静默跳过，等待用户运行数据库迁移
+        error_msg = str(e)
+        if "does not exist" in error_msg or "UndefinedTableError" in error_msg:
+            logger.info("数据库表未创建，请先运行: alembic upgrade head")
+        else:
+            logger.warning(f"数据库初始化跳过: {e}")
     
     logger.info("=" * 50)
     logger.info("XCodeReviewer 后端服务已启动")
