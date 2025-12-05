@@ -139,43 +139,37 @@ docker-compose up -d
 
 ## 🎯 未来蓝图
 
-> 🚀 **我们的愿景：打造下一代智能代码安全平台，让每一行代码都值得信赖！**
+> 说实话，这个项目目前还比较初级，很多地方做得不够好：只能单文件分析、分析质量完全看 LLM 脸色、大项目跑起来慢得要命... 但我们一直在努力改进！接下来想做的事情：
 
-- 🔄 **DevSecOps Pipeline** — GitHub/GitLab CI 集成，PR 级自动化安全审查
-- 🔬 **RAG-Enhanced Detection** — CWE/CVE 知识库增强，告别高误报
-- 🤖 **Multi-Agent Architecture** — 审计-修复-验证多智能体协同工作流
-- 🔧 **Auto Patch Generation** — 智能漏洞定位与修复补丁自动生成
-- 🛡️ **Hybrid Analysis Engine** — AI + SAST 工具双重验证机制
-- 📋 **Custom Security Policies** — 声明式规则引擎，团队规范定制
+- 🔄 **接入 CI/CD** — 让它能跑在 GitHub/GitLab 流水线里，提 PR 的时候自动帮你批量审代码
+- 🔬 **RAG 知识库** — 把 CWE/CVE 这些漏洞库喂给模型，让它真正懂安全，不再瞎报一通
+- 🤖 **多 Agent 协作** — 多智能体架构，模拟真实的安全团队工作流程
+- 🔧 **自动生成补丁** — 光说哪里有问题不够，还得能自动生成能用的修复代码并提交PR
+- 🛡️ **混合分析** — AI 分析完再用传统 SAST 工具验证一遍，两边互相补充，减少误报漏报
+- 📋 **自定义规则** — 支持用配置文件定义自己团队的编码规范
+- 🌐 **跨文件分析** — 做代码知识图谱，理解模块间的调用关系
 
-💡 **您的 Star 和反馈是我们前进的最大动力！**
+如果你觉得这个项目有点意思，欢迎 Star ⭐ 支持一下，有问题或者想法也可以提 Issue，一起交流！
 
 ## 📚 文档
 
-| 文档 | 说明 |
-|------|------|
-| [🚀 部署指南](docs/DEPLOYMENT.md) | Docker / 本地开发部署 |
-| [⚙️ 配置说明](docs/CONFIGURATION.md) | 后端配置、数据库、API 中转站 |
-| [🤖 LLM 平台](docs/LLM_PROVIDERS.md) | 10+ 平台配置与 API Key 获取 |
-| [❓ 常见问题](docs/FAQ.md) | FAQ |
-| [🤝 贡献指南](CONTRIBUTING.md) | 如何参与贡献 |
-| [🔒 安全政策](SECURITY.md) | 代码隐私与安全 |
-| [📜 免责声明](DISCLAIMER.md) | 使用条款 |
+想了解更多？这里有你需要的：
+
+- [部署指南](docs/DEPLOYMENT.md) - Docker 部署 / 本地开发环境搭建
+- [配置说明](docs/CONFIGURATION.md) - 后端配置、数据库、API 中转站怎么配
+- [LLM 平台支持](docs/LLM_PROVIDERS.md) - 各家 LLM 的配置方法和 API Key 怎么拿
+- [常见问题](docs/FAQ.md) - 遇到问题先看这里
+- [贡献指南](CONTRIBUTING.md) - 想参与开发？看这个
+- [安全政策](SECURITY.md) / [免责声明](DISCLAIMER.md) - 使用前建议读一下
 
 ## 🤝 一起让它变得更好
 
 我们相信开源的力量！无论是提 Issue、贡献代码，还是分享使用心得，你的每一份参与都让 XCodeReviewer 变得更强大。
 
-<p align="center">
-  <a href="CONTRIBUTING.md">
-    <img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square" alt="PRs Welcome">
-  </a>
-</p>
 
 **感谢每一位贡献者！** 🙏
 
 [![Contributors](https://contrib.rocks/image?repo=lintsinghua/XCodeReviewer)](https://github.com/lintsinghua/XCodeReviewer/graphs/contributors)
-
 
 ## 📞 联系我们
 
