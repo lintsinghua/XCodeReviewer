@@ -61,7 +61,7 @@ export default function Dashboard() {
 
       // 项目列表 - 使用真实数据
       if (results[1].status === 'fulfilled') {
-        setRecentProjects(Array.isArray(results[1].value) ? results[1].value.slice(0, 5) : []);
+        setRecentProjects(Array.isArray(results[1].value) ? results[1].value.slice(0, 6) : []);
       } else {
         console.error('获取项目列表失败:', results[1].reason);
         setRecentProjects([]);

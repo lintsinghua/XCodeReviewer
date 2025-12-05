@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { Lock, Mail, Terminal, Shield, Fingerprint } from "lucide-react";
+import { version } from "../../package.json";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -226,7 +227,7 @@ export default function Login() {
         {/* Version Info */}
         <div className="mt-6 text-center">
           <p className="font-mono text-[10px] text-gray-400 uppercase">
-            Version 1.3.4 · Secure Connection
+            Version {version} · Secure Connection
           </p>
         </div>
       </div>

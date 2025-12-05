@@ -33,6 +33,15 @@ docker-compose up -d
 # 后端 API: http://localhost:8000/docs
 ```
 
+### 演示账户
+
+系统启动时会自动创建演示账户，包含示例项目和审计数据，可直接体验完整功能：
+
+- 📧 邮箱：`demo@example.com`
+- 🔑 密码：`demo123`
+
+> ⚠️ **安全提示**: 生产环境部署后，请删除演示账户或修改密码。
+
 ---
 
 ## Docker Compose 部署（推荐）
