@@ -169,17 +169,17 @@ docker-compose up -d
   </a>
 </p>
 
----
-
-<p align="center">
-  ⚠️ 使用前请阅读 <a href="SECURITY.md">安全政策</a> 和 <a href="DISCLAIMER.md">免责声明</a>
-</p>
-
 <div style="width: 100%; max-width: 600px; margin: 0 auto;">
   <a href="https://github.com/lintsinghua/XCodeReviewer">
     <img src="frontend/public/star-me-cn.svg" alt="Star this project" style="width: 100%; height: auto; display: block; margin: 0 auto;" />
   </a>
 </div>
+
+---
+
+<p align="center">
+  ⚠️ 使用前请阅读 <a href="SECURITY.md">安全政策</a> 和 <a href="DISCLAIMER.md">免责声明</a>
+</p>
 
 <p align="center">
   Made with ❤️ by <a href="https://github.com/lintsinghua">lintsinghua</a>
