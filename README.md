@@ -1,31 +1,32 @@
-<p align="center">
-  <img src="frontend/public/images/logo.png" alt="XCodeReviewer Logo" width="200">
-</p>
+# XCodeReviewer - 您的智能代码审计伙伴 🚀
 
-<h1 align="center">🛡️ XCodeReviewer</h1>
+> 多Agent、PR批量自动审计版本正在开发中，敬请期待......
 
-<p align="center">
-  <strong>让 AI 成为你的代码安全守护者</strong>
-</p>
+<div style="width: 100%; max-width: 600px; margin: 0 auto;">
+  <img src="frontend/public/images/logo.png" alt="XCodeReviewer Logo" style="width: 100%; height: auto; display: block; margin: 0 auto;">
+</div>
 
-<p align="center">
-  <em>告别繁琐的人工审计，拥抱智能化代码安全新时代</em>
-</p>
+<div align="center">
 
-<p align="center">
-  <a href="https://github.com/lintsinghua/XCodeReviewer/releases"><img src="https://img.shields.io/badge/version-2.0.0--beta.1-blue.svg" alt="Version"></a>
-  <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License"></a>
-  <a href="https://reactjs.org/"><img src="https://img.shields.io/badge/React-18-61dafb.svg" alt="React"></a>
-  <a href="https://fastapi.tiangolo.com/"><img src="https://img.shields.io/badge/FastAPI-0.100+-009688.svg" alt="FastAPI"></a>
-  <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.13+-3776ab.svg" alt="Python"></a>
-  <a href="https://deepwiki.com/lintsinghua/XCodeReviewer"><img src="https://deepwiki.com/badge.svg" alt="Ask DeepWiki"></a>
-</p>
+[![Version](https://img.shields.io/badge/version-2.0.0--beta.1-blue.svg)](https://github.com/lintsinghua/XCodeReviewer/releases)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![React](https://img.shields.io/badge/React-18-61dafb.svg)](https://reactjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178c6.svg)](https://www.typescriptlang.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688.svg)](https://fastapi.tiangolo.com/)
+[![Python](https://img.shields.io/badge/Python-3.13+-3776ab.svg)](https://www.python.org/)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/lintsinghua/XCodeReviewer)
 
-<p align="center">
-  <a href="https://github.com/lintsinghua/XCodeReviewer/stargazers"><img src="https://img.shields.io/github/stars/lintsinghua/XCodeReviewer?style=social" alt="Stars"></a>
-  <a href="https://github.com/lintsinghua/XCodeReviewer/network/members"><img src="https://img.shields.io/github/forks/lintsinghua/XCodeReviewer?style=social" alt="Forks"></a>
-  <a href="https://github.com/lintsinghua/lintsinghua.github.io/issues/1"><img src="https://img.shields.io/badge/Sponsor-赞助-blueviolet" alt="Sponsor"></a>
-</p>
+[![Stars](https://img.shields.io/github/stars/lintsinghua/XCodeReviewer?style=social)](https://github.com/lintsinghua/XCodeReviewer/stargazers)
+[![Forks](https://img.shields.io/github/forks/lintsinghua/XCodeReviewer?style=social)](https://github.com/lintsinghua/XCodeReviewer/network/members)
+
+[![Sponsor](https://img.shields.io/badge/Sponsor-赞助-blueviolet)](https://github.com/lintsinghua/lintsinghua.github.io/issues/1)
+</div>
+
+<div style="width: 100%; max-width: 600px; margin: 0 auto;">
+  <a href="https://github.com/lintsinghua/XCodeReviewer">
+    <img src="frontend/public/star-me-cn.svg" alt="Star this project" style="width: 100%; height: auto; display: block; margin: 0 auto;" />
+  </a>
+</div>
 
 ---
 
@@ -109,14 +110,12 @@ docker-compose up -d
 
 ## 🛠️ 核心能力
 
-| 能力 | 描述 |
-|------|------|
-| 🚀 **项目管理** | GitHub/GitLab 一键导入，ZIP 上传，多语言支持 |
-| ⚡ **即时分析** | 代码片段秒级分析，10+ 编程语言全覆盖 |
-| 🧠 **智能审计** | Bug、安全、性能、风格、可维护性五维检测 |
-| 💡 **可解释分析** | What-Why-How 模式，精准定位 + 修复建议 |
-| 📊 **可视化报告** | 质量仪表盘、趋势分析、PDF/JSON 导出 |
-| ⚙️ **灵活配置** | 浏览器运行时配置，无需重启服务 |
+- 🚀 **项目管理** — GitHub/GitLab 一键导入，ZIP 上传，多语言支持
+- ⚡ **即时分析** — 代码片段秒级分析，10+ 编程语言全覆盖
+- 🧠 **智能审计** — Bug、安全、性能、风格、可维护性五维检测
+- 💡 **可解释分析** — What-Why-How 模式，精准定位 + 修复建议
+- 📊 **可视化报告** — 质量仪表盘、趋势分析、PDF/JSON 导出
+- ⚙️ **灵活配置** — 浏览器运行时配置，无需重启服务
 
 ## 🤖 支持的 LLM 平台
 
@@ -142,14 +141,14 @@ docker-compose up -d
 
 > 🚀 **我们的愿景：打造下一代智能代码安全平台，让每一行代码都值得信赖！**
 
-| 计划 | 描述 |
-|------|------|
-| 🔄 **DevSecOps Pipeline** | GitHub/GitLab CI 集成，PR 级自动化安全审查 |
-| 🔬 **RAG-Enhanced Detection** | CWE/CVE 知识库增强，告别高误报 |
-| 🤖 **Multi-Agent Architecture** | 审计-修复-验证多智能体协同工作流 |
-| 🔧 **Auto Patch Generation** | 智能漏洞定位与修复补丁自动生成 |
-| 🛡️ **Hybrid Analysis Engine** | AI + SAST 工具双重验证机制 |
-| 📋 **Custom Security Policies** | 声明式规则引擎，团队规范定制 |
+- 🔄 **DevSecOps Pipeline** — GitHub/GitLab CI 集成，PR 级自动化安全审查
+- 🔬 **RAG-Enhanced Detection** — CWE/CVE 知识库增强，告别高误报
+- 🤖 **Multi-Agent Architecture** — 审计-修复-验证多智能体协同工作流
+- 🔧 **Auto Patch Generation** — 智能漏洞定位与修复补丁自动生成
+- 🛡️ **Hybrid Analysis Engine** — AI + SAST 工具双重验证机制
+- 📋 **Custom Security Policies** — 声明式规则引擎，团队规范定制
+
+💡 **您的 Star 和反馈是我们前进的最大动力！**
 
 ## 📚 文档
 
@@ -180,11 +179,9 @@ docker-compose up -d
 
 ## 📞 联系我们
 
-<p align="center">
-  <a href="https://github.com/lintsinghua/XCodeReviewer">🏠 项目主页</a> ·
-  <a href="https://github.com/lintsinghua/XCodeReviewer/issues">🐛 问题反馈</a> ·
-  <a href="mailto:lintsinghua@qq.com">📧 联系作者</a>
-</p>
+- **项目链接**: [https://github.com/lintsinghua/XCodeReviewer](https://github.com/lintsinghua/XCodeReviewer)
+- **问题反馈**: [Issues](https://github.com/lintsinghua/XCodeReviewer/issues)
+- **作者邮箱**: lintsinghua@qq.com（合作请注明来意）
 
 ---
 
