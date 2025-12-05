@@ -26,10 +26,10 @@ cp backend/env.example backend/.env
 # 编辑 backend/.env，配置 LLM API Key
 
 # 3. 启动所有服务
-docker-compose up -d
+docker compose up -d
 
 # 4. 访问应用
-# 前端: http://localhost:5173
+# 前端: http://localhost:3000
 # 后端 API: http://localhost:8000/docs
 ```
 
@@ -89,26 +89,26 @@ LLM_MODEL=gpt-4o-mini
 
 ```bash
 # 3. 启动所有服务
-docker-compose up -d
+docker compose up -d
 
 # 4. 查看服务状态
-docker-compose ps
+docker compose ps
 
 # 5. 查看日志
-docker-compose logs -f
+docker compose logs -f
 ```
 
 ### 服务说明
 
 | 服务 | 端口 | 说明 |
 |------|------|------|
-| `frontend` | 5173 | React 前端应用（开发模式，支持热重载） |
-| `backend` | 8000 | FastAPI 后端 API |
+| `frontend` | 3000 | React 前端应用（生产构建，使用 serve 提供静态文件） |
+| `backend` | 8000 | FastAPI 后端 API（使用 uv 管理依赖） |
 | `db` | 5432 | PostgreSQL 15 数据库 |
 
 ### 访问地址
 
-- 前端应用: http://localhost:5173
+- 前端应用: http://localhost:3000
 - 后端 API: http://localhost:8000
 - API 文档 (Swagger): http://localhost:8000/docs
 - API 文档 (ReDoc): http://localhost:8000/redoc
@@ -117,95 +117,70 @@ docker-compose logs -f
 
 ```bash
 # 停止所有服务
-docker-compose down
+docker compose down
 
 # 停止并删除数据卷（清除数据库）
-docker-compose down -v
+docker compose down -v
 
 # 重新构建镜像
-docker-compose build --no-cache
+docker compose build --no-cache
 
 # 查看特定服务日志
-docker-compose logs -f backend
+docker compose logs -f backend
 
 # 进入容器调试
-docker-compose exec backend bash
-docker-compose exec db psql -U postgres -d xcodereviewer
+docker compose exec backend sh
+docker compose exec db psql -U postgres -d xcodereviewer
 ```
 
 ---
 
 ## 生产环境部署
 
-生产环境建议使用 Nginx 提供前端静态文件服务，并配置 HTTPS。
+Docker Compose 默认配置已适用于生产环境：
 
-### 方式一：使用预构建 Docker 镜像
+- 前端：构建生产版本，使用 serve 提供静态文件服务
+- 后端：使用 uv 管理依赖，镜像内包含所有依赖
+- 数据库：使用 Docker Volume 持久化数据
 
-```bash
-# 拉取最新镜像
-docker pull ghcr.io/lintsinghua/xcodereviewer-frontend:latest
-docker pull ghcr.io/lintsinghua/xcodereviewer-backend:latest
+### 生产环境安全建议
 
-# 启动后端和数据库
-docker-compose up -d db backend
+1. **修改默认密钥**：务必修改 `SECRET_KEY` 为随机字符串
+2. **配置 HTTPS**：使用 Nginx 反向代理并配置 SSL 证书
+3. **限制 CORS**：在生产环境配置具体的前端域名
+4. **数据库安全**：修改默认数据库密码，限制访问 IP
+5. **API 限流**：配置 Nginx 或应用层限流
+6. **日志监控**：配置日志收集和监控告警
+7. **删除演示账户**：生产环境请删除或禁用 demo 账户
 
-# 启动前端（Nginx 生产镜像）
-docker run -d \
-  --name xcodereviewer-frontend \
-  -p 80:80 \
-  --network xcodereviewer-network \
-  ghcr.io/lintsinghua/xcodereviewer-frontend:latest
-```
+### Nginx 反向代理配置（可选）
 
-### 方式二：本地构建生产镜像
-
-```bash
-# 构建前端生产镜像（使用 Nginx）
-docker build -t xcodereviewer-frontend .
-
-# 运行前端容器
-docker run -d \
-  -p 80:80 \
-  --name xcodereviewer-frontend \
-  xcodereviewer-frontend
-
-# 后端和数据库仍使用 docker-compose
-docker-compose up -d db backend
-```
-
-### 方式三：手动部署
-
-#### 前端部署
-
-```bash
-cd frontend
-
-# 安装依赖
-pnpm install
-
-# 构建生产版本
-pnpm build
-
-# 将 dist 目录部署到 Nginx/Apache 等 Web 服务器
-```
-
-Nginx 配置示例：
+如需使用 Nginx 提供 HTTPS 和统一入口：
 
 ```nginx
 server {
     listen 80;
     server_name your-domain.com;
-    root /var/www/xcodereviewer/dist;
-    index index.html;
+    return 301 https://$server_name$request_uri;
+}
 
-    # 前端路由支持
+server {
+    listen 443 ssl http2;
+    server_name your-domain.com;
+
+    ssl_certificate /path/to/cert.pem;
+    ssl_certificate_key /path/to/key.pem;
+
+    # 前端
     location / {
-        try_files $uri $uri/ /index.html;
+        proxy_pass http://localhost:3000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
     }
 
     # API 代理
-    location /api {
-        proxy_pass http://localhost:8000;
+    location /api/ {
+        proxy_pass http://localhost:8000/api/;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -213,38 +188,6 @@ server {
     }
 }
 ```
-
-#### 后端部署
-
-```bash
-cd backend
-
-# 创建虚拟环境
-python -m venv .venv
-source .venv/bin/activate
-
-# 安装依赖
-pip install -r requirements.txt
-
-# 配置环境变量
-cp env.example .env
-# 编辑 .env 文件
-
-# 初始化数据库
-alembic upgrade head
-
-# 使用 Gunicorn 启动（生产环境）
-gunicorn app.main:app -w 4 -k uvicorn.workers.UvicornWorker -b 0.0.0.0:8000
-```
-
-### 生产环境安全建议
-
-1. **修改默认密钥**：务必修改 `SECRET_KEY` 为随机字符串
-2. **配置 HTTPS**：使用 Let's Encrypt 或其他 SSL 证书
-3. **限制 CORS**：在生产环境配置具体的前端域名
-4. **数据库安全**：修改默认数据库密码，限制访问 IP
-5. **API 限流**：配置 Nginx 或应用层限流
-6. **日志监控**：配置日志收集和监控告警
 
 ---
 
@@ -259,13 +202,13 @@ gunicorn app.main:app -w 4 -k uvicorn.workers.UvicornWorker -b 0.0.0.0:8000
 | Node.js | 18+ | 前端运行环境 |
 | Python | 3.13+ | 后端运行环境 |
 | PostgreSQL | 15+ | 数据库 |
-| pnpm | 8+ | 推荐的包管理器 |
+| pnpm | 8+ | 推荐的前端包管理器 |
 | uv | 最新版 | 推荐的 Python 包管理器 |
 
 ### 数据库准备
 
 ```bash
-# 方式一：使用 Docker 启动 PostgreSQL
+# 方式一：使用 Docker 启动 PostgreSQL（推荐）
 docker run -d \
   --name xcodereviewer-db \
   -e POSTGRES_USER=postgres \
@@ -275,7 +218,6 @@ docker run -d \
   postgres:15-alpine
 
 # 方式二：使用本地 PostgreSQL
-# 创建数据库
 createdb xcodereviewer
 ```
 
@@ -285,25 +227,21 @@ createdb xcodereviewer
 # 1. 进入后端目录
 cd backend
 
-# 2. 创建虚拟环境（推荐使用 uv）
-uv venv
-source .venv/bin/activate  # Linux/macOS
-# 或 .venv\Scripts\activate  # Windows
+# 2. 安装 uv（如未安装）
+curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# 3. 安装依赖
-uv pip install -e .
-# 或使用 pip
-pip install -r requirements.txt
+# 3. 同步依赖
+uv sync
 
 # 4. 配置环境变量
 cp env.example .env
 # 编辑 .env 文件，配置数据库和 LLM 参数
 
 # 5. 初始化数据库
-alembic upgrade head
+uv run alembic upgrade head
 
 # 6. 启动后端服务（开发模式，支持热重载）
-uvicorn app.main:app --reload --port 8000
+uv run uvicorn app.main:app --reload --port 8000
 ```
 
 ### 前端启动
@@ -314,9 +252,8 @@ cd frontend
 
 # 2. 安装依赖
 pnpm install
-# 或 npm install / yarn install
 
-# 3. 配置环境变量（可选，也可使用运行时配置）
+# 3. 配置环境变量（可选）
 cp .env.example .env
 
 # 4. 启动开发服务器
@@ -339,10 +276,10 @@ pnpm format
 
 # 后端类型检查
 cd backend
-mypy app
+uv run mypy app
 
 # 后端代码格式化
-ruff format app
+uv run ruff format app
 ```
 
 ---
@@ -364,10 +301,10 @@ XCodeReviewer 采用前后端分离架构，所有数据存储在后端 PostgreS
 
 ```bash
 # 导出 PostgreSQL 数据
-docker-compose exec db pg_dump -U postgres xcodereviewer > backup.sql
+docker compose exec db pg_dump -U postgres xcodereviewer > backup.sql
 
 # 恢复数据
-docker-compose exec -T db psql -U postgres xcodereviewer < backup.sql
+docker compose exec -T db psql -U postgres xcodereviewer < backup.sql
 ```
 
 ---
@@ -380,7 +317,7 @@ docker-compose exec -T db psql -U postgres xcodereviewer < backup.sql
 
 ```bash
 # 检查端口占用
-lsof -i :5173
+lsof -i :3000
 lsof -i :8000
 lsof -i :5432
 
@@ -391,29 +328,37 @@ lsof -i :5432
 
 ```bash
 # 检查数据库容器状态
-docker-compose ps db
+docker compose ps db
 
 # 查看数据库日志
-docker-compose logs db
+docker compose logs db
 
 # 确保数据库健康检查通过后再启动后端
-docker-compose up -d db
-docker-compose exec db pg_isready -U postgres
-docker-compose up -d backend
+docker compose up -d db
+docker compose exec db pg_isready -U postgres
+docker compose up -d backend
 ```
+
+**Q: 构建时网络问题（代理相关）**
+
+如果构建时遇到网络问题，检查 Docker Desktop 的代理设置：
+1. 打开 Docker Desktop → Settings → Resources → Proxies
+2. 关闭代理或配置正确的代理地址
+3. 重启 Docker Desktop
+4. 重新构建：`docker compose build --no-cache`
 
 ### 后端相关
 
 **Q: PDF 导出功能报错（WeasyPrint 依赖问题）**
 
-WeasyPrint 需要系统级依赖，Docker 镜像已包含。本地开发时：
+Docker 镜像已包含 WeasyPrint 所需的系统依赖。本地开发时需要安装：
 
 ```bash
 # macOS
 brew install pango cairo gdk-pixbuf libffi
 
 # Ubuntu/Debian
-sudo apt-get install libpango-1.0-0 libpangoft2-1.0-0 libcairo2 libgdk-pixbuf2.0-0
+sudo apt-get install libpango-1.0-0 libpangoft2-1.0-0 libcairo2 libgdk-pixbuf-2.0-0 libglib2.0-0
 
 # Windows - 参见 FAQ.md 中的详细说明
 ```
@@ -435,14 +380,14 @@ LLM_GAP_MS=3000
 
 **Q: 前端无法连接后端 API**
 
-检查 `frontend/.env` 中的 API 地址配置：
+Docker Compose 部署时，前端通过 `http://localhost:8000/api/v1` 访问后端。确保：
+1. 后端容器正常运行：`docker compose ps backend`
+2. 后端端口 8000 可访问：`curl http://localhost:8000/docs`
+
+本地开发时，检查 `frontend/.env` 中的 API 地址配置：
 
 ```env
-# 本地开发
 VITE_API_BASE_URL=http://localhost:8000/api/v1
-
-# Docker Compose 部署
-VITE_API_BASE_URL=/api
 ```
 
 ---

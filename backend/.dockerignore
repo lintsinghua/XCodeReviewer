@@ -1,0 +1,12 @@
+.venv
+__pycache__
+*.pyc
+.git
+.gitignore
+*.md
+.env
+.vscode
+.DS_Store
+uploads/
+.mypy_cache
+.ruff_cache

@@ -18,11 +18,10 @@ services:
       - xcodereviewer-network
 
   backend:
-    build: 
+    build:
       context: ./backend
     volumes:
-      - ./backend:/app
-      - ./backend/uploads:/app/uploads
+      - backend_uploads:/app/uploads
     ports:
       - "8000:8000"
     env_file:
@@ -32,23 +31,19 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+    command: sh -c ".venv/bin/alembic upgrade head && .venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000"
     networks:
       - xcodereviewer-network
 
   frontend:
     build:
       context: ./frontend
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
     ports:
-      - "5173:5173"
+      - "3000:3000"
     environment:
-      - VITE_API_BASE_URL=http://backend:8000/api/v1
+      - VITE_API_BASE_URL=http://localhost:8000/api/v1
     depends_on:
       - backend
-    command: npm run dev -- --host
     networks:
       - xcodereviewer-network
 
@@ -58,3 +53,4 @@ networks:
 
 volumes:
   postgres_data:
+  backend_uploads:

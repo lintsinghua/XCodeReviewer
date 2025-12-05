@@ -115,10 +115,11 @@ jobs:
           # 打包 Docker 配置文件
           tar -czf release/xcodereviewer-docker-${{ steps.version.outputs.VERSION }}.tar.gz \
             docker-compose.yml \
-            Dockerfile \
-            nginx.conf \
             backend/Dockerfile \
+            backend/.dockerignore \
             frontend/Dockerfile \
+            frontend/.dockerignore \
+            frontend/docker-entrypoint.sh \
             backend/env.example \
             frontend/.env.example
           
@@ -206,12 +207,12 @@ jobs:
       - name: 设置 Docker Buildx
         uses: docker/setup-buildx-action@v3
       
-      # 16. 构建并推送前端 Docker 镜像（生产环境 Nginx）
+      # 16. 构建并推送前端 Docker 镜像
       - name: 构建并推送前端 Docker 镜像
         uses: docker/build-push-action@v5
         with:
-          context: .
-          file: ./Dockerfile
+          context: ./frontend
+          file: ./frontend/Dockerfile
           push: true
           platforms: linux/amd64,linux/arm64
           tags: |

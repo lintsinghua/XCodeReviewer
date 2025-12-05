@@ -95,7 +95,7 @@ cp backend/env.example backend/.env
 docker-compose up -d
 ```
 
-🎉 **搞定！** 打开 http://localhost:5173 开始体验吧！
+🎉 **搞定！** 打开 http://localhost:3000 开始体验吧！
 
 ### 演示账户
 

@@ -4,37 +4,45 @@ WORKDIR /app
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
-ENV PIP_NO_CACHE_DIR=1
-ENV PIP_DISABLE_PIP_VERSION_CHECK=1
+# 清除代理设置，避免容器内网络问题
+ENV http_proxy=
+ENV https_proxy=
+ENV HTTP_PROXY=
+ENV HTTPS_PROXY=
 
 # 安装系统依赖（包含 WeasyPrint 所需的库和中文字体支持）
-RUN for i in 1 2 3; do \
+RUN rm -f /etc/apt/apt.conf.d/proxy.conf 2>/dev/null || true && \
+    unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY all_proxy ALL_PROXY && \
     apt-get update && \
     apt-get install -y --no-install-recommends \
         gcc \
         libpq-dev \
-        # WeasyPrint 依赖
+        curl \
+        # WeasyPrint 完整依赖
         libpango-1.0-0 \
         libpangoft2-1.0-0 \
+        libpangocairo-1.0-0 \
         libcairo2 \
-        libgdk-pixbuf2.0-0 \
+        libgdk-pixbuf-2.0-0 \
         libffi-dev \
+        libglib2.0-0 \
         shared-mime-info \
         # 字体支持（中文）
         fonts-noto-cjk \
         fonts-noto-cjk-extra \
         fontconfig \
-        && fc-cache -fv \
-        && rm -rf /var/lib/apt/lists/* \
-        && break || sleep 5; \
-    done
+    && fc-cache -fv \
+    && rm -rf /var/lib/apt/lists/*
+
+# 安装 uv
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
 # 复制依赖文件
-COPY pyproject.toml .
-COPY requirements.txt .
+COPY pyproject.toml uv.lock ./
 
-# 安装 Python 依赖
-RUN pip install --no-cache-dir -r requirements.txt
+# 使用 uv 安装依赖（确保无代理）
+RUN unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY all_proxy ALL_PROXY && \
+    uv sync --frozen --no-dev
 
 # 复制应用代码
 COPY . .

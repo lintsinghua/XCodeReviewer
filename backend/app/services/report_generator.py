@@ -375,13 +375,18 @@ class ReportGenerator:
         """读取并编码 Logo 图片"""
         try:
             current_dir = os.path.dirname(os.path.abspath(__file__))
-            # 回退三级到项目根目录: services -> app -> backend -> root
-            project_root = os.path.abspath(os.path.join(current_dir, '../../../'))
-            logo_path = os.path.join(project_root, 'frontend/public/images/logo_nobg.png')
+            # 尝试多个可能的路径
+            possible_paths = [
+                # Docker 容器内路径
+                os.path.join(current_dir, '../../static/images/logo_nobg.png'),
+                # 本地开发路径
+                os.path.abspath(os.path.join(current_dir, '../../../frontend/public/images/logo_nobg.png')),
+            ]
             
-            if os.path.exists(logo_path):
-                with open(logo_path, "rb") as image_file:
-                    return base64.b64encode(image_file.read()).decode('utf-8')
+            for logo_path in possible_paths:
+                if os.path.exists(logo_path):
+                    with open(logo_path, "rb") as image_file:
+                        return base64.b64encode(image_file.read()).decode('utf-8')
         except Exception as e:
             print(f"Error loading logo: {e}")
             return ""
