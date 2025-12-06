@@ -132,6 +132,7 @@ export interface CreateAuditTaskForm {
     include_docs?: boolean;
     max_file_size?: number;
     analysis_depth?: 'basic' | 'standard' | 'deep';
+    file_paths?: string[];
   };
 }
 

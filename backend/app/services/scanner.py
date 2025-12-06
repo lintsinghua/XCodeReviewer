@@ -128,7 +128,48 @@ async def fetch_file_content(url: str, headers: Dict[str, str] = None) -> Option
     return None
 
 
-async def get_github_files(repo_url: str, branch: str, token: str = None) -> List[Dict[str, str]]:
+async def get_github_branches(repo_url: str, token: str = None) -> List[str]:
+    """获取GitHub仓库分支列表"""
+    match = repo_url.rstrip('/').rstrip('.git')
+    if 'github.com/' in match:
+        parts = match.split('github.com/')[-1].split('/')
+        if len(parts) >= 2:
+            owner, repo = parts[0], parts[1]
+        else:
+            raise Exception("GitHub 仓库 URL 格式错误")
+    else:
+        raise Exception("GitHub 仓库 URL 格式错误")
+    
+    branches_url = f"https://api.github.com/repos/{owner}/{repo}/branches?per_page=100"
+    branches_data = await github_api(branches_url, token)
+    
+    return [b["name"] for b in branches_data]
+
+
+async def get_gitlab_branches(repo_url: str, token: str = None) -> List[str]:
+    """获取GitLab仓库分支列表"""
+    parsed = urlparse(repo_url)
+    base = f"{parsed.scheme}://{parsed.netloc}"
+    
+    extracted_token = token
+    if parsed.username:
+        if parsed.username == 'oauth2' and parsed.password:
+            extracted_token = parsed.password
+        elif parsed.username and not parsed.password:
+            extracted_token = parsed.username
+    
+    path = parsed.path.strip('/').rstrip('.git')
+    if not path:
+        raise Exception("GitLab 仓库 URL 格式错误")
+    
+    project_path = quote(path, safe='')
+    branches_url = f"{base}/api/v4/projects/{project_path}/repository/branches?per_page=100"
+    branches_data = await gitlab_api(branches_url, extracted_token)
+    
+    return [b["name"] for b in branches_data]
+
+
+async def get_github_files(repo_url: str, branch: str, token: str = None, exclude_patterns: List[str] = None) -> List[Dict[str, str]]:
     """获取GitHub仓库文件列表"""
     # 解析仓库URL
     match = repo_url.rstrip('/').rstrip('.git')
@@ -147,7 +188,7 @@ async def get_github_files(repo_url: str, branch: str, token: str = None) -> Lis
     
     files = []
     for item in tree_data.get("tree", []):
-        if item.get("type") == "blob" and is_text_file(item["path"]) and not should_exclude(item["path"]):
+        if item.get("type") == "blob" and is_text_file(item["path"]) and not should_exclude(item["path"], exclude_patterns):
             size = item.get("size", 0)
             if size <= settings.MAX_FILE_SIZE_BYTES:
                 files.append({
@@ -158,7 +199,7 @@ async def get_github_files(repo_url: str, branch: str, token: str = None) -> Lis
     return files
 
 
-async def get_gitlab_files(repo_url: str, branch: str, token: str = None) -> List[Dict[str, str]]:
+async def get_gitlab_files(repo_url: str, branch: str, token: str = None, exclude_patterns: List[str] = None) -> List[Dict[str, str]]:
     """获取GitLab仓库文件列表"""
     parsed = urlparse(repo_url)
     base = f"{parsed.scheme}://{parsed.netloc}"
@@ -184,7 +225,7 @@ async def get_gitlab_files(repo_url: str, branch: str, token: str = None) -> Lis
     
     files = []
     for item in tree_data:
-        if item.get("type") == "blob" and is_text_file(item["path"]) and not should_exclude(item["path"]):
+        if item.get("type") == "blob" and is_text_file(item["path"]) and not should_exclude(item["path"], exclude_patterns):
             files.append({
                 "path": item["path"],
                 "url": f"{base}/api/v4/projects/{project_path}/repository/files/{quote(item['path'], safe='')}/raw?ref={quote(branch)}",
@@ -233,8 +274,19 @@ async def scan_repo_task(task_id: str, db_session_factory, user_config: dict = N
             repo_url = project.repository_url
             branch = task.branch_name or project.default_branch or "main"
             repo_type = project.repository_type or "other"
+            
+            # 解析任务的排除模式
+            import json as json_module
+            task_exclude_patterns = []
+            if task.exclude_patterns:
+                try:
+                    task_exclude_patterns = json_module.loads(task.exclude_patterns)
+                except:
+                    pass
 
             print(f"🚀 开始扫描仓库: {repo_url}, 分支: {branch}, 类型: {repo_type}, 来源: {source_type}")
+            if task_exclude_patterns:
+                print(f"📋 排除模式: {task_exclude_patterns}")
 
             # 3. 获取文件列表
             # 从用户配置中读取 GitHub/GitLab Token（优先使用用户配置，然后使用系统配置）
@@ -246,9 +298,9 @@ async def scan_repo_task(task_id: str, db_session_factory, user_config: dict = N
             extracted_gitlab_token = None
             
             if repo_type == "github":
-                files = await get_github_files(repo_url, branch, github_token)
+                files = await get_github_files(repo_url, branch, github_token, task_exclude_patterns)
             elif repo_type == "gitlab":
-                files = await get_gitlab_files(repo_url, branch, gitlab_token)
+                files = await get_gitlab_files(repo_url, branch, gitlab_token, task_exclude_patterns)
                 # GitLab文件可能带有token
                 if files and 'token' in files[0]:
                     extracted_gitlab_token = files[0].get('token')
@@ -256,7 +308,13 @@ async def scan_repo_task(task_id: str, db_session_factory, user_config: dict = N
                 raise Exception("不支持的仓库类型，仅支持 GitHub 和 GitLab 仓库")
 
             # 限制文件数量
-            files = files[:settings.MAX_ANALYZE_FILES]
+            # 如果指定了特定文件，则只分析这些文件
+            target_files = (user_config or {}).get('scan_config', {}).get('file_paths', [])
+            if target_files:
+                print(f"🎯 指定分析 {len(target_files)} 个文件")
+                files = [f for f in files if f['path'] in target_files]
+            else:
+                files = files[:settings.MAX_ANALYZE_FILES]
             
             task.total_files = len(files)
             await db.commit()
@@ -380,15 +438,25 @@ async def scan_repo_task(task_id: str, db_session_factory, user_config: dict = N
             # 5. 完成任务
             avg_quality_score = sum(quality_scores) / len(quality_scores) if quality_scores else 100.0
             
-            task.status = "completed"
-            task.completed_at = datetime.utcnow()
-            task.scanned_files = scanned_files
-            task.total_lines = total_lines
-            task.issues_count = total_issues
-            task.quality_score = avg_quality_score
-            await db.commit()
-            
-            print(f"✅ 任务 {task_id} 完成: 扫描 {scanned_files} 个文件, 发现 {total_issues} 个问题, 质量分 {avg_quality_score:.1f}")
+            # 如果有文件需要分析但全部失败，标记为失败
+            if len(files) > 0 and scanned_files == 0:
+                task.status = "failed"
+                task.completed_at = datetime.utcnow()
+                task.scanned_files = 0
+                task.total_lines = total_lines
+                task.issues_count = 0
+                task.quality_score = 0
+                await db.commit()
+                print(f"❌ 任务 {task_id} 失败: 所有 {len(files)} 个文件分析均失败，请检查 LLM API 配置")
+            else:
+                task.status = "completed"
+                task.completed_at = datetime.utcnow()
+                task.scanned_files = scanned_files
+                task.total_lines = total_lines
+                task.issues_count = total_issues
+                task.quality_score = avg_quality_score
+                await db.commit()
+                print(f"✅ 任务 {task_id} 完成: 扫描 {scanned_files} 个文件, 发现 {total_issues} 个问题, 质量分 {avg_quality_score:.1f}")
             task_control.cleanup_task(task_id)
 
         except Exception as e:

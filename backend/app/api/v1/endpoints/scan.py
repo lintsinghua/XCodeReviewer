@@ -1,4 +1,4 @@
-from fastapi import APIRouter, UploadFile, File, Depends, BackgroundTasks, HTTPException
+from fastapi import APIRouter, UploadFile, File, Form, Depends, BackgroundTasks, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from typing import Any, List, Optional
@@ -80,7 +80,13 @@ async def process_zip_task(task_id: str, file_path: str, db_session_factory, use
                             pass
 
             # 限制文件数量
-            files_to_scan = files_to_scan[:settings.MAX_ANALYZE_FILES]
+            # 如果指定了特定文件，则只分析这些文件
+            target_files = (user_config or {}).get('scan_config', {}).get('file_paths', [])
+            if target_files:
+                print(f"🎯 ZIP任务: 指定分析 {len(target_files)} 个文件")
+                files_to_scan = [f for f in files_to_scan if f['path'] in target_files]
+            else:
+                files_to_scan = files_to_scan[:settings.MAX_ANALYZE_FILES]
             
             task.total_files = len(files_to_scan)
             await db.commit()
@@ -150,15 +156,27 @@ async def process_zip_task(task_id: str, file_path: str, db_session_factory, use
                     await asyncio.sleep(settings.LLM_GAP_MS / 1000)
 
             # 完成任务
-            task.status = "completed"
-            task.completed_at = datetime.utcnow()
-            task.scanned_files = scanned_files
-            task.total_lines = total_lines
-            task.issues_count = total_issues
-            task.quality_score = sum(quality_scores) / len(quality_scores) if quality_scores else 100.0
-            await db.commit()
+            avg_quality_score = sum(quality_scores) / len(quality_scores) if quality_scores else 100.0
             
-            print(f"✅ ZIP任务 {task_id} 完成: 扫描 {scanned_files} 个文件, 发现 {total_issues} 个问题")
+            # 如果有文件需要分析但全部失败，标记为失败
+            if len(files_to_scan) > 0 and scanned_files == 0:
+                task.status = "failed"
+                task.completed_at = datetime.utcnow()
+                task.scanned_files = 0
+                task.total_lines = total_lines
+                task.issues_count = 0
+                task.quality_score = 0
+                await db.commit()
+                print(f"❌ ZIP任务 {task_id} 失败: 所有 {len(files_to_scan)} 个文件分析均失败，请检查 LLM API 配置")
+            else:
+                task.status = "completed"
+                task.completed_at = datetime.utcnow()
+                task.scanned_files = scanned_files
+                task.total_lines = total_lines
+                task.issues_count = total_issues
+                task.quality_score = avg_quality_score
+                await db.commit()
+                print(f"✅ ZIP任务 {task_id} 完成: 扫描 {scanned_files} 个文件, 发现 {total_issues} 个问题")
             task_control.cleanup_task(task_id)
             
         except Exception as e:
@@ -175,9 +193,10 @@ async def process_zip_task(task_id: str, file_path: str, db_session_factory, use
 
 @router.post("/upload-zip")
 async def scan_zip(
-    project_id: str,
     background_tasks: BackgroundTasks,
+    project_id: str = Form(...),
     file: UploadFile = File(...),
+    scan_config: Optional[str] = Form(None),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(deps.get_current_user),
 ) -> Any:
@@ -213,13 +232,21 @@ async def scan_zip(
     # 保存ZIP文件到持久化存储
     await save_project_zip(project_id, file_path, file.filename)
     
+    # Parse scan_config if provided
+    parsed_scan_config = {}
+    if scan_config:
+        try:
+            parsed_scan_config = json.loads(scan_config)
+        except json.JSONDecodeError:
+            pass
+
     # Create Task
     task = AuditTask(
         project_id=project_id,
         created_by=current_user.id,
         task_type="zip_upload",
         status="pending",
-        scan_config="{}"
+        scan_config=scan_config if scan_config else "{}"
     )
     db.add(task)
     await db.commit()
@@ -227,6 +254,10 @@ async def scan_zip(
 
     # 获取用户配置
     user_config = await get_user_config_dict(db, current_user.id)
+    
+    # 将扫描配置注入到 user_config 中
+    if parsed_scan_config and 'file_paths' in parsed_scan_config:
+        user_config['scan_config'] = {'file_paths': parsed_scan_config['file_paths']}
 
     # Trigger Background Task - 使用持久化存储的文件路径
     stored_zip_path = await load_project_zip(project_id)
@@ -235,10 +266,16 @@ async def scan_zip(
     return {"task_id": task.id, "status": "queued"}
 
 
+class ScanRequest(BaseModel):
+    file_paths: Optional[List[str]] = None
+    full_scan: bool = True
+
+
 @router.post("/scan-stored-zip")
 async def scan_stored_zip(
     project_id: str,
     background_tasks: BackgroundTasks,
+    scan_request: Optional[ScanRequest] = None,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(deps.get_current_user),
 ) -> Any:
@@ -265,7 +302,7 @@ async def scan_stored_zip(
         created_by=current_user.id,
         task_type="zip_upload",
         status="pending",
-        scan_config="{}"
+        scan_config=json.dumps(scan_request.dict()) if scan_request else "{}"
     )
     db.add(task)
     await db.commit()
@@ -273,6 +310,10 @@ async def scan_stored_zip(
 
     # 获取用户配置
     user_config = await get_user_config_dict(db, current_user.id)
+    
+    # 将扫描配置注入到 user_config 中，以便 process_zip_task 使用
+    if scan_request and scan_request.file_paths:
+        user_config['scan_config'] = {'file_paths': scan_request.file_paths}
 
     # Trigger Background Task
     background_tasks.add_task(process_zip_task, task.id, stored_zip_path, AsyncSessionLocal, user_config)

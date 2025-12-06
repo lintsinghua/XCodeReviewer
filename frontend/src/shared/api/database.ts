@@ -64,6 +64,34 @@ export const api = {
     }
   },
 
+  async getProjectFiles(id: string, branch?: string): Promise<Array<{ path: string; size: number }>> {
+    try {
+      const params = branch ? { branch } : {};
+      const res = await apiClient.get(`/projects/${id}/files`, { params });
+      return res.data;
+    } catch (e) {
+      return [];
+    }
+  },
+
+  async getProjectBranches(id: string): Promise<{ branches: string[]; default_branch: string; error?: string }> {
+    try {
+      const res = await apiClient.get(`/projects/${id}/branches`);
+      return res.data;
+    } catch (e) {
+      return { branches: ["main"], default_branch: "main", error: String(e) };
+    }
+  },
+
+  async uploadProjectZip(id: string, file: File): Promise<{ message: string; original_filename: string; file_size: number }> {
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await apiClient.post(`/projects/${id}/zip`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    return res.data;
+  },
+
   async createProject(project: CreateProjectForm & { owner_id?: string }): Promise<Project> {
     const res = await apiClient.post('/projects/', {
       name: project.name,
@@ -141,7 +169,13 @@ export const api = {
 
   async createAuditTask(task: CreateAuditTaskForm & { created_by?: string }): Promise<AuditTask> {
     // Trigger scan on the project
-    const res = await apiClient.post(`/projects/${task.project_id}/scan`);
+    const scanRequest = {
+      file_paths: task.scan_config?.file_paths,
+      full_scan: !task.scan_config?.file_paths || task.scan_config.file_paths.length === 0,
+      exclude_patterns: task.exclude_patterns || [],
+      branch_name: task.branch_name || "main"
+    };
+    const res = await apiClient.post(`/projects/${task.project_id}/scan`, scanRequest);
     // Fetch the created task
     const taskRes = await apiClient.get(`/tasks/${res.data.task_id}`);
     return taskRes.data;

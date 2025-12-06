@@ -1,30 +1,56 @@
-import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useState, useEffect, useMemo } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import {
+  Search,
+  ChevronRight,
   GitBranch,
-  Settings,
-  FileText,
-  AlertCircle,
-  Info,
-  Zap,
+  Upload,
+  FolderOpen,
+  Settings2,
+  Play,
+  Package,
+  Globe,
   Shield,
-  Search
+  Loader2,
 } from "lucide-react";
-import { api } from "@/shared/config/database";
-import type { Project, CreateAuditTaskForm } from "@/shared/types";
 import { toast } from "sonner";
+import { api } from "@/shared/config/database";
+
+import { useProjects } from "./hooks/useTaskForm";
+import { useZipFile, formatFileSize } from "./hooks/useZipFile";
 import TerminalProgressDialog from "./TerminalProgressDialog";
+import FileSelectionDialog from "./FileSelectionDialog";
+
 import { runRepositoryAudit } from "@/features/projects/services/repoScan";
-import { scanZipFile, scanStoredZipFile, validateZipFile } from "@/features/projects/services/repoZipScan";
-import { getZipFileInfo, type ZipFileMeta } from "@/shared/utils/zipStorage";
-import { isRepositoryProject, isZipProject, getSourceTypeBadge } from "@/shared/utils/projectUtils";
+import {
+  scanZipFile,
+  scanStoredZipFile,
+  validateZipFile,
+} from "@/features/projects/services/repoZipScan";
+import { isRepositoryProject, isZipProject } from "@/shared/utils/projectUtils";
+import type { Project } from "@/shared/types";
 
 interface CreateTaskDialogProps {
   open: boolean;
@@ -33,843 +59,641 @@ interface CreateTaskDialogProps {
   preselectedProjectId?: string;
 }
 
-export default function CreateTaskDialog({ open, onOpenChange, onTaskCreated, preselectedProjectId }: CreateTaskDialogProps) {
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [creating, setCreating] = useState(false);
+const DEFAULT_EXCLUDES = [
+  "node_modules/**",
+  ".git/**",
+  "dist/**",
+  "build/**",
+  "*.log",
+];
+
+export default function CreateTaskDialog({
+  open,
+  onOpenChange,
+  onTaskCreated,
+  preselectedProjectId,
+}: CreateTaskDialogProps) {
+  const [selectedProjectId, setSelectedProjectId] = useState<string>("");
   const [searchTerm, setSearchTerm] = useState("");
-  const [showTerminalDialog, setShowTerminalDialog] = useState(false);
+  const [branch, setBranch] = useState("main");
+  const [branches, setBranches] = useState<string[]>([]);
+  const [loadingBranches, setLoadingBranches] = useState(false);
+  const [excludePatterns, setExcludePatterns] = useState(DEFAULT_EXCLUDES);
+  const [selectedFiles, setSelectedFiles] = useState<string[] | undefined>();
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [showFileSelection, setShowFileSelection] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [showTerminal, setShowTerminal] = useState(false);
   const [currentTaskId, setCurrentTaskId] = useState<string | null>(null);
-  const [zipFile, setZipFile] = useState<File | null>(null);
-  const [loadingZipFile, setLoadingZipFile] = useState(false);
-  const [storedZipInfo, setStoredZipInfo] = useState<ZipFileMeta | null>(null);
-  const [useStoredZip, setUseStoredZip] = useState(true); // 默认使用已存储的ZIP
 
-  const [taskForm, setTaskForm] = useState<CreateAuditTaskForm>({
-    project_id: "",
-    task_type: "repository",
-    branch_name: "main",
-    exclude_patterns: ["node_modules/**", ".git/**", "dist/**", "build/**", "*.log"],
-    scan_config: {
-      include_tests: true,
-      include_docs: false,
-      max_file_size: 200, // KB (对齐后端默认值 200KB)
-      analysis_depth: "standard"
-    }
-  });
+  const { projects, loading, loadProjects } = useProjects();
+  const selectedProject = projects.find((p) => p.id === selectedProjectId);
+  const zipState = useZipFile(selectedProject, projects);
 
-  const commonExcludePatterns = [
-    { label: "node_modules", value: "node_modules/**", description: "Node.js 依赖包" },
-    { label: ".git", value: ".git/**", description: "Git 版本控制文件" },
-    { label: "dist/build", value: "dist/**", description: "构建输出目录" },
-    { label: "logs", value: "*.log", description: "日志文件" },
-    { label: "cache", value: ".cache/**", description: "缓存文件" },
-    { label: "temp", value: "temp/**", description: "临时文件" },
-    { label: "vendor", value: "vendor/**", description: "第三方库" },
-    { label: "coverage", value: "coverage/**", description: "测试覆盖率报告" }
-  ];
-
-  // 从后端加载默认配置
+  // 加载分支列表
   useEffect(() => {
-    const loadDefaultConfig = async () => {
-      try {
-        const defaultConfig = await api.getDefaultConfig();
-        if (defaultConfig?.otherConfig) {
-          // 后端 MAX_FILE_SIZE_BYTES 是 200 * 1024 = 204800 bytes = 200KB
-          // 转换为KB用于前端显示
-          const maxFileSizeKB = 200; // 后端默认值 200KB
+    const loadBranches = async () => {
+      if (!selectedProject || !isRepositoryProject(selectedProject)) {
+        setBranches([]);
+        return;
+      }
 
-          setTaskForm(prev => ({
-            ...prev,
-            scan_config: {
-              ...prev.scan_config,
-              max_file_size: maxFileSizeKB,
-            }
-          }));
+      setLoadingBranches(true);
+      try {
+        const result = await api.getProjectBranches(selectedProject.id);
+        setBranches(result.branches);
+        if (result.default_branch) {
+          setBranch(result.default_branch);
         }
       } catch (error) {
-        console.error('Failed to load default config:', error);
-        // 使用硬编码的默认值作为后备（200KB）
+        console.error("加载分支失败:", error);
+        setBranches([selectedProject.default_branch || "main"]);
+      } finally {
+        setLoadingBranches(false);
       }
     };
-    loadDefaultConfig();
-  }, []);
+
+    loadBranches();
+  }, [selectedProject?.id]);
+
+  const filteredProjects = useMemo(() => {
+    if (!searchTerm) return projects;
+    const term = searchTerm.toLowerCase();
+    return projects.filter(
+      (p) =>
+        p.name.toLowerCase().includes(term) ||
+        p.description?.toLowerCase().includes(term)
+    );
+  }, [projects, searchTerm]);
 
   useEffect(() => {
     if (open) {
       loadProjects();
-      // 如果有预选择的项目ID，设置到表单中
       if (preselectedProjectId) {
-        setTaskForm(prev => ({ ...prev, project_id: preselectedProjectId }));
+        setSelectedProjectId(preselectedProjectId);
       }
-      // 重置ZIP文件状态
-      setZipFile(null);
-      setStoredZipInfo(null);
-      setUseStoredZip(true);
+      setSearchTerm("");
+      setShowAdvanced(false);
+      zipState.reset();
     }
   }, [open, preselectedProjectId]);
 
-  // 当项目ID变化时，检查是否有已存储的ZIP文件（仅ZIP类型项目）
-  useEffect(() => {
-    const checkStoredZipFile = async () => {
-      if (!taskForm.project_id) {
-        setStoredZipInfo(null);
-        return;
-      }
 
-      const project = projects.find(p => p.id === taskForm.project_id);
-      // 使用 source_type 判断是否为ZIP项目
-      if (!project || !isZipProject(project)) {
-        setStoredZipInfo(null);
-        return;
-      }
 
-      try {
-        setLoadingZipFile(true);
-        const zipInfo = await getZipFileInfo(taskForm.project_id);
-        setStoredZipInfo(zipInfo);
-        
-        if (zipInfo.has_file) {
-          console.log('✓ 项目有已存储的ZIP文件:', zipInfo.original_filename);
-          setUseStoredZip(true);
-        } else {
-          setUseStoredZip(false);
-        }
-      } catch (error) {
-        console.error('检查ZIP文件失败:', error);
-        setStoredZipInfo(null);
-      } finally {
-        setLoadingZipFile(false);
-      }
-    };
-
-    checkStoredZipFile();
-  }, [taskForm.project_id, projects]);
-
-  const loadProjects = async () => {
-    try {
-      setLoading(true);
-      const data = await api.getProjects();
-      setProjects(data.filter(p => p.is_active));
-    } catch (error) {
-      console.error('Failed to load projects:', error);
-      toast.error("加载项目失败");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleCreateTask = async () => {
-    if (!taskForm.project_id) {
+  const handleStartScan = async () => {
+    if (!selectedProject) {
       toast.error("请选择项目");
-      return;
-    }
-
-    if (taskForm.task_type === "repository" && !taskForm.branch_name?.trim()) {
-      toast.error("请输入分支名称");
-      return;
-    }
-
-    const project = selectedProject;
-    if (!project) {
-      toast.error("未找到选中的项目");
       return;
     }
 
     try {
       setCreating(true);
-
-      console.log('🎯 开始创建审计任务...', {
-        projectId: project.id,
-        projectName: project.name,
-        sourceType: project.source_type,
-        repositoryType: project.repository_type
-      });
-
       let taskId: string;
 
-      // 根据项目 source_type 判断使用哪种扫描方式
-      if (isZipProject(project)) {
-        // ZIP上传类型项目
-        if (useStoredZip && storedZipInfo?.has_file) {
-          // 使用已存储的ZIP文件
-          console.log('📦 ZIP项目 - 使用已存储的ZIP文件...');
+      if (isZipProject(selectedProject)) {
+        if (zipState.useStoredZip && zipState.storedZipInfo?.has_file) {
           taskId = await scanStoredZipFile({
-            projectId: project.id,
-            excludePatterns: taskForm.exclude_patterns,
-            createdBy: 'local-user'
+            projectId: selectedProject.id,
+            excludePatterns,
+            createdBy: "local-user",
+            filePaths: selectedFiles,
           });
-        } else if (zipFile) {
-          // 上传新的ZIP文件
-          console.log('📦 ZIP项目 - 上传新ZIP文件...');
+        } else if (zipState.zipFile) {
           taskId = await scanZipFile({
-            projectId: project.id,
-            zipFile: zipFile,
-            excludePatterns: taskForm.exclude_patterns,
-            createdBy: 'local-user'
+            projectId: selectedProject.id,
+            zipFile: zipState.zipFile,
+            excludePatterns,
+            createdBy: "local-user",
           });
         } else {
-          toast.error("请上传ZIP文件或使用已存储的文件进行扫描");
+          toast.error("请上传 ZIP 文件");
           return;
         }
       } else {
-        // 仓库类型项目：从远程仓库拉取代码
-        if (!project.repository_url) {
-          toast.error("仓库地址不能为空");
+        if (!selectedProject.repository_url) {
+          toast.error("仓库地址为空");
           return;
         }
-
-        console.log('📡 仓库项目 - 调用 runRepositoryAudit...');
-
-        // 后端会从用户配置中读取 GitHub/GitLab Token，前端不需要传递
         taskId = await runRepositoryAudit({
-          projectId: project.id,
-          repoUrl: project.repository_url,
-          branch: taskForm.branch_name || project.default_branch || 'main',
-          exclude: taskForm.exclude_patterns,
-          createdBy: 'local-user'
+          projectId: selectedProject.id,
+          repoUrl: selectedProject.repository_url,
+          branch,
+          exclude: excludePatterns,
+          createdBy: "local-user",
+          filePaths: selectedFiles,
         });
       }
 
-      console.log('✅ 任务创建成功:', taskId);
-
-      // 记录用户操作
-      import('@/shared/utils/logger').then(({ logger }) => {
-        logger.logUserAction('创建审计任务', {
-          taskId,
-          projectId: project.id,
-          projectName: project.name,
-          sourceType: project.source_type,
-          taskType: taskForm.task_type,
-          branch: taskForm.branch_name,
-          hasZipFile: !!zipFile,
-        });
-      });
-
-      // 关闭创建对话框
       onOpenChange(false);
-      resetForm();
       onTaskCreated();
-
-      // 显示终端进度窗口
       setCurrentTaskId(taskId);
-      setShowTerminalDialog(true);
+      setShowTerminal(true);
+      toast.success("扫描任务已启动");
 
-      toast.success("审计任务已创建并启动");
+      setSelectedProjectId("");
+      setSelectedFiles(undefined);
+      setExcludePatterns(DEFAULT_EXCLUDES);
     } catch (error) {
-      console.error('❌ 创建任务失败:', error);
-
-      // 记录错误并显示详细信息
-      import('@/shared/utils/errorHandler').then(({ handleError }) => {
-        handleError(error, '创建审计任务失败');
-      });
-
-      const errorMessage = error instanceof Error ? error.message : '未知错误';
-      toast.error(`创建任务失败: ${errorMessage}`);
+      const msg = error instanceof Error ? error.message : "未知错误";
+      toast.error(`启动失败: ${msg}`);
     } finally {
       setCreating(false);
     }
   };
 
-  const resetForm = () => {
-    setTaskForm({
-      project_id: "",
-      task_type: "repository",
-      branch_name: "main",
-      exclude_patterns: ["node_modules/**", ".git/**", "dist/**", "build/**", "*.log"],
-      scan_config: {
-        include_tests: true,
-        include_docs: false,
-        max_file_size: 200, // KB (对齐后端默认值 200KB)
-        analysis_depth: "standard"
-      }
-    });
-    setSearchTerm("");
-  };
-
-  const toggleExcludePattern = (pattern: string) => {
-    const patterns = taskForm.exclude_patterns || [];
-    if (patterns.includes(pattern)) {
-      setTaskForm({
-        ...taskForm,
-        exclude_patterns: patterns.filter(p => p !== pattern)
-      });
-    } else {
-      setTaskForm({
-        ...taskForm,
-        exclude_patterns: [...patterns, pattern]
-      });
+  const canStart = useMemo(() => {
+    if (!selectedProject) return false;
+    if (isZipProject(selectedProject)) {
+      return (
+        (zipState.useStoredZip && zipState.storedZipInfo?.has_file) ||
+        !!zipState.zipFile
+      );
     }
-  };
-
-  const addCustomPattern = (pattern: string) => {
-    if (pattern.trim() && !taskForm.exclude_patterns.includes(pattern.trim())) {
-      setTaskForm({
-        ...taskForm,
-        exclude_patterns: [...taskForm.exclude_patterns, pattern.trim()]
-      });
-    }
-  };
-
-  const removeExcludePattern = (pattern: string) => {
-    setTaskForm({
-      ...taskForm,
-      exclude_patterns: taskForm.exclude_patterns.filter(p => p !== pattern)
-    });
-  };
-
-  const selectedProject = projects.find(p => p.id === taskForm.project_id);
-  const filteredProjects = projects.filter(project =>
-    project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    project.description?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+    return !!selectedProject.repository_url && !!branch.trim();
+  }, [selectedProject, zipState, branch]);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-white border-2 border-black p-0 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] rounded-none">
-        <DialogHeader className="p-6 border-b-2 border-black bg-gray-50">
-          <DialogTitle className="flex items-center space-x-2 font-display font-bold uppercase text-xl">
-            <Shield className="w-6 h-6 text-black" />
-            <span>新建审计任务</span>
-          </DialogTitle>
-        </DialogHeader>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="!w-[min(90vw,520px)] !max-w-none max-h-[85vh] flex flex-col p-0 gap-0 bg-white border-2 border-black rounded-none shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
+          {/* Header - 机械风 */}
+          <DialogHeader className="px-5 py-4 border-b-2 border-black bg-gray-100 flex-shrink-0">
+            <DialogTitle className="flex items-center gap-3 font-mono font-bold uppercase text-base tracking-wide">
+              <Shield className="w-5 h-5" />
+              开始代码审计
+            </DialogTitle>
+          </DialogHeader>
 
-        <div className="p-6 space-y-6">
-          {/* 项目选择 */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <Label className="text-base font-bold font-mono uppercase">选择项目</Label>
-              <Badge variant="outline" className="text-xs rounded-none border-black font-mono">
-                {filteredProjects.length} 个可用项目
-              </Badge>
-            </div>
-
-            {/* 项目搜索 */}
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-black w-4 h-4" />
-              <Input
-                placeholder="搜索项目名称..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 retro-input h-10"
-              />
-            </div>
-
-            {/* 项目列表 */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-60 overflow-y-auto p-1">
-              {loading ? (
-                <div className="col-span-2 flex items-center justify-center py-8">
-                  <div className="animate-spin rounded-none h-8 w-8 border-4 border-primary border-t-transparent"></div>
-                </div>
-              ) : filteredProjects.length > 0 ? (
-                filteredProjects.map((project) => (
-                  <div
-                    key={project.id}
-                    className={`cursor-pointer transition-all border-2 p-4 relative ${taskForm.project_id === project.id
-                      ? 'border-primary bg-blue-50 shadow-[4px_4px_0px_0px_rgba(37,99,235,1)] translate-x-[-2px] translate-y-[-2px]'
-                      : 'border-black bg-white hover:bg-gray-50 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-2px] hover:translate-y-[-2px]'
-                      }`}
-                    onClick={() => setTaskForm({ ...taskForm, project_id: project.id })}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <h4 className="font-bold text-sm font-display uppercase">{project.name}</h4>
-                        {project.description && (
-                          <p className="text-xs text-gray-600 mt-1 line-clamp-2 font-mono">
-                            {project.description}
-                          </p>
-                        )}
-                        <div className="flex items-center space-x-4 mt-2 text-xs text-gray-500 font-mono font-bold">
-                          <span className={`px-1.5 py-0.5 ${isRepositoryProject(project) ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'}`}>
-                            {getSourceTypeBadge(project.source_type)}
-                          </span>
-                          {isRepositoryProject(project) && (
-                            <>
-                              <span className="uppercase">{project.repository_type?.toUpperCase() || 'OTHER'}</span>
-                              <span>{project.default_branch}</span>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                      {taskForm.project_id === project.id && (
-                        <div className="w-5 h-5 bg-primary border-2 border-black flex items-center justify-center">
-                          <div className="w-2 h-2 bg-white"></div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="col-span-2 text-center py-8 text-gray-500 font-mono">
-                  <FileText className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">
-                    {searchTerm ? '未找到匹配的项目' : '暂无可用项目'}
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* 任务配置 */}
-          {selectedProject && (
-            <Tabs defaultValue="basic" className="w-full">
-              <TabsList className="grid w-full grid-cols-3 bg-gray-100 border-2 border-black p-0 h-12 rounded-none">
-                <TabsTrigger
-                  value="basic"
-                  className="flex items-center space-x-2 rounded-none border-r-2 border-black data-[state=active]:bg-primary data-[state=active]:text-white h-full font-bold uppercase transition-all"
+          <div className="flex-1 overflow-y-auto p-5 space-y-5">
+            {/* 项目选择 */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-mono font-bold uppercase">
+                  选择项目
+                </span>
+                <Badge
+                  variant="outline"
+                  className="rounded-none border-black font-mono text-xs"
                 >
-                  <GitBranch className="w-4 h-4" />
-                  <span>基础配置</span>
-                </TabsTrigger>
-                <TabsTrigger
-                  value="exclude"
-                  className="flex items-center space-x-2 rounded-none border-r-2 border-black data-[state=active]:bg-primary data-[state=active]:text-white h-full font-bold uppercase transition-all"
-                >
-                  <FileText className="w-4 h-4" />
-                  <span>排除规则</span>
-                </TabsTrigger>
-                <TabsTrigger
-                  value="advanced"
-                  className="flex items-center space-x-2 rounded-none data-[state=active]:bg-primary data-[state=active]:text-white h-full font-bold uppercase transition-all"
-                >
-                  <Settings className="w-4 h-4" />
-                  <span>高级选项</span>
-                </TabsTrigger>
-              </TabsList>
+                  {filteredProjects.length} 个
+                </Badge>
+              </div>
 
-              <TabsContent value="basic" className="space-y-4 mt-6 font-mono">
-                {/* ZIP项目文件上传 - 仅ZIP类型项目显示 */}
-                {isZipProject(selectedProject) && (
-                  <div className="bg-amber-50 border-2 border-black p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                    <div className="space-y-3">
-                      {loadingZipFile ? (
-                        <div className="flex items-center space-x-3 p-4 bg-blue-50 border-2 border-black">
-                          <div className="animate-spin rounded-none h-5 w-5 border-4 border-blue-600 border-t-transparent"></div>
-                          <p className="text-sm text-blue-800 font-bold">正在检查ZIP文件...</p>
-                        </div>
-                      ) : storedZipInfo?.has_file ? (
-                        // 有已存储的ZIP文件
-                        <div className="space-y-3">
-                          <div className="flex items-start space-x-3 p-4 bg-green-50 border-2 border-black">
-                            <Info className="w-5 h-5 text-green-600 mt-0.5" />
-                            <div className="flex-1">
-                              <p className="font-bold text-green-900 text-sm uppercase">已有存储的ZIP文件</p>
-                              <p className="text-xs text-green-700 mt-1 font-bold">
-                                文件名: {storedZipInfo.original_filename}
-                                {storedZipInfo.file_size && (
-                                  <> ({storedZipInfo.file_size >= 1024 * 1024
-                                    ? `${(storedZipInfo.file_size / 1024 / 1024).toFixed(2)} MB`
-                                    : `${(storedZipInfo.file_size / 1024).toFixed(2)} KB`
-                                  })</>
-                                )}
-                              </p>
-                              {storedZipInfo.uploaded_at && (
-                                <p className="text-xs text-green-600 mt-0.5">
-                                  上传时间: {new Date(storedZipInfo.uploaded_at).toLocaleString('zh-CN')}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                          
-                          {/* 选择使用已存储文件还是上传新文件 */}
-                          <div className="flex items-center space-x-4">
-                            <label className="flex items-center space-x-2 cursor-pointer">
-                              <input
-                                type="radio"
-                                checked={useStoredZip}
-                                onChange={() => { setUseStoredZip(true); setZipFile(null); }}
-                                className="w-4 h-4"
-                              />
-                              <span className="text-sm font-bold">使用已存储的文件</span>
-                            </label>
-                            <label className="flex items-center space-x-2 cursor-pointer">
-                              <input
-                                type="radio"
-                                checked={!useStoredZip}
-                                onChange={() => setUseStoredZip(false)}
-                                className="w-4 h-4"
-                              />
-                              <span className="text-sm font-bold">上传新文件</span>
-                            </label>
-                          </div>
+              {/* 搜索框 */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                <Input
+                  placeholder="搜索项目..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-9 h-10 rounded-none border-2 border-black font-mono focus:ring-0 focus:border-black"
+                />
+              </div>
 
-                          {/* 上传新文件的输入框 */}
-                          {!useStoredZip && (
-                            <div className="space-y-2 pt-2 border-t border-amber-300">
-                              <Label htmlFor="zipFile" className="font-bold uppercase">选择新的ZIP文件</Label>
-                              <Input
-                                id="zipFile"
-                                type="file"
-                                accept=".zip"
-                                onChange={(e) => {
-                                  const file = e.target.files?.[0];
-                                  if (file) {
-                                    const validation = validateZipFile(file);
-                                    if (!validation.valid) {
-                                      toast.error(validation.error || "文件无效");
-                                      e.target.value = '';
-                                      return;
-                                    }
-                                    setZipFile(file);
-                                    toast.success(`已选择文件: ${file.name}`);
-                                  }
-                                }}
-                                className="cursor-pointer retro-input pt-1.5"
-                              />
-                              {zipFile && (
-                                <p className="text-xs text-amber-700 font-bold">
-                                  新文件: {zipFile.name} ({(zipFile.size / 1024 / 1024).toFixed(2)} MB)
-                                </p>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      ) : (
-                        // 没有存储的ZIP文件
-                        <>
-                          <div className="flex items-start space-x-3">
-                            <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5" />
-                            <div>
-                              <p className="font-bold text-amber-900 text-sm uppercase">需要上传ZIP文件</p>
-                              <p className="text-xs text-amber-700 mt-1 font-bold">
-                                此项目还没有存储的ZIP文件，请上传文件进行扫描
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="space-y-2">
-                            <Label htmlFor="zipFile" className="font-bold uppercase">上传ZIP文件</Label>
-                            <Input
-                              id="zipFile"
-                              type="file"
-                              accept=".zip"
-                              onChange={(e) => {
-                                const file = e.target.files?.[0];
-                                if (file) {
-                                  console.log('📁 选择的文件:', {
-                                    name: file.name,
-                                    size: file.size,
-                                    type: file.type,
-                                    sizeMB: (file.size / 1024 / 1024).toFixed(2)
-                                  });
-
-                                  const validation = validateZipFile(file);
-                                  if (!validation.valid) {
-                                    toast.error(validation.error || "文件无效");
-                                    e.target.value = '';
-                                    return;
-                                  }
-                                  setZipFile(file);
-
-                                  const sizeMB = (file.size / 1024 / 1024).toFixed(2);
-                                  const sizeKB = (file.size / 1024).toFixed(2);
-                                  const sizeText = file.size >= 1024 * 1024 ? `${sizeMB} MB` : `${sizeKB} KB`;
-
-                                  toast.success(`已选择文件: ${file.name} (${sizeText})`);
-                                }
-                              }}
-                              className="cursor-pointer retro-input pt-1.5"
-                            />
-                          </div>
-                        </>
-                      )}
-                    </div>
+              {/* 项目列表 */}
+              <ScrollArea className="h-[180px] border-2 border-black bg-gray-50">
+                {loading ? (
+                  <div className="flex items-center justify-center h-full">
+                    <div className="animate-spin h-6 w-6 border-2 border-black border-t-transparent" />
                   </div>
-                )}
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="task_type" className="font-bold uppercase">任务类型</Label>
-                    <Select
-                      value={taskForm.task_type}
-                      onValueChange={(value: any) => setTaskForm({ ...taskForm, task_type: value })}
-                    >
-                      <SelectTrigger className="retro-input h-10 rounded-none border-2 border-black shadow-none focus:ring-0">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="rounded-none border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                        <SelectItem value="repository">
-                          <div className="flex items-center space-x-2">
-                            <GitBranch className="w-4 h-4" />
-                            <span className="font-mono">仓库审计</span>
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="instant">
-                          <div className="flex items-center space-x-2">
-                            <Zap className="w-4 h-4" />
-                            <span className="font-mono">即时分析</span>
-                          </div>
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
+                ) : filteredProjects.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-full text-gray-500 font-mono">
+                    <Package className="w-8 h-8 mb-2 opacity-50" />
+                    <span className="text-sm">
+                      {searchTerm ? "未找到" : "暂无项目"}
+                    </span>
                   </div>
-
-                  {/* 分支选择 - 仅仓库类型项目显示 */}
-                  {taskForm.task_type === "repository" && isRepositoryProject(selectedProject) && (
-                    <div className="space-y-2">
-                      <Label htmlFor="branch_name" className="font-bold uppercase">目标分支</Label>
-                      <Input
-                        id="branch_name"
-                        value={taskForm.branch_name || ""}
-                        onChange={(e) => setTaskForm({ ...taskForm, branch_name: e.target.value })}
-                        placeholder={selectedProject.default_branch || "main"}
-                        className="retro-input h-10"
+                ) : (
+                  <div className="p-1">
+                    {filteredProjects.map((project) => (
+                      <ProjectCard
+                        key={project.id}
+                        project={project}
+                        selected={selectedProjectId === project.id}
+                        onSelect={() => setSelectedProjectId(project.id)}
                       />
-                    </div>
-                  )}
-                </div>
-
-                {/* 项目信息展示 */}
-                <div className="bg-blue-50 border-2 border-black p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                  <div className="flex items-start space-x-3">
-                    <Info className="w-5 h-5 text-blue-600 mt-0.5" />
-                    <div className="text-sm font-mono">
-                      <p className="font-bold text-blue-900 mb-1 uppercase">选中项目：{selectedProject.name}</p>
-                      <div className="text-blue-800 space-y-1 font-bold">
-                        <p>项目类型：{isRepositoryProject(selectedProject) ? '远程仓库' : 'ZIP上传'}</p>
-                        {selectedProject.description && (
-                          <p>描述：{selectedProject.description}</p>
-                        )}
-                        {isRepositoryProject(selectedProject) && (
-                          <>
-                            <p>仓库平台：{selectedProject.repository_type?.toUpperCase() || 'OTHER'}</p>
-                            <p>默认分支：{selectedProject.default_branch}</p>
-                          </>
-                        )}
-                        {selectedProject.programming_languages && (
-                          <p>编程语言：{JSON.parse(selectedProject.programming_languages).join(', ')}</p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </TabsContent>
-
-              <TabsContent value="exclude" className="space-y-4 mt-6 font-mono">
-                <div className="space-y-4">
-                  <div>
-                    <Label className="text-base font-bold uppercase">排除模式</Label>
-                    <p className="text-sm text-gray-500 mt-1 font-bold">
-                      选择要从审计中排除的文件和目录模式
-                    </p>
-                  </div>
-
-                  {/* 常用排除模式 */}
-                  <div className="grid grid-cols-2 gap-3">
-                    {commonExcludePatterns.map((pattern) => (
-                      <div key={pattern.value} className="flex items-center space-x-3 p-3 border-2 border-black bg-white hover:bg-gray-50 transition-all">
-                        <Checkbox
-                          checked={taskForm.exclude_patterns.includes(pattern.value)}
-                          onCheckedChange={() => toggleExcludePattern(pattern.value)}
-                          className="rounded-none border-2 border-black data-[state=checked]:bg-primary data-[state=checked]:text-white"
-                        />
-                        <div className="flex-1">
-                          <p className="text-sm font-bold uppercase">{pattern.label}</p>
-                          <p className="text-xs text-gray-500 font-bold">{pattern.description}</p>
-                        </div>
-                      </div>
                     ))}
                   </div>
+                )}
+              </ScrollArea>
+            </div>
 
-                  {/* 自定义排除模式 */}
-                  <div className="space-y-2">
-                    <Label className="font-bold uppercase">自定义排除模式</Label>
-                    <div className="flex space-x-2">
-                      <Input
-                        placeholder="例如: *.tmp, test/**"
-                        onKeyPress={(e) => {
-                          if (e.key === 'Enter') {
-                            addCustomPattern(e.currentTarget.value);
-                            e.currentTarget.value = '';
-                          }
-                        }}
-                        className="retro-input h-10"
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={(e) => {
-                          const input = e.currentTarget.previousElementSibling as HTMLInputElement;
-                          addCustomPattern(input.value);
-                          input.value = '';
-                        }}
-                        className="retro-btn bg-white text-black h-10"
-                      >
-                        添加
-                      </Button>
-                    </div>
+            {/* 配置区域 */}
+            {selectedProject && (
+              <div className="space-y-4">
+                <span className="text-sm font-mono font-bold uppercase">
+                  配置
+                </span>
+
+                {isRepositoryProject(selectedProject) ? (
+                  <div className="flex items-center gap-3 p-3 border-2 border-black bg-blue-50">
+                    <GitBranch className="w-5 h-5 text-blue-700" />
+                    <span className="font-mono text-sm font-bold w-12">
+                      分支
+                    </span>
+                    {loadingBranches ? (
+                      <div className="flex items-center gap-2 flex-1">
+                        <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
+                        <span className="text-sm text-blue-600 font-mono">加载中...</span>
+                      </div>
+                    ) : (
+                      <Select value={branch} onValueChange={setBranch}>
+                        <SelectTrigger className="h-9 flex-1 rounded-none border-2 border-black font-mono focus:ring-0">
+                          <SelectValue placeholder="选择分支" />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-none border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                          {branches.map((b) => (
+                            <SelectItem key={b} value={b} className="font-mono">
+                              {b}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
                   </div>
+                ) : (
+                  <ZipUploadCard 
+                    zipState={zipState} 
+                    onUpload={async () => {
+                      if (!zipState.zipFile || !selectedProject) return;
+                      setUploading(true);
+                      try {
+                        await api.uploadProjectZip(selectedProject.id, zipState.zipFile);
+                        toast.success("文件上传成功");
+                        zipState.switchToStored();
+                        loadProjects();
+                      } catch (error) {
+                        const msg = error instanceof Error ? error.message : "上传失败";
+                        toast.error(msg);
+                      } finally {
+                        setUploading(false);
+                      }
+                    }}
+                    uploading={uploading}
+                  />
+                )}
 
-                  {/* 已选择的排除模式 */}
-                  {taskForm.exclude_patterns.length > 0 && (
-                    <div className="space-y-2">
-                      <Label className="font-bold uppercase">已选择的排除模式</Label>
-                      <div className="flex flex-wrap gap-2">
-                        {taskForm.exclude_patterns.map((pattern) => (
+                {/* 高级选项 */}
+                <Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>
+                  <CollapsibleTrigger className="flex items-center gap-2 text-sm font-mono text-gray-600 hover:text-black transition-colors">
+                    <ChevronRight
+                      className={`w-4 h-4 transition-transform ${showAdvanced ? "rotate-90" : ""}`}
+                    />
+                    <Settings2 className="w-4 h-4" />
+                    <span className="uppercase font-bold">高级选项</span>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="mt-3 space-y-3">
+                    {/* 排除模式 */}
+                    <div className="p-3 border-2 border-dashed border-gray-400 bg-gray-50 space-y-2">
+                      <span className="font-mono text-xs uppercase font-bold text-gray-600">
+                        排除模式
+                      </span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {excludePatterns.map((p) => (
                           <Badge
-                            key={pattern}
+                            key={p}
                             variant="secondary"
-                            className="cursor-pointer hover:bg-red-100 hover:text-red-800 rounded-none border-2 border-black bg-gray-100 text-black font-mono font-bold"
-                            onClick={() => removeExcludePattern(pattern)}
+                            className="rounded-none border border-black bg-white text-gray-800 font-mono text-xs cursor-pointer hover:bg-red-100 hover:text-red-700"
+                            onClick={() =>
+                              setExcludePatterns((prev) =>
+                                prev.filter((x) => x !== p)
+                              )
+                            }
                           >
-                            {pattern} ×
+                            {p} ×
                           </Badge>
                         ))}
                       </div>
-                    </div>
-                  )}
-                </div>
-              </TabsContent>
-
-              <TabsContent value="advanced" className="space-y-4 mt-6 font-mono">
-                <div className="space-y-6">
-                  <div>
-                    <Label className="text-base font-bold uppercase">扫描配置</Label>
-                    <p className="text-sm text-gray-500 mt-1 font-bold">
-                      配置代码扫描的详细参数
-                    </p>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-6">
-                    <div className="space-y-4">
-                      <div className="flex items-center space-x-3 p-3 border-2 border-black bg-white">
-                        <Checkbox
-                          checked={taskForm.scan_config.include_tests}
-                          onCheckedChange={(checked) =>
-                            setTaskForm({
-                              ...taskForm,
-                              scan_config: { ...taskForm.scan_config, include_tests: !!checked }
-                            })
+                      <Input
+                        placeholder="添加排除模式，回车确认"
+                        className="h-8 rounded-none border-2 border-black font-mono text-sm focus:ring-0"
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && e.currentTarget.value) {
+                            const val = e.currentTarget.value.trim();
+                            if (val && !excludePatterns.includes(val)) {
+                              setExcludePatterns((prev) => [...prev, val]);
+                            }
+                            e.currentTarget.value = "";
                           }
-                          className="rounded-none border-2 border-black data-[state=checked]:bg-primary data-[state=checked]:text-white"
-                        />
-                        <div>
-                          <p className="text-sm font-bold uppercase">包含测试文件</p>
-                          <p className="text-xs text-gray-500 font-bold">扫描 *test*, *spec* 等测试文件</p>
+                        }}
+                      />
+                    </div>
+
+                    {/* 文件选择 */}
+                    {(() => {
+                      const isRepo = isRepositoryProject(selectedProject);
+                      const isZip = isZipProject(selectedProject);
+                      const hasStoredZip = zipState.storedZipInfo?.has_file;
+                      const useStored = zipState.useStoredZip;
+                      
+                      // 可以选择文件的条件：仓库项目 或 ZIP项目使用已存储文件
+                      const canSelectFiles = isRepo || (isZip && useStored && hasStoredZip);
+                      
+                      return (
+                        <div className="flex items-center justify-between p-3 border-2 border-dashed border-gray-400 bg-gray-50">
+                          <div>
+                            <p className="font-mono text-xs uppercase font-bold text-gray-600">
+                              扫描范围
+                            </p>
+                            <p className="text-sm font-bold mt-1">
+                              {selectedFiles
+                                ? `已选 ${selectedFiles.length} 个文件`
+                                : "全部文件"}
+                            </p>
+                          </div>
+                          <div className="flex gap-2">
+                            {selectedFiles && canSelectFiles && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => setSelectedFiles(undefined)}
+                                className="h-8 text-xs text-red-600 hover:bg-red-50 rounded-none"
+                              >
+                                重置
+                              </Button>
+                            )}
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setShowFileSelection(true)}
+                              disabled={!canSelectFiles}
+                              className="h-8 text-xs rounded-none border-2 border-black font-mono font-bold disabled:opacity-50"
+                            >
+                              <FolderOpen className="w-3 h-3 mr-1" />
+                              选择文件
+                            </Button>
+                          </div>
                         </div>
-                      </div>
+                      );
+                    })()}
+                  </CollapsibleContent>
+                </Collapsible>
+              </div>
+            )}
+          </div>
 
-                      <div className="flex items-center space-x-3 p-3 border-2 border-black bg-white">
-                        <Checkbox
-                          checked={taskForm.scan_config.include_docs}
-                          onCheckedChange={(checked) =>
-                            setTaskForm({
-                              ...taskForm,
-                              scan_config: { ...taskForm.scan_config, include_docs: !!checked }
-                            })
-                          }
-                          className="rounded-none border-2 border-black data-[state=checked]:bg-primary data-[state=checked]:text-white"
-                        />
-                        <div>
-                          <p className="text-sm font-bold uppercase">包含文档文件</p>
-                          <p className="text-xs text-gray-500 font-bold">扫描 README, docs 等文档文件</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="max_file_size" className="font-bold uppercase">最大文件大小 (KB)</Label>
-                        <Input
-                          id="max_file_size"
-                          type="number"
-                          value={taskForm.scan_config.max_file_size}
-                          onChange={(e) =>
-                            setTaskForm({
-                              ...taskForm,
-                              scan_config: {
-                                ...taskForm.scan_config,
-                                max_file_size: parseInt(e.target.value) || 200
-                              }
-                            })
-                          }
-                          min="1"
-                          max="10240"
-                          className="retro-input h-10"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="analysis_depth" className="font-bold uppercase">分析深度</Label>
-                        <Select
-                          value={taskForm.scan_config.analysis_depth}
-                          onValueChange={(value: any) =>
-                            setTaskForm({
-                              ...taskForm,
-                              scan_config: { ...taskForm.scan_config, analysis_depth: value }
-                            })
-                          }
-                        >
-                          <SelectTrigger className="retro-input h-10 rounded-none border-2 border-black shadow-none focus:ring-0">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent className="rounded-none border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                            <SelectItem value="basic" className="font-mono">基础扫描</SelectItem>
-                            <SelectItem value="standard" className="font-mono">标准扫描</SelectItem>
-                            <SelectItem value="deep" className="font-mono">深度扫描</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* 分析深度说明 */}
-                  <div className="bg-amber-50 border-2 border-black p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                    <div className="flex items-start space-x-3">
-                      <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5" />
-                      <div className="text-sm font-mono">
-                        <p className="font-bold text-amber-900 mb-2 uppercase">分析深度说明：</p>
-                        <ul className="text-amber-800 space-y-1 text-xs font-bold">
-                          <li>• <strong>基础扫描</strong>：快速检查语法错误和基本问题</li>
-                          <li>• <strong>标准扫描</strong>：包含代码质量、安全性和性能分析</li>
-                          <li>• <strong>深度扫描</strong>：全面分析，包含复杂度、可维护性等高级指标</li>
-                        </ul>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </TabsContent>
-            </Tabs>
-          )}
-
-          {/* 操作按钮 */}
-          <div className="flex justify-end space-x-3 pt-6 border-t-2 border-black bg-gray-50 -mx-6 -mb-6 p-6">
+          {/* Footer - 机械风 */}
+          <div className="flex-shrink-0 flex justify-end gap-3 px-5 py-4 bg-gray-100 border-t-2 border-black">
             <Button
               variant="outline"
               onClick={() => onOpenChange(false)}
               disabled={creating}
-              className="retro-btn bg-white text-black h-12 px-6 font-bold uppercase"
+              className="px-5 h-10 rounded-none border-2 border-black font-mono font-bold uppercase hover:bg-gray-200"
             >
               取消
             </Button>
             <Button
-              onClick={handleCreateTask}
-              disabled={!taskForm.project_id || creating}
-              className="retro-btn bg-primary text-white h-12 px-6 font-bold uppercase shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+              onClick={handleStartScan}
+              disabled={!canStart || creating}
+              className="px-5 h-10 rounded-none border-2 border-black bg-primary text-white font-mono font-bold uppercase shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all disabled:opacity-50 disabled:shadow-none disabled:translate-x-0 disabled:translate-y-0"
             >
               {creating ? (
                 <>
-                  <div className="animate-spin rounded-none h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
-                  创建中...
+                  <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent mr-2" />
+                  启动中...
                 </>
               ) : (
                 <>
-                  <Shield className="w-4 h-4 mr-2" />
-                  创建任务
+                  <Play className="w-4 h-4 mr-2" />
+                  开始扫描
                 </>
               )}
             </Button>
           </div>
-        </div>
-      </DialogContent>
+        </DialogContent>
+      </Dialog>
 
-      {/* 终端进度对话框 */}
       <TerminalProgressDialog
-        open={showTerminalDialog}
-        onOpenChange={setShowTerminalDialog}
+        open={showTerminal}
+        onOpenChange={setShowTerminal}
         taskId={currentTaskId}
         taskType="repository"
       />
-    </Dialog>
+
+      <FileSelectionDialog
+        open={showFileSelection}
+        onOpenChange={setShowFileSelection}
+        projectId={selectedProjectId}
+        branch={branch}
+        onConfirm={setSelectedFiles}
+      />
+    </>
+  );
+}
+
+function ProjectCard({
+  project,
+  selected,
+  onSelect,
+}: {
+  project: Project;
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  const isRepo = isRepositoryProject(project);
+
+  return (
+    <div
+      className={`flex items-center gap-3 p-3 cursor-pointer border-b border-gray-200 last:border-b-0 transition-all ${
+        selected
+          ? "bg-primary/10 border-l-4 border-l-primary"
+          : "hover:bg-white"
+      }`}
+      onClick={onSelect}
+    >
+      <Checkbox
+        checked={selected}
+        className="rounded-none border-2 border-black data-[state=checked]:bg-primary"
+      />
+
+      <div
+        className={`p-1.5 border-2 border-black ${
+          isRepo ? "bg-blue-100" : "bg-amber-100"
+        }`}
+      >
+        {isRepo ? (
+          <Globe className="w-4 h-4 text-blue-700" />
+        ) : (
+          <Package className="w-4 h-4 text-amber-700" />
+        )}
+      </div>
+
+      <div className="flex-1 min-w-0 overflow-hidden">
+        <div className="flex items-center gap-2">
+          <span className="font-bold text-sm truncate">{project.name}</span>
+          <Badge
+            variant="outline"
+            className={`text-[10px] px-1 py-0 rounded-none border font-mono font-bold flex-shrink-0 ${
+              isRepo
+                ? "bg-blue-50 text-blue-700 border-blue-300"
+                : "bg-amber-50 text-amber-700 border-amber-300"
+            }`}
+          >
+            {isRepo ? "REPO" : "ZIP"}
+          </Badge>
+        </div>
+        {project.description && (
+          <p className="text-xs text-gray-500 mt-0.5 font-mono line-clamp-2" title={project.description}>
+            {project.description}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ZipUploadCard({
+  zipState,
+  onUpload,
+  uploading,
+}: {
+  zipState: ReturnType<typeof useZipFile>;
+  onUpload: () => void;
+  uploading: boolean;
+}) {
+  if (zipState.loading) {
+    return (
+      <div className="flex items-center gap-3 p-3 border-2 border-black bg-blue-50">
+        <div className="animate-spin h-5 w-5 border-2 border-blue-700 border-t-transparent" />
+        <span className="text-sm font-mono font-bold text-blue-800">
+          检查文件中...
+        </span>
+      </div>
+    );
+  }
+
+  if (zipState.storedZipInfo?.has_file) {
+    return (
+      <div className="p-3 border-2 border-black bg-green-50 space-y-3">
+        <div className="flex items-center gap-3">
+          <div className="p-1.5 border-2 border-black bg-green-100">
+            <Package className="w-4 h-4 text-green-700" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-bold text-green-900 font-mono">
+              {zipState.storedZipInfo.original_filename}
+            </p>
+            <p className="text-xs text-green-700 font-mono">
+              {zipState.storedZipInfo.file_size &&
+                formatFileSize(zipState.storedZipInfo.file_size)}
+              {zipState.storedZipInfo.uploaded_at &&
+                ` · ${new Date(zipState.storedZipInfo.uploaded_at).toLocaleDateString("zh-CN")}`}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex gap-4 pt-2 border-t border-green-300">
+          <label className="flex items-center gap-2 cursor-pointer font-mono text-sm">
+            <input
+              type="radio"
+              checked={zipState.useStoredZip}
+              onChange={() => zipState.switchToStored()}
+              className="w-4 h-4"
+            />
+            <span className="font-bold text-green-800">使用此文件</span>
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer font-mono text-sm">
+            <input
+              type="radio"
+              checked={!zipState.useStoredZip}
+              onChange={() => zipState.switchToUpload()}
+              className="w-4 h-4"
+            />
+            <span className="font-bold text-green-800">上传新文件</span>
+          </label>
+        </div>
+
+        {!zipState.useStoredZip && (
+          <div className="flex gap-2 items-center">
+            <Input
+              type="file"
+              accept=".zip"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  const v = validateZipFile(file);
+                  if (!v.valid) {
+                    toast.error(v.error || "文件无效");
+                    e.target.value = "";
+                    return;
+                  }
+                  zipState.handleFileSelect(file, e.target);
+                }
+              }}
+              className="h-9 flex-1 rounded-none border-2 border-black font-mono"
+            />
+            {zipState.zipFile && (
+              <Button
+                size="sm"
+                onClick={onUpload}
+                disabled={uploading}
+                className="h-9 px-3 rounded-none border-2 border-black bg-amber-500 hover:bg-amber-600 text-black font-mono font-bold shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+              >
+                {uploading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Upload className="w-4 h-4" />
+                )}
+              </Button>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-3 border-2 border-dashed border-amber-500 bg-amber-50">
+      <div className="flex items-start gap-3">
+        <div className="p-1.5 border-2 border-black bg-amber-100">
+          <Upload className="w-4 h-4 text-amber-700" />
+        </div>
+        <div className="flex-1">
+          <p className="text-sm font-bold text-amber-900 font-mono uppercase">
+            上传 ZIP 文件
+          </p>
+          <div className="flex gap-2 items-center mt-2">
+            <Input
+              type="file"
+              accept=".zip"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  const v = validateZipFile(file);
+                  if (!v.valid) {
+                    toast.error(v.error || "文件无效");
+                    e.target.value = "";
+                    return;
+                  }
+                  zipState.handleFileSelect(file, e.target);
+                }
+              }}
+              className="h-9 flex-1 rounded-none border-2 border-black font-mono"
+            />
+            {zipState.zipFile && (
+              <Button
+                size="sm"
+                onClick={onUpload}
+                disabled={uploading}
+                className="h-9 px-3 rounded-none border-2 border-black bg-amber-500 hover:bg-amber-600 text-black font-mono font-bold shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+              >
+                {uploading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Upload className="w-4 h-4" />
+                )}
+              </Button>
+            )}
+          </div>
+          {zipState.zipFile && (
+            <p className="text-xs text-amber-800 mt-2 font-mono font-bold">
+              已选: {zipState.zipFile.name} (
+              {formatFileSize(zipState.zipFile.size)})
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }

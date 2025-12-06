@@ -9,6 +9,7 @@ from datetime import datetime
 import shutil
 import os
 import uuid
+import json
 
 from app.api import deps
 from app.db.session import get_db, AsyncSessionLocal
@@ -16,7 +17,8 @@ from app.models.project import Project
 from app.models.user import User
 from app.models.audit import AuditTask, AuditIssue
 from app.models.user_config import UserConfig
-from app.services.scanner import scan_repo_task
+import zipfile
+from app.services.scanner import scan_repo_task, get_github_files, get_gitlab_files, get_github_branches, get_gitlab_branches
 from app.services.zip_storage import (
     save_project_zip, load_project_zip, get_project_zip_meta,
     delete_project_zip, has_project_zip
@@ -315,10 +317,108 @@ async def permanently_delete_project(
     await db.commit()
     return {"message": "项目已永久删除"}
 
+
+@router.get("/{id}/files")
+async def get_project_files(
+    id: str,
+    branch: Optional[str] = None,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(deps.get_current_user),
+) -> Any:
+    """
+    Get list of files in the project.
+    可选参数 branch 用于指定仓库分支（仅对仓库类型项目有效）
+    """
+    project = await db.get(Project, id)
+    if not project:
+        raise HTTPException(status_code=404, detail="项目不存在")
+    
+    # Check permissions
+    if project.owner_id != current_user.id:
+        raise HTTPException(status_code=403, detail="无权查看此项目")
+    
+    files = []
+    
+    if project.source_type == "zip":
+        # Handle ZIP project
+        zip_path = await load_project_zip(id)
+        print(f"📦 ZIP项目 {id} 文件路径: {zip_path}")
+        if not zip_path or not os.path.exists(zip_path):
+            print(f"⚠️ ZIP文件不存在: {zip_path}")
+            return []
+            
+        try:
+            with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+                for file_info in zip_ref.infolist():
+                    if not file_info.is_dir():
+                        name = file_info.filename
+                        if any(p in name for p in ['node_modules/', '__pycache__/', '.git/', 'dist/', 'build/']):
+                            continue
+                        files.append({"path": name, "size": file_info.file_size})
+        except Exception as e:
+            print(f"Error reading zip file: {e}")
+            raise HTTPException(status_code=500, detail="无法读取项目文件")
+            
+    elif project.source_type == "repository":
+        # Handle Repository project
+        if not project.repository_url:
+            return []
+            
+        # Get tokens from user config
+        from sqlalchemy.future import select
+        from app.core.encryption import decrypt_sensitive_data
+        import json
+        from app.core.config import settings
+
+        SENSITIVE_OTHER_FIELDS = ['githubToken', 'gitlabToken']
+        
+        result = await db.execute(
+            select(UserConfig).where(UserConfig.user_id == current_user.id)
+        )
+        config = result.scalar_one_or_none()
+        
+        github_token = settings.GITHUB_TOKEN
+        gitlab_token = settings.GITLAB_TOKEN
+        
+        if config and config.other_config:
+            other_config = json.loads(config.other_config)
+            for field in SENSITIVE_OTHER_FIELDS:
+                if field in other_config and other_config[field]:
+                    decrypted_val = decrypt_sensitive_data(other_config[field])
+                    if field == 'githubToken':
+                        github_token = decrypted_val
+                    elif field == 'gitlabToken':
+                        gitlab_token = decrypted_val
+
+        repo_type = project.repository_type or "other"
+        # 使用传入的 branch 参数，如果没有则使用项目默认分支
+        target_branch = branch or project.default_branch or "main"
+        
+        try:
+            if repo_type == "github":
+                repo_files = await get_github_files(project.repository_url, target_branch, github_token)
+                files = [{"path": f["path"], "size": 0} for f in repo_files]
+            elif repo_type == "gitlab":
+                repo_files = await get_gitlab_files(project.repository_url, target_branch, gitlab_token)
+                files = [{"path": f["path"], "size": 0} for f in repo_files]
+        except Exception as e:
+             print(f"Error fetching repo files: {e}")
+             raise HTTPException(status_code=500, detail=f"无法获取仓库文件: {str(e)}")
+
+    return files
+
+class ScanRequest(BaseModel):
+    file_paths: Optional[List[str]] = None
+    full_scan: bool = True
+    exclude_patterns: Optional[List[str]] = None
+    branch_name: Optional[str] = None
+
+
 @router.post("/{id}/scan")
 async def scan_project(
     id: str,
     background_tasks: BackgroundTasks,
+    scan_request: Optional[ScanRequest] = None,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(deps.get_current_user),
 ) -> Any:
@@ -329,21 +429,26 @@ async def scan_project(
     if not project:
         raise HTTPException(status_code=404, detail="项目不存在")
 
+    # 获取分支和排除模式
+    branch_name = scan_request.branch_name if scan_request else None
+    exclude_patterns = scan_request.exclude_patterns if scan_request else None
+
     # Create Task Record
     task = AuditTask(
         project_id=project.id,
         created_by=current_user.id,
         task_type="repository",
-        status="pending"
+        status="pending",
+        branch_name=branch_name or project.default_branch or "main",
+        exclude_patterns=json.dumps(exclude_patterns or []),
+        scan_config=json.dumps(scan_request.dict()) if scan_request else "{}"
     )
     db.add(task)
     await db.commit()
     await db.refresh(task)
 
     # 获取用户配置（包含解密敏感字段）
-    from sqlalchemy.future import select
     from app.core.encryption import decrypt_sensitive_data
-    import json
 
     # 需要解密的敏感字段列表
     SENSITIVE_LLM_FIELDS = [
@@ -376,6 +481,10 @@ async def scan_project(
             'llmConfig': llm_config,
             'otherConfig': other_config,
         }
+
+    # 将扫描配置注入到 user_config 中，以便 scan_repo_task 使用
+    if scan_request and scan_request.file_paths:
+        user_config['scan_config'] = {'file_paths': scan_request.file_paths}
 
     # Trigger Background Task
     background_tasks.add_task(scan_repo_task, task.id, AsyncSessionLocal, user_config)
@@ -500,3 +609,79 @@ async def delete_project_zip_file(
         return {"message": "ZIP文件已删除"}
     else:
         return {"message": "没有找到ZIP文件"}
+
+
+# ============ 分支管理端点 ============
+
+@router.get("/{id}/branches")
+async def get_project_branches(
+    id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(deps.get_current_user),
+) -> Any:
+    """
+    获取项目仓库的分支列表
+    """
+    project = await db.get(Project, id)
+    if not project:
+        raise HTTPException(status_code=404, detail="项目不存在")
+    
+    # 检查是否为仓库类型项目
+    if project.source_type != "repository":
+        raise HTTPException(status_code=400, detail="仅仓库类型项目支持获取分支")
+    
+    if not project.repository_url:
+        raise HTTPException(status_code=400, detail="项目未配置仓库地址")
+    
+    # 获取用户配置的 Token
+    from app.core.config import settings
+    from app.core.encryption import decrypt_sensitive_data
+    
+    config = await db.execute(
+        select(UserConfig).where(UserConfig.user_id == current_user.id)
+    )
+    config = config.scalar_one_or_none()
+    
+    github_token = settings.GITHUB_TOKEN
+    gitlab_token = settings.GITLAB_TOKEN
+    
+    SENSITIVE_OTHER_FIELDS = ['githubToken', 'gitlabToken']
+    
+    if config and config.other_config:
+        import json
+        other_config = json.loads(config.other_config)
+        for field in SENSITIVE_OTHER_FIELDS:
+            if field in other_config and other_config[field]:
+                decrypted_val = decrypt_sensitive_data(other_config[field])
+                if field == 'githubToken':
+                    github_token = decrypted_val
+                elif field == 'gitlabToken':
+                    gitlab_token = decrypted_val
+    
+    repo_type = project.repository_type or "other"
+    
+    try:
+        if repo_type == "github":
+            branches = await get_github_branches(project.repository_url, github_token)
+        elif repo_type == "gitlab":
+            branches = await get_gitlab_branches(project.repository_url, gitlab_token)
+        else:
+            # 对于其他类型，返回默认分支
+            branches = [project.default_branch or "main"]
+        
+        # 将默认分支放在第一位
+        default_branch = project.default_branch or "main"
+        if default_branch in branches:
+            branches.remove(default_branch)
+            branches.insert(0, default_branch)
+        
+        return {"branches": branches, "default_branch": default_branch}
+    
+    except Exception as e:
+        print(f"获取分支列表失败: {e}")
+        # 返回默认分支作为后备
+        return {
+            "branches": [project.default_branch or "main"],
+            "default_branch": project.default_branch or "main",
+            "error": str(e)
+        }

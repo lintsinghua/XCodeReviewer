@@ -31,7 +31,9 @@ import { hasZipFile } from "@/shared/utils/zipStorage";
 import { isRepositoryProject, getSourceTypeLabel } from "@/shared/utils/projectUtils";
 import { toast } from "sonner";
 import CreateTaskDialog from "@/components/audit/CreateTaskDialog";
+import FileSelectionDialog from "@/components/audit/FileSelectionDialog";
 import TerminalProgressDialog from "@/components/audit/TerminalProgressDialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { SUPPORTED_LANGUAGES } from "@/shared/constants";
 
 export default function ProjectDetail() {
@@ -55,6 +57,9 @@ export default function ProjectDetail() {
   const [activeTab, setActiveTab] = useState("overview");
   const [latestIssues, setLatestIssues] = useState<any[]>([]);
   const [loadingIssues, setLoadingIssues] = useState(false);
+
+  const [showFileSelectionDialog, setShowFileSelectionDialog] = useState(false);
+  const [showAuditOptionsDialog, setShowAuditOptionsDialog] = useState(false);
 
   useEffect(() => {
     if (activeTab === 'issues' && tasks.length > 0) {
@@ -142,7 +147,25 @@ export default function ProjectDetail() {
     }
   };
 
-  const handleRunAudit = async () => {
+  const handleRunAudit = () => {
+    setShowAuditOptionsDialog(true);
+  };
+
+  const handleStartFullAudit = () => {
+    setShowAuditOptionsDialog(false);
+    startAudit(undefined);
+  };
+
+  const handleOpenCustomAudit = () => {
+    setShowAuditOptionsDialog(false);
+    setShowFileSelectionDialog(true);
+  };
+
+  const handleStartCustomAudit = (files: string[]) => {
+    startAudit(files);
+  };
+
+  const startAudit = async (filePaths?: string[]) => {
     if (!project || !id) return;
 
     // 检查是否有仓库地址
@@ -150,12 +173,13 @@ export default function ProjectDetail() {
       // 有仓库地址，启动仓库审计
       try {
         setScanning(true);
-        console.log('开始启动仓库审计任务...');
+        console.log('开始启动仓库审计任务...', filePaths ? `指定 ${filePaths.length} 个文件` : '全量扫描');
         const taskId = await runRepositoryAudit({
           projectId: id,
           repoUrl: project.repository_url,
           branch: project.default_branch || 'main',
-          createdBy: undefined
+          createdBy: undefined,
+          filePaths: filePaths
         });
 
         console.log('审计任务创建成功，taskId:', taskId);
@@ -179,13 +203,14 @@ export default function ProjectDetail() {
         const hasFile = await hasZipFile(id);
 
         if (hasFile) {
-          console.log('找到后端存储的ZIP文件，开始启动审计...');
+          console.log('找到后端存储的ZIP文件，开始启动审计...', filePaths ? `指定 ${filePaths.length} 个文件` : '全量扫描');
           try {
             // 使用后端存储的ZIP文件启动审计
             const taskId = await scanStoredZipFile({
               projectId: id,
               excludePatterns: ['node_modules/**', '.git/**', 'dist/**', 'build/**'],
-              createdBy: 'local-user'
+              createdBy: 'local-user',
+              filePaths: filePaths
             });
 
             console.log('审计任务创建成功，taskId:', taskId);
@@ -847,6 +872,54 @@ export default function ProjectDetail() {
         onOpenChange={setShowTerminalDialog}
         taskId={currentTaskId}
         taskType="repository"
+      />
+
+      {/* 审计选项对话框 */}
+      <Dialog open={showAuditOptionsDialog} onOpenChange={setShowAuditOptionsDialog}>
+        <DialogContent className="max-w-md bg-white border-2 border-black p-0 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] rounded-none">
+          <DialogHeader className="p-6 border-b-2 border-black bg-gray-50">
+            <DialogTitle className="flex items-center space-x-2 font-display font-bold uppercase text-xl">
+              <Shield className="w-6 h-6 text-black" />
+              <span>选择审计方式</span>
+            </DialogTitle>
+          </DialogHeader>
+          <div className="p-6 space-y-4">
+            <Button
+              onClick={handleStartFullAudit}
+              className="w-full h-auto py-4 flex flex-col items-center justify-center space-y-2 retro-btn bg-white text-black hover:bg-gray-50 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all"
+            >
+              <div className="flex items-center space-x-2">
+                <Activity className="w-5 h-5" />
+                <span className="text-lg font-bold uppercase">全量审计</span>
+              </div>
+              <span className="text-xs text-gray-500 font-mono">扫描项目中的所有文件</span>
+            </Button>
+
+            <Button
+              onClick={handleOpenCustomAudit}
+              className="w-full h-auto py-4 flex flex-col items-center justify-center space-y-2 retro-btn bg-white text-black hover:bg-gray-50 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all"
+            >
+              <div className="flex items-center space-x-2">
+                <FileText className="w-5 h-5" />
+                <span className="text-lg font-bold uppercase">自定义审计</span>
+              </div>
+              <span className="text-xs text-gray-500 font-mono">选择特定文件进行扫描</span>
+            </Button>
+          </div>
+          <DialogFooter className="p-4 border-t-2 border-black bg-gray-50">
+            <Button variant="outline" onClick={() => setShowAuditOptionsDialog(false)} className="w-full retro-btn bg-white text-black hover:bg-gray-100">
+              取消
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 文件选择对话框 */}
+      <FileSelectionDialog
+        open={showFileSelectionDialog}
+        onOpenChange={setShowFileSelectionDialog}
+        projectId={id || ''}
+        onConfirm={handleStartCustomAudit}
       />
     </div>
   );

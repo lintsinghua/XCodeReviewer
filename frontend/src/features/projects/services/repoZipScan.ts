@@ -8,13 +8,19 @@ export async function scanZipFile(params: {
   zipFile: File;
   excludePatterns?: string[];
   createdBy?: string;
+  filePaths?: string[];
 }): Promise<string> {
   const formData = new FormData();
   formData.append("file", params.zipFile);
   formData.append("project_id", params.projectId);
 
+  const scanConfig = {
+    file_paths: params.filePaths,
+    full_scan: !params.filePaths || params.filePaths.length === 0
+  };
+  formData.append("scan_config", JSON.stringify(scanConfig));
+
   const res = await apiClient.post(`/scan/upload-zip`, formData, {
-    params: { project_id: params.projectId },
     headers: {
       "Content-Type": "multipart/form-data",
     },
@@ -30,8 +36,13 @@ export async function scanStoredZipFile(params: {
   projectId: string;
   excludePatterns?: string[];
   createdBy?: string;
+  filePaths?: string[];
 }): Promise<string> {
-  const res = await apiClient.post(`/scan/scan-stored-zip`, null, {
+  const scanRequest = {
+    file_paths: params.filePaths,
+    full_scan: !params.filePaths || params.filePaths.length === 0
+  };
+  const res = await apiClient.post(`/scan/scan-stored-zip`, scanRequest, {
     params: { project_id: params.projectId },
   });
 
