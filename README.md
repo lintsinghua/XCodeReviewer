@@ -183,8 +183,6 @@ docker-compose up -d
   </picture>
 </a>
 
-![Alt](https://repobeats.axiom.co/api/embed/60d88d346521499d5e408290a4e0b3d27915b5e0.svg "Repobeats analytics image")
-
 <div style="width: 100%; max-width: 600px; margin: 0 auto;">
   <a href="https://github.com/lintsinghua/XCodeReviewer">
     <img src="frontend/public/star-me-cn.svg" alt="Star this project" style="width: 100%; height: auto; display: block; margin: 0 auto;" />
