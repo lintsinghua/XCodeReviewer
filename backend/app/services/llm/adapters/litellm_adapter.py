@@ -128,6 +128,7 @@ class LiteLLMAdapter(BaseLLMAdapter):
         # 设置 API Base URL
         if self._api_base:
             kwargs["api_base"] = self._api_base
+            print(f"🔗 使用自定义 API Base: {self._api_base}")
 
         # 设置超时
         kwargs["timeout"] = self.config.timeout
