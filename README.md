@@ -173,11 +173,17 @@ docker-compose up -d
   <em>你的支持是我们持续迭代的最大动力 💪</em>
 </p>
 
-<p align="center">
-  <a href="https://star-history.com/#lintsinghua/XCodeReviewer&Date">
-    <img src="https://api.star-history.com/svg?repos=lintsinghua/XCodeReviewer&type=Date" alt="Star History">
-  </a>
-</p>
+## 📈 项目统计
+
+<a href="https://www.star-history.com/#lintsinghua/XCodeReviewer&Date">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=lintsinghua/XCodeReviewer&type=Date&theme=dark" />
+    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=lintsinghua/XCodeReviewer&type=Date" />
+    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=lintsinghua/XCodeReviewer&type=Date" />
+  </picture>
+</a>
+
+![Repobeats analytics](https://repobeats.axiom.co/api/embed/c8e8e8e8e8e8e8e8e8e8e8e8e8e8e8e8e8e8e8e8.svg "Repobeats analytics image")
 
 <div style="width: 100%; max-width: 600px; margin: 0 auto;">
   <a href="https://github.com/lintsinghua/XCodeReviewer">
