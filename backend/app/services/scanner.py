@@ -327,6 +327,7 @@ async def scan_repo_task(task_id: str, db_session_factory, user_config: dict = N
             quality_scores = []
             scanned_files = 0
             failed_files = 0
+            skipped_files = 0  # 跳过的文件（空文件、太大等）
             consecutive_failures = 0
             MAX_CONSECUTIVE_FAILURES = 5
 
@@ -353,19 +354,26 @@ async def scan_repo_task(task_id: str, db_session_factory, user_config: dict = N
                     if token_to_use:
                         headers["PRIVATE-TOKEN"] = token_to_use
                     
+                    print(f"📥 正在获取文件: {file_info['path']}")
                     content = await fetch_file_content(file_info["url"], headers)
-                    if not content:
+                    if not content or not content.strip():
+                        print(f"⚠️ 文件内容为空，跳过: {file_info['path']}")
+                        skipped_files += 1
                         continue
                     
                     if len(content) > settings.MAX_FILE_SIZE_BYTES:
+                        print(f"⚠️ 文件太大，跳过: {file_info['path']}")
+                        skipped_files += 1
                         continue
                     
                     file_lines = content.split('\n')
                     total_lines = len(file_lines) + 1
                     language = get_language_from_path(file_info["path"])
                     
+                    print(f"🤖 正在调用 LLM 分析: {file_info['path']} ({language}, {len(content)} bytes)")
                     # LLM分析
                     analysis = await llm_service.analyze_code(content, language)
+                    print(f"✅ LLM 分析完成: {file_info['path']}")
                     
                     # 再次检查是否取消（LLM分析后）
                     if task_control.is_cancelled(task_id):
@@ -432,14 +440,29 @@ async def scan_repo_task(task_id: str, db_session_factory, user_config: dict = N
                 except Exception as file_error:
                     failed_files += 1
                     consecutive_failures += 1
+                    # 打印详细错误信息
+                    import traceback
                     print(f"❌ 分析文件失败 ({file_info['path']}): {file_error}")
+                    print(f"   错误类型: {type(file_error).__name__}")
+                    print(f"   详细信息: {traceback.format_exc()}")
                     await asyncio.sleep(settings.LLM_GAP_MS / 1000)
 
             # 5. 完成任务
             avg_quality_score = sum(quality_scores) / len(quality_scores) if quality_scores else 100.0
             
-            # 如果有文件需要分析但全部失败，标记为失败
-            if len(files) > 0 and scanned_files == 0:
+            # 判断任务状态
+            # 如果所有文件都被跳过（空文件等），标记为完成但给出提示
+            if len(files) > 0 and scanned_files == 0 and skipped_files == len(files):
+                task.status = "completed"
+                task.completed_at = datetime.utcnow()
+                task.scanned_files = 0
+                task.total_lines = 0
+                task.issues_count = 0
+                task.quality_score = 100.0
+                await db.commit()
+                print(f"⚠️ 任务 {task_id} 完成: 所有 {len(files)} 个文件均为空或被跳过，无需分析")
+            # 如果有文件需要分析但全部失败（LLM调用失败），标记为失败
+            elif len(files) > 0 and scanned_files == 0 and failed_files > 0:
                 task.status = "failed"
                 task.completed_at = datetime.utcnow()
                 task.scanned_files = 0
@@ -447,7 +470,7 @@ async def scan_repo_task(task_id: str, db_session_factory, user_config: dict = N
                 task.issues_count = 0
                 task.quality_score = 0
                 await db.commit()
-                print(f"❌ 任务 {task_id} 失败: 所有 {len(files)} 个文件分析均失败，请检查 LLM API 配置")
+                print(f"❌ 任务 {task_id} 失败: {failed_files} 个文件分析失败，请检查 LLM API 配置")
             else:
                 task.status = "completed"
                 task.completed_at = datetime.utcnow()
