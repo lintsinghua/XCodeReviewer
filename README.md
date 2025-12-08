@@ -175,19 +175,7 @@ docker-compose up -d
 
 ## 📈 项目统计
 
-<a href="https://www.star-history.com/#lintsinghua/DeepAudit&Date">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=lintsinghua/DeepAudit&type=Date&theme=dark" />
-    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=lintsinghua/DeepAudit&type=Date" />
-    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=lintsinghua/DeepAudit&type=Date" />
-  </picture>
-</a>
-
-<div style="width: 100%; max-width: 600px; margin: 0 auto;">
-  <a href="https://github.com/lintsinghua/DeepAudit">
-    <img src="frontend/public/star-me-cn.svg" alt="Star this project" style="width: 100%; height: auto; display: block; margin: 0 auto;" />
-  </a>
-</div>
+[![Star History Chart](https://api.star-history.com/svg?repos=lintsinghua/DeepAudit&type=date&legend=top-left)](https://www.star-history.com/#lintsinghua/DeepAudit&type=date&legend=top-left)
 
 ---
 
