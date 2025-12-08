@@ -37,6 +37,18 @@
 - 支持本地私有部署：支持本地模型运行，代码数据可以不出内网，彻底根除“裸奔”焦虑
 - 深层隐患排查：一键扫描第三方外包项目、交付项目，快速揪出隐藏后门与逻辑炸弹，让签字验收有底气
 
+## 🎬 眼见为实，但不仅如此：
+
+| 智能仪表盘 | 即时分析 |
+|:---:|:---:|
+| ![仪表盘](frontend/public/images/example1.png) | ![即时分析](frontend/public/images/example2.png) |
+| *一眼掌握项目安全态势* | *链接仓库/粘贴代码，秒出结果* |
+
+| 项目管理 | 审计报告 |
+|:---:|:---:|
+| ![项目管理](frontend/public/images/example3.png) | ![审计报告](frontend/public/images/审计报告示例.png) |
+| *GitHub/GitLab 无缝集成* | *专业报告，一键导出* |
+
 ## ✨ 为什么选择我们？
 
 <table>
@@ -69,19 +81,6 @@ JSON、PDF 格式随心选，审计报告直接交付，省去整理时间。
 </td>
 </tr>
 </table>
-
-## 🎬 眼见为实，但不仅如此：
-
-| 智能仪表盘 | 即时分析 |
-|:---:|:---:|
-| ![仪表盘](frontend/public/images/example1.png) | ![即时分析](frontend/public/images/example2.png) |
-| *一眼掌握项目安全态势* | *链接仓库/粘贴代码，秒出结果* |
-
-| 项目管理 | 审计报告 |
-|:---:|:---:|
-| ![项目管理](frontend/public/images/example3.png) | ![审计报告](frontend/public/images/审计报告示例.png) |
-| *GitHub/GitLab 无缝集成* | *专业报告，一键导出* |
-
 
 ## 🚀 3 步开始你的智能审计之旅
 
