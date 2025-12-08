@@ -11,6 +11,13 @@ from .types import LLMConfig, LLMProvider, LLMMessage, LLMRequest, DEFAULT_MODEL
 from .factory import LLMFactory
 from app.core.config import settings
 
+# json-repair 库用于修复损坏的 JSON
+try:
+    from json_repair import repair_json
+    JSON_REPAIR_AVAILABLE = True
+except ImportError:
+    JSON_REPAIR_AVAILABLE = False
+
 logger = logging.getLogger(__name__)
 
 
@@ -458,6 +465,8 @@ Please analyze the following code:
             lambda: self._fix_truncated_json(clean_text(text)),
             # 6. 激进修复后解析
             lambda: json.loads(aggressive_fix_json(text)),
+            # 7. 使用 json-repair 库作为最终兜底方案
+            lambda: self._repair_json_with_library(text),
         ]
         
         last_error = None
@@ -573,6 +582,32 @@ Please analyze the following code:
         # 修复格式
         json_str = re.sub(r',(\s*[}\]])', r'\1', json_str)
         return json.loads(json_str)
+    
+    def _repair_json_with_library(self, text: str) -> Dict[str, Any]:
+        """使用 json-repair 库修复损坏的 JSON（兜底方案）"""
+        if not JSON_REPAIR_AVAILABLE:
+            raise ValueError("json-repair library not available")
+        
+        # 先尝试提取 JSON 部分
+        start_idx = text.find('{')
+        if start_idx == -1:
+            raise ValueError("No JSON object found for repair")
+        
+        # 尝试找到最后一个 }
+        end_idx = text.rfind('}')
+        if end_idx > start_idx:
+            json_str = text[start_idx:end_idx + 1]
+        else:
+            json_str = text[start_idx:]
+        
+        # 使用 json-repair 修复
+        repaired = repair_json(json_str, return_objects=True)
+        
+        if isinstance(repaired, dict):
+            logger.info("✅ json-repair 库成功修复 JSON")
+            return repaired
+        
+        raise ValueError(f"json-repair returned unexpected type: {type(repaired)}")
     
     def _get_default_response(self) -> Dict[str, Any]:
         """返回默认响应"""
