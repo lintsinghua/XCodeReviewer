@@ -1,6 +1,6 @@
 # 贡献指南
 
-感谢你对 XCodeReviewer 的关注！我们热烈欢迎所有形式的贡献，无论是提交 Issue、创建 PR，还是改进文档。
+感谢你对 DeepAudit 的关注！我们热烈欢迎所有形式的贡献，无论是提交 Issue、创建 PR，还是改进文档。
 
 ## 目录
 
@@ -23,7 +23,7 @@
 
 ### 报告 Bug
 
-1. 先搜索 [Issues](https://github.com/lintsinghua/XCodeReviewer/issues) 确认问题未被报告
+1. 先搜索 [Issues](https://github.com/lintsinghua/DeepAudit/issues) 确认问题未被报告
 2. 创建新 Issue，使用 Bug 报告模板
 3. 提供详细信息：
    - 操作系统和版本
@@ -74,10 +74,10 @@
 ```bash
 # 使用 Docker 启动 PostgreSQL（推荐）
 docker run -d \
-  --name xcodereviewer-db \
+  --name deepaudit-db \
   -e POSTGRES_USER=postgres \
   -e POSTGRES_PASSWORD=postgres \
-  -e POSTGRES_DB=xcodereviewer \
+  -e POSTGRES_DB=deepaudit \
   -p 5432:5432 \
   postgres:15-alpine
 ```
@@ -224,11 +224,11 @@ git commit -m "refactor(api): simplify error handling"
 ```bash
 # Fork 项目到你的 GitHub 账号
 # 然后克隆到本地
-git clone https://github.com/YOUR_USERNAME/XCodeReviewer.git
-cd XCodeReviewer
+git clone https://github.com/YOUR_USERNAME/DeepAudit.git
+cd DeepAudit
 
 # 添加上游仓库
-git remote add upstream https://github.com/lintsinghua/XCodeReviewer.git
+git remote add upstream https://github.com/lintsinghua/DeepAudit.git
 ```
 
 ### 2. 创建分支
@@ -282,7 +282,7 @@ git push origin feature/your-feature-name
 ## 项目结构
 
 ```
-XCodeReviewer/
+DeepAudit/
 ├── backend/                 # 后端 (FastAPI)
 │   ├── app/
 │   │   ├── api/            # API 路由
@@ -313,7 +313,7 @@ XCodeReviewer/
 
 感谢所有贡献者的付出！
 
-[![Contributors](https://contrib.rocks/image?repo=lintsinghua/XCodeReviewer)](https://github.com/lintsinghua/XCodeReviewer/graphs/contributors)
+[![Contributors](https://contrib.rocks/image?repo=lintsinghua/DeepAudit)](https://github.com/lintsinghua/DeepAudit/graphs/contributors)
 
 ---
 
@@ -321,5 +321,5 @@ XCodeReviewer/
 
 如有问题，请通过以下方式联系：
 
-- [GitHub Issues](https://github.com/lintsinghua/XCodeReviewer/issues)
+- [GitHub Issues](https://github.com/lintsinghua/DeepAudit/issues)
 - 邮箱: lintsinghua@qq.com

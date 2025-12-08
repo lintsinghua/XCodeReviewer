@@ -1,6 +1,6 @@
 # 常见问题 (FAQ)
 
-本文档收集了 XCodeReviewer 使用过程中的常见问题和解决方案。
+本文档收集了 DeepAudit 使用过程中的常见问题和解决方案。
 
 ## 目录
 
@@ -21,8 +21,8 @@
 
 ```bash
 # 1. 克隆项目
-git clone https://github.com/lintsinghua/XCodeReviewer.git
-cd XCodeReviewer
+git clone https://github.com/lintsinghua/DeepAudit.git
+cd DeepAudit
 
 # 2. 配置 LLM API Key
 cp backend/env.example backend/.env
@@ -49,7 +49,7 @@ docker-compose up -d
 
 ### Q: 支持哪些编程语言？
 
-XCodeReviewer 支持所有主流编程语言的代码分析，包括但不限于：
+DeepAudit 支持所有主流编程语言的代码分析，包括但不限于：
 
 - **Web**: JavaScript, TypeScript, HTML, CSS
 - **后端**: Python, Java, Go, Rust, C/C++, C#
@@ -376,10 +376,10 @@ Ollama 本地模型没有网络延迟，适合大量文件分析。
 
 ```bash
 # 导出数据
-docker-compose exec db pg_dump -U postgres xcodereviewer > backup.sql
+docker-compose exec db pg_dump -U postgres deepaudit > backup.sql
 
 # 恢复数据
-docker-compose exec -T db psql -U postgres xcodereviewer < backup.sql
+docker-compose exec -T db psql -U postgres deepaudit < backup.sql
 ```
 
 ### Q: 如何恢复数据？
@@ -419,7 +419,7 @@ docker-compose up -d
 
 如果以上内容没有解决你的问题，欢迎：
 
-- 提交 [GitHub Issue](https://github.com/lintsinghua/XCodeReviewer/issues)
+- 提交 [GitHub Issue](https://github.com/lintsinghua/DeepAudit/issues)
 - 发送邮件至 lintsinghua@qq.com
 
 提问时请提供：

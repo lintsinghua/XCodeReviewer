@@ -19,7 +19,7 @@ async def lifespan(app: FastAPI):
     应用生命周期管理
     启动时初始化数据库（创建默认账户等）
     """
-    logger.info("XCodeReviewer 后端服务启动中...")
+    logger.info("DeepAudit 后端服务启动中...")
     
     # 初始化数据库（创建默认账户）
     # 注意：需要先运行 alembic upgrade head 创建表结构
@@ -36,7 +36,7 @@ async def lifespan(app: FastAPI):
             logger.warning(f"数据库初始化跳过: {e}")
     
     logger.info("=" * 50)
-    logger.info("XCodeReviewer 后端服务已启动")
+    logger.info("DeepAudit 后端服务已启动")
     logger.info(f"API 文档: http://localhost:8000/docs")
     logger.info("=" * 50)
     logger.info("演示账户: demo@example.com / demo123")
@@ -44,7 +44,7 @@ async def lifespan(app: FastAPI):
     
     yield
     
-    logger.info("XCodeReviewer 后端服务已关闭")
+    logger.info("DeepAudit 后端服务已关闭")
 
 
 app = FastAPI(
@@ -73,7 +73,7 @@ async def health_check():
 @app.get("/")
 async def root():
     return {
-        "message": "Welcome to XCodeReviewer API",
+        "message": "Welcome to DeepAudit API",
         "docs": "/docs",
         "demo_account": {
             "email": "demo@example.com",

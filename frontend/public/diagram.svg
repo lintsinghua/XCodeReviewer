@@ -63,7 +63,7 @@
   <!-- Title Section -->
   <g id="header">
     <rect x="50" y="20" width="1120" height="65" fill="url(#grad-main)" rx="6" class="shadow"/>
-    <text x="610" y="50" text-anchor="middle" class="layer-title" font-size="24">XCodeReviewer: Multi-LLM Code Audit Platform</text>
+    <text x="610" y="50" text-anchor="middle" class="layer-title" font-size="24">DeepAudit: Multi-LLM Code Audit Platform</text>
     <text x="610" y="72" text-anchor="middle" class="layer-title" font-size="12">Unified Abstraction Architecture with Concurrent Processing Engine</text>
   </g>
   

@@ -2,7 +2,7 @@
 chcp 65001 >nul
 setlocal enabledelayedexpansion
 
-echo 🚀 XCodeReviewer 项目设置开始...
+echo 🚀 DeepAudit 项目设置开始...
 
 REM 检查 Node.js 版本
 echo 📋 检查 Node.js 版本...
@@ -117,7 +117,7 @@ echo    - DEPLOYMENT.md - 部署指南
 echo    - FEATURES.md - 功能特性详解
 echo.
 echo 🆘 需要帮助？
-echo    - GitHub Issues: https://github.com/lintsinghua/XCodeReviewer/issues
+echo    - GitHub Issues: https://github.com/lintsinghua/DeepAudit/issues
 echo    - 邮箱: tsinghuaiiilove@gmail.com
 echo.
 echo Happy coding! 🚀

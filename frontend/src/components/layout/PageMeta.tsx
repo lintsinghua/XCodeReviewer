@@ -22,13 +22,13 @@ export function AppWrapper({ children }: AppWrapperProps) {
 }
 
 export default function PageMeta({
-  title = "XCodeReviewer",
+  title = "DeepAudit",
   description = "基于AI的现代化代码质量分析和审查服务，提供全面的代码安全检测、性能分析和最佳实践建议。",
   keywords = "代码审计,代码质量,AI分析,安全检测,性能优化,代码规范",
   image = "/images/logo.png",
   url = window.location.href
 }: PageMetaProps) {
-  const fullTitle = title === "XCodeReviewer" ? title : `${title} - XCodeReviewer`;
+  const fullTitle = title === "DeepAudit" ? title : `${title} - DeepAudit`;
 
   return (
     <Helmet>
@@ -43,7 +43,7 @@ export default function PageMeta({
       <meta property="og:image" content={image} />
       <meta property="og:url" content={url} />
       <meta property="og:type" content="website" />
-      <meta property="og:site_name" content="XCodeReviewer" />
+      <meta property="og:site_name" content="DeepAudit" />
 
       {/* Twitter Card */}
       <meta name="twitter:card" content="summary_large_image" />
@@ -53,7 +53,7 @@ export default function PageMeta({
 
       {/* 其他 */}
       <meta name="robots" content="index, follow" />
-      <meta name="author" content="XCodeReviewer" />
+      <meta name="author" content="DeepAudit" />
       <link rel="canonical" href={url} />
     </Helmet>
   );

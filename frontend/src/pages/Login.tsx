@@ -108,13 +108,13 @@ export default function Login() {
         <div className="mb-8 text-center">
           <div className="inline-flex items-center justify-center p-3 bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] mb-6">
             <img
-              src="/logo_xcodereviewer.png"
-              alt="XCodeReviewer"
+              src="/logo_deepaudit.png"
+              alt="DeepAudit"
               className="w-14 h-14 object-contain"
             />
           </div>
           <h1 className="text-3xl font-display font-bold tracking-tighter uppercase">
-            XCode<span className="text-primary">Reviewer</span>
+            Deep<span className="text-primary">Audit</span>
           </h1>
           <p className="text-sm font-mono text-gray-500 mt-2">
             // 代码审计平台

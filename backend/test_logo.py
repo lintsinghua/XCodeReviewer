@@ -9,8 +9,8 @@ def test_logo_read():
         # 假设脚本在 backend/app/services/test_logo.py
         
         # 直接使用绝对路径进行测试，排除相对路径计算干扰
-        project_root = "/Users/lintsinghua/XCodeReviewer"
-        logo_path = os.path.join(project_root, 'frontend/public/logo_xcodereviewer.png')
+        project_root = "/Users/lintsinghua/DeepAudit"
+        logo_path = os.path.join(project_root, 'frontend/public/logo_deepaudit.png')
         
         print(f"Looking for logo at: {logo_path}")
         

@@ -1,6 +1,6 @@
 # 配置说明
 
-本文档详细介绍 XCodeReviewer 的所有配置选项，包括后端环境变量、前端配置和运行时配置。
+本文档详细介绍 DeepAudit 的所有配置选项，包括后端环境变量、前端配置和运行时配置。
 
 ## 目录
 
@@ -14,7 +14,7 @@
 
 ## 配置方式概览
 
-XCodeReviewer 采用前后端分离架构，数据存储在后端 PostgreSQL 数据库中。
+DeepAudit 采用前后端分离架构，数据存储在后端 PostgreSQL 数据库中。
 
 配置优先级（从高到低）：
 
@@ -38,14 +38,14 @@ cp backend/env.example backend/.env
 
 ```env
 # =============================================
-# XCodeReviewer Backend 配置文件
+# DeepAudit Backend 配置文件
 # =============================================
 
 # ========== 数据库配置 ==========
 POSTGRES_SERVER=localhost          # 数据库服务器地址
 POSTGRES_USER=postgres             # 数据库用户名
 POSTGRES_PASSWORD=postgres         # 数据库密码
-POSTGRES_DB=xcodereviewer          # 数据库名称
+POSTGRES_DB=deepaudit              # 数据库名称
 # DATABASE_URL=                    # 完整数据库连接字符串（可选，会覆盖上述配置）
 
 # ========== 安全配置 ==========
@@ -161,7 +161,7 @@ cp frontend/.env.example frontend/.env
 VITE_API_BASE_URL=/api             # 后端 API 地址
 
 # ========== 应用配置 ==========
-VITE_APP_ID=xcodereviewer
+VITE_APP_ID=deepaudit
 
 # ========== 代码分析配置 ==========
 VITE_MAX_ANALYZE_FILES=40          # 最大分析文件数
@@ -184,7 +184,7 @@ VITE_OUTPUT_LANGUAGE=zh-CN         # 输出语言
 
 ## 运行时配置
 
-XCodeReviewer 支持在浏览器中进行运行时配置，无需重启服务。
+DeepAudit 支持在浏览器中进行运行时配置，无需重启服务。
 
 ### 访问方式
 
@@ -223,7 +223,7 @@ XCodeReviewer 支持在浏览器中进行运行时配置，无需重启服务。
 
 ## 数据存储
 
-XCodeReviewer 采用前后端分离架构，所有数据存储在后端 PostgreSQL 数据库中。
+DeepAudit 采用前后端分离架构，所有数据存储在后端 PostgreSQL 数据库中。
 
 ### 架构说明
 

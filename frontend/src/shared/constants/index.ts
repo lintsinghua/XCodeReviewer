@@ -94,9 +94,9 @@ export const API_ENDPOINTS = {
 
 // 本地存储键名
 export const STORAGE_KEYS = {
-  THEME: 'xcodereviewer-theme',
-  USER_PREFERENCES: 'xcodereviewer-preferences',
-  RECENT_PROJECTS: 'xcodereviewer-recent-projects',
+  THEME: 'deepaudit-theme',
+  USER_PREFERENCES: 'deepaudit-preferences',
+  RECENT_PROJECTS: 'deepaudit-recent-projects',
 } as const;
 
 // 导出项目类型相关常量

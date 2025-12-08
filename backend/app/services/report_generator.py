@@ -40,7 +40,7 @@ class ReportGenerator:
                     vertical-align: middle;
                 }
                 @top-right {
-                    content: "XCodeReviewer Audit Report";
+                    content: "DeepAudit Audit Report";
                     font-size: 8pt;
                     color: #666;
                     font-family: sans-serif;

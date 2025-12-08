@@ -1,23 +1,23 @@
-# XCodeReviewer - 您的智能代码审计伙伴 🚀
+# DeepAudit - 您的智能代码审计伙伴 🚀
 
 > 多Agent、PR批量自动审计版本正在开发中，敬请期待......
 
 <div style="width: 100%; max-width: 600px; margin: 0 auto;">
-  <img src="frontend/public/images/logo.png" alt="XCodeReviewer Logo" style="width: 100%; height: auto; display: block; margin: 0 auto;">
+  <img src="frontend/public/images/logo.png" alt="DeepAudit Logo" style="width: 100%; height: auto; display: block; margin: 0 auto;">
 </div>
 
 <div align="center">
 
-[![Version](https://img.shields.io/badge/version-2.0.0--beta.1-blue.svg)](https://github.com/lintsinghua/XCodeReviewer/releases)
+[![Version](https://img.shields.io/badge/version-2.0.0--beta.1-blue.svg)](https://github.com/lintsinghua/DeepAudit/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![React](https://img.shields.io/badge/React-18-61dafb.svg)](https://reactjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178c6.svg)](https://www.typescriptlang.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688.svg)](https://fastapi.tiangolo.com/)
 [![Python](https://img.shields.io/badge/Python-3.13+-3776ab.svg)](https://www.python.org/)
-[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/lintsinghua/XCodeReviewer)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/lintsinghua/DeepAudit)
 
-[![Stars](https://img.shields.io/github/stars/lintsinghua/XCodeReviewer?style=social)](https://github.com/lintsinghua/XCodeReviewer/stargazers)
-[![Forks](https://img.shields.io/github/forks/lintsinghua/XCodeReviewer?style=social)](https://github.com/lintsinghua/XCodeReviewer/network/members)
+[![Stars](https://img.shields.io/github/stars/lintsinghua/DeepAudit?style=social)](https://github.com/lintsinghua/DeepAudit/stargazers)
+[![Forks](https://img.shields.io/github/forks/lintsinghua/DeepAudit?style=social)](https://github.com/lintsinghua/DeepAudit/network/members)
 
 </div>
 
@@ -30,7 +30,7 @@
 - 😰 安全漏洞藏得太深，上线后才发现问题
 - 🥺 想用 AI 辅助审计，但配置复杂、门槛太高
 
-**XCodeReviewer 来拯救你！** 🦸‍♂️
+**DeepAudit 来拯救你！** 🦸‍♂️
 
 我们将 10+ 主流大模型的智慧注入代码审计，让你像和资深安全专家对话一样，轻松发现代码中的安全隐患、性能瓶颈和潜在 Bug。
 
@@ -85,7 +85,7 @@ JSON、PDF 格式随心选，审计报告直接交付，省去整理时间。
 
 ```bash
 # 1️⃣ 克隆项目
-git clone https://github.com/lintsinghua/XCodeReviewer.git && cd XCodeReviewer
+git clone https://github.com/lintsinghua/DeepAudit.git && cd DeepAudit
 
 # 2️⃣ 配置你的 LLM API Key
 cp backend/env.example backend/.env
@@ -157,12 +157,12 @@ docker-compose up -d
 
 **感谢每一位贡献者！**
 
-[![Contributors](https://contrib.rocks/image?repo=lintsinghua/XCodeReviewer)](https://github.com/lintsinghua/XCodeReviewer/graphs/contributors)
+[![Contributors](https://contrib.rocks/image?repo=lintsinghua/DeepAudit)](https://github.com/lintsinghua/DeepAudit/graphs/contributors)
 
 ## 📞 联系我们
 
-- **项目链接**: [https://github.com/lintsinghua/XCodeReviewer](https://github.com/lintsinghua/XCodeReviewer)
-- **问题反馈**: [Issues](https://github.com/lintsinghua/XCodeReviewer/issues)
+- **项目链接**: [https://github.com/lintsinghua/DeepAudit](https://github.com/lintsinghua/DeepAudit)
+- **问题反馈**: [Issues](https://github.com/lintsinghua/DeepAudit/issues)
 - **作者邮箱**: lintsinghua@qq.com（合作请注明来意）
 
 ---
@@ -175,18 +175,18 @@ docker-compose up -d
 
 ## 📈 项目统计
 
-<a href="https://www.star-history.com/#lintsinghua/XCodeReviewer&Date">
+<a href="https://www.star-history.com/#lintsinghua/DeepAudit&Date">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=lintsinghua/XCodeReviewer&type=Date&theme=dark" />
-    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=lintsinghua/XCodeReviewer&type=Date" />
-    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=lintsinghua/XCodeReviewer&type=Date" />
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=lintsinghua/DeepAudit&type=Date&theme=dark" />
+    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=lintsinghua/DeepAudit&type=Date" />
+    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=lintsinghua/DeepAudit&type=Date" />
   </picture>
 </a>
 
 ![Repobeats analytics](https://repobeats.axiom.co/api/embed/c8e8e8e8e8e8e8e8e8e8e8e8e8e8e8e8e8e8e8e8.svg "Repobeats analytics image")
 
 <div style="width: 100%; max-width: 600px; margin: 0 auto;">
-  <a href="https://github.com/lintsinghua/XCodeReviewer">
+  <a href="https://github.com/lintsinghua/DeepAudit">
     <img src="frontend/public/star-me-cn.svg" alt="Star this project" style="width: 100%; height: auto; display: block; margin: 0 auto;" />
   </a>
 </div>

@@ -1,7 +1,7 @@
 [project]
-name = "xcodereviewer-backend"
+name = "deepaudit-backend"
 version = "0.1.0"
-description = "XCodeReviewer Backend API"
+description = "DeepAudit Backend API"
 requires-python = ">=3.13"
 dependencies = [
     "fastapi>=0.100.0",

@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 
-console.log('🚀 XCodeReviewer 项目设置开始...');
+console.log('🚀 DeepAudit 项目设置开始...');
 
 // 检查 Node.js 版本
 function checkNodeVersion() {
@@ -123,7 +123,7 @@ function main() {
     console.log('   - FEATURES.md - 功能特性详解');
     console.log('');
     console.log('🆘 需要帮助？');
-    console.log('   - GitHub Issues: https://github.com/lintsinghua/XCodeReviewer/issues');
+    console.log('   - GitHub Issues: https://github.com/lintsinghua/DeepAudit/issues');
     console.log('   - 邮箱: tsinghuaiiilove@gmail.com');
     console.log('');
     console.log('Happy coding! 🚀');

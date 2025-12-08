@@ -212,7 +212,7 @@ MIT 许可证明确声明软件按"原样"提供，不提供任何形式的担�
 
 如有疑问，请通过以下方式联系维护者：
 
-- **GitHub Issues**: [https://github.com/lintsinghua/XCodeReviewer/issues](https://github.com/lintsinghua/XCodeReviewer/issues)
+- **GitHub Issues**: [https://github.com/lintsinghua/DeepAudit/issues](https://github.com/lintsinghua/DeepAudit/issues)
 - **邮箱**: lintsinghua@qq.com
 
 ---

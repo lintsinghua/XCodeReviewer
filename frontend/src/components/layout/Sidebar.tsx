@@ -83,11 +83,11 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
                             onClick={() => setMobileOpen(false)}
                         >
                             <div className="relative flex-shrink-0 border border-primary bg-white p-1 shadow-sm rounded-sm overflow-hidden">
-                                <img src="/logo_xcodereviewer.png" alt="XCodeReviewer" className="w-7 h-7 object-contain" />
+                                <img src="/logo_deepaudit.png" alt="DeepAudit" className="w-7 h-7 object-contain" />
                             </div>
                             <div className={`transition-all duration-300 ${collapsed ? 'w-0 opacity-0 overflow-hidden' : 'flex-1 min-w-0 opacity-100'}`}>
                                 <span className="text-lg font-display font-bold text-black tracking-tighter uppercase whitespace-nowrap">
-                                    XCode<span className="text-primary">Reviewer</span>
+                                    Deep<span className="text-primary">Audit</span>
                                 </span>
                             </div>
                         </Link>
@@ -179,7 +179,7 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
 
                         {/* GitHub Link */}
                         <a
-                            href="https://github.com/lintsinghua/XCodeReviewer"
+                            href="https://github.com/lintsinghua/DeepAudit"
                             target="_blank"
                             rel="noopener noreferrer"
                             className={`

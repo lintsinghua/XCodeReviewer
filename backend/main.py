@@ -1,5 +1,5 @@
 def main():
-    print("Hello from xcodereviewer-backend!")
+    print("Hello from deepaudit-backend!")
 
 
 if __name__ == "__main__":

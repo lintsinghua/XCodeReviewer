@@ -6,7 +6,7 @@ services:
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=xcodereviewer
+      - POSTGRES_DB=deepaudit
     ports:
       - "5432:5432"
     healthcheck:
@@ -15,7 +15,7 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - xcodereviewer-network
+      - deepaudit-network
 
   backend:
     build:
@@ -27,13 +27,13 @@ services:
     env_file:
       - ./backend/.env
     environment:
-      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/xcodereviewer
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/deepaudit
     depends_on:
       db:
         condition: service_healthy
     command: sh -c ".venv/bin/alembic upgrade head && .venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000"
     networks:
-      - xcodereviewer-network
+      - deepaudit-network
 
   frontend:
     build:
@@ -45,10 +45,10 @@ services:
     depends_on:
       - backend
     networks:
-      - xcodereviewer-network
+      - deepaudit-network
 
 networks:
-  xcodereviewer-network:
+  deepaudit-network:
     driver: bridge
 
 volumes:

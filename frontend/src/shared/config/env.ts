@@ -9,7 +9,7 @@
 // ==================== 应用配置 ====================
 export const env = {
   // 应用ID
-  APP_ID: import.meta.env.VITE_APP_ID || 'xcodereviewer',
+  APP_ID: import.meta.env.VITE_APP_ID || 'deepaudit',
   
   // API 基础URL
   API_BASE_URL: import.meta.env.VITE_API_BASE_URL || '/api/v1',

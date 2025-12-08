@@ -3,7 +3,7 @@
 
 set -e
 
-echo "🚀 启动 XCodeReviewer 后端服务..."
+echo "🚀 启动 DeepAudit 后端服务..."
 
 # 检查 uv 是否安装
 if ! command -v uv &> /dev/null; then

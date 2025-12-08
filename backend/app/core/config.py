@@ -4,7 +4,7 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    PROJECT_NAME: str = "XCodeReviewer"
+    PROJECT_NAME: str = "DeepAudit"
     API_V1_STR: str = "/api/v1"
     
     # SECURITY
@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     POSTGRES_SERVER: str = "db"
     POSTGRES_USER: str = "postgres"
     POSTGRES_PASSWORD: str = "postgres"
-    POSTGRES_DB: str = "xcodereviewer"
+    POSTGRES_DB: str = "deepaudit"
     DATABASE_URL: str | None = None
 
     @validator("DATABASE_URL", pre=True)
