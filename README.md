@@ -46,7 +46,7 @@
 
 | 项目管理 | 审计报告 |
 |:---:|:---:|
-| ![项目管理](frontend/public/images/example3.png) | ![审计报告](frontend/public/images/审计报告示例.png) |
+| <img src="frontend/public/images/example3.png" alt="项目管理" width="400"> | <img src="frontend/public/images/审计报告示例.png" alt="审计报告" width="400"> |
 | *GitHub/GitLab 无缝集成* | *专业报告，一键导出* |
 
 ## ✨ 为什么选择我们？

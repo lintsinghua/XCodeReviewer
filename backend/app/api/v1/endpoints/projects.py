@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 from pydantic import BaseModel
-from datetime import datetime
+from datetime import datetime, timezone
 import shutil
 import os
 import uuid
@@ -236,7 +236,7 @@ async def update_project(
     for field, value in update_data.items():
         setattr(project, field, value)
     
-    project.updated_at = datetime.utcnow()
+    project.updated_at = datetime.now(timezone.utc)
     await db.commit()
     await db.refresh(project)
     return project
@@ -260,7 +260,7 @@ async def delete_project(
         raise HTTPException(status_code=403, detail="无权删除此项目")
     
     project.is_active = False
-    project.updated_at = datetime.utcnow()
+    project.updated_at = datetime.now(timezone.utc)
     await db.commit()
     return {"message": "项目已删除"}
 
@@ -283,7 +283,7 @@ async def restore_project(
         raise HTTPException(status_code=403, detail="无权恢复此项目")
     
     project.is_active = True
-    project.updated_at = datetime.utcnow()
+    project.updated_at = datetime.now(timezone.utc)
     await db.commit()
     return {"message": "项目已恢复"}
 

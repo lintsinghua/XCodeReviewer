@@ -4,7 +4,7 @@
 """
 import json
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
@@ -60,7 +60,7 @@ async def create_demo_data(db: AsyncSession, user: User) -> None:
         return
     
     logger.info("开始创建演示数据...")
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     
     # ==================== 创建演示项目 ====================
     projects_data = [

@@ -208,7 +208,7 @@ class ReportGenerator:
             .issue-item {
                 border-bottom: 1px solid #e5e7eb;
                 padding: 10px 0; /* Reduced padding */
-                break-inside: avoid;
+                /* 移除 break-inside: avoid，允许问题块跨页 */
             }
             
             .issue-item:last-child {
@@ -220,6 +220,8 @@ class ReportGenerator:
                 justify-content: space-between;
                 align-items: flex-start;
                 margin-bottom: 6px; /* Reduced margin */
+                break-inside: avoid; /* 标题行不断开 */
+                break-after: avoid; /* 标题后不断页 */
             }
             
             .issue-title {
@@ -247,6 +249,7 @@ class ReportGenerator:
                 display: inline-block;
                 border-radius: 2px;
                 font-family: monospace;
+                break-after: avoid; /* 元信息后不断页 */
             }
             
             .issue-desc {

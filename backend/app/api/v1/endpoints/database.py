@@ -10,7 +10,7 @@ from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 from pydantic import BaseModel
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.api import deps
 from app.db.session import get_db
@@ -94,7 +94,7 @@ async def export_database(
         # 7. 构建导出数据
         export_data = {
             "version": "1.0.0",
-            "export_date": datetime.utcnow().isoformat(),
+            "export_date": datetime.now(timezone.utc).isoformat(),
             "user": {
                 "id": current_user.id,
                 "email": current_user.email,

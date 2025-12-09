@@ -215,13 +215,15 @@ class LLMService:
 2. JSON字符串值中的特殊字符必须正确转义（换行用\\n，双引号用\\"，反斜杠用\\\\）
 3. code_snippet字段必须使用\\n表示换行
 
-请从以下维度全面分析代码：
-- 编码规范和代码风格
+请从以下维度全面、彻底地分析代码，找出所有问题：
+- 安全漏洞（SQL注入、XSS、命令注入、路径遍历、SSRF、XXE、反序列化、硬编码密钥等）
 - 潜在的 Bug 和逻辑错误
 - 性能问题和优化建议
-- 安全漏洞和风险
+- 编码规范和代码风格
 - 可维护性和可读性
 - 最佳实践和设计模式
+
+【重要】请尽可能多地找出代码中的所有问题，不要遗漏任何安全漏洞或潜在风险！
 
 输出格式必须严格符合以下 JSON Schema：
 
@@ -268,13 +270,15 @@ You are a professional code auditing assistant. Your task is to analyze code and
 2. Special characters in JSON strings must be properly escaped (\\n for newlines, \\" for quotes, \\\\ for backslashes)
 3. code_snippet field MUST use \\n for newlines
 
-Please comprehensively analyze the code from the following dimensions:
-- Coding standards and code style
+Please comprehensively and thoroughly analyze the code, finding ALL issues from the following dimensions:
+- Security vulnerabilities (SQL injection, XSS, command injection, path traversal, SSRF, XXE, deserialization, hardcoded secrets, etc.)
 - Potential bugs and logical errors
 - Performance issues and optimization suggestions
-- Security vulnerabilities and risks
+- Coding standards and code style
 - Maintainability and readability
 - Best practices and design patterns
+
+【IMPORTANT】Find as many issues as possible! Do NOT miss any security vulnerabilities or potential risks!
 
 The output format MUST strictly conform to the following JSON Schema:
 
@@ -358,6 +362,10 @@ Please analyze the following code:
             response = await adapter.complete(request)
             content = response.content
             
+            # 记录 LLM 原始响应（用于调试）
+            logger.info(f"📥 LLM 原始响应长度: {len(content) if content else 0} 字符")
+            logger.info(f"📥 LLM 原始响应内容:\n{content}")
+            
             # 检查响应内容是否为空
             if not content or not content.strip():
                 error_msg = f"LLM返回空响应 - Provider: {self.config.provider.value}, Model: {self.config.model}"
@@ -367,6 +375,10 @@ Please analyze the following code:
             
             # 尝试从响应中提取JSON
             result = self._parse_json(content)
+            
+            # 记录解析后的问题数量
+            issues_count = len(result.get("issues", []))
+            logger.info(f"📊 LLM 分析结果: 发现 {issues_count} 个问题, 质量评分: {result.get('quality_score', 'N/A')}")
             
             # 检查解析结果是否有效（不是默认响应）
             if result == self._get_default_response():

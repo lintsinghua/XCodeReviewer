@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 from pydantic import BaseModel
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.api import deps
 from app.db.session import get_db
@@ -161,7 +161,7 @@ async def cancel_task(
     
     # 更新数据库状态
     task.status = "cancelled"
-    task.completed_at = datetime.utcnow()
+    task.completed_at = datetime.now(timezone.utc)
     await db.commit()
     
     return {"message": "任务已取消", "task_id": id}
@@ -223,7 +223,7 @@ async def update_issue(
         issue.status = issue_update.status
         if issue_update.status == "resolved":
             issue.resolved_by = current_user.id
-            issue.resolved_at = datetime.utcnow()
+            issue.resolved_at = datetime.now(timezone.utc)
     
     await db.commit()
     await db.refresh(issue)
@@ -299,7 +299,7 @@ async def export_task_report_pdf(
     pdf_bytes = ReportGenerator.generate_task_report(task_dict, issues_list, project_name)
     
     # 返回 PDF 文件
-    filename = f"audit-report-{task.id[:8]}-{datetime.utcnow().strftime('%Y%m%d')}.pdf"
+    filename = f"audit-report-{task.id[:8]}-{datetime.now(timezone.utc).strftime('%Y%m%d')}.pdf"
     return Response(
         content=pdf_bytes,
         media_type="application/pdf",

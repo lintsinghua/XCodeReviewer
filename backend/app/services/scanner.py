@@ -5,7 +5,7 @@
 import asyncio
 import httpx
 from typing import List, Dict, Any, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from urllib.parse import urlparse, quote
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -252,7 +252,7 @@ async def scan_repo_task(task_id: str, db_session_factory, user_config: dict = N
         try:
             # 1. 更新状态为运行中
             task.status = "running"
-            task.started_at = datetime.utcnow()
+            task.started_at = datetime.now(timezone.utc)
             await db.commit()
             
             # 创建使用用户配置的LLM服务实例
@@ -336,7 +336,7 @@ async def scan_repo_task(task_id: str, db_session_factory, user_config: dict = N
                 if task_control.is_cancelled(task_id):
                     print(f"🛑 任务 {task_id} 已被用户取消")
                     task.status = "cancelled"
-                    task.completed_at = datetime.utcnow()
+                    task.completed_at = datetime.now(timezone.utc)
                     await db.commit()
                     task_control.cleanup_task(task_id)
                     return
@@ -379,7 +379,7 @@ async def scan_repo_task(task_id: str, db_session_factory, user_config: dict = N
                     if task_control.is_cancelled(task_id):
                         print(f"🛑 任务 {task_id} 在LLM分析后被取消")
                         task.status = "cancelled"
-                        task.completed_at = datetime.utcnow()
+                        task.completed_at = datetime.now(timezone.utc)
                         await db.commit()
                         task_control.cleanup_task(task_id)
                         return
@@ -454,7 +454,7 @@ async def scan_repo_task(task_id: str, db_session_factory, user_config: dict = N
             # 如果所有文件都被跳过（空文件等），标记为完成但给出提示
             if len(files) > 0 and scanned_files == 0 and skipped_files == len(files):
                 task.status = "completed"
-                task.completed_at = datetime.utcnow()
+                task.completed_at = datetime.now(timezone.utc)
                 task.scanned_files = 0
                 task.total_lines = 0
                 task.issues_count = 0
@@ -464,7 +464,7 @@ async def scan_repo_task(task_id: str, db_session_factory, user_config: dict = N
             # 如果有文件需要分析但全部失败（LLM调用失败），标记为失败
             elif len(files) > 0 and scanned_files == 0 and failed_files > 0:
                 task.status = "failed"
-                task.completed_at = datetime.utcnow()
+                task.completed_at = datetime.now(timezone.utc)
                 task.scanned_files = 0
                 task.total_lines = total_lines
                 task.issues_count = 0
@@ -473,7 +473,7 @@ async def scan_repo_task(task_id: str, db_session_factory, user_config: dict = N
                 print(f"❌ 任务 {task_id} 失败: {failed_files} 个文件分析失败，请检查 LLM API 配置")
             else:
                 task.status = "completed"
-                task.completed_at = datetime.utcnow()
+                task.completed_at = datetime.now(timezone.utc)
                 task.scanned_files = scanned_files
                 task.total_lines = total_lines
                 task.issues_count = total_issues
@@ -485,6 +485,6 @@ async def scan_repo_task(task_id: str, db_session_factory, user_config: dict = N
         except Exception as e:
             print(f"❌ 扫描失败: {e}")
             task.status = "failed"
-            task.completed_at = datetime.utcnow()
+            task.completed_at = datetime.now(timezone.utc)
             await db.commit()
             task_control.cleanup_task(task_id)

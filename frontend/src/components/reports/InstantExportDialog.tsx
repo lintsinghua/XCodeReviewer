@@ -159,15 +159,15 @@ export default function InstantExportDialog({
                             </div>
                             <div className="flex items-center justify-between border-b border-gray-200 pb-1">
                                 <span className="text-gray-600 font-bold">质量评分:</span>
-                                <span className="font-bold text-black">{analysisResult.quality_score.toFixed(1)}/100</span>
+                                <span className="font-bold text-black">{(analysisResult.quality_score ?? 0).toFixed(1)}/100</span>
                             </div>
                             <div className="flex items-center justify-between border-b border-gray-200 pb-1">
                                 <span className="text-gray-600 font-bold">发现问题:</span>
-                                <span className="font-bold text-orange-600">{analysisResult.issues.length}</span>
+                                <span className="font-bold text-orange-600">{analysisResult.issues?.length ?? 0}</span>
                             </div>
                             <div className="flex items-center justify-between border-b border-gray-200 pb-1">
                                 <span className="text-gray-600 font-bold">分析耗时:</span>
-                                <span className="font-bold text-black">{analysisTime.toFixed(2)}s</span>
+                                <span className="font-bold text-black">{(analysisTime ?? 0).toFixed(2)}s</span>
                             </div>
                         </div>
                     </div>

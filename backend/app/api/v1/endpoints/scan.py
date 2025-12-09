@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from typing import Any, List, Optional
 from pydantic import BaseModel
-from datetime import datetime
+from datetime import datetime, timezone
 import uuid
 import shutil
 import os
@@ -53,7 +53,7 @@ async def process_zip_task(task_id: str, file_path: str, db_session_factory, use
 
         try:
             task.status = "running"
-            task.started_at = datetime.utcnow()
+            task.started_at = datetime.now(timezone.utc)
             await db.commit()
             
             # 创建使用用户配置的LLM服务实例
@@ -116,7 +116,7 @@ async def process_zip_task(task_id: str, file_path: str, db_session_factory, use
                 if task_control.is_cancelled(task_id):
                     print(f"🛑 ZIP任务 {task_id} 已被取消")
                     task.status = "cancelled"
-                    task.completed_at = datetime.utcnow()
+                    task.completed_at = datetime.now(timezone.utc)
                     await db.commit()
                     task_control.cleanup_task(task_id)
                     return
@@ -173,7 +173,7 @@ async def process_zip_task(task_id: str, file_path: str, db_session_factory, use
             # 如果有文件需要分析但全部失败，标记为失败
             if len(files_to_scan) > 0 and scanned_files == 0:
                 task.status = "failed"
-                task.completed_at = datetime.utcnow()
+                task.completed_at = datetime.now(timezone.utc)
                 task.scanned_files = 0
                 task.total_lines = total_lines
                 task.issues_count = 0
@@ -182,7 +182,7 @@ async def process_zip_task(task_id: str, file_path: str, db_session_factory, use
                 print(f"❌ ZIP任务 {task_id} 失败: 所有 {len(files_to_scan)} 个文件分析均失败，请检查 LLM API 配置")
             else:
                 task.status = "completed"
-                task.completed_at = datetime.utcnow()
+                task.completed_at = datetime.now(timezone.utc)
                 task.scanned_files = scanned_files
                 task.total_lines = total_lines
                 task.issues_count = total_issues
@@ -194,7 +194,7 @@ async def process_zip_task(task_id: str, file_path: str, db_session_factory, use
         except Exception as e:
             print(f"❌ ZIP扫描失败: {e}")
             task.status = "failed"
-            task.completed_at = datetime.utcnow()
+            task.completed_at = datetime.now(timezone.utc)
             await db.commit()
             task_control.cleanup_task(task_id)
         finally:
@@ -408,7 +408,7 @@ async def instant_analysis(
     # 创建使用用户配置的LLM服务实例
     llm_service = LLMService(user_config=user_config)
     
-    start_time = datetime.utcnow()
+    start_time = datetime.now(timezone.utc)
     
     try:
         result = await llm_service.analyze_code(req.code, req.language)
@@ -421,7 +421,7 @@ async def instant_analysis(
             detail=f"代码分析失败: {error_msg}"
         )
     
-    end_time = datetime.utcnow()
+    end_time = datetime.now(timezone.utc)
     duration = (end_time - start_time).total_seconds()
 
     # Save record

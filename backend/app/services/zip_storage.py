@@ -7,7 +7,7 @@ import os
 import shutil
 from pathlib import Path
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.core.config import settings
 
@@ -54,7 +54,7 @@ async def save_project_zip(project_id: str, file_path: str, original_filename: s
     meta = {
         "original_filename": original_filename,
         "file_size": file_size,
-        "uploaded_at": datetime.utcnow().isoformat(),
+        "uploaded_at": datetime.now(timezone.utc).isoformat(),
         "project_id": project_id
     }
     

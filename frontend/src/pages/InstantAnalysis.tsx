@@ -633,7 +633,7 @@ class UserManager {
                               'bg-red-100 text-red-800'
                             }`}
                           >
-                            评分: {record.quality_score.toFixed(1)}
+                            评分: {(record.quality_score ?? 0).toFixed(1)}
                           </Badge>
                           <Button
                             variant="ghost"
@@ -653,7 +653,7 @@ class UserManager {
                         </span>
                         <span className="flex items-center gap-1">
                           <Clock className="w-3 h-3" />
-                          {record.analysis_time.toFixed(2)}s
+                          {(record.analysis_time ?? 0).toFixed(2)}s
                         </span>
                       </div>
                     </div>
@@ -827,7 +827,7 @@ class UserManager {
               <div className="flex items-center gap-2">
                 <Badge variant="outline" className="rounded-none border-black bg-white text-xs font-mono">
                   <Clock className="w-3 h-3 mr-1" />
-                  {analysisTime.toFixed(2)}s
+                  {(analysisTime ?? 0).toFixed(2)}s
                 </Badge>
                 <Badge variant="outline" className="rounded-none border-black bg-white text-xs font-mono uppercase">
                   {language}
@@ -852,10 +852,10 @@ class UserManager {
                     <Target className="w-6 h-6" />
                   </div>
                   <div className="text-3xl font-bold text-primary mb-1">
-                    {result.quality_score.toFixed(1)}
+                    {(result.quality_score ?? 0).toFixed(1)}
                   </div>
                   <p className="text-xs font-bold text-gray-600 uppercase mb-2">质量评分</p>
-                  <Progress value={result.quality_score} className="h-2 border-2 border-black rounded-none bg-gray-200 [&>div]:bg-primary" />
+                  <Progress value={result.quality_score ?? 0} className="h-2 border-2 border-black rounded-none bg-gray-200 [&>div]:bg-primary" />
                 </div>
 
                 <div className="text-center p-4 bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
@@ -863,7 +863,7 @@ class UserManager {
                     <AlertTriangle className="w-6 h-6" />
                   </div>
                   <div className="text-3xl font-bold text-red-600 mb-1">
-                    {result.summary.critical_issues + result.summary.high_issues}
+                    {(result.summary?.critical_issues ?? 0) + (result.summary?.high_issues ?? 0)}
                   </div>
                   <p className="text-xs font-bold text-red-700 uppercase mb-1">严重问题</p>
                   <div className="text-xs text-red-600 font-bold uppercase">需要立即处理</div>
@@ -874,7 +874,7 @@ class UserManager {
                     <Info className="w-6 h-6" />
                   </div>
                   <div className="text-3xl font-bold text-yellow-600 mb-1">
-                    {result.summary.medium_issues + result.summary.low_issues}
+                    {(result.summary?.medium_issues ?? 0) + (result.summary?.low_issues ?? 0)}
                   </div>
                   <p className="text-xs font-bold text-yellow-700 uppercase mb-1">一般问题</p>
                   <div className="text-xs text-yellow-600 font-bold uppercase">建议优化</div>
@@ -900,24 +900,24 @@ class UserManager {
                 </h3>
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 font-mono">
                   <div className="text-center">
-                    <div className="text-xl font-bold text-black mb-1">{result.metrics.complexity}</div>
+                    <div className="text-xl font-bold text-black mb-1">{result.metrics?.complexity ?? 0}</div>
                     <p className="text-xs text-gray-600 uppercase mb-2">复杂度</p>
-                    <Progress value={result.metrics.complexity} className="h-2 border-2 border-black rounded-none bg-gray-200 [&>div]:bg-black" />
+                    <Progress value={result.metrics?.complexity ?? 0} className="h-2 border-2 border-black rounded-none bg-gray-200 [&>div]:bg-black" />
                   </div>
                   <div className="text-center">
-                    <div className="text-xl font-bold text-black mb-1">{result.metrics.maintainability}</div>
+                    <div className="text-xl font-bold text-black mb-1">{result.metrics?.maintainability ?? 0}</div>
                     <p className="text-xs text-gray-600 uppercase mb-2">可维护性</p>
-                    <Progress value={result.metrics.maintainability} className="h-2 border-2 border-black rounded-none bg-gray-200 [&>div]:bg-black" />
+                    <Progress value={result.metrics?.maintainability ?? 0} className="h-2 border-2 border-black rounded-none bg-gray-200 [&>div]:bg-black" />
                   </div>
                   <div className="text-center">
-                    <div className="text-xl font-bold text-black mb-1">{result.metrics.security}</div>
+                    <div className="text-xl font-bold text-black mb-1">{result.metrics?.security ?? 0}</div>
                     <p className="text-xs text-gray-600 uppercase mb-2">安全性</p>
-                    <Progress value={result.metrics.security} className="h-2 border-2 border-black rounded-none bg-gray-200 [&>div]:bg-black" />
+                    <Progress value={result.metrics?.security ?? 0} className="h-2 border-2 border-black rounded-none bg-gray-200 [&>div]:bg-black" />
                   </div>
                   <div className="text-center">
-                    <div className="text-xl font-bold text-black mb-1">{result.metrics.performance}</div>
+                    <div className="text-xl font-bold text-black mb-1">{result.metrics?.performance ?? 0}</div>
                     <p className="text-xs text-gray-600 uppercase mb-2">性能</p>
-                    <Progress value={result.metrics.performance} className="h-2 border-2 border-black rounded-none bg-gray-200 [&>div]:bg-black" />
+                    <Progress value={result.metrics?.performance ?? 0} className="h-2 border-2 border-black rounded-none bg-gray-200 [&>div]:bg-black" />
                   </div>
                 </div>
               </div>
