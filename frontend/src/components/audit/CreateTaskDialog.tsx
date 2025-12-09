@@ -146,6 +146,20 @@ export default function CreateTaskDialog({
         ]);
         setRuleSets(rulesRes.items);
         setPromptTemplates(promptsRes.items);
+        // 自动选中默认规则集
+        const defaultRuleSet = rulesRes.items.find((r: AuditRuleSet) => r.is_default);
+        if (defaultRuleSet) {
+          setSelectedRuleSetId(defaultRuleSet.id);
+        } else if (rulesRes.items.length > 0) {
+          setSelectedRuleSetId(rulesRes.items[0].id);
+        }
+        // 自动选中默认提示词模板
+        const defaultPrompt = promptsRes.items.find((p: PromptTemplate) => p.is_default);
+        if (defaultPrompt) {
+          setSelectedPromptTemplateId(defaultPrompt.id);
+        } else if (promptsRes.items.length > 0) {
+          setSelectedPromptTemplateId(promptsRes.items[0].id);
+        }
       } catch (error) {
         console.error("加载规则集和提示词失败:", error);
       }
@@ -161,11 +175,14 @@ export default function CreateTaskDialog({
       }
       setSearchTerm("");
       setShowAdvanced(false);
-      setSelectedRuleSetId("");
-      setSelectedPromptTemplateId("");
+      // 重新加载时保持默认选中
+      const defaultRuleSet = ruleSets.find(r => r.is_default);
+      setSelectedRuleSetId(defaultRuleSet?.id || ruleSets[0]?.id || "");
+      const defaultPrompt = promptTemplates.find(p => p.is_default);
+      setSelectedPromptTemplateId(defaultPrompt?.id || promptTemplates[0]?.id || "");
       zipState.reset();
     }
-  }, [open, preselectedProjectId]);
+  }, [open, preselectedProjectId, ruleSets, promptTemplates]);
 
 
 
@@ -380,29 +397,27 @@ export default function CreateTaskDialog({
                       <label className="block text-xs font-mono font-bold text-gray-600 mb-1 uppercase">规则集</label>
                       <Select value={selectedRuleSetId} onValueChange={setSelectedRuleSetId}>
                         <SelectTrigger className="h-9 rounded-none border-2 border-black font-mono text-xs focus:ring-0">
-                          <SelectValue placeholder="默认规则" />
+                          <SelectValue placeholder="选择规则集" />
                         </SelectTrigger>
                         <SelectContent className="rounded-none border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                          <SelectItem value="" className="font-mono text-xs">默认规则</SelectItem>
                           {ruleSets.map((rs) => (
                             <SelectItem key={rs.id} value={rs.id} className="font-mono text-xs">
-                              {rs.name} ({rs.enabled_rules_count})
+                              {rs.name} {rs.is_default && '(默认)'} ({rs.enabled_rules_count})
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                     </div>
                     <div>
-                      <label className="block text-xs font-mono font-bold text-gray-600 mb-1 uppercase">提示词</label>
+                      <label className="block text-xs font-mono font-bold text-gray-600 mb-1 uppercase">提示词模板</label>
                       <Select value={selectedPromptTemplateId} onValueChange={setSelectedPromptTemplateId}>
                         <SelectTrigger className="h-9 rounded-none border-2 border-black font-mono text-xs focus:ring-0">
-                          <SelectValue placeholder="默认提示词" />
+                          <SelectValue placeholder="选择提示词模板" />
                         </SelectTrigger>
                         <SelectContent className="rounded-none border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                          <SelectItem value="" className="font-mono text-xs">默认提示词</SelectItem>
                           {promptTemplates.map((pt) => (
                             <SelectItem key={pt.id} value={pt.id} className="font-mono text-xs">
-                              {pt.name}
+                              {pt.name} {pt.is_default && '(默认)'}
                             </SelectItem>
                           ))}
                         </SelectContent>
