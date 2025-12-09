@@ -42,12 +42,17 @@
 | 智能仪表盘 | 即时分析 |
 |:---:|:---:|
 | ![仪表盘](frontend/public/images/example1.png) | ![即时分析](frontend/public/images/example2.png) |
-| *一眼掌握项目安全态势* | *链接仓库/粘贴代码，秒出结果* |
+| *一眼掌握项目安全态势* | *粘贴代码/上传文件，秒出结果* |
 
 | 项目管理 | 审计报告 |
 |:---:|:---:|
 | <img src="frontend/public/images/example3.png" alt="项目管理" width="400"> | <img src="frontend/public/images/审计报告示例.png" alt="审计报告" width="400"> |
 | *GitHub/GitLab 无缝集成* | *专业报告，一键导出* |
+
+| 审计规则管理 | 提示词模板管理 |
+|:---:|:---:|
+| ![审计规则](frontend/public/images/audit-rules.png) | ![提示词管理](frontend/public/images/prompt-manager.png) |
+| *内置 OWASP Top 10，支持自定义规则* | *提示词可视化管理，支持在线测试* |
 
 ## ✨ 为什么选择我们？
 
@@ -111,20 +116,26 @@ docker-compose up -d
 
 ## ✨ 核心能力
 
-- **项目管理** — GitHub/GitLab 一键导入，ZIP 上传，多语言支持
-- **即时分析** — 代码片段秒级分析，10+ 编程语言全覆盖
-- **智能审计** — Bug、安全、性能、风格、可维护性五维检测
-- **可解释分析** — What-Why-How 模式，精准定位 + 修复建议
-- **自定义规则** — 内置 OWASP Top 10 等规则集，支持自定义审计规则
-- **提示词管理** — 可视化管理审计提示词模板，支持中英文双语
-- **可视化报告** — 质量仪表盘、趋势分析、PDF/JSON 导出
-- **灵活配置** — 浏览器运行时配置，无需重启服务
+| 功能 | 说明 |
+|------|------|
+| 🗂️ **项目管理** | GitHub/GitLab 一键导入，ZIP 上传，支持 10+ 编程语言 |
+| ⚡ **即时分析** | 代码片段秒级分析，粘贴即用，无需创建项目 |
+| 🔍 **智能审计** | Bug、安全、性能、风格、可维护性五维检测 |
+| 💡 **可解释分析** | What-Why-How 模式，精准定位 + 修复建议 |
+| 📋 **审计规则** | 内置 OWASP Top 10、代码质量、性能优化规则集，支持自定义 |
+| 📝 **提示词模板** | 可视化管理审计提示词，支持中英文双语，在线测试 |
+| 📊 **可视化报告** | 质量仪表盘、趋势分析、PDF/JSON 一键导出 |
+| ⚙️ **灵活配置** | 浏览器运行时配置 LLM，无需重启服务 |
 
 ## 🤖 支持的 LLM 平台
 
-- **国际平台**: OpenAI GPT · Claude · Gemini · DeepSeek
-- **国内平台**: 通义千问 · 智谱AI · Kimi · 文心一言 · MiniMax · 豆包
-- **本地部署**: Ollama (Llama3, CodeLlama, Qwen2.5, DeepSeek-Coder...)
+| 类型 | 平台 |
+|------|------|
+| 🌍 **国际平台** | OpenAI GPT · Claude · Gemini · DeepSeek |
+| 🇨🇳 **国内平台** | 通义千问 · 智谱AI · Kimi · 文心一言 · MiniMax · 豆包 |
+| 🏠 **本地部署** | Ollama (Llama3, CodeLlama, Qwen2.5, DeepSeek-Coder...) |
+
+> 💡 支持 API 中转站，解决网络访问问题
 
 详细配置请查看 [LLM 平台支持](docs/LLM_PROVIDERS.md)
 
@@ -144,14 +155,15 @@ docker-compose up -d
 
 ## 📚 文档
 
-想了解更多？这里有你需要的：
-
-- [部署指南](docs/DEPLOYMENT.md) - Docker 部署 / 本地开发环境搭建
-- [配置说明](docs/CONFIGURATION.md) - 后端配置、数据库、API 中转站怎么配
-- [LLM 平台支持](docs/LLM_PROVIDERS.md) - 各家 LLM 的配置方法和 API Key 怎么拿
-- [常见问题](docs/FAQ.md) - 遇到问题先看这里
-- [贡献指南](CONTRIBUTING.md) - 想参与开发？看这个
-- [安全政策](SECURITY.md) / [免责声明](DISCLAIMER.md) - 使用前建议读一下
+| 文档 | 说明 |
+|------|------|
+| [部署指南](docs/DEPLOYMENT.md) | Docker 部署 / 本地开发环境搭建 |
+| [配置说明](docs/CONFIGURATION.md) | 后端配置、审计规则、提示词模板、API 中转站 |
+| [LLM 平台支持](docs/LLM_PROVIDERS.md) | 各家 LLM 的配置方法和 API Key 获取 |
+| [常见问题](docs/FAQ.md) | 遇到问题先看这里 |
+| [更新日志](CHANGELOG.md) | 版本更新记录 |
+| [贡献指南](CONTRIBUTING.md) | 想参与开发？看这个 |
+| [安全政策](SECURITY.md) / [免责声明](DISCLAIMER.md) | 使用前建议读一下 |
 
 ## 🤝 贡献
 
