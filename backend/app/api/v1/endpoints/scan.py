@@ -126,7 +126,21 @@ async def process_zip_task(task_id: str, file_path: str, db_session_factory, use
                     total_lines += content.count('\n') + 1
                     language = get_language_from_path(file_info['path'])
                     
-                    result = await llm_service.analyze_code(content, language)
+                    # 获取规则集和提示词模板ID
+                    scan_config = (user_config or {}).get('scan_config', {})
+                    rule_set_id = scan_config.get('rule_set_id')
+                    prompt_template_id = scan_config.get('prompt_template_id')
+                    
+                    # 使用规则集和提示词模板进行分析
+                    if rule_set_id or prompt_template_id:
+                        result = await llm_service.analyze_code_with_rules(
+                            content, language, 
+                            rule_set_id=rule_set_id,
+                            prompt_template_id=prompt_template_id,
+                            db_session=db
+                        )
+                    else:
+                        result = await llm_service.analyze_code(content, language)
                     
                     issues = result.get("issues", [])
                     for i in issues:
@@ -267,9 +281,13 @@ async def scan_zip(
     # 获取用户配置
     user_config = await get_user_config_dict(db, current_user.id)
     
-    # 将扫描配置注入到 user_config 中
-    if parsed_scan_config and 'file_paths' in parsed_scan_config:
-        user_config['scan_config'] = {'file_paths': parsed_scan_config['file_paths']}
+    # 将扫描配置注入到 user_config 中（包括规则集和提示词模板）
+    if parsed_scan_config:
+        user_config['scan_config'] = {
+            'file_paths': parsed_scan_config.get('file_paths', []),
+            'rule_set_id': parsed_scan_config.get('rule_set_id'),
+            'prompt_template_id': parsed_scan_config.get('prompt_template_id'),
+        }
 
     # Trigger Background Task - 使用持久化存储的文件路径
     stored_zip_path = await load_project_zip(project_id)
@@ -281,6 +299,8 @@ async def scan_zip(
 class ScanRequest(BaseModel):
     file_paths: Optional[List[str]] = None
     full_scan: bool = True
+    rule_set_id: Optional[str] = None
+    prompt_template_id: Optional[str] = None
 
 
 @router.post("/scan-stored-zip")
@@ -323,9 +343,13 @@ async def scan_stored_zip(
     # 获取用户配置
     user_config = await get_user_config_dict(db, current_user.id)
     
-    # 将扫描配置注入到 user_config 中，以便 process_zip_task 使用
-    if scan_request and scan_request.file_paths:
-        user_config['scan_config'] = {'file_paths': scan_request.file_paths}
+    # 将扫描配置注入到 user_config 中（包括规则集和提示词模板）
+    if scan_request:
+        user_config['scan_config'] = {
+            'file_paths': scan_request.file_paths or [],
+            'rule_set_id': scan_request.rule_set_id,
+            'prompt_template_id': scan_request.prompt_template_id,
+        }
 
     # Trigger Background Task
     background_tasks.add_task(process_zip_task, task.id, stored_zip_path, AsyncSessionLocal, user_config)
@@ -336,6 +360,7 @@ async def scan_stored_zip(
 class InstantAnalysisRequest(BaseModel):
     code: str
     language: str
+    prompt_template_id: Optional[str] = None
 
 
 class InstantAnalysisResponse(BaseModel):
@@ -411,7 +436,15 @@ async def instant_analysis(
     start_time = datetime.now(timezone.utc)
     
     try:
-        result = await llm_service.analyze_code(req.code, req.language)
+        # 如果指定了提示词模板，使用自定义分析
+        if req.prompt_template_id:
+            result = await llm_service.analyze_code_with_rules(
+                req.code, req.language,
+                prompt_template_id=req.prompt_template_id,
+                db_session=db
+            )
+        else:
+            result = await llm_service.analyze_code(req.code, req.language)
     except Exception as e:
         # 分析失败，返回错误信息
         error_msg = str(e)

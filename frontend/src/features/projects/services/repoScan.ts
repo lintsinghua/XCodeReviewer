@@ -7,6 +7,8 @@ export async function runRepositoryAudit(params: {
   exclude?: string[];
   createdBy?: string;
   filePaths?: string[];
+  ruleSetId?: string;
+  promptTemplateId?: string;
 }) {
   // 后端会从用户配置中读取 GitHub/GitLab Token，前端不需要传递
   // The backend handles everything now. 
@@ -22,7 +24,9 @@ export async function runRepositoryAudit(params: {
     branch_name: params.branch || "main",
     exclude_patterns: params.exclude || [],
     scan_config: {
-      file_paths: params.filePaths
+      file_paths: params.filePaths,
+      rule_set_id: params.ruleSetId,
+      prompt_template_id: params.promptTemplateId,
     },
     created_by: params.createdBy || "unknown"
   } as any);

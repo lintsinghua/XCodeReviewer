@@ -280,18 +280,42 @@ async def test_prompt_template(
 ) -> Any:
     """测试提示词效果"""
     from app.services.llm.service import LLMService
+    from app.models.user_config import UserConfig
+    from app.core.encryption import decrypt_sensitive_data
     
     start_time = time.time()
     
     try:
-        # 创建LLM服务实例
-        llm_service = LLMService()
+        # 获取用户配置
+        user_config = {}
+        result_config = await db.execute(
+            select(UserConfig).where(UserConfig.user_id == current_user.id)
+        )
+        config = result_config.scalar_one_or_none()
+        if config:
+            # 需要解密的敏感字段
+            SENSITIVE_LLM_FIELDS = [
+                'llmApiKey', 'geminiApiKey', 'openaiApiKey', 'claudeApiKey',
+                'qwenApiKey', 'deepseekApiKey', 'zhipuApiKey', 'moonshotApiKey',
+                'baiduApiKey', 'minimaxApiKey', 'doubaoApiKey'
+            ]
+            
+            llm_config = json.loads(config.llm_config) if config.llm_config else {}
+            for field in SENSITIVE_LLM_FIELDS:
+                if field in llm_config and llm_config[field]:
+                    llm_config[field] = decrypt_sensitive_data(llm_config[field])
+            
+            user_config = {'llmConfig': llm_config}
+        
+        # 创建使用用户配置的LLM服务实例
+        llm_service = LLMService(user_config=user_config)
         
         # 使用自定义提示词进行分析
         result = await llm_service.analyze_code_with_custom_prompt(
             code=request.code,
             language=request.language,
             custom_prompt=request.content,
+            output_language=request.output_language,
         )
         
         execution_time = time.time() - start_time
@@ -303,6 +327,9 @@ async def test_prompt_template(
         )
     except Exception as e:
         execution_time = time.time() - start_time
+        import traceback
+        print(f"❌ 提示词测试失败: {e}")
+        print(traceback.format_exc())
         return PromptTestResponse(
             success=False,
             error=str(e),

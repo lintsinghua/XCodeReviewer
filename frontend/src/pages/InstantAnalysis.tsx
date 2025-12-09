@@ -23,13 +23,15 @@ import {
   X,
   Download,
   History,
-  ChevronRight
+  ChevronRight,
+  MessageSquare
 } from "lucide-react";
 import { CodeAnalysisEngine } from "@/features/analysis/services";
 import { api } from "@/shared/config/database";
 import type { CodeAnalysisResult, InstantAnalysis as InstantAnalysisType } from "@/shared/types";
 import { toast } from "sonner";
 import InstantExportDialog from "@/components/reports/InstantExportDialog";
+import { getPromptTemplates, type PromptTemplate } from "@/shared/api/prompts";
 
 // AI解释解析函数
 function parseAIExplanation(aiExplanation: string) {
@@ -52,7 +54,6 @@ function parseAIExplanation(aiExplanation: string) {
 }
 
 export default function InstantAnalysis() {
-  const user = null as any;
   const [code, setCode] = useState("");
   const [language, setLanguage] = useState("");
   const [analyzing, setAnalyzing] = useState(false);
@@ -68,8 +69,25 @@ export default function InstantAnalysis() {
   const [historyRecords, setHistoryRecords] = useState<InstantAnalysisType[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [selectedHistoryId, setSelectedHistoryId] = useState<string | null>(null);
+  
+  // 提示词模板
+  const [promptTemplates, setPromptTemplates] = useState<PromptTemplate[]>([]);
+  const [selectedPromptTemplateId, setSelectedPromptTemplateId] = useState<string>("");
 
   const supportedLanguages = CodeAnalysisEngine.getSupportedLanguages();
+  
+  // 加载提示词模板
+  useEffect(() => {
+    const loadPromptTemplates = async () => {
+      try {
+        const res = await getPromptTemplates({ is_active: true });
+        setPromptTemplates(res.items);
+      } catch (error) {
+        console.error("加载提示词模板失败:", error);
+      }
+    };
+    loadPromptTemplates();
+  }, []);
 
   // 加载历史记录
   const loadHistory = async () => {
@@ -323,7 +341,7 @@ class UserManager {
 
       const startTime = Date.now();
 
-      const analysisResult = await CodeAnalysisEngine.analyzeCode(code, language);
+      const analysisResult = await CodeAnalysisEngine.analyzeCode(code, language, selectedPromptTemplateId || undefined);
       const endTime = Date.now();
       const duration = (endTime - startTime) / 1000;
 
@@ -703,6 +721,24 @@ class UserManager {
                   {supportedLanguages.map((lang) => (
                     <SelectItem key={lang} value={lang}>
                       {lang.charAt(0).toUpperCase() + lang.slice(1)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex-1">
+              <Select value={selectedPromptTemplateId} onValueChange={setSelectedPromptTemplateId}>
+                <SelectTrigger className="h-10 retro-input rounded-none border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] focus:ring-0">
+                  <div className="flex items-center gap-2">
+                    <MessageSquare className="w-4 h-4 text-purple-600" />
+                    <SelectValue placeholder="默认提示词" />
+                  </div>
+                </SelectTrigger>
+                <SelectContent className="rounded-none border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                  <SelectItem value="">默认提示词</SelectItem>
+                  {promptTemplates.map((pt) => (
+                    <SelectItem key={pt.id} value={pt.id}>
+                      {pt.name}
                     </SelectItem>
                   ))}
                 </SelectContent>

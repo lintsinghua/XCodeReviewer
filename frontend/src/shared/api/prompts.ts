@@ -52,6 +52,7 @@ export interface PromptTestRequest {
   content: string;
   language: string;
   code: string;
+  output_language?: string;
 }
 
 export interface PromptTestResponse {

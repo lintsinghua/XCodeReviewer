@@ -34,9 +34,12 @@ import {
   Globe,
   Shield,
   Loader2,
+  Zap,
 } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/shared/config/database";
+import { getRuleSets, type AuditRuleSet } from "@/shared/api/rules";
+import { getPromptTemplates, type PromptTemplate } from "@/shared/api/prompts";
 
 import { useProjects } from "./hooks/useTaskForm";
 import { useZipFile, formatFileSize } from "./hooks/useZipFile";
@@ -86,6 +89,12 @@ export default function CreateTaskDialog({
   const [uploading, setUploading] = useState(false);
   const [showTerminal, setShowTerminal] = useState(false);
   const [currentTaskId, setCurrentTaskId] = useState<string | null>(null);
+  
+  // 规则集和提示词模板
+  const [ruleSets, setRuleSets] = useState<AuditRuleSet[]>([]);
+  const [promptTemplates, setPromptTemplates] = useState<PromptTemplate[]>([]);
+  const [selectedRuleSetId, setSelectedRuleSetId] = useState<string>("");
+  const [selectedPromptTemplateId, setSelectedPromptTemplateId] = useState<string>("");
 
   const { projects, loading, loadProjects } = useProjects();
   const selectedProject = projects.find((p) => p.id === selectedProjectId);
@@ -127,6 +136,23 @@ export default function CreateTaskDialog({
     );
   }, [projects, searchTerm]);
 
+  // 加载规则集和提示词模板
+  useEffect(() => {
+    const loadRulesAndPrompts = async () => {
+      try {
+        const [rulesRes, promptsRes] = await Promise.all([
+          getRuleSets({ is_active: true }),
+          getPromptTemplates({ is_active: true }),
+        ]);
+        setRuleSets(rulesRes.items);
+        setPromptTemplates(promptsRes.items);
+      } catch (error) {
+        console.error("加载规则集和提示词失败:", error);
+      }
+    };
+    loadRulesAndPrompts();
+  }, []);
+
   useEffect(() => {
     if (open) {
       loadProjects();
@@ -135,6 +161,8 @@ export default function CreateTaskDialog({
       }
       setSearchTerm("");
       setShowAdvanced(false);
+      setSelectedRuleSetId("");
+      setSelectedPromptTemplateId("");
       zipState.reset();
     }
   }, [open, preselectedProjectId]);
@@ -158,6 +186,8 @@ export default function CreateTaskDialog({
             excludePatterns,
             createdBy: "local-user",
             filePaths: selectedFiles,
+            ruleSetId: selectedRuleSetId || undefined,
+            promptTemplateId: selectedPromptTemplateId || undefined,
           });
         } else if (zipState.zipFile) {
           taskId = await scanZipFile({
@@ -165,6 +195,8 @@ export default function CreateTaskDialog({
             zipFile: zipState.zipFile,
             excludePatterns,
             createdBy: "local-user",
+            ruleSetId: selectedRuleSetId || undefined,
+            promptTemplateId: selectedPromptTemplateId || undefined,
           });
         } else {
           toast.error("请上传 ZIP 文件");
@@ -182,6 +214,8 @@ export default function CreateTaskDialog({
           exclude: excludePatterns,
           createdBy: "local-user",
           filePaths: selectedFiles,
+          ruleSetId: selectedRuleSetId || undefined,
+          promptTemplateId: selectedPromptTemplateId || undefined,
         });
       }
 
@@ -335,6 +369,48 @@ export default function CreateTaskDialog({
                 )}
 
                 {/* 高级选项 */}
+                {/* 规则集和提示词选择 */}
+                <div className="p-3 border-2 border-black bg-purple-50 space-y-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Zap className="w-4 h-4 text-purple-700" />
+                    <span className="font-mono text-sm font-bold text-purple-900 uppercase">审计配置</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-mono font-bold text-gray-600 mb-1 uppercase">规则集</label>
+                      <Select value={selectedRuleSetId} onValueChange={setSelectedRuleSetId}>
+                        <SelectTrigger className="h-9 rounded-none border-2 border-black font-mono text-xs focus:ring-0">
+                          <SelectValue placeholder="默认规则" />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-none border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                          <SelectItem value="" className="font-mono text-xs">默认规则</SelectItem>
+                          {ruleSets.map((rs) => (
+                            <SelectItem key={rs.id} value={rs.id} className="font-mono text-xs">
+                              {rs.name} ({rs.enabled_rules_count})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-mono font-bold text-gray-600 mb-1 uppercase">提示词</label>
+                      <Select value={selectedPromptTemplateId} onValueChange={setSelectedPromptTemplateId}>
+                        <SelectTrigger className="h-9 rounded-none border-2 border-black font-mono text-xs focus:ring-0">
+                          <SelectValue placeholder="默认提示词" />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-none border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                          <SelectItem value="" className="font-mono text-xs">默认提示词</SelectItem>
+                          {promptTemplates.map((pt) => (
+                            <SelectItem key={pt.id} value={pt.id} className="font-mono text-xs">
+                              {pt.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+
                 <Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>
                   <CollapsibleTrigger className="flex items-center gap-2 text-sm font-mono text-gray-600 hover:text-black transition-colors">
                     <ChevronRight

@@ -7,9 +7,13 @@ export class CodeAnalysisEngine {
     return [...SUPPORTED_LANGUAGES];
   }
 
-  static async analyzeCode(code: string, language: string): Promise<CodeAnalysisResult> {
+  static async analyzeCode(code: string, language: string, promptTemplateId?: string): Promise<CodeAnalysisResult> {
     try {
-      const response = await apiClient.post('/scan/instant', { code, language });
+      const response = await apiClient.post('/scan/instant', { 
+        code, 
+        language,
+        prompt_template_id: promptTemplateId || undefined,
+      });
       return response.data;
     } catch (error: any) {
       console.error('Analysis failed:', error);

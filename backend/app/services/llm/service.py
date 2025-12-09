@@ -646,7 +646,8 @@ Please analyze the following code:
         code: str, 
         language: str, 
         custom_prompt: str,
-        rules: Optional[list] = None
+        rules: Optional[list] = None,
+        output_language: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         使用自定义提示词分析代码
@@ -656,9 +657,13 @@ Please analyze the following code:
             language: 编程语言
             custom_prompt: 自定义系统提示词
             rules: 可选的审计规则列表
+            output_language: 输出语言 (zh/en)，如果不指定则使用系统配置
         """
-        output_language = self._get_output_language()
-        is_chinese = output_language == 'zh-CN'
+        if output_language:
+            is_chinese = output_language == 'zh'
+        else:
+            system_output_language = self._get_output_language()
+            is_chinese = system_output_language == 'zh-CN'
         
         # 添加行号
         code_with_lines = '\n'.join(
@@ -701,12 +706,25 @@ Please analyze the following code:
 }"""
         
         # 构建完整的系统提示词
-        format_instruction = f"""
+        if is_chinese:
+            format_instruction = f"""
 
 【输出格式要求】
 1. 必须只输出纯JSON对象
 2. 禁止在JSON前后添加任何文字、说明、markdown标记
-3. 输出格式必须符合以下 JSON Schema：
+3. 所有文本字段（title, description, suggestion等）必须使用中文输出
+4. 输出格式必须符合以下 JSON Schema：
+
+{schema}
+{rules_prompt}"""
+        else:
+            format_instruction = f"""
+
+【Output Format Requirements】
+1. Must output pure JSON object only
+2. Do not add any text, explanation, or markdown markers before or after JSON
+3. All text fields (title, description, suggestion, etc.) must be in English
+4. Output format must conform to the following JSON Schema:
 
 {schema}
 {rules_prompt}"""

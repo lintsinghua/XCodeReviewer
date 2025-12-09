@@ -9,6 +9,8 @@ export async function scanZipFile(params: {
   excludePatterns?: string[];
   createdBy?: string;
   filePaths?: string[];
+  ruleSetId?: string;
+  promptTemplateId?: string;
 }): Promise<string> {
   const formData = new FormData();
   formData.append("file", params.zipFile);
@@ -16,7 +18,9 @@ export async function scanZipFile(params: {
 
   const scanConfig = {
     file_paths: params.filePaths,
-    full_scan: !params.filePaths || params.filePaths.length === 0
+    full_scan: !params.filePaths || params.filePaths.length === 0,
+    rule_set_id: params.ruleSetId,
+    prompt_template_id: params.promptTemplateId,
   };
   formData.append("scan_config", JSON.stringify(scanConfig));
 
@@ -37,10 +41,14 @@ export async function scanStoredZipFile(params: {
   excludePatterns?: string[];
   createdBy?: string;
   filePaths?: string[];
+  ruleSetId?: string;
+  promptTemplateId?: string;
 }): Promise<string> {
   const scanRequest = {
     file_paths: params.filePaths,
-    full_scan: !params.filePaths || params.filePaths.length === 0
+    full_scan: !params.filePaths || params.filePaths.length === 0,
+    rule_set_id: params.ruleSetId,
+    prompt_template_id: params.promptTemplateId,
   };
   const res = await apiClient.post(`/scan/scan-stored-zip`, scanRequest, {
     params: { project_id: params.projectId },

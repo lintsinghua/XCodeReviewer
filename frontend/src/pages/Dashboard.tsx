@@ -11,12 +11,15 @@ import {
 import {
   Activity, AlertTriangle, Clock, Code,
   FileText, GitBranch, Shield, TrendingUp, Zap,
-  BarChart3, Target, ArrowUpRight, Calendar
+  BarChart3, Target, ArrowUpRight, Calendar,
+  MessageSquare
 } from "lucide-react";
 import { api, dbMode, isDemoMode } from "@/shared/config/database";
 import type { Project, AuditTask, ProjectStats } from "@/shared/types";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
+import { getRuleSets } from "@/shared/api/rules";
+import { getPromptTemplates } from "@/shared/api/prompts";
 
 import { Info } from "lucide-react";
 
@@ -27,6 +30,10 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [issueTypeData, setIssueTypeData] = useState<Array<{ name: string; value: number; color: string }>>([]);
   const [qualityTrendData, setQualityTrendData] = useState<Array<{ date: string; score: number }>>([]);
+  
+  // 规则和模板统计
+  const [ruleStats, setRuleStats] = useState({ total: 0, enabled: 0 });
+  const [templateStats, setTemplateStats] = useState({ total: 0, active: 0 });
 
   useEffect(() => {
     loadDashboardData();
@@ -130,6 +137,23 @@ export default function Dashboard() {
       } catch (error) {
         console.error('获取问题数据失败:', error);
         setIssueTypeData([]);
+      }
+      
+      // 加载规则和模板统计
+      try {
+        const [rulesRes, promptsRes] = await Promise.all([
+          getRuleSets(),
+          getPromptTemplates(),
+        ]);
+        const totalRules = rulesRes.items.reduce((acc, rs) => acc + rs.rules_count, 0);
+        const enabledRules = rulesRes.items.reduce((acc, rs) => acc + rs.enabled_rules_count, 0);
+        setRuleStats({ total: totalRules, enabled: enabledRules });
+        setTemplateStats({ 
+          total: promptsRes.items.length, 
+          active: promptsRes.items.filter(t => t.is_active).length 
+        });
+      } catch (error) {
+        console.error('获取规则和模板统计失败:', error);
       }
     } catch (error) {
       console.error('仪表盘数据加载失败:', error);
@@ -487,6 +511,18 @@ export default function Dashboard() {
                   启动审计任务
                 </Button>
               </Link>
+              <Link to="/audit-rules" className="block">
+                <Button variant="outline" className="w-full justify-start retro-btn bg-white text-black hover:bg-gray-100 h-10">
+                  <Shield className="w-4 h-4 mr-2" />
+                  审计规则管理
+                </Button>
+              </Link>
+              <Link to="/prompts" className="block">
+                <Button variant="outline" className="w-full justify-start retro-btn bg-white text-black hover:bg-gray-100 h-10">
+                  <MessageSquare className="w-4 h-4 mr-2" />
+                  提示词模板
+                </Button>
+              </Link>
             </div>
           </div>
 
@@ -526,6 +562,24 @@ export default function Dashboard() {
                 <span className="text-sm text-gray-600 uppercase">待解决问题</span>
                 <span className="text-sm font-bold text-black border-2 border-black px-2 bg-red-100 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                   {stats ? stats.total_issues - stats.resolved_issues : 0}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600 uppercase flex items-center gap-1">
+                  <Shield className="w-3 h-3" />
+                  审计规则
+                </span>
+                <span className="text-sm font-bold text-black border-2 border-black px-2 bg-purple-100 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                  {ruleStats.enabled}/{ruleStats.total}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600 uppercase flex items-center gap-1">
+                  <MessageSquare className="w-3 h-3" />
+                  提示词模板
+                </span>
+                <span className="text-sm font-bold text-black border-2 border-black px-2 bg-green-100 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                  {templateStats.active}/{templateStats.total}
                 </span>
               </div>
             </div>

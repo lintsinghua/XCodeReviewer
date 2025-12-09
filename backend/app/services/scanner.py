@@ -371,8 +371,20 @@ async def scan_repo_task(task_id: str, db_session_factory, user_config: dict = N
                     language = get_language_from_path(file_info["path"])
                     
                     print(f"🤖 正在调用 LLM 分析: {file_info['path']} ({language}, {len(content)} bytes)")
-                    # LLM分析
-                    analysis = await llm_service.analyze_code(content, language)
+                    # LLM分析 - 支持规则集和提示词模板
+                    scan_config = (user_config or {}).get('scan_config', {})
+                    rule_set_id = scan_config.get('rule_set_id')
+                    prompt_template_id = scan_config.get('prompt_template_id')
+                    
+                    if rule_set_id or prompt_template_id:
+                        analysis = await llm_service.analyze_code_with_rules(
+                            content, language,
+                            rule_set_id=rule_set_id,
+                            prompt_template_id=prompt_template_id,
+                            db_session=db
+                        )
+                    else:
+                        analysis = await llm_service.analyze_code(content, language)
                     print(f"✅ LLM 分析完成: {file_info['path']}")
                     
                     # 再次检查是否取消（LLM分析后）

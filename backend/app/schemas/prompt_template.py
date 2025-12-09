@@ -61,6 +61,7 @@ class PromptTestRequest(BaseModel):
     content: str = Field(..., description="提示词内容")
     language: str = Field("python", description="编程语言")
     code: str = Field(..., description="测试代码")
+    output_language: str = Field("zh", description="输出语言: zh/en")
 
 
 class PromptTestResponse(BaseModel):
