@@ -61,16 +61,12 @@ class LiteLLMAdapter(BaseLLMAdapter):
         provider = self.config.provider
         model = self.config.model
 
-        # 对于使用 OpenAI 兼容模式的提供商，直接使用模型名
-        if provider in self.CUSTOM_BASE_URL_PROVIDERS:
-            return model
-
-        # 对于原生支持的提供商，添加前缀
-        prefix = self.PROVIDER_PREFIX_MAP.get(provider, "openai")
-        
         # 检查模型名是否已经包含前缀
         if "/" in model:
             return model
+
+        # 获取 provider 前缀
+        prefix = self.PROVIDER_PREFIX_MAP.get(provider, "openai")
         
         return f"{prefix}/{model}"
 
