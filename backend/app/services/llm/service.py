@@ -779,7 +779,8 @@ Please analyze the following code:
         language: str,
         rule_set_id: Optional[str] = None,
         prompt_template_id: Optional[str] = None,
-        db_session = None
+        db_session = None,
+        use_default_template: bool = True
     ) -> Dict[str, Any]:
         """
         使用指定的规则集和提示词模板分析代码
@@ -790,6 +791,7 @@ Please analyze the following code:
             rule_set_id: 规则集ID（可选）
             prompt_template_id: 提示词模板ID（可选）
             db_session: 数据库会话
+            use_default_template: 当没有指定模板时是否使用数据库中的默认模板
         """
         custom_prompt = None
         rules = None
@@ -797,10 +799,10 @@ Please analyze the following code:
         if db_session:
             from sqlalchemy.future import select
             from sqlalchemy.orm import selectinload
+            from app.models.prompt_template import PromptTemplate
             
             # 获取提示词模板
             if prompt_template_id:
-                from app.models.prompt_template import PromptTemplate
                 result = await db_session.execute(
                     select(PromptTemplate).where(PromptTemplate.id == prompt_template_id)
                 )
@@ -808,6 +810,20 @@ Please analyze the following code:
                 if template:
                     output_language = self._get_output_language()
                     custom_prompt = template.content_zh if output_language == 'zh-CN' else template.content_en
+            elif use_default_template:
+                # 没有指定模板时，使用数据库中的默认模板
+                result = await db_session.execute(
+                    select(PromptTemplate).where(
+                        PromptTemplate.is_default == True,
+                        PromptTemplate.is_active == True,
+                        PromptTemplate.template_type == 'system'
+                    )
+                )
+                template = result.scalar_one_or_none()
+                if template:
+                    output_language = self._get_output_language()
+                    custom_prompt = template.content_zh if output_language == 'zh-CN' else template.content_en
+                    logger.info(f"📋 使用默认提示词模板: {template.name}")
             
             # 获取规则集
             if rule_set_id:
@@ -836,7 +852,7 @@ Please analyze the following code:
         if custom_prompt:
             return await self.analyze_code_with_custom_prompt(code, language, custom_prompt, rules)
         
-        # 否则使用默认分析
+        # 否则使用硬编码的默认分析（兜底）
         return await self.analyze_code(code, language)
 
 

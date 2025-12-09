@@ -437,14 +437,13 @@ async def instant_analysis(
     
     try:
         # 如果指定了提示词模板，使用自定义分析
-        if req.prompt_template_id:
-            result = await llm_service.analyze_code_with_rules(
-                req.code, req.language,
-                prompt_template_id=req.prompt_template_id,
-                db_session=db
-            )
-        else:
-            result = await llm_service.analyze_code(req.code, req.language)
+        # 统一使用 analyze_code_with_rules，会自动使用默认模板
+        result = await llm_service.analyze_code_with_rules(
+            req.code, req.language,
+            prompt_template_id=req.prompt_template_id,
+            db_session=db,
+            use_default_template=True  # 没有指定模板时使用数据库中的默认模板
+        )
     except Exception as e:
         # 分析失败，返回错误信息
         error_msg = str(e)

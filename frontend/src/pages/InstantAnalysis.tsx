@@ -82,6 +82,13 @@ export default function InstantAnalysis() {
       try {
         const res = await getPromptTemplates({ is_active: true });
         setPromptTemplates(res.items);
+        // 自动选中默认模板
+        const defaultTemplate = res.items.find(t => t.is_default);
+        if (defaultTemplate) {
+          setSelectedPromptTemplateId(defaultTemplate.id);
+        } else if (res.items.length > 0) {
+          setSelectedPromptTemplateId(res.items[0].id);
+        }
       } catch (error) {
         console.error("加载提示词模板失败:", error);
       }
@@ -712,7 +719,8 @@ class UserManager {
         <div className="p-6 space-y-4">
           {/* 工具栏 */}
           <div className="flex flex-col sm:flex-row gap-3">
-            <div className="flex-1">
+            <div className="flex-1 space-y-1">
+              <label className="text-xs font-bold text-gray-600 uppercase font-mono">编程语言</label>
               <Select value={language} onValueChange={setLanguage}>
                 <SelectTrigger className="h-10 retro-input rounded-none border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] focus:ring-0">
                   <SelectValue placeholder="选择编程语言" />
@@ -726,19 +734,19 @@ class UserManager {
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex-1">
+            <div className="flex-1 space-y-1">
+              <label className="text-xs font-bold text-gray-600 uppercase font-mono">提示词模板</label>
               <Select value={selectedPromptTemplateId} onValueChange={setSelectedPromptTemplateId}>
                 <SelectTrigger className="h-10 retro-input rounded-none border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] focus:ring-0">
                   <div className="flex items-center gap-2">
                     <MessageSquare className="w-4 h-4 text-purple-600" />
-                    <SelectValue placeholder="默认提示词" />
+                    <SelectValue placeholder="选择提示词模板" />
                   </div>
                 </SelectTrigger>
                 <SelectContent className="rounded-none border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                  <SelectItem value="">默认提示词</SelectItem>
                   {promptTemplates.map((pt) => (
                     <SelectItem key={pt.id} value={pt.id}>
-                      {pt.name}
+                      {pt.name} {pt.is_default && '(默认)'}
                     </SelectItem>
                   ))}
                 </SelectContent>
