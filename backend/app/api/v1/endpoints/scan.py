@@ -27,6 +27,15 @@ from app.core.config import settings
 router = APIRouter()
 
 
+def normalize_path(path: str) -> str:
+    """
+    统一路径分隔符为正斜杠，确保跨平台兼容性
+    Windows 使用反斜杠 (\)，Unix/Mac 使用正斜杠 (/)
+    统一转换为正斜杠以保证一致性
+    """
+    return path.replace("\\", "/")
+
+
 # 支持的文件扩展名
 TEXT_EXTENSIONS = [
     ".js", ".ts", ".tsx", ".jsx", ".py", ".java", ".go", ".rs",
@@ -65,7 +74,8 @@ async def process_zip_task(task_id: str, file_path: str, db_session_factory, use
                 
                 for file in files:
                     full_path = Path(root) / file
-                    rel_path = str(full_path.relative_to(extract_dir))
+                    # 统一使用正斜杠，确保跨平台兼容性
+                    rel_path = normalize_path(str(full_path.relative_to(extract_dir)))
                     
                     # 检查文件类型和排除规则
                     if is_text_file(rel_path) and not should_exclude(rel_path):
@@ -83,8 +93,10 @@ async def process_zip_task(task_id: str, file_path: str, db_session_factory, use
             # 如果指定了特定文件，则只分析这些文件
             target_files = (user_config or {}).get('scan_config', {}).get('file_paths', [])
             if target_files:
-                print(f"🎯 ZIP任务: 指定分析 {len(target_files)} 个文件")
-                files_to_scan = [f for f in files_to_scan if f['path'] in target_files]
+                # 统一目标文件路径的分隔符，确保匹配一致性
+                normalized_targets = {normalize_path(p) for p in target_files}
+                print(f"🎯 ZIP任务: 指定分析 {len(normalized_targets)} 个文件")
+                files_to_scan = [f for f in files_to_scan if f['path'] in normalized_targets]
             else:
                 files_to_scan = files_to_scan[:settings.MAX_ANALYZE_FILES]
             
