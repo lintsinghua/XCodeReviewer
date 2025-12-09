@@ -273,4 +273,12 @@ async def init_db(db: AsyncSession) -> None:
         await create_demo_data(db, demo_user)
     
     await db.commit()
+    
+    # 初始化系统模板和规则
+    try:
+        from app.services.init_templates import init_templates_and_rules
+        await init_templates_and_rules(db)
+    except Exception as e:
+        logger.warning(f"初始化模板和规则跳过: {e}")
+    
     logger.info("数据库初始化完成")

@@ -641,6 +641,186 @@ Please analyze the following code:
             }
         }
 
+    async def analyze_code_with_custom_prompt(
+        self, 
+        code: str, 
+        language: str, 
+        custom_prompt: str,
+        rules: Optional[list] = None
+    ) -> Dict[str, Any]:
+        """
+        使用自定义提示词分析代码
+        
+        Args:
+            code: 要分析的代码
+            language: 编程语言
+            custom_prompt: 自定义系统提示词
+            rules: 可选的审计规则列表
+        """
+        output_language = self._get_output_language()
+        is_chinese = output_language == 'zh-CN'
+        
+        # 添加行号
+        code_with_lines = '\n'.join(
+            f"{i+1}| {line}" for i, line in enumerate(code.split('\n'))
+        )
+        
+        # 构建规则提示词
+        rules_prompt = ""
+        if rules:
+            rules_prompt = "\n\n【审计规则】请特别关注以下规则：\n"
+            for rule in rules:
+                if rule.get('enabled', True):
+                    rules_prompt += f"- [{rule.get('rule_code', '')}] {rule.get('name', '')}: {rule.get('description', '')}\n"
+                    if rule.get('custom_prompt'):
+                        rules_prompt += f"  检测要点: {rule.get('custom_prompt')}\n"
+        
+        # JSON Schema
+        schema = """{
+    "issues": [
+        {
+            "type": "security|bug|performance|style|maintainability",
+            "severity": "critical|high|medium|low",
+            "title": "string",
+            "description": "string",
+            "suggestion": "string",
+            "line": 1,
+            "column": 1,
+            "code_snippet": "string",
+            "rule_code": "string (optional, if matched a specific rule)"
+        }
+    ],
+    "quality_score": 0-100,
+    "summary": {
+        "total_issues": number,
+        "critical_issues": number,
+        "high_issues": number,
+        "medium_issues": number,
+        "low_issues": number
+    }
+}"""
+        
+        # 构建完整的系统提示词
+        format_instruction = f"""
+
+【输出格式要求】
+1. 必须只输出纯JSON对象
+2. 禁止在JSON前后添加任何文字、说明、markdown标记
+3. 输出格式必须符合以下 JSON Schema：
+
+{schema}
+{rules_prompt}"""
+        
+        full_system_prompt = custom_prompt + format_instruction
+        
+        # 构建用户提示词
+        if is_chinese:
+            user_prompt = f"""编程语言: {language}
+
+代码已标注行号（格式：行号| 代码内容），请根据行号准确填写 line 字段。
+
+请分析以下代码:
+
+{code_with_lines}"""
+        else:
+            user_prompt = f"""Programming Language: {language}
+
+Code is annotated with line numbers (format: lineNumber| code), please fill the 'line' field accurately.
+
+Please analyze the following code:
+
+{code_with_lines}"""
+        
+        try:
+            adapter = LLMFactory.create_adapter(self.config)
+            
+            request = LLMRequest(
+                messages=[
+                    LLMMessage(role="system", content=full_system_prompt),
+                    LLMMessage(role="user", content=user_prompt)
+                ],
+                temperature=0.1,
+            )
+            
+            response = await adapter.complete(request)
+            content = response.content
+            
+            if not content or not content.strip():
+                raise Exception("LLM返回空响应")
+            
+            result = self._parse_json(content)
+            return result
+            
+        except Exception as e:
+            logger.error(f"Custom prompt analysis failed: {e}", exc_info=True)
+            raise
+
+    async def analyze_code_with_rules(
+        self, 
+        code: str, 
+        language: str,
+        rule_set_id: Optional[str] = None,
+        prompt_template_id: Optional[str] = None,
+        db_session = None
+    ) -> Dict[str, Any]:
+        """
+        使用指定的规则集和提示词模板分析代码
+        
+        Args:
+            code: 要分析的代码
+            language: 编程语言
+            rule_set_id: 规则集ID（可选）
+            prompt_template_id: 提示词模板ID（可选）
+            db_session: 数据库会话
+        """
+        custom_prompt = None
+        rules = None
+        
+        if db_session:
+            from sqlalchemy.future import select
+            from sqlalchemy.orm import selectinload
+            
+            # 获取提示词模板
+            if prompt_template_id:
+                from app.models.prompt_template import PromptTemplate
+                result = await db_session.execute(
+                    select(PromptTemplate).where(PromptTemplate.id == prompt_template_id)
+                )
+                template = result.scalar_one_or_none()
+                if template:
+                    output_language = self._get_output_language()
+                    custom_prompt = template.content_zh if output_language == 'zh-CN' else template.content_en
+            
+            # 获取规则集
+            if rule_set_id:
+                from app.models.audit_rule import AuditRuleSet
+                result = await db_session.execute(
+                    select(AuditRuleSet)
+                    .options(selectinload(AuditRuleSet.rules))
+                    .where(AuditRuleSet.id == rule_set_id)
+                )
+                rule_set = result.scalar_one_or_none()
+                if rule_set and rule_set.rules:
+                    rules = [
+                        {
+                            "rule_code": r.rule_code,
+                            "name": r.name,
+                            "description": r.description,
+                            "category": r.category,
+                            "severity": r.severity,
+                            "custom_prompt": r.custom_prompt,
+                            "enabled": r.enabled,
+                        }
+                        for r in rule_set.rules if r.enabled
+                    ]
+        
+        # 如果有自定义提示词，使用自定义分析
+        if custom_prompt:
+            return await self.analyze_code_with_custom_prompt(code, language, custom_prompt, rules)
+        
+        # 否则使用默认分析
+        return await self.analyze_code(code, language)
+
 
 # 全局服务实例
 llm_service = LLMService()

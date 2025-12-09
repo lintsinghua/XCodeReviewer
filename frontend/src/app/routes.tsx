@@ -8,6 +8,8 @@ import TaskDetail from "@/pages/TaskDetail";
 import AdminDashboard from "@/pages/AdminDashboard";
 import LogsPage from "@/pages/LogsPage";
 import Account from "@/pages/Account";
+import AuditRules from "@/pages/AuditRules";
+import PromptManager from "@/pages/PromptManager";
 import type { ReactNode } from 'react';
 
 export interface RouteConfig {
@@ -53,6 +55,18 @@ const routes: RouteConfig[] = [
     path: "/tasks/:id",
     element: <TaskDetail />,
     visible: false,
+  },
+  {
+    name: "审计规则",
+    path: "/audit-rules",
+    element: <AuditRules />,
+    visible: true,
+  },
+  {
+    name: "提示词管理",
+    path: "/prompts",
+    element: <PromptManager />,
+    visible: true,
   },
   {
     name: "系统管理",
