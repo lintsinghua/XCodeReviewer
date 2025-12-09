@@ -8,7 +8,7 @@
 
 <div align="center">
 
-[![Version](https://img.shields.io/badge/version-2.0.0--beta.6-blue.svg)](https://github.com/lintsinghua/DeepAudit/releases)
+[![Version](https://img.shields.io/badge/version-2.0.0--beta.7-blue.svg)](https://github.com/lintsinghua/DeepAudit/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![React](https://img.shields.io/badge/React-18-61dafb.svg)](https://reactjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178c6.svg)](https://www.typescriptlang.org/)
@@ -115,6 +115,8 @@ docker-compose up -d
 - **即时分析** — 代码片段秒级分析，10+ 编程语言全覆盖
 - **智能审计** — Bug、安全、性能、风格、可维护性五维检测
 - **可解释分析** — What-Why-How 模式，精准定位 + 修复建议
+- **自定义规则** — 内置 OWASP Top 10 等规则集，支持自定义审计规则
+- **提示词管理** — 可视化管理审计提示词模板，支持中英文双语
 - **可视化报告** — 质量仪表盘、趋势分析、PDF/JSON 导出
 - **灵活配置** — 浏览器运行时配置，无需重启服务
 
@@ -135,7 +137,6 @@ docker-compose up -d
 - **多 Agent 协作** — 多智能体架构，模拟真实的安全团队工作流程
 - **自动生成补丁** — 光说哪里有问题不够，还得能自动生成能用的修复代码
 - **混合分析** — AI 分析完再用传统 SAST 工具验证一遍，两边互相补充，减少误报漏报
-- **自定义规则** — 支持用配置文件定义自己团队的编码规范
 - **跨文件分析** — 做代码知识图谱，理解模块间的调用关系
 - **多仓库支持** — 除Github/GitLab以外，更新支持Gitea等更多平台以及自建仓库
 
