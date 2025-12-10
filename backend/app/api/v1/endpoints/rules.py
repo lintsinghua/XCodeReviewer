@@ -444,10 +444,14 @@ async def export_rule_set(
         "export_version": "1.0",
     }
     
+    # 使用 URL 编码处理中文文件名
+    from urllib.parse import quote
+    encoded_filename = quote(f"{rule_set.name}.json")
+    
     return JSONResponse(
         content=export_data,
         headers={
-            "Content-Disposition": f'attachment; filename="{rule_set.name}.json"'
+            "Content-Disposition": f"attachment; filename*=UTF-8''{encoded_filename}"
         }
     )
 
