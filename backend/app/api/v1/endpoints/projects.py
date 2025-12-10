@@ -18,7 +18,7 @@ from app.models.user import User
 from app.models.audit import AuditTask, AuditIssue
 from app.models.user_config import UserConfig
 import zipfile
-from app.services.scanner import scan_repo_task, get_github_files, get_gitlab_files, get_github_branches, get_gitlab_branches
+from app.services.scanner import scan_repo_task, get_github_files, get_gitlab_files, get_github_branches, get_gitlab_branches, should_exclude, is_text_file
 from app.services.zip_storage import (
     save_project_zip, load_project_zip, get_project_zip_meta,
     delete_project_zip, has_project_zip
@@ -322,12 +322,15 @@ async def permanently_delete_project(
 async def get_project_files(
     id: str,
     branch: Optional[str] = None,
+    exclude_patterns: Optional[str] = None,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(deps.get_current_user),
 ) -> Any:
     """
     Get list of files in the project.
-    可选参数 branch 用于指定仓库分支（仅对仓库类型项目有效）
+    可选参数:
+    - branch: 指定仓库分支（仅对仓库类型项目有效）
+    - exclude_patterns: JSON 格式的排除模式数组，如 ["node_modules/**", "*.log"]
     """
     project = await db.get(Project, id)
     if not project:
@@ -336,6 +339,14 @@ async def get_project_files(
     # Check permissions
     if project.owner_id != current_user.id:
         raise HTTPException(status_code=403, detail="无权查看此项目")
+    
+    # 解析排除模式
+    parsed_exclude_patterns = []
+    if exclude_patterns:
+        try:
+            parsed_exclude_patterns = json.loads(exclude_patterns)
+        except json.JSONDecodeError:
+            pass
     
     files = []
     
@@ -352,7 +363,11 @@ async def get_project_files(
                 for file_info in zip_ref.infolist():
                     if not file_info.is_dir():
                         name = file_info.filename
-                        if any(p in name for p in ['node_modules/', '__pycache__/', '.git/', 'dist/', 'build/']):
+                        # 使用统一的排除逻辑，支持用户自定义排除模式
+                        if should_exclude(name, parsed_exclude_patterns):
+                            continue
+                        # 只显示支持的代码文件
+                        if not is_text_file(name):
                             continue
                         files.append({"path": name, "size": file_info.file_size})
         except Exception as e:
@@ -367,7 +382,6 @@ async def get_project_files(
         # Get tokens from user config
         from sqlalchemy.future import select
         from app.core.encryption import decrypt_sensitive_data
-        import json
         from app.core.config import settings
 
         SENSITIVE_OTHER_FIELDS = ['githubToken', 'gitlabToken']
@@ -396,10 +410,12 @@ async def get_project_files(
         
         try:
             if repo_type == "github":
-                repo_files = await get_github_files(project.repository_url, target_branch, github_token)
+                # 传入用户自定义排除模式
+                repo_files = await get_github_files(project.repository_url, target_branch, github_token, parsed_exclude_patterns)
                 files = [{"path": f["path"], "size": 0} for f in repo_files]
             elif repo_type == "gitlab":
-                repo_files = await get_gitlab_files(project.repository_url, target_branch, gitlab_token)
+                # 传入用户自定义排除模式
+                repo_files = await get_gitlab_files(project.repository_url, target_branch, gitlab_token, parsed_exclude_patterns)
                 files = [{"path": f["path"], "size": 0} for f in repo_files]
         except Exception as e:
              print(f"Error fetching repo files: {e}")

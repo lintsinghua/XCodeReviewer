@@ -64,9 +64,13 @@ export const api = {
     }
   },
 
-  async getProjectFiles(id: string, branch?: string): Promise<Array<{ path: string; size: number }>> {
+  async getProjectFiles(id: string, branch?: string, excludePatterns?: string[]): Promise<Array<{ path: string; size: number }>> {
     try {
-      const params = branch ? { branch } : {};
+      const params: Record<string, string> = {};
+      if (branch) params.branch = branch;
+      if (excludePatterns && excludePatterns.length > 0) {
+        params.exclude_patterns = JSON.stringify(excludePatterns);
+      }
       const res = await apiClient.get(`/projects/${id}/files`, { params });
       return res.data;
     } catch (e) {

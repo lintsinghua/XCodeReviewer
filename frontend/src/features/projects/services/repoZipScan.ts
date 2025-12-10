@@ -19,6 +19,7 @@ export async function scanZipFile(params: {
   const scanConfig = {
     file_paths: params.filePaths,
     full_scan: !params.filePaths || params.filePaths.length === 0,
+    exclude_patterns: params.excludePatterns || [],
     rule_set_id: params.ruleSetId,
     prompt_template_id: params.promptTemplateId,
   };
@@ -47,6 +48,7 @@ export async function scanStoredZipFile(params: {
   const scanRequest = {
     file_paths: params.filePaths,
     full_scan: !params.filePaths || params.filePaths.length === 0,
+    exclude_patterns: params.excludePatterns || [],
     rule_set_id: params.ruleSetId,
     prompt_template_id: params.promptTemplateId,
   };

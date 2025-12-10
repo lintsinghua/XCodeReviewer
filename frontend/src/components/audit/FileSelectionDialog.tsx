@@ -14,6 +14,7 @@ interface FileSelectionDialogProps {
     onOpenChange: (open: boolean) => void;
     projectId: string;
     branch?: string;
+    excludePatterns?: string[];
     onConfirm: (selectedFiles: string[]) => void;
 }
 
@@ -22,7 +23,7 @@ interface FileNode {
     size: number;
 }
 
-export default function FileSelectionDialog({ open, onOpenChange, projectId, branch, onConfirm }: FileSelectionDialogProps) {
+export default function FileSelectionDialog({ open, onOpenChange, projectId, branch, excludePatterns, onConfirm }: FileSelectionDialogProps) {
     const [files, setFiles] = useState<FileNode[]>([]);
     const [loading, setLoading] = useState(false);
     const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
@@ -37,12 +38,13 @@ export default function FileSelectionDialog({ open, onOpenChange, projectId, bra
             setSelectedFiles(new Set());
             setSearchTerm("");
         }
-    }, [open, projectId, branch]);
+    }, [open, projectId, branch, excludePatterns]);
 
     const loadFiles = async () => {
         try {
             setLoading(true);
-            const data = await api.getProjectFiles(projectId, branch);
+            // 传入排除模式，让后端过滤文件
+            const data = await api.getProjectFiles(projectId, branch, excludePatterns);
             setFiles(data);
             setSelectedFiles(new Set(data.map(f => f.path)));
         } catch (error) {
@@ -100,9 +102,16 @@ export default function FileSelectionDialog({ open, onOpenChange, projectId, bra
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col bg-white border-2 border-black p-0 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] rounded-none">
                 <DialogHeader className="p-6 border-b-2 border-black bg-gray-50 flex-shrink-0">
-                    <DialogTitle className="flex items-center space-x-2 font-display font-bold uppercase text-xl">
-                        <FolderOpen className="w-6 h-6 text-black" />
-                        <span>选择要审计的文件</span>
+                    <DialogTitle className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2 font-display font-bold uppercase text-xl">
+                            <FolderOpen className="w-6 h-6 text-black" />
+                            <span>选择要审计的文件</span>
+                        </div>
+                        {excludePatterns && excludePatterns.length > 0 && (
+                            <Badge variant="outline" className="rounded-none border-gray-400 text-gray-600 font-mono text-xs">
+                                已排除 {excludePatterns.length} 种模式
+                            </Badge>
+                        )}
                     </DialogTitle>
                 </DialogHeader>
 

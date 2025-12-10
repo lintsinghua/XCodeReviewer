@@ -66,6 +66,10 @@ async def process_zip_task(task_id: str, file_path: str, db_session_factory, use
             with zipfile.ZipFile(file_path, 'r') as zip_ref:
                 zip_ref.extractall(extract_dir)
 
+            # 获取用户自定义排除模式
+            scan_config = (user_config or {}).get('scan_config', {})
+            custom_exclude_patterns = scan_config.get('exclude_patterns', [])
+            
             # Find files
             files_to_scan = []
             for root, dirs, files in os.walk(extract_dir):
@@ -77,8 +81,8 @@ async def process_zip_task(task_id: str, file_path: str, db_session_factory, use
                     # 统一使用正斜杠，确保跨平台兼容性
                     rel_path = normalize_path(str(full_path.relative_to(extract_dir)))
                     
-                    # 检查文件类型和排除规则
-                    if is_text_file(rel_path) and not should_exclude(rel_path):
+                    # 检查文件类型和排除规则（包含用户自定义排除模式）
+                    if is_text_file(rel_path) and not should_exclude(rel_path, custom_exclude_patterns):
                         try:
                             content = full_path.read_text(errors='ignore')
                             if len(content) <= settings.MAX_FILE_SIZE_BYTES:
@@ -91,7 +95,7 @@ async def process_zip_task(task_id: str, file_path: str, db_session_factory, use
 
             # 限制文件数量
             # 如果指定了特定文件，则只分析这些文件
-            target_files = (user_config or {}).get('scan_config', {}).get('file_paths', [])
+            target_files = scan_config.get('file_paths', [])
             if target_files:
                 # 统一目标文件路径的分隔符，确保匹配一致性
                 normalized_targets = {normalize_path(p) for p in target_files}
@@ -281,10 +285,11 @@ async def scan_zip(
     # 获取用户配置
     user_config = await get_user_config_dict(db, current_user.id)
     
-    # 将扫描配置注入到 user_config 中（包括规则集和提示词模板）
+    # 将扫描配置注入到 user_config 中（包括规则集、提示词模板和排除模式）
     if parsed_scan_config:
         user_config['scan_config'] = {
             'file_paths': parsed_scan_config.get('file_paths', []),
+            'exclude_patterns': parsed_scan_config.get('exclude_patterns', []),
             'rule_set_id': parsed_scan_config.get('rule_set_id'),
             'prompt_template_id': parsed_scan_config.get('prompt_template_id'),
         }
@@ -299,6 +304,7 @@ async def scan_zip(
 class ScanRequest(BaseModel):
     file_paths: Optional[List[str]] = None
     full_scan: bool = True
+    exclude_patterns: Optional[List[str]] = None
     rule_set_id: Optional[str] = None
     prompt_template_id: Optional[str] = None
 
@@ -343,10 +349,11 @@ async def scan_stored_zip(
     # 获取用户配置
     user_config = await get_user_config_dict(db, current_user.id)
     
-    # 将扫描配置注入到 user_config 中（包括规则集和提示词模板）
+    # 将扫描配置注入到 user_config 中（包括规则集、提示词模板和排除模式）
     if scan_request:
         user_config['scan_config'] = {
             'file_paths': scan_request.file_paths or [],
+            'exclude_patterns': scan_request.exclude_patterns or [],
             'rule_set_id': scan_request.rule_set_id,
             'prompt_template_id': scan_request.prompt_template_id,
         }

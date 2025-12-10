@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import {
   Dialog,
   DialogContent,
@@ -184,7 +184,16 @@ export default function CreateTaskDialog({
     }
   }, [open, preselectedProjectId, ruleSets, promptTemplates]);
 
-
+  // 当排除模式变化时，清空已选文件（因为文件列表会变化）
+  const excludePatternsRef = useRef(excludePatterns);
+  useEffect(() => {
+    // 只在排除模式真正变化时才清空（不是初始化）
+    if (excludePatternsRef.current !== excludePatterns && selectedFiles) {
+      setSelectedFiles(undefined);
+      toast.info("排除模式已更改，请重新选择文件");
+    }
+    excludePatternsRef.current = excludePatterns;
+  }, [excludePatterns]);
 
   const handleStartScan = async () => {
     if (!selectedProject) {
@@ -567,6 +576,7 @@ export default function CreateTaskDialog({
         onOpenChange={setShowFileSelection}
         projectId={selectedProjectId}
         branch={branch}
+        excludePatterns={excludePatterns}
         onConfirm={setSelectedFiles}
       />
     </>
