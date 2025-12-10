@@ -454,21 +454,17 @@ export default function FileSelectionDialog({
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="!max-w-[1000px] !w-[95vw] max-h-[85vh] flex flex-col bg-white border-2 border-black p-0 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] rounded-none">
                 <DialogHeader className="p-5 border-b-2 border-black bg-gray-50 flex-shrink-0">
-                    <DialogTitle className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2 font-display font-bold uppercase text-lg">
-                            <FolderOpen className="w-5 h-5 text-black" />
-                            <span>选择要审计的文件</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            {excludePatterns && excludePatterns.length > 0 && (
-                                <Badge
-                                    variant="outline"
-                                    className="rounded-none border-gray-400 text-gray-600 font-mono text-xs"
-                                >
-                                    已排除 {excludePatterns.length} 种模式
-                                </Badge>
-                            )}
-                        </div>
+                    <DialogTitle className="flex items-center gap-3 font-display font-bold uppercase text-lg pr-8">
+                        <FolderOpen className="w-5 h-5 text-black flex-shrink-0" />
+                        <span>选择要审计的文件</span>
+                        {excludePatterns && excludePatterns.length > 0 && (
+                            <Badge
+                                variant="outline"
+                                className="rounded-none border-gray-400 text-gray-600 font-mono text-xs ml-auto"
+                            >
+                                已排除 {excludePatterns.length} 种模式
+                            </Badge>
+                        )}
                     </DialogTitle>
                 </DialogHeader>
 
