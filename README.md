@@ -169,6 +169,8 @@ docker-compose up -d
 
 开源项目离不开社区的支持！无论是提 Issue、贡献代码，还是分享使用心得，都非常欢迎。
 
+> 有想和我一起让工具变得更好的佬友们，欢迎联系我，和我一起为开源做一点贡献
+
 **感谢每一位贡献者！**
 
 [![Contributors](https://contrib.rocks/image?repo=lintsinghua/DeepAudit)](https://github.com/lintsinghua/DeepAudit/graphs/contributors)
@@ -177,7 +179,7 @@ docker-compose up -d
 
 - **项目链接**: [https://github.com/lintsinghua/DeepAudit](https://github.com/lintsinghua/DeepAudit)
 - **问题反馈**: [Issues](https://github.com/lintsinghua/DeepAudit/issues)
-- **作者邮箱**: lintsinghua@qq.com（合作请注明来意）
+- **作者邮箱**: lintsinghua@qq.com
 
 ---
 
