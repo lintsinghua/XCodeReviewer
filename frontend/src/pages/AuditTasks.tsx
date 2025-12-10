@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,7 +11,8 @@ import {
   Search,
   FileText,
   Calendar,
-  Plus
+  Plus,
+  XCircle
 } from "lucide-react";
 import { api } from "@/shared/config/database";
 import type { AuditTask } from "@/shared/types";
@@ -20,12 +21,19 @@ import { toast } from "sonner";
 import CreateTaskDialog from "@/components/audit/CreateTaskDialog";
 import { calculateTaskProgress } from "@/shared/utils/utils";
 
+// 僵尸任务检测配置
+const ZOMBIE_TIMEOUT = 180000; // 3分钟无进度变化视为可能的僵尸任务
+
 export default function AuditTasks() {
   const [tasks, setTasks] = useState<AuditTask[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [cancellingTaskId, setCancellingTaskId] = useState<string | null>(null);
+  
+  // 僵尸任务检测：记录每个任务的上次进度和时间
+  const taskProgressRef = useRef<Map<string, { progress: number; time: number }>>(new Map());
 
   useEffect(() => {
     loadTasks();
@@ -38,6 +46,8 @@ export default function AuditTasks() {
     );
 
     if (activeTasks.length === 0) {
+      // 清空进度记录
+      taskProgressRef.current.clear();
       return;
     }
 
@@ -50,12 +60,45 @@ export default function AuditTasks() {
         setTasks(prevTasks => {
           return prevTasks.map(prevTask => {
             const updated = updatedData.find(t => t.id === prevTask.id);
+            if (!updated) return prevTask;
+            
+            // 僵尸任务检测
+            if (updated.status === 'running') {
+              const currentProgress = updated.scanned_files || 0;
+              const lastRecord = taskProgressRef.current.get(updated.id);
+              
+              if (lastRecord) {
+                if (currentProgress !== lastRecord.progress) {
+                  // 进度有变化，更新记录
+                  taskProgressRef.current.set(updated.id, { progress: currentProgress, time: Date.now() });
+                } else if (Date.now() - lastRecord.time > ZOMBIE_TIMEOUT) {
+                  // 超时无进度变化，提示用户
+                  toast.warning(`任务 "${updated.project?.name || '未知'}" 可能已停止响应`, {
+                    id: `zombie-${updated.id}`,
+                    duration: 10000,
+                    action: {
+                      label: '取消任务',
+                      onClick: () => handleCancelTask(updated.id),
+                    },
+                  });
+                  // 重置时间避免重复提示
+                  taskProgressRef.current.set(updated.id, { progress: currentProgress, time: Date.now() });
+                }
+              } else {
+                // 首次记录
+                taskProgressRef.current.set(updated.id, { progress: currentProgress, time: Date.now() });
+              }
+            } else {
+              // 任务不再运行，清除记录
+              taskProgressRef.current.delete(updated.id);
+            }
+            
             // 只有在进度、状态或问题数真正变化时才更新
-            if (updated && (
+            if (
               updated.status !== prevTask.status ||
               updated.scanned_files !== prevTask.scanned_files ||
               updated.issues_count !== prevTask.issues_count
-            )) {
+            ) {
               return updated;
             }
             return prevTask;
@@ -63,11 +106,33 @@ export default function AuditTasks() {
         });
       } catch (error) {
         console.error('静默更新任务列表失败:', error);
+        toast.error("获取任务状态失败，请检查网络连接", {
+          id: 'network-error',
+          duration: 5000,
+        });
       }
     }, 3000); // 每3秒静默更新一次
 
     return () => clearInterval(intervalId);
   }, [tasks.map(t => t.id + t.status).join(',')]);
+  
+  // 取消任务
+  const handleCancelTask = async (taskId: string) => {
+    if (cancellingTaskId) return;
+    
+    try {
+      setCancellingTaskId(taskId);
+      await api.cancelAuditTask(taskId);
+      toast.success("任务已取消");
+      // 刷新任务列表
+      await loadTasks();
+    } catch (error: any) {
+      console.error('取消任务失败:', error);
+      toast.error(error?.response?.data?.detail || "取消任务失败");
+    } finally {
+      setCancellingTaskId(null);
+    }
+  };
 
   const loadTasks = async () => {
     try {
@@ -321,6 +386,19 @@ export default function AuditTasks() {
                 </div>
 
                 <div className="flex gap-3">
+                  {/* 运行中或等待中的任务显示取消按钮 */}
+                  {(task.status === 'running' || task.status === 'pending') && (
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="retro-btn bg-red-600 text-white hover:bg-red-700 h-9"
+                      onClick={() => handleCancelTask(task.id)}
+                      disabled={cancellingTaskId === task.id}
+                    >
+                      <XCircle className="w-4 h-4 mr-2" />
+                      {cancellingTaskId === task.id ? '取消中...' : '取消'}
+                    </Button>
+                  )}
                   <Link to={`/tasks/${task.id}`}>
                     <Button variant="outline" size="sm" className="retro-btn bg-white text-black hover:bg-gray-100 h-9">
                       <FileText className="w-4 h-4 mr-2" />

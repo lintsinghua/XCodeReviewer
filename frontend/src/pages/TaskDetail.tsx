@@ -20,7 +20,8 @@ import {
   Code,
   Lightbulb,
   Info,
-  Zap
+  Zap,
+  XCircle
 } from "lucide-react";
 import { api } from "@/shared/config/database";
 import type { AuditTask, AuditIssue } from "@/shared/types";
@@ -322,6 +323,12 @@ export default function TaskDetail() {
   const [issues, setIssues] = useState<AuditIssue[]>([]);
   const [loading, setLoading] = useState(true);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+  
+  // 僵尸任务检测：记录上次进度变化时间
+  const [lastProgressTime, setLastProgressTime] = useState<number>(Date.now());
+  const [lastProgress, setLastProgress] = useState<number>(0);
+  const ZOMBIE_TIMEOUT = 180000; // 3分钟无进度变化视为僵尸任务
 
   useEffect(() => {
     if (id) {
@@ -345,23 +352,72 @@ export default function TaskDetail() {
             api.getAuditIssues(id)
           ]);
 
+          if (!taskData) {
+            console.error('任务数据获取失败');
+            return;
+          }
+
+          // 检测僵尸任务：如果任务仍在运行但长时间无进度变化
+          const currentProgress = taskData.scanned_files || 0;
+          if (currentProgress !== lastProgress) {
+            setLastProgress(currentProgress);
+            setLastProgressTime(Date.now());
+          } else if (taskData.status === 'running' && Date.now() - lastProgressTime > ZOMBIE_TIMEOUT) {
+            // 可能是僵尸任务，提示用户
+            toast.warning("任务可能已停止响应，建议取消后重试", {
+              id: 'zombie-warning',
+              duration: 10000,
+            });
+          }
+
           // 只有数据真正变化时才更新状态
-          if (taskData && (
+          if (
             taskData.status !== task.status ||
             taskData.scanned_files !== task.scanned_files ||
             taskData.issues_count !== task.issues_count
-          )) {
+          ) {
             setTask(taskData);
             setIssues(issuesData);
+            
+            // 如果任务已完成/失败/取消，停止轮询
+            if (['completed', 'failed', 'cancelled'].includes(taskData.status)) {
+              clearInterval(intervalId);
+            }
           }
         } catch (error) {
           console.error('静默更新任务失败:', error);
+          // 网络错误时也提示用户
+          toast.error("获取任务状态失败，请检查网络连接", {
+            id: 'network-error',
+            duration: 5000,
+          });
         }
       }, 3000); // 每3秒静默更新一次
 
       return () => clearInterval(intervalId);
     }
-  }, [task?.status, task?.scanned_files, id]);
+  }, [task?.status, task?.scanned_files, id, lastProgress, lastProgressTime]);
+  
+  // 取消任务
+  const handleCancelTask = async () => {
+    if (!id || cancelling) return;
+    
+    try {
+      setCancelling(true);
+      await api.cancelAuditTask(id);
+      toast.success("任务已取消");
+      // 刷新任务状态
+      const taskData = await api.getAuditTaskById(id);
+      if (taskData) {
+        setTask(taskData);
+      }
+    } catch (error: any) {
+      console.error('取消任务失败:', error);
+      toast.error(error?.response?.data?.detail || "取消任务失败");
+    } finally {
+      setCancelling(false);
+    }
+  };
 
   const loadTaskDetail = async () => {
     if (!id) return;
@@ -469,6 +525,20 @@ export default function TaskDetail() {
                     task.status === 'cancelled' ? '已取消' : '等待中'}
             </span>
           </Badge>
+
+          {/* 运行中或等待中的任务显示取消按钮 */}
+          {(task.status === 'running' || task.status === 'pending') && (
+            <Button
+              size="sm"
+              variant="destructive"
+              className="retro-btn bg-red-600 text-white hover:bg-red-700 h-10"
+              onClick={handleCancelTask}
+              disabled={cancelling}
+            >
+              <XCircle className="w-4 h-4 mr-2" />
+              {cancelling ? '取消中...' : '取消任务'}
+            </Button>
+          )}
 
           {/* 已完成的任务显示导出按钮 */}
           {task.status === 'completed' && (

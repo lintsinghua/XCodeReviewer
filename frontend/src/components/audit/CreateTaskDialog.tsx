@@ -445,10 +445,21 @@ export default function CreateTaskDialog({
                   </CollapsibleTrigger>
                   <CollapsibleContent className="mt-3 space-y-3">
                     {/* 排除模式 */}
-                    <div className="p-3 border-2 border-dashed border-gray-400 bg-gray-50 space-y-2">
-                      <span className="font-mono text-xs uppercase font-bold text-gray-600">
-                        排除模式
-                      </span>
+                    <div className="p-3 border-2 border-dashed border-gray-400 bg-gray-50 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="font-mono text-xs uppercase font-bold text-gray-600">
+                          排除模式
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setExcludePatterns(DEFAULT_EXCLUDES)}
+                          className="text-xs font-mono text-blue-600 hover:text-blue-800 hover:underline"
+                        >
+                          重置为默认
+                        </button>
+                      </div>
+                      
+                      {/* 已选择的排除模式 */}
                       <div className="flex flex-wrap gap-1.5">
                         {excludePatterns.map((p) => (
                           <Badge
@@ -464,9 +475,34 @@ export default function CreateTaskDialog({
                             {p} ×
                           </Badge>
                         ))}
+                        {excludePatterns.length === 0 && (
+                          <span className="text-xs text-gray-400 font-mono">无排除模式</span>
+                        )}
                       </div>
+                      
+                      {/* 快捷添加常用模式 */}
+                      <div className="flex flex-wrap gap-1">
+                        <span className="text-xs text-gray-500 font-mono mr-1">快捷添加:</span>
+                        {[".test.", ".spec.", ".min.", "coverage/", "docs/", ".md"].map((pattern) => (
+                          <button
+                            key={pattern}
+                            type="button"
+                            disabled={excludePatterns.includes(pattern)}
+                            onClick={() => {
+                              if (!excludePatterns.includes(pattern)) {
+                                setExcludePatterns((prev) => [...prev, pattern]);
+                              }
+                            }}
+                            className="text-xs font-mono px-1.5 py-0.5 border border-gray-300 bg-white hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
+                          >
+                            +{pattern}
+                          </button>
+                        ))}
+                      </div>
+                      
+                      {/* 自定义输入 */}
                       <Input
-                        placeholder="添加排除模式，回车确认"
+                        placeholder="添加自定义排除模式，回车确认（如: .log, temp/, secret）"
                         className="h-8 rounded-none border-2 border-black font-mono text-sm focus:ring-0"
                         onKeyDown={(e) => {
                           if (e.key === "Enter" && e.currentTarget.value) {

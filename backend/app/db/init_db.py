@@ -143,7 +143,7 @@ async def create_demo_data(db: AsyncSession, user: User) -> None:
         # 项目2: 移动端 App
         {"project_idx": 1, "status": "completed", "days_ago": 20, "files": 89, "lines": 8900, "issues": 15, "score": 68.7},
         {"project_idx": 1, "status": "completed", "days_ago": 8, "files": 95, "lines": 9500, "issues": 8, "score": 82.1},
-        {"project_idx": 1, "status": "running", "days_ago": 0, "files": 98, "lines": 9800, "issues": 0, "score": 0},
+        {"project_idx": 1, "status": "completed", "days_ago": 1, "files": 98, "lines": 9800, "issues": 6, "score": 84.5},
         # 项目3: 数据分析平台
         {"project_idx": 2, "status": "completed", "days_ago": 12, "files": 45, "lines": 5600, "issues": 9, "score": 76.4},
         {"project_idx": 2, "status": "completed", "days_ago": 2, "files": 52, "lines": 6200, "issues": 5, "score": 88.9},
