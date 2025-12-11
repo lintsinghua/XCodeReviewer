@@ -229,14 +229,12 @@ async def create_agent_task(
         description=request.description,
         status=AgentTaskStatus.PENDING,
         current_phase=AgentTaskPhase.PLANNING,
-        config={
-            "target_vulnerabilities": request.target_vulnerabilities,
-            "verification_level": request.verification_level,
-            "exclude_patterns": request.exclude_patterns,
-            "target_files": request.target_files,
-            "max_iterations": request.max_iterations,
-            "timeout_seconds": request.timeout_seconds,
-        },
+        target_vulnerabilities=request.target_vulnerabilities,
+        verification_level=request.verification_level or "sandbox",
+        exclude_patterns=request.exclude_patterns,
+        target_files=request.target_files,
+        max_iterations=request.max_iterations or 50,
+        timeout_seconds=request.timeout_seconds or 1800,
         created_by=current_user.id,
     )
     
