@@ -345,10 +345,10 @@ export default function AgentAuditPage() {
                 <div className="w-32 h-2 bg-gray-800 rounded-full overflow-hidden">
                   <div
                     className="h-full bg-gradient-to-r from-cyan-600 to-cyan-400 transition-all duration-300"
-                    style={{ width: `${task.progress_percentage}%` }}
+                    style={{ width: `${task.progress_percentage ?? 0}%` }}
                   />
                 </div>
-                <span className="text-xs text-cyan-400">{task.progress_percentage.toFixed(0)}%</span>
+                <span className="text-xs text-cyan-400">{(task.progress_percentage ?? 0).toFixed(0)}%</span>
               </div>
               
               {/* Token 消耗 */}
@@ -438,11 +438,11 @@ export default function AgentAuditPage() {
               <div className="flex items-center justify-between text-xs">
                 <span className="text-gray-500">安全评分</span>
                 <span className={`font-bold ${
-                  task.security_score >= 80 ? "text-green-400" :
-                  task.security_score >= 60 ? "text-yellow-400" :
+                  (task.security_score ?? 0) >= 80 ? "text-green-400" :
+                  (task.security_score ?? 0) >= 60 ? "text-yellow-400" :
                   "text-red-400"
                 }`}>
-                  {task.security_score.toFixed(0)}/100
+                  {(task.security_score ?? 0).toFixed(0)}/100
                 </span>
               </div>
               <div className="flex items-center justify-between text-xs">

@@ -128,7 +128,7 @@ def upgrade() -> None:
         sa.Column('tokens_used', sa.Integer(), default=0),
         
         # 元数据
-        sa.Column('metadata', sa.JSON(), nullable=True),
+        sa.Column('event_metadata', sa.JSON(), nullable=True),
         
         # 序号
         sa.Column('sequence', sa.Integer(), default=0),
@@ -211,7 +211,7 @@ def upgrade() -> None:
         sa.Column('cvss_vector', sa.String(100), nullable=True),
         
         # 元数据
-        sa.Column('metadata', sa.JSON(), nullable=True),
+        sa.Column('finding_metadata', sa.JSON(), nullable=True),
         sa.Column('tags', sa.JSON(), nullable=True),
         
         # 去重标识

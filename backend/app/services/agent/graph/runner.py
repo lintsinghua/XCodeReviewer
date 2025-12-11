@@ -98,8 +98,8 @@ class AgentRunner:
         self.project_root = project_root
         
         # 事件管理
-        self.event_manager = EventManager(db, task.id)
-        self.event_emitter = AgentEventEmitter(self.event_manager)
+        self.event_manager = EventManager()
+        self.event_emitter = AgentEventEmitter(task.id, self.event_manager)
         
         # LLM 服务
         self.llm_service = LLMService()
