@@ -1,6 +1,7 @@
 /**
  * Agent 审计页面
  * 机械终端风格的 AI Agent 审计界面
+ * 支持 LLM 思考过程和工具调用的实时流式展示
  */
 
 import { useState, useEffect, useRef, useCallback } from "react";
@@ -9,12 +10,14 @@ import {
   Terminal, Bot, Cpu, Shield, AlertTriangle, CheckCircle2,
   Loader2, Code, Zap, Activity, ChevronRight, XCircle,
   FileCode, Search, Bug, Lock, Play, Square, RefreshCw,
-  ArrowLeft, Download, ExternalLink
+  ArrowLeft, Download, ExternalLink, Brain, Wrench, 
+  ChevronDown, ChevronUp, Clock, Sparkles
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
+import { useAgentStream } from "@/hooks/useAgentStream";
 import {
   type AgentTask,
   type AgentEvent,
@@ -91,9 +94,35 @@ export default function AgentAuditPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isStreaming, setIsStreaming] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date().toLocaleTimeString("zh-CN", { hour12: false }));
+  const [showThinking, setShowThinking] = useState(true);
+  const [showToolDetails, setShowToolDetails] = useState(true);
   
   const eventsEndRef = useRef<HTMLDivElement>(null);
+  const thinkingEndRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  
+  // 使用增强版流式 Hook
+  const {
+    thinking,
+    isThinking,
+    toolCalls,
+    currentPhase: streamPhase,
+    progress: streamProgress,
+    connect: connectStream,
+    disconnect: disconnectStream,
+    isConnected: isStreamConnected,
+  } = useAgentStream(taskId || null, {
+    includeThinking: true,
+    includeToolCalls: true,
+    onFinding: () => loadFindings(),
+    onComplete: () => {
+      loadTask();
+      loadFindings();
+    },
+    onError: (err) => {
+      console.error("Stream error:", err);
+    },
+  });
   
   // 是否完成
   const isComplete = task?.status === "completed" || task?.status === "failed" || task?.status === "cancelled";
@@ -146,12 +175,24 @@ export default function AgentAuditPage() {
     init();
   }, [loadTask, loadEvents, loadFindings]);
   
-  // 事件流
+  // 连接增强版流式 API
+  useEffect(() => {
+    if (!taskId || isComplete || isLoading) return;
+    
+    connectStream();
+    setIsStreaming(true);
+    
+    return () => {
+      disconnectStream();
+      setIsStreaming(false);
+    };
+  }, [taskId, isComplete, isLoading, connectStream, disconnectStream]);
+  
+  // 旧版事件流（作为后备）
   useEffect(() => {
     if (!taskId || isComplete || isLoading) return;
     
     const startStreaming = async () => {
-      setIsStreaming(true);
       abortControllerRef.current = new AbortController();
       
       try {
@@ -179,8 +220,6 @@ export default function AgentAuditPage() {
         if ((error as Error).name !== "AbortError") {
           console.error("Event stream error:", error);
         }
-      } finally {
-        setIsStreaming(false);
       }
     };
     
@@ -204,6 +243,30 @@ export default function AgentAuditPage() {
     
     return () => clearInterval(interval);
   }, []);
+  
+  // 定期轮询任务状态（作为 SSE 的后备机制）
+  useEffect(() => {
+    if (!taskId || isComplete || isLoading) return;
+    
+    // 每 3 秒轮询一次任务状态
+    const pollInterval = setInterval(async () => {
+      try {
+        const taskData = await getAgentTask(taskId);
+        setTask(taskData);
+        
+        // 如果任务已完成/失败/取消，刷新其他数据
+        if (taskData.status === "completed" || taskData.status === "failed" || taskData.status === "cancelled") {
+          await loadEvents();
+          await loadFindings();
+          clearInterval(pollInterval);
+        }
+      } catch (error) {
+        console.error("Failed to poll task status:", error);
+      }
+    }, 3000);
+    
+    return () => clearInterval(pollInterval);
+  }, [taskId, isComplete, isLoading, loadEvents, loadFindings]);
   
   // 取消任务
   const handleCancel = async () => {
@@ -291,14 +354,85 @@ export default function AgentAuditPage() {
         </div>
       </div>
       
+      {/* 错误提示 */}
+      {task.status === "failed" && task.error_message && (
+        <div className="mx-4 mt-2 p-3 bg-red-900/30 border border-red-700 rounded-lg">
+          <div className="flex items-start gap-2">
+            <XCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-red-400 font-semibold text-sm">任务执行失败</p>
+              <p className="text-red-300/80 text-xs mt-1 font-mono break-all">{task.error_message}</p>
+            </div>
+          </div>
+        </div>
+      )}
+      
       <div className="flex h-[calc(100vh-56px)]">
         {/* 左侧：执行日志 */}
         <div className="flex-1 p-4 flex flex-col min-w-0">
+          
+          {/* 思考过程展示区域 */}
+          {(isThinking || thinking) && showThinking && (
+            <div className="mb-4 bg-purple-950/30 rounded-lg border border-purple-800/50 overflow-hidden">
+              <div 
+                className="flex items-center justify-between px-3 py-2 bg-purple-900/30 border-b border-purple-800/30 cursor-pointer"
+                onClick={() => setShowThinking(!showThinking)}
+              >
+                <div className="flex items-center gap-2 text-xs text-purple-400">
+                  <Brain className={`w-4 h-4 ${isThinking ? "animate-pulse" : ""}`} />
+                  <span className="uppercase tracking-wider">AI Thinking</span>
+                  {isThinking && (
+                    <span className="flex items-center gap-1 text-purple-300">
+                      <Sparkles className="w-3 h-3 animate-spin" />
+                      <span className="text-[10px]">Processing...</span>
+                    </span>
+                  )}
+                </div>
+                {showThinking ? <ChevronUp className="w-4 h-4 text-purple-400" /> : <ChevronDown className="w-4 h-4 text-purple-400" />}
+              </div>
+              
+              <div className="max-h-40 overflow-y-auto">
+                <div className="p-3 text-sm text-purple-200/80 font-mono whitespace-pre-wrap">
+                  {thinking || "正在思考..."}
+                  {isThinking && <span className="animate-pulse text-purple-400">▌</span>}
+                </div>
+                <div ref={thinkingEndRef} />
+              </div>
+            </div>
+          )}
+          
+          {/* 工具调用展示区域 */}
+          {toolCalls.length > 0 && showToolDetails && (
+            <div className="mb-4 bg-yellow-950/20 rounded-lg border border-yellow-800/30 overflow-hidden">
+              <div 
+                className="flex items-center justify-between px-3 py-2 bg-yellow-900/20 border-b border-yellow-800/20 cursor-pointer"
+                onClick={() => setShowToolDetails(!showToolDetails)}
+              >
+                <div className="flex items-center gap-2 text-xs text-yellow-500">
+                  <Wrench className="w-4 h-4" />
+                  <span className="uppercase tracking-wider">Tool Calls</span>
+                  <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-yellow-900/30 border-yellow-700 text-yellow-400">
+                    {toolCalls.length}
+                  </Badge>
+                </div>
+                {showToolDetails ? <ChevronUp className="w-4 h-4 text-yellow-500" /> : <ChevronDown className="w-4 h-4 text-yellow-500" />}
+              </div>
+              
+              <div className="max-h-48 overflow-y-auto">
+                <div className="p-2 space-y-2">
+                  {toolCalls.slice(-5).map((tc, idx) => (
+                    <ToolCallCard key={`${tc.name}-${idx}`} toolCall={tc} />
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+          
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2 text-xs text-cyan-400">
               <Terminal className="w-4 h-4" />
               <span className="uppercase tracking-wider">Execution Log</span>
-              {isStreaming && (
+              {(isStreaming || isStreamConnected) && (
                 <span className="flex items-center gap-1 text-green-400">
                   <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
                   LIVE
@@ -536,6 +670,94 @@ function EventLine({ event }: { event: AgentEvent }) {
           <span className="text-gray-600 ml-2">({event.tool_duration_ms}ms)</span>
         )}
       </span>
+    </div>
+  );
+}
+
+// 工具调用卡片组件
+interface ToolCallProps {
+  toolCall: {
+    name: string;
+    input: Record<string, unknown>;
+    output?: unknown;
+    durationMs?: number;
+    status: 'running' | 'success' | 'error';
+  };
+}
+
+function ToolCallCard({ toolCall }: ToolCallProps) {
+  const [expanded, setExpanded] = useState(false);
+  
+  const statusConfig = {
+    running: {
+      icon: <Loader2 className="w-3 h-3 animate-spin text-yellow-400" />,
+      badge: "bg-yellow-900/30 border-yellow-700 text-yellow-400",
+      text: "Running",
+    },
+    success: {
+      icon: <CheckCircle2 className="w-3 h-3 text-green-400" />,
+      badge: "bg-green-900/30 border-green-700 text-green-400",
+      text: "Done",
+    },
+    error: {
+      icon: <XCircle className="w-3 h-3 text-red-400" />,
+      badge: "bg-red-900/30 border-red-700 text-red-400",
+      text: "Error",
+    },
+  };
+  
+  const config = statusConfig[toolCall.status];
+  
+  return (
+    <div className="bg-gray-900/50 rounded border border-gray-700/50 overflow-hidden">
+      <div 
+        className="flex items-center justify-between px-2 py-1.5 cursor-pointer hover:bg-gray-800/50"
+        onClick={() => setExpanded(!expanded)}
+      >
+        <div className="flex items-center gap-2">
+          {config.icon}
+          <span className="text-xs font-mono text-gray-300">{toolCall.name}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          {toolCall.durationMs && (
+            <span className="text-[10px] text-gray-500">
+              <Clock className="w-2.5 h-2.5 inline mr-0.5" />
+              {toolCall.durationMs}ms
+            </span>
+          )}
+          <Badge variant="outline" className={`text-[10px] px-1 py-0 ${config.badge}`}>
+            {config.text}
+          </Badge>
+          {expanded ? <ChevronUp className="w-3 h-3 text-gray-500" /> : <ChevronDown className="w-3 h-3 text-gray-500" />}
+        </div>
+      </div>
+      
+      {expanded && (
+        <div className="border-t border-gray-700/50 text-[11px] font-mono">
+          {/* 输入 */}
+          {toolCall.input && Object.keys(toolCall.input).length > 0 && (
+            <div className="p-2 border-b border-gray-800/50">
+              <span className="text-gray-500 text-[10px] uppercase">Input:</span>
+              <pre className="mt-1 text-cyan-300/80 whitespace-pre-wrap break-all max-h-24 overflow-y-auto">
+                {JSON.stringify(toolCall.input, null, 2).slice(0, 500)}
+              </pre>
+            </div>
+          )}
+          
+          {/* 输出 */}
+          {toolCall.output && (
+            <div className="p-2">
+              <span className="text-gray-500 text-[10px] uppercase">Output:</span>
+              <pre className="mt-1 text-green-300/80 whitespace-pre-wrap break-all max-h-24 overflow-y-auto">
+                {typeof toolCall.output === 'string' 
+                  ? toolCall.output.slice(0, 500)
+                  : JSON.stringify(toolCall.output, null, 2).slice(0, 500)
+                }
+              </pre>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

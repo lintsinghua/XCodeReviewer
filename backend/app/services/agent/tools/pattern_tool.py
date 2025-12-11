@@ -41,6 +41,16 @@ class PatternMatchTool(AgentTool):
     使用正则表达式快速扫描代码中的危险模式
     """
     
+    def __init__(self, project_root: str = None):
+        """
+        初始化模式匹配工具
+        
+        Args:
+            project_root: 项目根目录（可选，用于上下文）
+        """
+        super().__init__()
+        self.project_root = project_root
+    
     # 危险模式定义
     PATTERNS: Dict[str, Dict[str, Any]] = {
         # SQL 注入模式

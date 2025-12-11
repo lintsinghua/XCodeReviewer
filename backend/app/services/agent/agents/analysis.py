@@ -147,11 +147,11 @@ class AnalysisAgent(BaseAgent):
                 deep_findings = await self._analyze_entry_points(entry_points)
                 all_findings.extend(deep_findings)
                 
-                # 分析高风险区域
+                # 分析高风险区域（现在会调用 LLM）
                 risk_findings = await self._analyze_high_risk_areas(high_risk_areas)
                 all_findings.extend(risk_findings)
                 
-                # 语义搜索常见漏洞
+                # 语义搜索常见漏洞（现在会调用 LLM）
                 vuln_types = config.get("target_vulnerabilities", [
                     "sql_injection", "xss", "command_injection",
                     "path_traversal", "ssrf", "hardcoded_secret",
@@ -164,6 +164,12 @@ class AnalysisAgent(BaseAgent):
                     await self.emit_thinking(f"搜索 {vuln_type} 相关代码...")
                     vuln_findings = await self._search_vulnerability_pattern(vuln_type)
                     all_findings.extend(vuln_findings)
+                
+                # 🔥 3. 如果还没有发现，使用 LLM 进行全面扫描
+                if len(all_findings) < 3:
+                    await self.emit_thinking("执行 LLM 全面代码扫描...")
+                    llm_findings = await self._llm_comprehensive_scan(tech_stack)
+                    all_findings.extend(llm_findings)
             
             # 去重
             all_findings = self._deduplicate_findings(all_findings)
@@ -292,12 +298,12 @@ class AnalysisAgent(BaseAgent):
         return findings
     
     async def _analyze_high_risk_areas(self, high_risk_areas: List[str]) -> List[Dict]:
-        """分析高风险区域"""
+        """分析高风险区域 - 使用 LLM 深度分析"""
         findings = []
         
-        pattern_tool = self.tools.get("pattern_match")
         read_tool = self.tools.get("read_file")
         search_tool = self.tools.get("search_code")
+        code_analysis_tool = self.tools.get("code_analysis")
         
         if not search_tool:
             return findings
@@ -305,36 +311,92 @@ class AnalysisAgent(BaseAgent):
         # 在高风险区域搜索危险模式
         dangerous_patterns = [
             ("execute(", "sql_injection"),
+            ("query(", "sql_injection"),
             ("eval(", "code_injection"),
             ("system(", "command_injection"),
             ("exec(", "command_injection"),
+            ("subprocess", "command_injection"),
             ("innerHTML", "xss"),
             ("document.write", "xss"),
+            ("open(", "path_traversal"),
+            ("requests.get", "ssrf"),
         ]
         
-        for pattern, vuln_type in dangerous_patterns[:5]:
+        analyzed_files = set()
+        
+        for pattern, vuln_type in dangerous_patterns[:8]:
             if self.is_cancelled:
                 break
             
             result = await search_tool.execute(keyword=pattern, max_results=10)
             
             if result.success and result.metadata.get("matches", 0) > 0:
-                for match in result.metadata.get("results", [])[:3]:
+                for match in result.metadata.get("results", [])[:5]:
                     file_path = match.get("file", "")
+                    line = match.get("line", 0)
                     
-                    # 检查是否在高风险区域
-                    in_high_risk = any(
-                        area in file_path for area in high_risk_areas
-                    )
+                    # 避免重复分析同一个文件的同一区域
+                    file_key = f"{file_path}:{line // 50}"
+                    if file_key in analyzed_files:
+                        continue
+                    analyzed_files.add(file_key)
                     
-                    if in_high_risk or True:  # 暂时包含所有
+                    # 🔥 使用 LLM 深度分析找到的代码
+                    if read_tool and code_analysis_tool:
+                        await self.emit_thinking(f"LLM 分析 {file_path}:{line} 的 {vuln_type} 风险...")
+                        
+                        # 读取代码上下文
+                        read_result = await read_tool.execute(
+                            file_path=file_path,
+                            start_line=max(1, line - 15),
+                            end_line=line + 25,
+                        )
+                        
+                        if read_result.success:
+                            # 调用 LLM 分析
+                            analysis_result = await code_analysis_tool.execute(
+                                code=read_result.data,
+                                file_path=file_path,
+                                focus=vuln_type,
+                            )
+                            
+                            if analysis_result.success and analysis_result.metadata.get("issues"):
+                                for issue in analysis_result.metadata["issues"]:
+                                    findings.append({
+                                        "vulnerability_type": issue.get("type", vuln_type),
+                                        "severity": issue.get("severity", "medium"),
+                                        "title": issue.get("title", f"LLM 发现: {vuln_type}"),
+                                        "description": issue.get("description", ""),
+                                        "file_path": file_path,
+                                        "line_start": issue.get("line", line),
+                                        "code_snippet": issue.get("code_snippet", match.get("match", "")),
+                                        "suggestion": issue.get("suggestion", ""),
+                                        "ai_explanation": issue.get("ai_explanation", ""),
+                                        "source": "llm_analysis",
+                                        "needs_verification": True,
+                                    })
+                            elif analysis_result.success:
+                                # LLM 分析了但没发现问题，仍记录原始发现
+                                findings.append({
+                                    "vulnerability_type": vuln_type,
+                                    "severity": "low",
+                                    "title": f"疑似 {vuln_type}: {pattern}",
+                                    "description": f"在 {file_path} 中发现危险模式，但 LLM 分析未确认",
+                                    "file_path": file_path,
+                                    "line_start": line,
+                                    "code_snippet": match.get("match", ""),
+                                    "source": "pattern_search",
+                                    "needs_verification": True,
+                                })
+                    else:
+                        # 没有 LLM 工具，使用基础模式匹配
                         findings.append({
                             "vulnerability_type": vuln_type,
-                            "severity": "high" if in_high_risk else "medium",
+                            "severity": "medium",
                             "title": f"疑似 {vuln_type}: {pattern}",
                             "description": f"在 {file_path} 中发现危险模式 {pattern}",
                             "file_path": file_path,
-                            "line_start": match.get("line", 0),
+                            "line_start": line,
                             "code_snippet": match.get("match", ""),
                             "source": "pattern_search",
                             "needs_verification": True,
@@ -343,10 +405,13 @@ class AnalysisAgent(BaseAgent):
         return findings
     
     async def _search_vulnerability_pattern(self, vuln_type: str) -> List[Dict]:
-        """搜索特定漏洞模式"""
+        """搜索特定漏洞模式 - 使用 RAG + LLM"""
         findings = []
         
         security_tool = self.tools.get("security_search")
+        code_analysis_tool = self.tools.get("code_analysis")
+        read_tool = self.tools.get("read_file")
+        
         if not security_tool:
             return findings
         
@@ -357,20 +422,176 @@ class AnalysisAgent(BaseAgent):
         
         if result.success and result.metadata.get("results_count", 0) > 0:
             for item in result.metadata.get("results", [])[:5]:
-                findings.append({
-                    "vulnerability_type": vuln_type,
-                    "severity": "medium",
-                    "title": f"疑似 {vuln_type}",
-                    "description": f"通过语义搜索发现可能存在 {vuln_type}",
-                    "file_path": item.get("file_path", ""),
-                    "line_start": item.get("line_start", 0),
-                    "code_snippet": item.get("content", "")[:500],
-                    "source": "rag_search",
-                    "needs_verification": True,
-                })
+                file_path = item.get("file_path", "")
+                line_start = item.get("line_start", 0)
+                content = item.get("content", "")[:2000]
+                
+                # 🔥 使用 LLM 验证 RAG 搜索结果
+                if code_analysis_tool and content:
+                    await self.emit_thinking(f"LLM 验证 RAG 发现的 {vuln_type}...")
+                    
+                    analysis_result = await code_analysis_tool.execute(
+                        code=content,
+                        file_path=file_path,
+                        focus=vuln_type,
+                    )
+                    
+                    if analysis_result.success and analysis_result.metadata.get("issues"):
+                        for issue in analysis_result.metadata["issues"]:
+                            findings.append({
+                                "vulnerability_type": issue.get("type", vuln_type),
+                                "severity": issue.get("severity", "medium"),
+                                "title": issue.get("title", f"LLM 确认: {vuln_type}"),
+                                "description": issue.get("description", ""),
+                                "file_path": file_path,
+                                "line_start": issue.get("line", line_start),
+                                "code_snippet": issue.get("code_snippet", content[:500]),
+                                "suggestion": issue.get("suggestion", ""),
+                                "ai_explanation": issue.get("ai_explanation", ""),
+                                "source": "rag_llm_analysis",
+                                "needs_verification": True,
+                            })
+                    else:
+                        # RAG 找到但 LLM 未确认
+                        findings.append({
+                            "vulnerability_type": vuln_type,
+                            "severity": "low",
+                            "title": f"疑似 {vuln_type} (待确认)",
+                            "description": f"RAG 搜索发现可能存在 {vuln_type}，但 LLM 未确认",
+                            "file_path": file_path,
+                            "line_start": line_start,
+                            "code_snippet": content[:500],
+                            "source": "rag_search",
+                            "needs_verification": True,
+                        })
+                else:
+                    findings.append({
+                        "vulnerability_type": vuln_type,
+                        "severity": "medium",
+                        "title": f"疑似 {vuln_type}",
+                        "description": f"通过语义搜索发现可能存在 {vuln_type}",
+                        "file_path": file_path,
+                        "line_start": line_start,
+                        "code_snippet": content[:500],
+                        "source": "rag_search",
+                        "needs_verification": True,
+                    })
         
         return findings
     
+    async def _llm_comprehensive_scan(self, tech_stack: Dict) -> List[Dict]:
+        """
+        LLM 全面代码扫描
+        当其他方法没有发现足够的问题时，使用 LLM 直接分析关键文件
+        """
+        findings = []
+        
+        list_tool = self.tools.get("list_files")
+        read_tool = self.tools.get("read_file")
+        code_analysis_tool = self.tools.get("code_analysis")
+        
+        if not all([list_tool, read_tool, code_analysis_tool]):
+            return findings
+        
+        await self.emit_thinking("LLM 全面扫描关键代码文件...")
+        
+        # 确定要扫描的文件类型
+        languages = tech_stack.get("languages", [])
+        file_patterns = []
+        
+        if "Python" in languages:
+            file_patterns.extend(["*.py"])
+        if "JavaScript" in languages or "TypeScript" in languages:
+            file_patterns.extend(["*.js", "*.ts"])
+        if "Go" in languages:
+            file_patterns.extend(["*.go"])
+        if "Java" in languages:
+            file_patterns.extend(["*.java"])
+        if "PHP" in languages:
+            file_patterns.extend(["*.php"])
+        
+        if not file_patterns:
+            file_patterns = ["*.py", "*.js", "*.ts", "*.go", "*.java", "*.php"]
+        
+        # 扫描关键目录
+        key_dirs = ["src", "app", "api", "routes", "controllers", "handlers", "lib", "utils", "."]
+        scanned_files = 0
+        max_files_to_scan = 10
+        
+        for key_dir in key_dirs:
+            if scanned_files >= max_files_to_scan or self.is_cancelled:
+                break
+            
+            for pattern in file_patterns[:3]:
+                if scanned_files >= max_files_to_scan or self.is_cancelled:
+                    break
+                
+                # 列出文件
+                list_result = await list_tool.execute(
+                    directory=key_dir,
+                    pattern=pattern,
+                    recursive=True,
+                    max_files=20,
+                )
+                
+                if not list_result.success:
+                    continue
+                
+                # 从输出中提取文件路径
+                output = list_result.data
+                file_paths = []
+                for line in output.split('\n'):
+                    line = line.strip()
+                    if line.startswith('📄 '):
+                        file_paths.append(line[2:].strip())
+                
+                # 分析每个文件
+                for file_path in file_paths[:5]:
+                    if scanned_files >= max_files_to_scan or self.is_cancelled:
+                        break
+                    
+                    # 跳过测试文件和配置文件
+                    if any(skip in file_path.lower() for skip in ['test', 'spec', 'mock', '__pycache__', 'node_modules']):
+                        continue
+                    
+                    await self.emit_thinking(f"LLM 分析文件: {file_path}")
+                    
+                    # 读取文件
+                    read_result = await read_tool.execute(
+                        file_path=file_path,
+                        max_lines=200,
+                    )
+                    
+                    if not read_result.success:
+                        continue
+                    
+                    scanned_files += 1
+                    
+                    # 🔥 LLM 深度分析
+                    analysis_result = await code_analysis_tool.execute(
+                        code=read_result.data,
+                        file_path=file_path,
+                    )
+                    
+                    if analysis_result.success and analysis_result.metadata.get("issues"):
+                        for issue in analysis_result.metadata["issues"]:
+                            findings.append({
+                                "vulnerability_type": issue.get("type", "other"),
+                                "severity": issue.get("severity", "medium"),
+                                "title": issue.get("title", "LLM 发现的安全问题"),
+                                "description": issue.get("description", ""),
+                                "file_path": file_path,
+                                "line_start": issue.get("line", 0),
+                                "code_snippet": issue.get("code_snippet", ""),
+                                "suggestion": issue.get("suggestion", ""),
+                                "ai_explanation": issue.get("ai_explanation", ""),
+                                "source": "llm_comprehensive_scan",
+                                "needs_verification": True,
+                            })
+        
+        await self.emit_thinking(f"LLM 全面扫描完成，分析了 {scanned_files} 个文件")
+        return findings
+
     def _deduplicate_findings(self, findings: List[Dict]) -> List[Dict]:
         """去重发现"""
         seen = set()

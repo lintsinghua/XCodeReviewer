@@ -15,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from langgraph.graph import StateGraph, END
 from langgraph.checkpoint.memory import MemorySaver
 
+from app.services.agent.streaming import StreamHandler, StreamEvent, StreamEventType
 from app.models.agent_task import (
     AgentTask, AgentEvent, AgentFinding,
     AgentTaskStatus, AgentTaskPhase, AgentEventType,
@@ -39,11 +40,15 @@ logger = logging.getLogger(__name__)
 
 
 class LLMService:
-    """LLM 服务封装"""
+    """
+    LLM 服务封装
+    提供代码分析、漏洞检测等 AI 功能
+    """
     
     def __init__(self, model: Optional[str] = None, api_key: Optional[str] = None):
         self.model = model or settings.LLM_MODEL or "gpt-4o-mini"
         self.api_key = api_key or settings.LLM_API_KEY
+        self.base_url = settings.LLM_BASE_URL
     
     async def chat_completion_raw(
         self,
@@ -61,6 +66,7 @@ class LLMService:
                 temperature=temperature,
                 max_tokens=max_tokens,
                 api_key=self.api_key,
+                base_url=self.base_url,
             )
             
             return {
@@ -75,6 +81,125 @@ class LLMService:
         except Exception as e:
             logger.error(f"LLM call failed: {e}")
             raise
+    
+    async def analyze_code(self, code: str, language: str) -> Dict[str, Any]:
+        """
+        分析代码安全问题
+        
+        Args:
+            code: 代码内容
+            language: 编程语言
+            
+        Returns:
+            分析结果，包含 issues 列表
+        """
+        prompt = f"""请分析以下 {language} 代码的安全问题。
+
+代码:
+```{language}
+{code[:8000]}
+```
+
+请识别所有潜在的安全漏洞，包括但不限于:
+- SQL 注入
+- XSS (跨站脚本)
+- 命令注入
+- 路径遍历
+- 不安全的反序列化
+- 硬编码密钥/密码
+- 不安全的加密
+- SSRF
+- 认证/授权问题
+
+对于每个发现的问题，请提供:
+1. 漏洞类型
+2. 严重程度 (critical/high/medium/low)
+3. 问题描述
+4. 具体行号
+5. 修复建议
+
+请以 JSON 格式返回结果:
+{{
+    "issues": [
+        {{
+            "type": "漏洞类型",
+            "severity": "严重程度",
+            "title": "问题标题",
+            "description": "详细描述",
+            "line": 行号,
+            "code_snippet": "相关代码片段",
+            "suggestion": "修复建议"
+        }}
+    ],
+    "quality_score": 0-100
+}}
+
+如果没有发现安全问题，返回空的 issues 数组和较高的 quality_score。"""
+
+        try:
+            result = await self.chat_completion_raw(
+                messages=[
+                    {"role": "system", "content": "你是一位专业的代码安全审计专家，擅长发现代码中的安全漏洞。请只返回 JSON 格式的结果，不要包含其他内容。"},
+                    {"role": "user", "content": prompt},
+                ],
+                temperature=0.1,
+                max_tokens=4096,
+            )
+            
+            content = result.get("content", "{}")
+            
+            # 尝试提取 JSON
+            import json
+            import re
+            
+            # 尝试直接解析
+            try:
+                return json.loads(content)
+            except json.JSONDecodeError:
+                pass
+            
+            # 尝试从 markdown 代码块提取
+            json_match = re.search(r'```(?:json)?\s*([\s\S]*?)\s*```', content)
+            if json_match:
+                try:
+                    return json.loads(json_match.group(1))
+                except json.JSONDecodeError:
+                    pass
+            
+            # 返回空结果
+            return {"issues": [], "quality_score": 80}
+            
+        except Exception as e:
+            logger.error(f"Code analysis failed: {e}")
+            return {"issues": [], "quality_score": 0, "error": str(e)}
+    
+    async def analyze_code_with_custom_prompt(
+        self,
+        code: str,
+        language: str,
+        prompt: str,
+        **kwargs
+    ) -> Dict[str, Any]:
+        """使用自定义提示词分析代码"""
+        full_prompt = prompt.replace("{code}", code).replace("{language}", language)
+        
+        try:
+            result = await self.chat_completion_raw(
+                messages=[
+                    {"role": "system", "content": "你是一位专业的代码安全审计专家。"},
+                    {"role": "user", "content": full_prompt},
+                ],
+                temperature=0.1,
+            )
+            
+            return {
+                "analysis": result.get("content", ""),
+                "usage": result.get("usage", {}),
+            }
+            
+        except Exception as e:
+            logger.error(f"Custom analysis failed: {e}")
+            return {"analysis": "", "error": str(e)}
 
 
 class AgentRunner:
@@ -97,8 +222,9 @@ class AgentRunner:
         self.task = task
         self.project_root = project_root
         
-        # 事件管理
-        self.event_manager = EventManager()
+        # 事件管理 - 传入 db_session_factory 以持久化事件
+        from app.db.session import async_session_factory
+        self.event_manager = EventManager(db_session_factory=async_session_factory)
         self.event_emitter = AgentEventEmitter(task.id, self.event_manager)
         
         # LLM 服务
@@ -120,6 +246,22 @@ class AgentRunner:
         
         # 状态
         self._cancelled = False
+        self._running_task: Optional[asyncio.Task] = None
+        
+        # 流式处理器
+        self.stream_handler = StreamHandler(task.id)
+    
+    def cancel(self):
+        """取消任务"""
+        self._cancelled = True
+        if self._running_task and not self._running_task.done():
+            self._running_task.cancel()
+        logger.info(f"Task {self.task.id} cancellation requested")
+    
+    @property
+    def is_cancelled(self) -> bool:
+        """检查是否已取消"""
+        return self._cancelled
     
     async def initialize(self):
         """初始化 Runner"""
@@ -149,15 +291,15 @@ class AgentRunner:
             )
             
             self.indexer = CodeIndexer(
-                embedding_service=embedding_service,
-                vector_db_path=settings.VECTOR_DB_PATH,
                 collection_name=f"project_{self.task.project_id}",
+                embedding_service=embedding_service,
+                persist_directory=settings.VECTOR_DB_PATH,
             )
             
             self.retriever = CodeRetriever(
-                embedding_service=embedding_service,
-                vector_db_path=settings.VECTOR_DB_PATH,
                 collection_name=f"project_{self.task.project_id}",
+                embedding_service=embedding_service,
+                persist_directory=settings.VECTOR_DB_PATH,
             )
             
         except Exception as e:
@@ -261,6 +403,18 @@ class AgentRunner:
         Returns:
             最终状态
         """
+        result = {}
+        async for _ in self.run_with_streaming():
+            pass  # 消费所有事件
+        return result
+    
+    async def run_with_streaming(self) -> AsyncGenerator[StreamEvent, None]:
+        """
+        带流式输出的审计执行
+        
+        Yields:
+            StreamEvent: 流式事件（包含 LLM 思考、工具调用等）
+        """
         import time
         start_time = time.time()
         
@@ -271,17 +425,28 @@ class AgentRunner:
             # 更新任务状态
             await self._update_task_status(AgentTaskStatus.RUNNING)
             
+            # 发射任务开始事件
+            yield StreamEvent(
+                event_type=StreamEventType.TASK_START,
+                sequence=self.stream_handler._next_sequence(),
+                data={"task_id": self.task.id, "message": "🚀 审计任务开始"},
+            )
+            
             # 1. 索引代码
             await self._index_code()
             
             if self._cancelled:
-                return {"success": False, "error": "任务已取消"}
+                yield StreamEvent(
+                    event_type=StreamEventType.TASK_CANCEL,
+                    sequence=self.stream_handler._next_sequence(),
+                    data={"message": "任务已取消"},
+                )
+                return
             
             # 2. 收集项目信息
             project_info = await self._collect_project_info()
             
             # 3. 构建初始状态
-            # 从任务字段构建配置
             task_config = {
                 "target_vulnerabilities": self.task.target_vulnerabilities or [],
                 "verification_level": self.task.verification_level or "sandbox",
@@ -314,7 +479,7 @@ class AgentRunner:
                 "error": None,
             }
             
-            # 4. 执行 LangGraph
+            # 4. 执行 LangGraph with astream_events
             await self.event_emitter.emit_phase_start("langgraph", "🔄 启动 LangGraph 工作流")
             
             run_config = {
@@ -325,26 +490,57 @@ class AgentRunner:
             
             final_state = None
             
-            # 流式执行并发射事件
-            async for event in self.graph.astream(initial_state, config=run_config):
-                if self._cancelled:
-                    break
-                
-                # 处理每个节点的输出
-                for node_name, node_output in event.items():
-                    await self._handle_node_output(node_name, node_output)
+            # 使用 astream_events 获取详细事件流
+            try:
+                async for event in self.graph.astream_events(
+                    initial_state,
+                    config=run_config,
+                    version="v2",
+                ):
+                    if self._cancelled:
+                        break
                     
-                    # 更新阶段
-                    phase_map = {
-                        "recon": AgentTaskPhase.RECONNAISSANCE,
-                        "analysis": AgentTaskPhase.ANALYSIS,
-                        "verification": AgentTaskPhase.VERIFICATION,
-                        "report": AgentTaskPhase.REPORTING,
-                    }
-                    if node_name in phase_map:
-                        await self._update_task_phase(phase_map[node_name])
+                    # 处理 LangGraph 事件
+                    stream_event = await self.stream_handler.process_langgraph_event(event)
+                    if stream_event:
+                        # 同步到 event_emitter 以持久化
+                        await self._sync_stream_event_to_db(stream_event)
+                        yield stream_event
                     
-                    final_state = node_output
+                    # 更新最终状态
+                    if event.get("event") == "on_chain_end":
+                        output = event.get("data", {}).get("output")
+                        if isinstance(output, dict):
+                            final_state = output
+                            
+            except Exception as e:
+                # 如果 astream_events 不可用，回退到 astream
+                logger.warning(f"astream_events not available, falling back to astream: {e}")
+                async for event in self.graph.astream(initial_state, config=run_config):
+                    if self._cancelled:
+                        break
+                    
+                    for node_name, node_output in event.items():
+                        await self._handle_node_output(node_name, node_output)
+                        
+                        # 发射节点事件
+                        yield StreamEvent(
+                            event_type=StreamEventType.NODE_END,
+                            sequence=self.stream_handler._next_sequence(),
+                            node_name=node_name,
+                            data={"message": f"节点 {node_name} 完成"},
+                        )
+                        
+                        phase_map = {
+                            "recon": AgentTaskPhase.RECONNAISSANCE,
+                            "analysis": AgentTaskPhase.ANALYSIS,
+                            "verification": AgentTaskPhase.VERIFICATION,
+                            "report": AgentTaskPhase.REPORTING,
+                        }
+                        if node_name in phase_map:
+                            await self._update_task_phase(phase_map[node_name])
+                        
+                        final_state = node_output
             
             # 5. 获取最终状态
             if not final_state:
@@ -354,6 +550,13 @@ class AgentRunner:
             # 6. 保存发现
             findings = final_state.get("findings", [])
             await self._save_findings(findings)
+            
+            # 发射发现事件
+            for finding in findings[:10]:  # 限制数量
+                yield self.stream_handler.create_finding_event(
+                    finding,
+                    is_verified=finding.get("is_verified", False),
+                )
             
             # 7. 更新任务摘要
             summary = final_state.get("summary", {})
@@ -374,29 +577,58 @@ class AgentRunner:
                 duration_ms=duration_ms,
             )
             
-            return {
-                "success": True,
-                "data": {
-                    "findings": findings,
-                    "verified_findings": final_state.get("verified_findings", []),
-                    "summary": summary,
+            yield StreamEvent(
+                event_type=StreamEventType.TASK_COMPLETE,
+                sequence=self.stream_handler._next_sequence(),
+                data={
+                    "findings_count": len(findings),
+                    "verified_count": len(final_state.get("verified_findings", [])),
                     "security_score": security_score,
+                    "duration_ms": duration_ms,
+                    "message": f"✅ 审计完成！发现 {len(findings)} 个漏洞",
                 },
-                "duration_ms": duration_ms,
-            }
+            )
             
         except asyncio.CancelledError:
             await self._update_task_status(AgentTaskStatus.CANCELLED)
-            return {"success": False, "error": "任务已取消"}
+            yield StreamEvent(
+                event_type=StreamEventType.TASK_CANCEL,
+                sequence=self.stream_handler._next_sequence(),
+                data={"message": "任务已取消"},
+            )
             
         except Exception as e:
             logger.error(f"LangGraph run failed: {e}", exc_info=True)
             await self._update_task_status(AgentTaskStatus.FAILED, str(e))
             await self.event_emitter.emit_error(str(e))
-            return {"success": False, "error": str(e)}
+            
+            yield StreamEvent(
+                event_type=StreamEventType.TASK_ERROR,
+                sequence=self.stream_handler._next_sequence(),
+                data={"error": str(e), "message": f"❌ 审计失败: {e}"},
+            )
             
         finally:
             await self._cleanup()
+    
+    async def _sync_stream_event_to_db(self, event: StreamEvent):
+        """同步流式事件到数据库"""
+        try:
+            # 将 StreamEvent 转换为 AgentEventData
+            await self.event_manager.add_event(
+                task_id=self.task.id,
+                event_type=event.event_type.value,
+                sequence=event.sequence,
+                phase=event.phase,
+                message=event.data.get("message"),
+                tool_name=event.tool_name,
+                tool_input=event.data.get("input") or event.data.get("input_params"),
+                tool_output=event.data.get("output") or event.data.get("output_data"),
+                tool_duration_ms=event.data.get("duration_ms"),
+                metadata=event.data,
+            )
+        except Exception as e:
+            logger.warning(f"Failed to sync stream event to db: {e}")
     
     async def _handle_node_output(self, node_name: str, output: Dict[str, Any]):
         """处理节点输出"""
@@ -445,7 +677,8 @@ class AgentRunner:
                     return
                 
                 await self.event_emitter.emit_progress(
-                    progress.processed / max(progress.total, 1) * 100,
+                    progress.processed_files,
+                    progress.total_files,
                     f"正在索引: {progress.current_file or 'N/A'}"
                 )
             
@@ -502,13 +735,23 @@ class AgentRunner:
         
         type_map = {
             "sql_injection": VulnerabilityType.SQL_INJECTION,
+            "nosql_injection": VulnerabilityType.NOSQL_INJECTION,
             "xss": VulnerabilityType.XSS,
             "command_injection": VulnerabilityType.COMMAND_INJECTION,
+            "code_injection": VulnerabilityType.CODE_INJECTION,
             "path_traversal": VulnerabilityType.PATH_TRAVERSAL,
+            "file_inclusion": VulnerabilityType.FILE_INCLUSION,
             "ssrf": VulnerabilityType.SSRF,
+            "xxe": VulnerabilityType.XXE,
+            "deserialization": VulnerabilityType.DESERIALIZATION,
+            "auth_bypass": VulnerabilityType.AUTH_BYPASS,
+            "idor": VulnerabilityType.IDOR,
+            "sensitive_data_exposure": VulnerabilityType.SENSITIVE_DATA_EXPOSURE,
             "hardcoded_secret": VulnerabilityType.HARDCODED_SECRET,
-            "deserialization": VulnerabilityType.INSECURE_DESERIALIZATION,
             "weak_crypto": VulnerabilityType.WEAK_CRYPTO,
+            "race_condition": VulnerabilityType.RACE_CONDITION,
+            "business_logic": VulnerabilityType.BUSINESS_LOGIC,
+            "memory_corruption": VulnerabilityType.MEMORY_CORRUPTION,
         }
         
         for finding in findings:
@@ -536,7 +779,7 @@ class AgentRunner:
                     is_verified=finding.get("is_verified", False),
                     confidence=finding.get("confidence", 0.5),
                     poc=finding.get("poc"),
-                    status=FindingStatus.VERIFIED if finding.get("is_verified") else FindingStatus.OPEN,
+                    status=FindingStatus.VERIFIED if finding.get("is_verified") else FindingStatus.NEW,
                 )
                 
                 self.db.add(db_finding)
@@ -603,10 +846,6 @@ class AgentRunner:
             await self.event_manager.close()
         except Exception as e:
             logger.warning(f"Cleanup error: {e}")
-    
-    def cancel(self):
-        """取消任务"""
-        self._cancelled = True
 
 
 # 便捷函数

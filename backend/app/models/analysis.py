@@ -24,3 +24,5 @@ class InstantAnalysis(Base):
 
 
 
+
+

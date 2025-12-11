@@ -29,6 +29,7 @@ from app.models.agent_task import (
 from app.models.project import Project
 from app.models.user import User
 from app.services.agent import AgentRunner, EventManager, run_agent_task
+from app.services.agent.streaming import StreamHandler, StreamEvent, StreamEventType
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -428,6 +429,171 @@ async def stream_agent_events(
             "Cache-Control": "no-cache",
             "Connection": "keep-alive",
             "X-Accel-Buffering": "no",
+        }
+    )
+
+
+@router.get("/{task_id}/stream")
+async def stream_agent_with_thinking(
+    task_id: str,
+    include_thinking: bool = Query(True, description="是否包含 LLM 思考过程"),
+    include_tool_calls: bool = Query(True, description="是否包含工具调用详情"),
+    after_sequence: int = Query(0, ge=0, description="从哪个序号之后开始"),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(deps.get_current_user),
+):
+    """
+    增强版事件流 (SSE)
+    
+    支持:
+    - LLM 思考过程的 Token 级流式输出
+    - 工具调用的详细输入/输出
+    - 节点执行状态
+    - 发现事件
+    
+    事件类型:
+    - thinking_start: LLM 开始思考
+    - thinking_token: LLM 输出 Token
+    - thinking_end: LLM 思考结束
+    - tool_call_start: 工具调用开始
+    - tool_call_end: 工具调用结束
+    - node_start: 节点开始
+    - node_end: 节点结束
+    - finding_new: 新发现
+    - finding_verified: 验证通过
+    - progress: 进度更新
+    - task_complete: 任务完成
+    - task_error: 任务错误
+    - heartbeat: 心跳
+    """
+    task = await db.get(AgentTask, task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail="任务不存在")
+    
+    project = await db.get(Project, task.project_id)
+    if not project or project.owner_id != current_user.id:
+        raise HTTPException(status_code=403, detail="无权访问此任务")
+    
+    async def enhanced_event_generator():
+        """生成增强版 SSE 事件流"""
+        last_sequence = after_sequence
+        poll_interval = 0.3  # 更短的轮询间隔以支持流式
+        heartbeat_interval = 15  # 心跳间隔
+        max_idle = 600  # 10 分钟无事件后关闭
+        idle_time = 0
+        last_heartbeat = 0
+        
+        # 事件类型过滤
+        skip_types = set()
+        if not include_thinking:
+            skip_types.update(["thinking_start", "thinking_token", "thinking_end"])
+        if not include_tool_calls:
+            skip_types.update(["tool_call_start", "tool_call_input", "tool_call_output", "tool_call_end"])
+        
+        while True:
+            try:
+                async with async_session_factory() as session:
+                    # 查询新事件
+                    result = await session.execute(
+                        select(AgentEvent)
+                        .where(AgentEvent.task_id == task_id)
+                        .where(AgentEvent.sequence > last_sequence)
+                        .order_by(AgentEvent.sequence)
+                        .limit(100)
+                    )
+                    events = result.scalars().all()
+                    
+                    # 获取任务状态
+                    current_task = await session.get(AgentTask, task_id)
+                    task_status = current_task.status if current_task else None
+                
+                if events:
+                    idle_time = 0
+                    for event in events:
+                        last_sequence = event.sequence
+                        
+                        # 获取事件类型字符串
+                        event_type = event.event_type.value if hasattr(event.event_type, 'value') else str(event.event_type)
+                        
+                        # 过滤事件
+                        if event_type in skip_types:
+                            continue
+                        
+                        # 构建事件数据
+                        data = {
+                            "id": event.id,
+                            "type": event_type,
+                            "phase": event.phase.value if event.phase and hasattr(event.phase, 'value') else event.phase,
+                            "message": event.message,
+                            "sequence": event.sequence,
+                            "timestamp": event.created_at.isoformat() if event.created_at else None,
+                        }
+                        
+                        # 添加工具调用详情
+                        if include_tool_calls and event.tool_name:
+                            data["tool"] = {
+                                "name": event.tool_name,
+                                "input": event.tool_input,
+                                "output": event.tool_output,
+                                "duration_ms": event.tool_duration_ms,
+                            }
+                        
+                        # 添加元数据
+                        if event.event_metadata:
+                            data["metadata"] = event.event_metadata
+                        
+                        # 添加 Token 使用
+                        if event.tokens_used:
+                            data["tokens_used"] = event.tokens_used
+                        
+                        # 使用标准 SSE 格式
+                        yield f"event: {event_type}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
+                else:
+                    idle_time += poll_interval
+                
+                # 检查任务是否结束
+                if task_status in [AgentTaskStatus.COMPLETED, AgentTaskStatus.FAILED, AgentTaskStatus.CANCELLED]:
+                    end_data = {
+                        "type": "task_end",
+                        "status": task_status.value,
+                        "message": f"任务{'完成' if task_status == AgentTaskStatus.COMPLETED else '结束'}",
+                    }
+                    yield f"event: task_end\ndata: {json.dumps(end_data, ensure_ascii=False)}\n\n"
+                    break
+                
+                # 发送心跳
+                last_heartbeat += poll_interval
+                if last_heartbeat >= heartbeat_interval:
+                    last_heartbeat = 0
+                    heartbeat_data = {
+                        "type": "heartbeat",
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
+                        "last_sequence": last_sequence,
+                    }
+                    yield f"event: heartbeat\ndata: {json.dumps(heartbeat_data)}\n\n"
+                
+                # 检查空闲超时
+                if idle_time >= max_idle:
+                    timeout_data = {"type": "timeout", "message": "连接超时"}
+                    yield f"event: timeout\ndata: {json.dumps(timeout_data)}\n\n"
+                    break
+                
+                await asyncio.sleep(poll_interval)
+                
+            except Exception as e:
+                logger.error(f"Stream error: {e}")
+                error_data = {"type": "error", "message": str(e)}
+                yield f"event: error\ndata: {json.dumps(error_data)}\n\n"
+                break
+    
+    return StreamingResponse(
+        enhanced_event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+            "Content-Type": "text/event-stream; charset=utf-8",
         }
     )
 

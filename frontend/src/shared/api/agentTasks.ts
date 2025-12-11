@@ -43,6 +43,9 @@ export interface AgentTask {
   
   // 进度
   progress_percentage: number;
+  
+  // 错误信息
+  error_message: string | null;
 }
 
 export interface AgentFinding {
@@ -249,7 +252,7 @@ export async function* streamAgentEvents(
   afterSequence = 0,
   signal?: AbortSignal
 ): AsyncGenerator<AgentEvent, void, unknown> {
-  const token = localStorage.getItem("auth_token");
+  const token = localStorage.getItem("access_token");
   const baseUrl = import.meta.env.VITE_API_URL || "";
   const url = `${baseUrl}/api/v1/agent-tasks/${taskId}/events?after_sequence=${afterSequence}`;
   

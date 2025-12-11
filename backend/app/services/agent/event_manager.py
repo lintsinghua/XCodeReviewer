@@ -192,6 +192,37 @@ class AgentEventEmitter:
                 "percentage": percentage,
             },
         ))
+    
+    async def emit_task_complete(
+        self,
+        findings_count: int,
+        duration_ms: int,
+        message: Optional[str] = None,
+    ):
+        """发射任务完成事件"""
+        await self.emit(AgentEventData(
+            event_type="task_complete",
+            message=message or f"✅ 审计完成！发现 {findings_count} 个漏洞，耗时 {duration_ms/1000:.1f}秒",
+            metadata={
+                "findings_count": findings_count,
+                "duration_ms": duration_ms,
+            },
+        ))
+    
+    async def emit_task_error(self, error: str, message: Optional[str] = None):
+        """发射任务错误事件"""
+        await self.emit(AgentEventData(
+            event_type="task_error",
+            message=message or f"❌ 任务失败: {error}",
+            metadata={"error": error},
+        ))
+    
+    async def emit_task_cancelled(self, message: Optional[str] = None):
+        """发射任务取消事件"""
+        await self.emit(AgentEventData(
+            event_type="task_cancel",
+            message=message or "⚠️ 任务已取消",
+        ))
 
 
 class EventManager:
@@ -368,4 +399,15 @@ class EventManager:
     def create_emitter(self, task_id: str) -> AgentEventEmitter:
         """创建事件发射器"""
         return AgentEventEmitter(task_id, self)
+    
+    async def close(self):
+        """关闭事件管理器，清理资源"""
+        # 清理所有队列
+        for task_id in list(self._event_queues.keys()):
+            self.remove_queue(task_id)
+        
+        # 清理所有回调
+        self._event_callbacks.clear()
+        
+        logger.debug("EventManager closed")
 
