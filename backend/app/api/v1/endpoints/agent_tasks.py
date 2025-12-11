@@ -75,18 +75,46 @@ class AgentTaskCreate(BaseModel):
 
 
 class AgentTaskResponse(BaseModel):
-    """Agent 任务响应"""
+    """Agent 任务响应 - 包含所有前端需要的字段"""
     id: str
     project_id: str
     name: Optional[str]
     description: Optional[str]
+    task_type: str = "agent_audit"
     status: str
     current_phase: Optional[str]
+    current_step: Optional[str] = None
     
-    # 统计
-    total_findings: int = 0
-    verified_findings: int = 0
-    security_score: Optional[int] = None
+    # 进度统计
+    total_files: int = 0
+    indexed_files: int = 0
+    analyzed_files: int = 0
+    total_chunks: int = 0
+    
+    # Agent 统计
+    total_iterations: int = 0
+    tool_calls_count: int = 0
+    tokens_used: int = 0
+    
+    # 发现统计（兼容两种命名）
+    findings_count: int = 0
+    total_findings: int = 0  # 兼容字段
+    verified_count: int = 0
+    verified_findings: int = 0  # 兼容字段
+    false_positive_count: int = 0
+    
+    # 严重程度统计
+    critical_count: int = 0
+    high_count: int = 0
+    medium_count: int = 0
+    low_count: int = 0
+    
+    # 评分
+    quality_score: float = 0.0
+    security_score: Optional[float] = None
+    
+    # 进度百分比
+    progress_percentage: float = 0.0
     
     # 时间
     created_at: datetime
@@ -94,7 +122,11 @@ class AgentTaskResponse(BaseModel):
     completed_at: Optional[datetime] = None
     
     # 配置
-    config: Optional[dict] = None
+    audit_scope: Optional[dict] = None
+    target_vulnerabilities: Optional[List[str]] = None
+    verification_level: Optional[str] = None
+    exclude_patterns: Optional[List[str]] = None
+    target_files: Optional[List[str]] = None
     
     # 错误信息
     error_message: Optional[str] = None
@@ -177,6 +209,12 @@ async def _execute_agent_task(task_id: str, project_root: str):
                 logger.error(f"Task {task_id} not found")
                 return
             
+            # 更新状态为运行中
+            task.status = AgentTaskStatus.RUNNING
+            task.started_at = datetime.now(timezone.utc)
+            await db.commit()
+            logger.info(f"Task {task_id} started")
+            
             # 创建 Runner
             runner = AgentRunner(db, task, project_root)
             _running_tasks[task_id] = runner
@@ -184,22 +222,37 @@ async def _execute_agent_task(task_id: str, project_root: str):
             # 执行
             result = await runner.run()
             
-            logger.info(f"Task {task_id} completed: {result.get('success', False)}")
+            # 更新任务状态
+            await db.refresh(task)
+            if result.get('success', True):  # 默认成功，除非明确失败
+                task.status = AgentTaskStatus.COMPLETED
+                task.completed_at = datetime.now(timezone.utc)
+            else:
+                task.status = AgentTaskStatus.FAILED
+                task.error_message = result.get('error', 'Unknown error')
+                task.completed_at = datetime.now(timezone.utc)
+            
+            await db.commit()
+            logger.info(f"Task {task_id} completed with status: {task.status}")
             
         except Exception as e:
             logger.error(f"Task {task_id} failed: {e}", exc_info=True)
             
             # 更新任务状态
-            task = await db.get(AgentTask, task_id)
-            if task:
-                task.status = AgentTaskStatus.FAILED
-                task.error_message = str(e)
-                task.completed_at = datetime.now(timezone.utc)
-                await db.commit()
+            try:
+                task = await db.get(AgentTask, task_id)
+                if task:
+                    task.status = AgentTaskStatus.FAILED
+                    task.error_message = str(e)[:1000]  # 限制错误消息长度
+                    task.completed_at = datetime.now(timezone.utc)
+                    await db.commit()
+            except Exception as db_error:
+                logger.error(f"Failed to update task status: {db_error}")
         
         finally:
             # 清理
             _running_tasks.pop(task_id, None)
+            logger.debug(f"Task {task_id} cleaned up")
 
 
 # ============ API Endpoints ============
@@ -315,7 +368,61 @@ async def get_agent_task(
     if not project or project.owner_id != current_user.id:
         raise HTTPException(status_code=403, detail="无权访问此任务")
     
-    return task
+    # 构建响应，确保所有字段都包含
+    try:
+        # 计算进度百分比
+        progress = 0.0
+        if hasattr(task, 'progress_percentage'):
+            progress = task.progress_percentage
+        elif task.status == AgentTaskStatus.COMPLETED:
+            progress = 100.0
+        elif task.status in [AgentTaskStatus.FAILED, AgentTaskStatus.CANCELLED]:
+            progress = 0.0
+        
+        # 手动构建响应数据
+        response_data = {
+            "id": task.id,
+            "project_id": task.project_id,
+            "name": task.name,
+            "description": task.description,
+            "task_type": task.task_type or "agent_audit",
+            "status": task.status,
+            "current_phase": task.current_phase,
+            "current_step": task.current_step,
+            "total_files": task.total_files or 0,
+            "indexed_files": task.indexed_files or 0,
+            "analyzed_files": task.analyzed_files or 0,
+            "total_chunks": task.total_chunks or 0,
+            "total_iterations": task.total_iterations or 0,
+            "tool_calls_count": task.tool_calls_count or 0,
+            "tokens_used": task.tokens_used or 0,
+            "findings_count": task.findings_count or 0,
+            "total_findings": task.findings_count or 0,  # 兼容字段
+            "verified_count": task.verified_count or 0,
+            "verified_findings": task.verified_count or 0,  # 兼容字段
+            "false_positive_count": task.false_positive_count or 0,
+            "critical_count": task.critical_count or 0,
+            "high_count": task.high_count or 0,
+            "medium_count": task.medium_count or 0,
+            "low_count": task.low_count or 0,
+            "quality_score": float(task.quality_score or 0.0),
+            "security_score": float(task.security_score) if task.security_score is not None else None,
+            "progress_percentage": progress,
+            "created_at": task.created_at,
+            "started_at": task.started_at,
+            "completed_at": task.completed_at,
+            "error_message": task.error_message,
+            "audit_scope": task.audit_scope,
+            "target_vulnerabilities": task.target_vulnerabilities,
+            "verification_level": task.verification_level,
+            "exclude_patterns": task.exclude_patterns,
+            "target_files": task.target_files,
+        }
+        
+        return AgentTaskResponse(**response_data)
+    except Exception as e:
+        logger.error(f"Error serializing task {task_id}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"序列化任务数据失败: {str(e)}")
 
 
 @router.post("/{task_id}/cancel")
@@ -396,10 +503,14 @@ async def stream_agent_events(
                 idle_time = 0
                 for event in events:
                     last_sequence = event.sequence
+                    # event_type 已经是字符串，不需要 .value
+                    event_type_str = str(event.event_type)
+                    phase_str = str(event.phase) if event.phase else None
+                    
                     data = {
                         "id": event.id,
-                        "type": event.event_type.value if hasattr(event.event_type, 'value') else str(event.event_type),
-                        "phase": event.phase.value if event.phase and hasattr(event.phase, 'value') else event.phase,
+                        "type": event_type_str,
+                        "phase": phase_str,
                         "message": event.message,
                         "sequence": event.sequence,
                         "timestamp": event.created_at.isoformat() if event.created_at else None,
@@ -411,9 +522,12 @@ async def stream_agent_events(
                 idle_time += poll_interval
             
             # 检查任务是否结束
-            if task_status in [AgentTaskStatus.COMPLETED, AgentTaskStatus.FAILED, AgentTaskStatus.CANCELLED]:
-                yield f"data: {json.dumps({'type': 'task_end', 'status': task_status.value})}\n\n"
-                break
+            if task_status:
+                # task_status 可能是字符串或枚举，统一转换为字符串
+                status_str = str(task_status)
+                if status_str in ["completed", "failed", "cancelled"]:
+                    yield f"data: {json.dumps({'type': 'task_end', 'status': status_str})}\n\n"
+                    break
             
             # 检查空闲超时
             if idle_time >= max_idle:
@@ -512,8 +626,8 @@ async def stream_agent_with_thinking(
                     for event in events:
                         last_sequence = event.sequence
                         
-                        # 获取事件类型字符串
-                        event_type = event.event_type.value if hasattr(event.event_type, 'value') else str(event.event_type)
+                        # 获取事件类型字符串（event_type 已经是字符串）
+                        event_type = str(event.event_type)
                         
                         # 过滤事件
                         if event_type in skip_types:
@@ -523,7 +637,7 @@ async def stream_agent_with_thinking(
                         data = {
                             "id": event.id,
                             "type": event_type,
-                            "phase": event.phase.value if event.phase and hasattr(event.phase, 'value') else event.phase,
+                            "phase": str(event.phase) if event.phase else None,
                             "message": event.message,
                             "sequence": event.sequence,
                             "timestamp": event.created_at.isoformat() if event.created_at else None,
@@ -552,14 +666,16 @@ async def stream_agent_with_thinking(
                     idle_time += poll_interval
                 
                 # 检查任务是否结束
-                if task_status in [AgentTaskStatus.COMPLETED, AgentTaskStatus.FAILED, AgentTaskStatus.CANCELLED]:
-                    end_data = {
-                        "type": "task_end",
-                        "status": task_status.value,
-                        "message": f"任务{'完成' if task_status == AgentTaskStatus.COMPLETED else '结束'}",
-                    }
-                    yield f"event: task_end\ndata: {json.dumps(end_data, ensure_ascii=False)}\n\n"
-                    break
+                if task_status:
+                    status_str = str(task_status)
+                    if status_str in ["completed", "failed", "cancelled"]:
+                        end_data = {
+                            "type": "task_end",
+                            "status": status_str,
+                            "message": f"任务{'完成' if status_str == 'completed' else '结束'}",
+                        }
+                        yield f"event: task_end\ndata: {json.dumps(end_data, ensure_ascii=False)}\n\n"
+                        break
                 
                 # 发送心跳
                 last_heartbeat += poll_interval
@@ -709,8 +825,9 @@ async def get_task_summary(
     verified_count = 0
     
     for f in findings:
-        sev = f.severity.value if hasattr(f.severity, 'value') else str(f.severity)
-        vtype = f.vulnerability_type.value if hasattr(f.vulnerability_type, 'value') else str(f.vulnerability_type)
+        # severity 和 vulnerability_type 已经是字符串
+        sev = str(f.severity)
+        vtype = str(f.vulnerability_type)
         
         severity_distribution[sev] = severity_distribution.get(sev, 0) + 1
         vulnerability_types[vtype] = vulnerability_types.get(vtype, 0) + 1
@@ -730,11 +847,11 @@ async def get_task_summary(
         .where(AgentEvent.event_type == AgentEventType.PHASE_COMPLETE)
         .distinct()
     )
-    phases = [p[0].value if p[0] and hasattr(p[0], 'value') else str(p[0]) for p in phases_result.fetchall() if p[0]]
+    phases = [str(p[0]) for p in phases_result.fetchall() if p[0]]
     
     return TaskSummaryResponse(
         task_id=task_id,
-        status=task.status.value if hasattr(task.status, 'value') else str(task.status),
+        status=str(task.status),  # status 已经是字符串
         security_score=task.security_score,
         total_findings=len(findings),
         verified_findings=verified_count,

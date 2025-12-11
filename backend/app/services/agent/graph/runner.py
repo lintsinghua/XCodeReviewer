@@ -403,10 +403,19 @@ class AgentRunner:
         Returns:
             最终状态
         """
-        result = {}
-        async for _ in self.run_with_streaming():
-            pass  # 消费所有事件
-        return result
+        final_state = {}
+        try:
+            async for event in self.run_with_streaming():
+                # 收集最终状态
+                if event.event_type == StreamEventType.TASK_COMPLETE:
+                    final_state = event.data
+                elif event.event_type == StreamEventType.TASK_ERROR:
+                    final_state = {"success": False, "error": event.data.get("error")}
+        except Exception as e:
+            logger.error(f"Agent run failed: {e}", exc_info=True)
+            final_state = {"success": False, "error": str(e)}
+        
+        return final_state
     
     async def run_with_streaming(self) -> AsyncGenerator[StreamEvent, None]:
         """

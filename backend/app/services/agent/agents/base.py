@@ -1,6 +1,8 @@
 """
 Agent 基类
 定义 Agent 的基本接口和通用功能
+
+核心原则：LLM 是 Agent 的大脑，所有日志应该反映 LLM 的参与！
 """
 
 from abc import ABC, abstractmethod
@@ -87,7 +89,11 @@ class AgentResult:
 class BaseAgent(ABC):
     """
     Agent 基类
-    所有 Agent 需要继承此类并实现核心方法
+    
+    核心原则：
+    1. LLM 是 Agent 的大脑，全程参与决策
+    2. 所有日志应该反映 LLM 的思考过程
+    3. 工具调用是 LLM 的决策结果
     """
     
     def __init__(
@@ -146,6 +152,8 @@ class BaseAgent(ABC):
     def is_cancelled(self) -> bool:
         return self._cancelled
     
+    # ============ 核心事件发射方法 ============
+    
     async def emit_event(
         self,
         event_type: str,
@@ -161,27 +169,122 @@ class BaseAgent(ABC):
                 **kwargs
             ))
     
+    # ============ LLM 思考相关事件 ============
+    
     async def emit_thinking(self, message: str):
-        """发射思考事件"""
-        await self.emit_event("thinking", f"[{self.name}] {message}")
+        """发射 LLM 思考事件"""
+        await self.emit_event("thinking", f"🧠 [{self.name}] {message}")
+    
+    async def emit_llm_start(self, iteration: int):
+        """发射 LLM 开始思考事件"""
+        await self.emit_event(
+            "llm_start",
+            f"🤔 [{self.name}] LLM 开始第 {iteration} 轮思考...",
+            metadata={"iteration": iteration}
+        )
+    
+    async def emit_llm_thought(self, thought: str, iteration: int):
+        """发射 LLM 思考内容事件 - 这是核心！展示 LLM 在想什么"""
+        # 截断过长的思考内容
+        display_thought = thought[:500] + "..." if len(thought) > 500 else thought
+        await self.emit_event(
+            "llm_thought",
+            f"💭 [{self.name}] LLM 思考:\n{display_thought}",
+            metadata={
+                "thought": thought,
+                "iteration": iteration,
+            }
+        )
+    
+    async def emit_llm_decision(self, decision: str, reason: str = ""):
+        """发射 LLM 决策事件 - 展示 LLM 做了什么决定"""
+        await self.emit_event(
+            "llm_decision",
+            f"💡 [{self.name}] LLM 决策: {decision}" + (f" (理由: {reason})" if reason else ""),
+            metadata={
+                "decision": decision,
+                "reason": reason,
+            }
+        )
+    
+    async def emit_llm_action(self, action: str, action_input: Dict):
+        """发射 LLM 动作事件 - LLM 决定执行什么动作"""
+        import json
+        input_str = json.dumps(action_input, ensure_ascii=False)[:200]
+        await self.emit_event(
+            "llm_action",
+            f"⚡ [{self.name}] LLM 动作: {action}\n   参数: {input_str}",
+            metadata={
+                "action": action,
+                "action_input": action_input,
+            }
+        )
+    
+    async def emit_llm_observation(self, observation: str):
+        """发射 LLM 观察事件 - LLM 看到了什么"""
+        display_obs = observation[:300] + "..." if len(observation) > 300 else observation
+        await self.emit_event(
+            "llm_observation",
+            f"👁️ [{self.name}] LLM 观察到:\n{display_obs}",
+            metadata={"observation": observation[:2000]}
+        )
+    
+    async def emit_llm_complete(self, result_summary: str, tokens_used: int):
+        """发射 LLM 完成事件"""
+        await self.emit_event(
+            "llm_complete",
+            f"✅ [{self.name}] LLM 完成: {result_summary} (消耗 {tokens_used} tokens)",
+            metadata={
+                "tokens_used": tokens_used,
+            }
+        )
+    
+    # ============ 工具调用相关事件 ============
     
     async def emit_tool_call(self, tool_name: str, tool_input: Dict):
-        """发射工具调用事件"""
+        """发射工具调用事件 - LLM 决定调用工具"""
+        import json
+        input_str = json.dumps(tool_input, ensure_ascii=False)[:300]
         await self.emit_event(
             "tool_call",
-            f"[{self.name}] 调用工具: {tool_name}",
+            f"🔧 [{self.name}] LLM 调用工具: {tool_name}\n   输入: {input_str}",
             tool_name=tool_name,
             tool_input=tool_input,
         )
     
     async def emit_tool_result(self, tool_name: str, result: str, duration_ms: int):
         """发射工具结果事件"""
+        result_preview = result[:200] + "..." if len(result) > 200 else result
         await self.emit_event(
             "tool_result",
-            f"[{self.name}] {tool_name} 完成 ({duration_ms}ms)",
+            f"📤 [{self.name}] 工具 {tool_name} 返回 ({duration_ms}ms):\n   {result_preview}",
             tool_name=tool_name,
             tool_duration_ms=duration_ms,
         )
+    
+    # ============ 发现相关事件 ============
+    
+    async def emit_finding(self, title: str, severity: str, vuln_type: str, file_path: str = ""):
+        """发射漏洞发现事件"""
+        severity_emoji = {
+            "critical": "🔴",
+            "high": "🟠",
+            "medium": "🟡",
+            "low": "🟢",
+        }.get(severity.lower(), "⚪")
+        
+        await self.emit_event(
+            "finding",
+            f"{severity_emoji} [{self.name}] 发现漏洞: [{severity.upper()}] {title}\n   类型: {vuln_type}\n   位置: {file_path}",
+            metadata={
+                "title": title,
+                "severity": severity,
+                "vulnerability_type": vuln_type,
+                "file_path": file_path,
+            }
+        )
+    
+    # ============ 通用工具方法 ============
     
     async def call_tool(self, tool_name: str, **kwargs) -> Any:
         """
@@ -208,7 +311,7 @@ class BaseAgent(ABC):
         result = await tool.execute(**kwargs)
         
         duration_ms = int((time.time() - start) * 1000)
-        await self.emit_tool_result(tool_name, str(result.data)[:200], duration_ms)
+        await self.emit_tool_result(tool_name, str(result.data)[:500], duration_ms)
         
         return result
     
@@ -229,8 +332,9 @@ class BaseAgent(ABC):
         """
         self._iteration += 1
         
-        # 这里应该调用实际的 LLM 服务
-        # 使用 LangChain 或直接调用 API
+        # 发射 LLM 开始事件
+        await self.emit_llm_start(self._iteration)
+        
         try:
             response = await self.llm_service.chat_completion(
                 messages=messages,
@@ -281,4 +385,3 @@ class BaseAgent(ABC):
             "tool_calls": self._tool_calls,
             "tokens_used": self._total_tokens,
         }
-

@@ -15,12 +15,20 @@ logger = logging.getLogger(__name__)
 
 class StreamEventType(str, Enum):
     """流式事件类型"""
-    # LLM 相关
+    # 🔥 LLM 思考相关 - 这些是最重要的！展示 LLM 的大脑活动
+    LLM_START = "llm_start"                # LLM 开始思考
+    LLM_THOUGHT = "llm_thought"            # LLM 思考内容 ⭐ 核心
+    LLM_DECISION = "llm_decision"          # LLM 决策 ⭐ 核心
+    LLM_ACTION = "llm_action"              # LLM 动作
+    LLM_OBSERVATION = "llm_observation"    # LLM 观察结果
+    LLM_COMPLETE = "llm_complete"          # LLM 完成
+    
+    # LLM Token 流 (实时输出)
     THINKING_START = "thinking_start"      # 开始思考
-    THINKING_TOKEN = "thinking_token"      # 思考 Token
+    THINKING_TOKEN = "thinking_token"      # 思考 Token (流式)
     THINKING_END = "thinking_end"          # 思考结束
     
-    # 工具调用相关
+    # 工具调用相关 - LLM 决定调用工具
     TOOL_CALL_START = "tool_call_start"    # 工具调用开始
     TOOL_CALL_INPUT = "tool_call_input"    # 工具输入参数
     TOOL_CALL_OUTPUT = "tool_call_output"  # 工具输出结果

@@ -91,6 +91,33 @@ class AgentEventEmitter:
             metadata=metadata,
         ))
     
+    async def emit_llm_thought(self, thought: str, iteration: int = 0):
+        """发射 LLM 思考内容事件 - 核心！展示 LLM 在想什么"""
+        display = thought[:500] + "..." if len(thought) > 500 else thought
+        await self.emit(AgentEventData(
+            event_type="llm_thought",
+            message=f"💭 LLM 思考:\n{display}",
+            metadata={"thought": thought, "iteration": iteration},
+        ))
+    
+    async def emit_llm_decision(self, decision: str, reason: str = ""):
+        """发射 LLM 决策事件"""
+        await self.emit(AgentEventData(
+            event_type="llm_decision",
+            message=f"💡 LLM 决策: {decision}" + (f" ({reason})" if reason else ""),
+            metadata={"decision": decision, "reason": reason},
+        ))
+    
+    async def emit_llm_action(self, action: str, action_input: Dict):
+        """发射 LLM 动作事件"""
+        import json
+        input_str = json.dumps(action_input, ensure_ascii=False)[:200]
+        await self.emit(AgentEventData(
+            event_type="llm_action",
+            message=f"⚡ LLM 动作: {action}\n   参数: {input_str}",
+            metadata={"action": action, "action_input": action_input},
+        ))
+    
     async def emit_tool_call(
         self,
         tool_name: str,

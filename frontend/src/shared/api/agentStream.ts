@@ -106,6 +106,9 @@ export class AgentStreamHandler {
   private reconnectDelay = 1000;
   private isConnected = false;
   private thinkingBuffer: string[] = [];
+  private reader: ReadableStreamDefaultReader<Uint8Array> | null = null; // 🔥 保存 reader 引用
+  private abortController: AbortController | null = null; // 🔥 用于取消请求
+  private isDisconnecting = false; // 🔥 标记是否正在断开
 
   constructor(taskId: string, options: StreamOptions = {}) {
     this.taskId = taskId;
@@ -121,6 +124,11 @@ export class AgentStreamHandler {
    * 开始监听事件流
    */
   connect(): void {
+    // 🔥 如果已经连接，不重复连接
+    if (this.isConnected || this.isDisconnecting) {
+      return;
+    }
+
     const token = localStorage.getItem('access_token');
     if (!token) {
       this.options.onError?.('未登录');
@@ -142,7 +150,15 @@ export class AgentStreamHandler {
    * 使用 fetch 连接（支持自定义 headers）
    */
   private async connectWithFetch(token: string, params: URLSearchParams): Promise<void> {
+    // 🔥 如果正在断开，不连接
+    if (this.isDisconnecting) {
+      return;
+    }
+
     const url = `/api/v1/agent-tasks/${this.taskId}/stream?${params}`;
+
+    // 🔥 创建 AbortController 用于取消请求
+    this.abortController = new AbortController();
 
     try {
       const response = await fetch(url, {
@@ -150,6 +166,7 @@ export class AgentStreamHandler {
           'Authorization': `Bearer ${token}`,
           'Accept': 'text/event-stream',
         },
+        signal: this.abortController.signal, // 🔥 支持取消
       });
 
       if (!response.ok) {
@@ -159,8 +176,8 @@ export class AgentStreamHandler {
       this.isConnected = true;
       this.reconnectAttempts = 0;
 
-      const reader = response.body?.getReader();
-      if (!reader) {
+      this.reader = response.body?.getReader() || null;
+      if (!this.reader) {
         throw new Error('无法获取响应流');
       }
 
@@ -168,7 +185,12 @@ export class AgentStreamHandler {
       let buffer = '';
 
       while (true) {
-        const { done, value } = await reader.read();
+        // 🔥 检查是否正在断开
+        if (this.isDisconnecting) {
+          break;
+        }
+
+        const { done, value } = await this.reader.read();
         
         if (done) {
           break;
@@ -184,16 +206,41 @@ export class AgentStreamHandler {
           this.handleEvent(event);
         }
       }
-    } catch (error) {
+
+      // 🔥 正常结束，清理 reader
+      if (this.reader) {
+        this.reader.releaseLock();
+        this.reader = null;
+      }
+    } catch (error: any) {
+      // 🔥 如果是取消错误，不处理
+      if (error.name === 'AbortError') {
+        return;
+      }
+
       this.isConnected = false;
       console.error('Stream connection error:', error);
       
-      // 尝试重连
-      if (this.reconnectAttempts < this.maxReconnectAttempts) {
+      // 🔥 只有在未断开时才尝试重连
+      if (!this.isDisconnecting && this.reconnectAttempts < this.maxReconnectAttempts) {
         this.reconnectAttempts++;
-        setTimeout(() => this.connect(), this.reconnectDelay * this.reconnectAttempts);
+        setTimeout(() => {
+          if (!this.isDisconnecting) {
+            this.connect();
+          }
+        }, this.reconnectDelay * this.reconnectAttempts);
       } else {
         this.options.onError?.(`连接失败: ${error}`);
+      }
+    } finally {
+      // 🔥 清理 reader
+      if (this.reader) {
+        try {
+          this.reader.releaseLock();
+        } catch {
+          // 忽略释放错误
+        }
+        this.reader = null;
       }
     }
   }
@@ -357,11 +404,35 @@ export class AgentStreamHandler {
    * 断开连接
    */
   disconnect(): void {
+    // 🔥 标记正在断开，防止重连
+    this.isDisconnecting = true;
     this.isConnected = false;
+    
+    // 🔥 取消 fetch 请求
+    if (this.abortController) {
+      this.abortController.abort();
+      this.abortController = null;
+    }
+    
+    // 🔥 清理 reader
+    if (this.reader) {
+      try {
+        this.reader.cancel();
+        this.reader.releaseLock();
+      } catch {
+        // 忽略清理错误
+      }
+      this.reader = null;
+    }
+    
+    // 清理 EventSource（如果使用）
     if (this.eventSource) {
       this.eventSource.close();
       this.eventSource = null;
     }
+    
+    // 重置重连计数
+    this.reconnectAttempts = 0;
   }
 
   /**

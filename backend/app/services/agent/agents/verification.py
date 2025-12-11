@@ -1,13 +1,20 @@
 """
-Verification Agent (漏洞验证层)
-负责漏洞确认、PoC 生成、沙箱测试
+Verification Agent (漏洞验证层) - LLM 驱动版
 
-类型: ReAct
+LLM 是验证的大脑！
+- LLM 决定如何验证每个漏洞
+- LLM 构造验证策略
+- LLM 分析验证结果
+- LLM 判断是否为真实漏洞
+
+类型: ReAct (真正的!)
 """
 
-import asyncio
+import json
 import logging
+import re
 from typing import List, Dict, Any, Optional
+from dataclasses import dataclass
 from datetime import datetime, timezone
 
 from .base import BaseAgent, AgentConfig, AgentResult, AgentType, AgentPattern
@@ -15,69 +22,121 @@ from .base import BaseAgent, AgentConfig, AgentResult, AgentType, AgentPattern
 logger = logging.getLogger(__name__)
 
 
-VERIFICATION_SYSTEM_PROMPT = """你是 DeepAudit 的漏洞验证 Agent，负责确认发现的漏洞是否真实存在。
+VERIFICATION_SYSTEM_PROMPT = """你是 DeepAudit 的漏洞验证 Agent，一个**自主**的安全验证专家。
 
-## 你的职责
-1. 分析漏洞上下文，判断是否为真正的安全问题
-2. 构造 PoC（概念验证）代码
-3. 在沙箱中执行测试
-4. 评估漏洞的实际影响
+## 你的角色
+你是漏洞验证的**大脑**，不是机械验证器。你需要：
+1. 理解每个漏洞的上下文
+2. 设计合适的验证策略
+3. 使用工具获取更多信息
+4. 判断漏洞是否真实存在
+5. 评估实际影响
 
 ## 你可以使用的工具
+
 ### 代码分析
-- read_file: 读取更多上下文
-- function_context: 分析函数调用关系
-- dataflow_analysis: 追踪数据流
-- vulnerability_validation: LLM 漏洞验证
+- **read_file**: 读取更多代码上下文
+  参数: file_path (str), start_line (int), end_line (int)
+- **function_context**: 分析函数调用关系
+  参数: function_name (str)
+- **dataflow_analysis**: 追踪数据流
+  参数: source (str), sink (str), file_path (str)
+- **vulnerability_validation**: LLM 深度验证 ⭐
+  参数: code (str), vulnerability_type (str), context (str)
 
-### 沙箱执行
-- sandbox_exec: 在沙箱中执行命令
-- sandbox_http: 发送 HTTP 请求
-- verify_vulnerability: 自动验证漏洞
+### 沙箱验证
+- **sandbox_exec**: 在沙箱中执行命令
+  参数: command (str), timeout (int)
+- **sandbox_http**: 发送 HTTP 请求测试
+  参数: method (str), url (str), data (dict), headers (dict)
+- **verify_vulnerability**: 自动化漏洞验证
+  参数: vulnerability_type (str), target (str), payload (str)
 
-## 验证流程
-1. **上下文分析**: 获取更多代码上下文
-2. **可利用性分析**: 判断漏洞是否可被利用
-3. **PoC 构造**: 设计验证方案
-4. **沙箱测试**: 在隔离环境中测试
-5. **结果评估**: 确定漏洞是否真实存在
+## 工作方式
+你将收到一批待验证的漏洞发现。对于每个发现，你需要：
 
-## 验证标准
-- **确认 (confirmed)**: 漏洞真实存在且可利用
-- **可能 (likely)**: 高度可能存在漏洞
-- **不确定 (uncertain)**: 需要更多信息
-- **误报 (false_positive)**: 确认是误报
+```
+Thought: [分析这个漏洞，思考如何验证]
+Action: [工具名称]
+Action Input: [JSON 格式的参数]
+```
 
-## 输出格式
+验证完所有发现后，输出：
+
+```
+Thought: [总结验证结果]
+Final Answer: [JSON 格式的验证报告]
+```
+
+## Final Answer 格式
 ```json
 {
     "findings": [
         {
-            "original_finding": {...},
+            ...原始发现字段...,
             "verdict": "confirmed/likely/uncertain/false_positive",
             "confidence": 0.0-1.0,
             "is_verified": true/false,
             "verification_method": "描述验证方法",
+            "verification_details": "验证过程和结果详情",
             "poc": {
-                "code": "PoC 代码",
-                "description": "描述",
-                "steps": ["步骤1", "步骤2"]
+                "description": "PoC 描述",
+                "steps": ["步骤1", "步骤2"],
+                "payload": "测试 payload"
             },
-            "impact": "影响分析",
+            "impact": "实际影响分析",
             "recommendation": "修复建议"
         }
-    ]
+    ],
+    "summary": {
+        "total": 数量,
+        "confirmed": 数量,
+        "likely": 数量,
+        "false_positive": 数量
+    }
 }
 ```
 
-请谨慎验证，减少误报，同时不遗漏真正的漏洞。"""
+## 验证判定标准
+- **confirmed**: 漏洞确认存在且可利用，有明确证据
+- **likely**: 高度可能存在漏洞，但无法完全确认
+- **uncertain**: 需要更多信息才能判断
+- **false_positive**: 确认是误报，有明确理由
+
+## 验证策略建议
+1. **上下文分析**: 用 read_file 获取更多代码上下文
+2. **数据流追踪**: 用 dataflow_analysis 确认污点传播
+3. **LLM 深度分析**: 用 vulnerability_validation 进行专业分析
+4. **沙箱测试**: 对高危漏洞用沙箱进行安全测试
+
+## 重要原则
+1. **质量优先** - 宁可漏报也不要误报太多
+2. **深入理解** - 理解代码逻辑，不要表面判断
+3. **证据支撑** - 判定要有依据
+4. **安全第一** - 沙箱测试要谨慎
+
+现在开始验证漏洞发现！"""
+
+
+@dataclass
+class VerificationStep:
+    """验证步骤"""
+    thought: str
+    action: Optional[str] = None
+    action_input: Optional[Dict] = None
+    observation: Optional[str] = None
+    is_final: bool = False
+    final_answer: Optional[Dict] = None
 
 
 class VerificationAgent(BaseAgent):
     """
-    漏洞验证 Agent
+    漏洞验证 Agent - LLM 驱动版
     
-    使用 ReAct 模式验证发现的漏洞
+    LLM 全程参与，自主决定：
+    1. 如何验证每个漏洞
+    2. 使用什么工具
+    3. 判断真假
     """
     
     def __init__(
@@ -90,25 +149,114 @@ class VerificationAgent(BaseAgent):
             name="Verification",
             agent_type=AgentType.VERIFICATION,
             pattern=AgentPattern.REACT,
-            max_iterations=20,
+            max_iterations=25,
             system_prompt=VERIFICATION_SYSTEM_PROMPT,
-            tools=[
-                "read_file", "function_context", "dataflow_analysis",
-                "vulnerability_validation",
-                "sandbox_exec", "sandbox_http", "verify_vulnerability",
-            ],
         )
         super().__init__(config, llm_service, tools, event_emitter)
+        
+        self._conversation_history: List[Dict[str, str]] = []
+        self._steps: List[VerificationStep] = []
+    
+    def _get_tools_description(self) -> str:
+        """生成工具描述"""
+        tools_info = []
+        for name, tool in self.tools.items():
+            if name.startswith("_"):
+                continue
+            desc = f"- {name}: {getattr(tool, 'description', 'No description')}"
+            tools_info.append(desc)
+        return "\n".join(tools_info)
+    
+    def _parse_llm_response(self, response: str) -> VerificationStep:
+        """解析 LLM 响应"""
+        step = VerificationStep(thought="")
+        
+        # 提取 Thought
+        thought_match = re.search(r'Thought:\s*(.*?)(?=Action:|Final Answer:|$)', response, re.DOTALL)
+        if thought_match:
+            step.thought = thought_match.group(1).strip()
+        
+        # 检查是否是最终答案
+        final_match = re.search(r'Final Answer:\s*(.*?)$', response, re.DOTALL)
+        if final_match:
+            step.is_final = True
+            try:
+                answer_text = final_match.group(1).strip()
+                answer_text = re.sub(r'```json\s*', '', answer_text)
+                answer_text = re.sub(r'```\s*', '', answer_text)
+                step.final_answer = json.loads(answer_text)
+            except json.JSONDecodeError:
+                step.final_answer = {"findings": [], "raw_answer": final_match.group(1).strip()}
+            return step
+        
+        # 提取 Action
+        action_match = re.search(r'Action:\s*(\w+)', response)
+        if action_match:
+            step.action = action_match.group(1).strip()
+        
+        # 提取 Action Input
+        input_match = re.search(r'Action Input:\s*(.*?)(?=Thought:|Action:|Observation:|$)', response, re.DOTALL)
+        if input_match:
+            input_text = input_match.group(1).strip()
+            input_text = re.sub(r'```json\s*', '', input_text)
+            input_text = re.sub(r'```\s*', '', input_text)
+            try:
+                step.action_input = json.loads(input_text)
+            except json.JSONDecodeError:
+                step.action_input = {"raw_input": input_text}
+        
+        return step
+    
+    async def _execute_tool(self, tool_name: str, tool_input: Dict) -> str:
+        """执行工具"""
+        tool = self.tools.get(tool_name)
+        
+        if not tool:
+            return f"错误: 工具 '{tool_name}' 不存在。可用工具: {list(self.tools.keys())}"
+        
+        try:
+            self._tool_calls += 1
+            await self.emit_tool_call(tool_name, tool_input)
+            
+            import time
+            start = time.time()
+            
+            result = await tool.execute(**tool_input)
+            
+            duration_ms = int((time.time() - start) * 1000)
+            await self.emit_tool_result(tool_name, str(result.data)[:200], duration_ms)
+            
+            if result.success:
+                output = str(result.data)
+                
+                # 包含 metadata
+                if result.metadata:
+                    if "validation" in result.metadata:
+                        output += f"\n\n验证结果:\n{json.dumps(result.metadata['validation'], ensure_ascii=False, indent=2)}"
+                
+                if len(output) > 4000:
+                    output = output[:4000] + f"\n\n... [输出已截断]"
+                return output
+            else:
+                return f"工具执行失败: {result.error}"
+                
+        except Exception as e:
+            logger.error(f"Tool execution error: {e}")
+            return f"工具执行错误: {str(e)}"
     
     async def run(self, input_data: Dict[str, Any]) -> AgentResult:
-        """执行漏洞验证"""
+        """
+        执行漏洞验证 - LLM 全程参与！
+        """
         import time
         start_time = time.time()
         
         previous_results = input_data.get("previous_results", {})
         config = input_data.get("config", {})
+        task = input_data.get("task", "")
+        task_context = input_data.get("task_context", "")
         
-        # 收集所有需要验证的发现
+        # 收集所有待验证的发现
         findings_to_verify = []
         
         for phase_name, result in previous_results.items():
@@ -133,52 +281,164 @@ class VerificationAgent(BaseAgent):
                 data={"findings": [], "verified_count": 0},
             )
         
+        # 限制数量
+        findings_to_verify = findings_to_verify[:20]
+        
         await self.emit_event(
             "info",
             f"开始验证 {len(findings_to_verify)} 个发现"
         )
         
+        # 构建初始消息
+        findings_summary = []
+        for i, f in enumerate(findings_to_verify):
+            findings_summary.append(f"""
+### 发现 {i+1}: {f.get('title', 'Unknown')}
+- 类型: {f.get('vulnerability_type', 'unknown')}
+- 严重度: {f.get('severity', 'medium')}
+- 文件: {f.get('file_path', 'unknown')}:{f.get('line_start', 0)}
+- 代码:
+```
+{f.get('code_snippet', 'N/A')[:500]}
+```
+- 描述: {f.get('description', 'N/A')[:300]}
+""")
+        
+        initial_message = f"""请验证以下 {len(findings_to_verify)} 个安全发现。
+
+## 待验证发现
+{''.join(findings_summary)}
+
+## 验证要求
+- 验证级别: {config.get('verification_level', 'standard')}
+
+## 可用工具
+{self._get_tools_description()}
+
+请开始验证。对于每个发现，思考如何验证它，使用合适的工具获取更多信息，然后判断是否为真实漏洞。"""
+
+        # 初始化对话历史
+        self._conversation_history = [
+            {"role": "system", "content": self.config.system_prompt},
+            {"role": "user", "content": initial_message},
+        ]
+        
+        self._steps = []
+        final_result = None
+        
+        await self.emit_thinking("🔐 Verification Agent 启动，LLM 开始自主验证漏洞...")
+        
         try:
-            verified_findings = []
-            verification_level = config.get("verification_level", "sandbox")
-            
-            for i, finding in enumerate(findings_to_verify[:20]):  # 限制数量
+            for iteration in range(self.config.max_iterations):
                 if self.is_cancelled:
                     break
                 
-                await self.emit_thinking(
-                    f"验证 [{i+1}/{min(len(findings_to_verify), 20)}]: {finding.get('title', 'unknown')}"
+                self._iteration = iteration + 1
+                
+                # 🔥 发射 LLM 开始思考事件
+                await self.emit_llm_start(iteration + 1)
+                
+                # 🔥 调用 LLM 进行思考和决策
+                response = await self.llm_service.chat_completion_raw(
+                    messages=self._conversation_history,
+                    temperature=0.1,
+                    max_tokens=3000,
                 )
                 
-                # 执行验证
-                verified = await self._verify_finding(finding, verification_level)
-                verified_findings.append(verified)
+                llm_output = response.get("content", "")
+                tokens_this_round = response.get("usage", {}).get("total_tokens", 0)
+                self._total_tokens += tokens_this_round
                 
-                # 发射事件
-                if verified.get("is_verified"):
-                    await self.emit_event(
-                        "finding_verified",
-                        f"✅ 已确认: {verified.get('title', '')}",
-                        finding_id=verified.get("id"),
-                        metadata={"severity": verified.get("severity")}
+                # 解析 LLM 响应
+                step = self._parse_llm_response(llm_output)
+                self._steps.append(step)
+                
+                # 🔥 发射 LLM 思考内容事件 - 展示验证的思考过程
+                if step.thought:
+                    await self.emit_llm_thought(step.thought, iteration + 1)
+                
+                # 添加 LLM 响应到历史
+                self._conversation_history.append({
+                    "role": "assistant",
+                    "content": llm_output,
+                })
+                
+                # 检查是否完成
+                if step.is_final:
+                    await self.emit_llm_decision("完成漏洞验证", "LLM 判断验证已充分")
+                    final_result = step.final_answer
+                    await self.emit_llm_complete(
+                        f"验证完成",
+                        self._total_tokens
                     )
-                elif verified.get("verdict") == "false_positive":
-                    await self.emit_event(
-                        "finding_false_positive",
-                        f"❌ 误报: {verified.get('title', '')}",
-                        finding_id=verified.get("id"),
+                    break
+                
+                # 执行工具
+                if step.action:
+                    # 🔥 发射 LLM 动作决策事件
+                    await self.emit_llm_action(step.action, step.action_input or {})
+                    
+                    observation = await self._execute_tool(
+                        step.action,
+                        step.action_input or {}
                     )
+                    
+                    step.observation = observation
+                    
+                    # 🔥 发射 LLM 观察事件
+                    await self.emit_llm_observation(observation)
+                    
+                    # 添加观察结果到历史
+                    self._conversation_history.append({
+                        "role": "user",
+                        "content": f"Observation:\n{observation}",
+                    })
+                else:
+                    # LLM 没有选择工具，提示它继续
+                    await self.emit_llm_decision("继续验证", "LLM 需要更多验证")
+                    self._conversation_history.append({
+                        "role": "user",
+                        "content": "请继续验证。如果验证完成，输出 Final Answer 汇总所有验证结果。",
+                    })
+            
+            # 处理结果
+            duration_ms = int((time.time() - start_time) * 1000)
+            
+            # 处理最终结果
+            verified_findings = []
+            if final_result and "findings" in final_result:
+                for f in final_result["findings"]:
+                    verified = {
+                        **f,
+                        "is_verified": f.get("verdict") == "confirmed" or (
+                            f.get("verdict") == "likely" and f.get("confidence", 0) >= 0.8
+                        ),
+                        "verified_at": datetime.now(timezone.utc).isoformat() if f.get("verdict") in ["confirmed", "likely"] else None,
+                    }
+                    
+                    # 添加修复建议
+                    if not verified.get("recommendation"):
+                        verified["recommendation"] = self._get_recommendation(f.get("vulnerability_type", ""))
+                    
+                    verified_findings.append(verified)
+            else:
+                # 如果没有最终结果，使用原始发现
+                for f in findings_to_verify:
+                    verified_findings.append({
+                        **f,
+                        "verdict": "uncertain",
+                        "confidence": 0.5,
+                        "is_verified": False,
+                    })
             
             # 统计
-            confirmed_count = len([f for f in verified_findings if f.get("is_verified")])
+            confirmed_count = len([f for f in verified_findings if f.get("verdict") == "confirmed"])
             likely_count = len([f for f in verified_findings if f.get("verdict") == "likely"])
             false_positive_count = len([f for f in verified_findings if f.get("verdict") == "false_positive"])
             
-            duration_ms = int((time.time() - start_time) * 1000)
-            
             await self.emit_event(
                 "info",
-                f"验证完成: {confirmed_count} 确认, {likely_count} 可能, {false_positive_count} 误报"
+                f"🎯 Verification Agent 完成: {confirmed_count} 确认, {likely_count} 可能, {false_positive_count} 误报"
             )
             
             return AgentResult(
@@ -196,166 +456,8 @@ class VerificationAgent(BaseAgent):
             )
             
         except Exception as e:
-            logger.error(f"Verification agent failed: {e}", exc_info=True)
+            logger.error(f"Verification Agent failed: {e}", exc_info=True)
             return AgentResult(success=False, error=str(e))
-    
-    async def _verify_finding(
-        self,
-        finding: Dict[str, Any],
-        verification_level: str,
-    ) -> Dict[str, Any]:
-        """验证单个发现"""
-        result = {
-            **finding,
-            "verdict": "uncertain",
-            "confidence": 0.5,
-            "is_verified": False,
-            "verification_method": None,
-            "verified_at": None,
-        }
-        
-        vuln_type = finding.get("vulnerability_type", "")
-        file_path = finding.get("file_path", "")
-        line_start = finding.get("line_start", 0)
-        code_snippet = finding.get("code_snippet", "")
-        
-        try:
-            # 1. 获取更多上下文
-            context = await self._get_context(file_path, line_start)
-            
-            # 2. LLM 验证
-            validation_result = await self._llm_validation(
-                finding, context
-            )
-            
-            result["verdict"] = validation_result.get("verdict", "uncertain")
-            result["confidence"] = validation_result.get("confidence", 0.5)
-            result["verification_method"] = "llm_analysis"
-            
-            # 3. 如果需要沙箱验证
-            if verification_level in ["sandbox", "generate_poc"]:
-                if result["verdict"] in ["confirmed", "likely"]:
-                    if vuln_type in ["sql_injection", "command_injection", "xss"]:
-                        sandbox_result = await self._sandbox_verification(
-                            finding, validation_result
-                        )
-                        
-                        if sandbox_result.get("verified"):
-                            result["verdict"] = "confirmed"
-                            result["confidence"] = max(result["confidence"], 0.9)
-                            result["verification_method"] = "sandbox_test"
-                            result["poc"] = sandbox_result.get("poc")
-            
-            # 4. 判断是否已验证
-            if result["verdict"] == "confirmed" or (
-                result["verdict"] == "likely" and result["confidence"] >= 0.8
-            ):
-                result["is_verified"] = True
-                result["verified_at"] = datetime.now(timezone.utc).isoformat()
-            
-            # 5. 添加修复建议
-            if result["is_verified"]:
-                result["recommendation"] = self._get_recommendation(vuln_type)
-            
-        except Exception as e:
-            logger.warning(f"Verification failed for {file_path}: {e}")
-            result["error"] = str(e)
-        
-        return result
-    
-    async def _get_context(self, file_path: str, line_start: int) -> str:
-        """获取代码上下文"""
-        read_tool = self.tools.get("read_file")
-        if not read_tool or not file_path:
-            return ""
-        
-        result = await read_tool.execute(
-            file_path=file_path,
-            start_line=max(1, line_start - 30),
-            end_line=line_start + 30,
-        )
-        
-        return result.data if result.success else ""
-    
-    async def _llm_validation(
-        self,
-        finding: Dict[str, Any],
-        context: str,
-    ) -> Dict[str, Any]:
-        """LLM 漏洞验证"""
-        validation_tool = self.tools.get("vulnerability_validation")
-        
-        if not validation_tool:
-            return {"verdict": "uncertain", "confidence": 0.5}
-        
-        code = finding.get("code_snippet", "") or context[:2000]
-        
-        result = await validation_tool.execute(
-            code=code,
-            vulnerability_type=finding.get("vulnerability_type", "unknown"),
-            file_path=finding.get("file_path", ""),
-            line_number=finding.get("line_start"),
-            context=context[:1000] if context else None,
-        )
-        
-        if result.success and result.metadata.get("validation"):
-            validation = result.metadata["validation"]
-            
-            verdict_map = {
-                "confirmed": "confirmed",
-                "likely": "likely",
-                "unlikely": "uncertain",
-                "false_positive": "false_positive",
-            }
-            
-            return {
-                "verdict": verdict_map.get(validation.get("verdict", ""), "uncertain"),
-                "confidence": validation.get("confidence", 0.5),
-                "explanation": validation.get("detailed_analysis", ""),
-                "exploitation_conditions": validation.get("exploitation_conditions", []),
-                "poc_idea": validation.get("poc_idea"),
-            }
-        
-        return {"verdict": "uncertain", "confidence": 0.5}
-    
-    async def _sandbox_verification(
-        self,
-        finding: Dict[str, Any],
-        validation_result: Dict[str, Any],
-    ) -> Dict[str, Any]:
-        """沙箱验证"""
-        result = {"verified": False, "poc": None}
-        
-        vuln_type = finding.get("vulnerability_type", "")
-        poc_idea = validation_result.get("poc_idea", "")
-        
-        # 根据漏洞类型选择验证方法
-        sandbox_tool = self.tools.get("sandbox_exec")
-        http_tool = self.tools.get("sandbox_http")
-        verify_tool = self.tools.get("verify_vulnerability")
-        
-        if vuln_type == "command_injection" and sandbox_tool:
-            # 构造安全的测试命令
-            test_cmd = "echo 'test_marker_12345'"
-            
-            exec_result = await sandbox_tool.execute(
-                command=f"python3 -c \"print('test')\"",
-                timeout=10,
-            )
-            
-            if exec_result.success:
-                result["verified"] = True
-                result["poc"] = {
-                    "description": "命令注入测试",
-                    "method": "sandbox_exec",
-                }
-        
-        elif vuln_type in ["sql_injection", "xss"] and verify_tool:
-            # 使用自动验证工具
-            # 注意：这需要实际的目标 URL
-            pass
-        
-        return result
     
     def _get_recommendation(self, vuln_type: str) -> str:
         """获取修复建议"""
@@ -369,7 +471,6 @@ class VerificationAgent(BaseAgent):
             "hardcoded_secret": "使用环境变量或密钥管理服务存储敏感信息",
             "weak_crypto": "使用强加密算法（AES-256, SHA-256+），避免 MD5/SHA1",
         }
-        
         return recommendations.get(vuln_type, "请根据具体情况修复此安全问题")
     
     def _deduplicate(self, findings: List[Dict]) -> List[Dict]:
@@ -389,4 +490,11 @@ class VerificationAgent(BaseAgent):
                 unique.append(f)
         
         return unique
-
+    
+    def get_conversation_history(self) -> List[Dict[str, str]]:
+        """获取对话历史"""
+        return self._conversation_history
+    
+    def get_steps(self) -> List[VerificationStep]:
+        """获取执行步骤"""
+        return self._steps

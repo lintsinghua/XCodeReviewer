@@ -4,13 +4,13 @@
  * 支持 LLM 思考过程和工具调用的实时流式展示
  */
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
-  Terminal, Bot, Cpu, Shield, AlertTriangle, CheckCircle2,
+  Terminal, Bot, Shield, AlertTriangle, CheckCircle2,
   Loader2, Code, Zap, Activity, ChevronRight, XCircle,
-  FileCode, Search, Bug, Lock, Play, Square, RefreshCw,
-  ArrowLeft, Download, ExternalLink, Brain, Wrench, 
+  FileCode, Search, Bug, Square, RefreshCw,
+  ArrowLeft, ExternalLink, Brain, Wrench, 
   ChevronDown, ChevronUp, Clock, Sparkles
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -26,42 +26,77 @@ import {
   getAgentEvents,
   getAgentFindings,
   cancelAgentTask,
-  streamAgentEvents,
 } from "@/shared/api/agentTasks";
 
-// 事件类型图标映射
+// 事件类型图标映射 - 🔥 重点展示 LLM 相关事件
 const eventTypeIcons: Record<string, React.ReactNode> = {
+  // 🧠 LLM 核心事件 - 最重要！
+  llm_start: <Brain className="w-3 h-3 text-purple-400 animate-pulse" />,
+  llm_thought: <Sparkles className="w-3 h-3 text-purple-300" />,
+  llm_decision: <Zap className="w-3 h-3 text-yellow-400" />,
+  llm_action: <Zap className="w-3 h-3 text-orange-400" />,
+  llm_observation: <Search className="w-3 h-3 text-blue-400" />,
+  llm_complete: <CheckCircle2 className="w-3 h-3 text-green-400" />,
+  
+  // 阶段相关
   phase_start: <Zap className="w-3 h-3 text-cyan-400" />,
   phase_complete: <CheckCircle2 className="w-3 h-3 text-green-400" />,
-  thinking: <Cpu className="w-3 h-3 text-purple-400" />,
-  tool_call: <Code className="w-3 h-3 text-yellow-400" />,
+  thinking: <Brain className="w-3 h-3 text-purple-400" />,
+  
+  // 工具相关 - LLM 决定的工具调用
+  tool_call: <Wrench className="w-3 h-3 text-yellow-400" />,
   tool_result: <CheckCircle2 className="w-3 h-3 text-green-400" />,
   tool_error: <XCircle className="w-3 h-3 text-red-400" />,
+  
+  // 发现相关
+  finding: <Bug className="w-3 h-3 text-orange-400" />,
   finding_new: <Bug className="w-3 h-3 text-orange-400" />,
   finding_verified: <Shield className="w-3 h-3 text-red-400" />,
+  
+  // 状态相关
   info: <Activity className="w-3 h-3 text-blue-400" />,
   warning: <AlertTriangle className="w-3 h-3 text-yellow-400" />,
   error: <XCircle className="w-3 h-3 text-red-500" />,
   progress: <RefreshCw className="w-3 h-3 text-cyan-400 animate-spin" />,
+  
+  // 任务相关
   task_complete: <CheckCircle2 className="w-3 h-3 text-green-500" />,
   task_error: <XCircle className="w-3 h-3 text-red-500" />,
   task_cancel: <Square className="w-3 h-3 text-yellow-500" />,
 };
 
-// 事件类型颜色映射
+// 事件类型颜色映射 - 🔥 LLM 事件突出显示
 const eventTypeColors: Record<string, string> = {
+  // 🧠 LLM 核心事件 - 使用紫色系突出
+  llm_start: "text-purple-400 font-semibold",
+  llm_thought: "text-purple-300 bg-purple-950/30 rounded px-1",  // 思考内容特别高亮
+  llm_decision: "text-yellow-300 font-semibold",                  // 决策特别突出
+  llm_action: "text-orange-300 font-medium",
+  llm_observation: "text-blue-300",
+  llm_complete: "text-green-400 font-semibold",
+  
+  // 阶段相关
   phase_start: "text-cyan-400 font-bold",
   phase_complete: "text-green-400",
   thinking: "text-purple-300",
+  
+  // 工具相关
   tool_call: "text-yellow-300",
   tool_result: "text-green-300",
   tool_error: "text-red-400",
+  
+  // 发现相关
+  finding: "text-orange-300 font-medium",
   finding_new: "text-orange-300",
-  finding_verified: "text-red-300",
+  finding_verified: "text-red-300 font-medium",
+  
+  // 状态相关
   info: "text-gray-300",
   warning: "text-yellow-300",
   error: "text-red-400",
   progress: "text-cyan-300",
+  
+  // 任务相关
   task_complete: "text-green-400 font-bold",
   task_error: "text-red-400 font-bold",
   task_cancel: "text-yellow-400",
@@ -99,30 +134,6 @@ export default function AgentAuditPage() {
   
   const eventsEndRef = useRef<HTMLDivElement>(null);
   const thinkingEndRef = useRef<HTMLDivElement>(null);
-  const abortControllerRef = useRef<AbortController | null>(null);
-  
-  // 使用增强版流式 Hook
-  const {
-    thinking,
-    isThinking,
-    toolCalls,
-    currentPhase: streamPhase,
-    progress: streamProgress,
-    connect: connectStream,
-    disconnect: disconnectStream,
-    isConnected: isStreamConnected,
-  } = useAgentStream(taskId || null, {
-    includeThinking: true,
-    includeToolCalls: true,
-    onFinding: () => loadFindings(),
-    onComplete: () => {
-      loadTask();
-      loadFindings();
-    },
-    onError: (err) => {
-      console.error("Stream error:", err);
-    },
-  });
   
   // 是否完成
   const isComplete = task?.status === "completed" || task?.status === "failed" || task?.status === "cancelled";
@@ -134,11 +145,16 @@ export default function AgentAuditPage() {
     try {
       const taskData = await getAgentTask(taskId);
       setTask(taskData);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to load task:", error);
-      toast.error("加载任务失败");
+      const errorMessage = error?.response?.data?.detail || error?.message || "未知错误";
+      toast.error(`加载任务失败: ${errorMessage}`);
+      // 如果是 404，可能是任务不存在
+      if (error?.response?.status === 404) {
+        setTimeout(() => navigate("/tasks"), 2000);
+      }
     }
-  }, [taskId]);
+  }, [taskId, navigate]);
   
   // 加载事件
   const loadEvents = useCallback(async () => {
@@ -164,6 +180,32 @@ export default function AgentAuditPage() {
     }
   }, [taskId]);
   
+  // 🔥 稳定化回调函数，避免重复创建 connect/disconnect
+  const streamOptions = useMemo(() => ({
+    includeThinking: true,
+    includeToolCalls: true,
+    onFinding: () => loadFindings(),
+    onComplete: () => {
+      loadTask();
+      loadFindings();
+    },
+    onError: (err: string) => {
+      console.error("Stream error:", err);
+    },
+  }), [loadFindings, loadTask]);
+  
+  // 使用增强版流式 Hook
+  const {
+    thinking,
+    isThinking,
+    toolCalls,
+    // currentPhase: streamPhase,  // 暂未使用
+    // progress: streamProgress,    // 暂未使用
+    connect: connectStream,
+    disconnect: disconnectStream,
+    isConnected: isStreamConnected,
+  } = useAgentStream(taskId || null, streamOptions);
+  
   // 初始化加载
   useEffect(() => {
     const init = async () => {
@@ -175,10 +217,11 @@ export default function AgentAuditPage() {
     init();
   }, [loadTask, loadEvents, loadFindings]);
   
-  // 连接增强版流式 API
+  // 🔥 使用增强版流式 API（优先）
   useEffect(() => {
     if (!taskId || isComplete || isLoading) return;
     
+    // 连接流式 API
     connectStream();
     setIsStreaming(true);
     
@@ -186,49 +229,44 @@ export default function AgentAuditPage() {
       disconnectStream();
       setIsStreaming(false);
     };
-  }, [taskId, isComplete, isLoading, connectStream, disconnectStream]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [taskId, isComplete, isLoading]); // connectStream/disconnectStream 是稳定的，不需要作为依赖
   
-  // 旧版事件流（作为后备）
+  // 🔥 后备：如果流式连接失败，使用轮询获取事件（仅作为后备）
   useEffect(() => {
     if (!taskId || isComplete || isLoading) return;
     
-    const startStreaming = async () => {
-      abortControllerRef.current = new AbortController();
-      
+    // 如果流式连接已建立，不需要轮询
+    if (isStreamConnected) {
+      return;
+    }
+    
+    // 每 5 秒轮询一次事件（作为后备机制）
+    const pollInterval = setInterval(async () => {
       try {
         const lastSequence = events.length > 0 ? Math.max(...events.map(e => e.sequence)) : 0;
+        const newEvents = await getAgentEvents(taskId, { after_sequence: lastSequence, limit: 50 });
         
-        for await (const event of streamAgentEvents(taskId, lastSequence, abortControllerRef.current.signal)) {
+        if (newEvents.length > 0) {
           setEvents(prev => {
-            // 避免重复
-            if (prev.some(e => e.id === event.id)) return prev;
-            return [...prev, event];
+            // 合并新事件，避免重复
+            const existingIds = new Set(prev.map(e => e.id));
+            const uniqueNew = newEvents.filter(e => !existingIds.has(e.id));
+            return [...prev, ...uniqueNew];
           });
           
-          // 如果是发现事件，刷新发现列表
-          if (event.event_type.startsWith("finding_")) {
-            loadFindings();
-          }
-          
-          // 如果是结束事件，刷新任务状态
-          if (["task_complete", "task_error", "task_cancel"].includes(event.event_type)) {
-            loadTask();
+          // 如果有发现事件，刷新发现列表
+          if (newEvents.some(e => e.event_type.startsWith("finding_"))) {
             loadFindings();
           }
         }
       } catch (error) {
-        if ((error as Error).name !== "AbortError") {
-          console.error("Event stream error:", error);
-        }
+        console.error("Failed to poll events:", error);
       }
-    };
+    }, 5000);
     
-    startStreaming();
-    
-    return () => {
-      abortControllerRef.current?.abort();
-    };
-  }, [taskId, isComplete, isLoading, loadTask, loadFindings]);
+    return () => clearInterval(pollInterval);
+  }, [taskId, isComplete, isLoading, isStreamConnected, events.length, loadFindings]);
   
   // 自动滚动
   useEffect(() => {
@@ -244,17 +282,17 @@ export default function AgentAuditPage() {
     return () => clearInterval(interval);
   }, []);
   
-  // 定期轮询任务状态（作为 SSE 的后备机制）
+  // 定期轮询任务状态（作为 SSE 的后备机制）- 🔥 增加间隔，避免资源耗尽
   useEffect(() => {
     if (!taskId || isComplete || isLoading) return;
     
-    // 每 3 秒轮询一次任务状态
+    // 🔥 每 10 秒轮询一次（而不是 3 秒），减少资源消耗
     const pollInterval = setInterval(async () => {
       try {
         const taskData = await getAgentTask(taskId);
         setTask(taskData);
         
-        // 如果任务已完成/失败/取消，刷新其他数据
+        // 如果任务已完成/失败/取消，刷新其他数据并停止轮询
         if (taskData.status === "completed" || taskData.status === "failed" || taskData.status === "cancelled") {
           await loadEvents();
           await loadFindings();
@@ -262,11 +300,13 @@ export default function AgentAuditPage() {
         }
       } catch (error) {
         console.error("Failed to poll task status:", error);
+        // 🔥 如果连续失败，停止轮询避免资源耗尽
+        clearInterval(pollInterval);
       }
-    }, 3000);
+    }, 10000); // 🔥 改为 10 秒
     
     return () => clearInterval(pollInterval);
-  }, [taskId, isComplete, isLoading, loadEvents, loadFindings]);
+  }, [taskId, isComplete, isLoading]); // 🔥 移除函数依赖
   
   // 取消任务
   const handleCancel = async () => {
@@ -371,57 +411,73 @@ export default function AgentAuditPage() {
         {/* 左侧：执行日志 */}
         <div className="flex-1 p-4 flex flex-col min-w-0">
           
-          {/* 思考过程展示区域 */}
+          {/* 🧠 LLM 思考过程展示区域 - 核心！展示 LLM 的大脑活动 */}
           {(isThinking || thinking) && showThinking && (
-            <div className="mb-4 bg-purple-950/30 rounded-lg border border-purple-800/50 overflow-hidden">
+            <div className="mb-4 bg-purple-950/40 rounded-lg border-2 border-purple-700/60 overflow-hidden shadow-lg shadow-purple-900/20">
               <div 
-                className="flex items-center justify-between px-3 py-2 bg-purple-900/30 border-b border-purple-800/30 cursor-pointer"
+                className="flex items-center justify-between px-4 py-3 bg-purple-900/50 border-b border-purple-700/50 cursor-pointer"
                 onClick={() => setShowThinking(!showThinking)}
               >
-                <div className="flex items-center gap-2 text-xs text-purple-400">
-                  <Brain className={`w-4 h-4 ${isThinking ? "animate-pulse" : ""}`} />
-                  <span className="uppercase tracking-wider">AI Thinking</span>
+                <div className="flex items-center gap-3 text-sm text-purple-300">
+                  <div className="p-1.5 bg-purple-800/50 rounded-lg">
+                    <Brain className={`w-5 h-5 ${isThinking ? "animate-pulse" : ""}`} />
+                  </div>
+                  <div>
+                    <span className="uppercase tracking-wider font-semibold">🧠 LLM Thinking</span>
+                    <span className="text-purple-400 ml-2 text-xs">Agent 的大脑正在工作</span>
+                  </div>
                   {isThinking && (
-                    <span className="flex items-center gap-1 text-purple-300">
+                    <span className="flex items-center gap-1 text-purple-200 bg-purple-800/50 px-2 py-0.5 rounded-full text-xs">
                       <Sparkles className="w-3 h-3 animate-spin" />
-                      <span className="text-[10px]">Processing...</span>
+                      <span>思考中...</span>
                     </span>
                   )}
                 </div>
-                {showThinking ? <ChevronUp className="w-4 h-4 text-purple-400" /> : <ChevronDown className="w-4 h-4 text-purple-400" />}
+                {showThinking ? <ChevronUp className="w-5 h-5 text-purple-400" /> : <ChevronDown className="w-5 h-5 text-purple-400" />}
               </div>
               
-              <div className="max-h-40 overflow-y-auto">
-                <div className="p-3 text-sm text-purple-200/80 font-mono whitespace-pre-wrap">
-                  {thinking || "正在思考..."}
-                  {isThinking && <span className="animate-pulse text-purple-400">▌</span>}
+              <div className="max-h-52 overflow-y-auto bg-[#1a1025]">
+                <div className="p-4 text-sm text-purple-100 font-mono whitespace-pre-wrap leading-relaxed">
+                  {thinking || "🤔 正在思考下一步..."}
+                  {isThinking && <span className="animate-pulse text-purple-400 text-lg">▌</span>}
                 </div>
                 <div ref={thinkingEndRef} />
               </div>
             </div>
           )}
           
-          {/* 工具调用展示区域 */}
+          {/* 🔧 LLM 工具调用展示区域 - LLM 决定调用的工具 */}
           {toolCalls.length > 0 && showToolDetails && (
-            <div className="mb-4 bg-yellow-950/20 rounded-lg border border-yellow-800/30 overflow-hidden">
+            <div className="mb-4 bg-yellow-950/30 rounded-lg border-2 border-yellow-700/50 overflow-hidden shadow-lg shadow-yellow-900/10">
               <div 
-                className="flex items-center justify-between px-3 py-2 bg-yellow-900/20 border-b border-yellow-800/20 cursor-pointer"
+                className="flex items-center justify-between px-4 py-3 bg-yellow-900/30 border-b border-yellow-700/40 cursor-pointer"
                 onClick={() => setShowToolDetails(!showToolDetails)}
               >
-                <div className="flex items-center gap-2 text-xs text-yellow-500">
-                  <Wrench className="w-4 h-4" />
-                  <span className="uppercase tracking-wider">Tool Calls</span>
-                  <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-yellow-900/30 border-yellow-700 text-yellow-400">
-                    {toolCalls.length}
+                <div className="flex items-center gap-3 text-sm text-yellow-400">
+                  <div className="p-1.5 bg-yellow-800/50 rounded-lg">
+                    <Wrench className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <span className="uppercase tracking-wider font-semibold">🔧 LLM Tool Calls</span>
+                    <span className="text-yellow-500 ml-2 text-xs">LLM 决定调用的工具</span>
+                  </div>
+                  <Badge variant="outline" className="text-xs px-2 py-0.5 bg-yellow-900/50 border-yellow-600 text-yellow-300">
+                    {toolCalls.length} 次调用
                   </Badge>
                 </div>
-                {showToolDetails ? <ChevronUp className="w-4 h-4 text-yellow-500" /> : <ChevronDown className="w-4 h-4 text-yellow-500" />}
+                {showToolDetails ? <ChevronUp className="w-5 h-5 text-yellow-500" /> : <ChevronDown className="w-5 h-5 text-yellow-500" />}
               </div>
               
-              <div className="max-h-48 overflow-y-auto">
-                <div className="p-2 space-y-2">
+              <div className="max-h-52 overflow-y-auto bg-[#1a1810]">
+                <div className="p-3 space-y-2">
                   {toolCalls.slice(-5).map((tc, idx) => (
-                    <ToolCallCard key={`${tc.name}-${idx}`} toolCall={tc} />
+                    <ToolCallCard 
+                      key={`${tc.name}-${idx}`} 
+                      toolCall={{
+                        ...tc,
+                        output: tc.output as string | Record<string, unknown> | undefined
+                      }} 
+                    />
                   ))}
                 </div>
               </div>
@@ -429,17 +485,20 @@ export default function AgentAuditPage() {
           )}
           
           <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2 text-xs text-cyan-400">
-              <Terminal className="w-4 h-4" />
-              <span className="uppercase tracking-wider">Execution Log</span>
+            <div className="flex items-center gap-3 text-sm text-cyan-400">
+              <div className="flex items-center gap-2">
+                <Terminal className="w-4 h-4" />
+                <span className="uppercase tracking-wider font-semibold">LLM Execution Log</span>
+              </div>
+              <span className="text-xs text-gray-500">LLM 思考 & 工具调用记录</span>
               {(isStreaming || isStreamConnected) && (
-                <span className="flex items-center gap-1 text-green-400">
+                <span className="flex items-center gap-1.5 text-green-400 bg-green-900/30 px-2 py-0.5 rounded-full text-xs">
                   <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
                   LIVE
                 </span>
               )}
             </div>
-            <span className="text-xs text-gray-500">{events.length} events</span>
+            <span className="text-xs text-gray-500">{events.length} 条记录</span>
           </div>
           
           {/* 终端窗口 */}
@@ -649,7 +708,7 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-// 事件行组件
+// 事件行组件 - 增强 LLM 事件展示
 function EventLine({ event }: { event: AgentEvent }) {
   const icon = eventTypeIcons[event.event_type] || <ChevronRight className="w-3 h-3 text-gray-500" />;
   const colorClass = eventTypeColors[event.event_type] || "text-gray-400";
@@ -658,13 +717,28 @@ function EventLine({ event }: { event: AgentEvent }) {
     ? new Date(event.timestamp).toLocaleTimeString("zh-CN", { hour12: false })
     : "";
   
+  // LLM 思考事件特殊处理 - 展示多行内容
+  const isLLMThought = event.event_type === "llm_thought";
+  const isLLMDecision = event.event_type === "llm_decision";
+  const isLLMAction = event.event_type === "llm_action";
+  const isImportantLLMEvent = isLLMThought || isLLMDecision || isLLMAction;
+  
+  // LLM 事件背景色
+  const bgClass = isLLMThought 
+    ? "bg-purple-950/40 border-l-2 border-purple-600" 
+    : isLLMDecision 
+      ? "bg-yellow-950/30 border-l-2 border-yellow-600"
+      : isLLMAction
+        ? "bg-orange-950/30 border-l-2 border-orange-600"
+        : "";
+  
   return (
-    <div className={`flex items-start gap-2 py-0.5 group hover:bg-white/5 px-1 rounded ${colorClass}`}>
+    <div className={`flex items-start gap-2 py-1 group hover:bg-white/5 px-2 rounded ${colorClass} ${bgClass}`}>
       <span className="text-gray-600 text-xs w-20 flex-shrink-0 group-hover:text-gray-500">
         {timestamp}
       </span>
       <span className="flex-shrink-0 mt-0.5">{icon}</span>
-      <span className="flex-1 text-sm break-all">
+      <span className={`flex-1 text-sm break-all ${isImportantLLMEvent ? "whitespace-pre-wrap" : ""}`}>
         {event.message}
         {event.tool_duration_ms && (
           <span className="text-gray-600 ml-2">({event.tool_duration_ms}ms)</span>
@@ -679,7 +753,7 @@ interface ToolCallProps {
   toolCall: {
     name: string;
     input: Record<string, unknown>;
-    output?: unknown;
+    output?: string | Record<string, unknown>;
     durationMs?: number;
     status: 'running' | 'success' | 'error';
   };
