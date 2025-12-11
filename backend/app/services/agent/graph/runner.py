@@ -42,7 +42,7 @@ class LLMService:
     """LLM 服务封装"""
     
     def __init__(self, model: Optional[str] = None, api_key: Optional[str] = None):
-        self.model = model or settings.DEFAULT_LLM_MODEL
+        self.model = model or settings.LLM_MODEL or "gpt-4o-mini"
         self.api_key = api_key or settings.LLM_API_KEY
     
     async def chat_completion_raw(
@@ -281,10 +281,20 @@ class AgentRunner:
             project_info = await self._collect_project_info()
             
             # 3. 构建初始状态
+            # 从任务字段构建配置
+            task_config = {
+                "target_vulnerabilities": self.task.target_vulnerabilities or [],
+                "verification_level": self.task.verification_level or "sandbox",
+                "exclude_patterns": self.task.exclude_patterns or [],
+                "target_files": self.task.target_files or [],
+                "max_iterations": self.task.max_iterations or 50,
+                "timeout_seconds": self.task.timeout_seconds or 1800,
+            }
+            
             initial_state: AuditState = {
                 "project_root": self.project_root,
                 "project_info": project_info,
-                "config": self.task.config or {},
+                "config": task_config,
                 "task_id": self.task.id,
                 "tech_stack": {},
                 "entry_points": [],
@@ -295,7 +305,7 @@ class AgentRunner:
                 "false_positives": [],
                 "current_phase": "start",
                 "iteration": 0,
-                "max_iterations": (self.task.config or {}).get("max_iterations", 3),
+                "max_iterations": self.task.max_iterations or 50,
                 "should_continue_analysis": False,
                 "messages": [],
                 "events": [],

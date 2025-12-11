@@ -90,7 +90,7 @@ class AgentTaskResponse(BaseModel):
     # 时间
     created_at: datetime
     started_at: Optional[datetime] = None
-    finished_at: Optional[datetime] = None
+    completed_at: Optional[datetime] = None
     
     # 配置
     config: Optional[dict] = None
@@ -193,7 +193,7 @@ async def _execute_agent_task(task_id: str, project_root: str):
             if task:
                 task.status = AgentTaskStatus.FAILED
                 task.error_message = str(e)
-                task.finished_at = datetime.now(timezone.utc)
+                task.completed_at = datetime.now(timezone.utc)
                 await db.commit()
         
         finally:
@@ -344,7 +344,7 @@ async def cancel_agent_task(
     
     # 更新状态
     task.status = AgentTaskStatus.CANCELLED
-    task.finished_at = datetime.now(timezone.utc)
+    task.completed_at = datetime.now(timezone.utc)
     await db.commit()
     
     return {"message": "任务已取消", "task_id": task_id}
@@ -554,8 +554,8 @@ async def get_task_summary(
     
     # 计算持续时间
     duration = None
-    if task.started_at and task.finished_at:
-        duration = int((task.finished_at - task.started_at).total_seconds())
+    if task.started_at and task.completed_at:
+        duration = int((task.completed_at - task.started_at).total_seconds())
     
     # 获取已完成的阶段
     phases_result = await db.execute(

@@ -495,10 +495,12 @@ function StatusBadge({ status }: { status: string }) {
   const statusConfig: Record<string, { text: string; className: string }> = {
     pending: { text: "PENDING", className: "bg-gray-800 text-gray-400 border-gray-600" },
     initializing: { text: "INIT", className: "bg-blue-900/50 text-blue-400 border-blue-600 animate-pulse" },
+    running: { text: "RUNNING", className: "bg-green-900/50 text-green-400 border-green-600 animate-pulse" },
     planning: { text: "PLANNING", className: "bg-purple-900/50 text-purple-400 border-purple-600 animate-pulse" },
     indexing: { text: "INDEXING", className: "bg-cyan-900/50 text-cyan-400 border-cyan-600 animate-pulse" },
     analyzing: { text: "ANALYZING", className: "bg-yellow-900/50 text-yellow-400 border-yellow-600 animate-pulse" },
     verifying: { text: "VERIFYING", className: "bg-orange-900/50 text-orange-400 border-orange-600 animate-pulse" },
+    reporting: { text: "REPORTING", className: "bg-indigo-900/50 text-indigo-400 border-indigo-600 animate-pulse" },
     completed: { text: "COMPLETED", className: "bg-green-900/50 text-green-400 border-green-600" },
     failed: { text: "FAILED", className: "bg-red-900/50 text-red-400 border-red-600" },
     cancelled: { text: "CANCELLED", className: "bg-yellow-900/50 text-yellow-400 border-yellow-600" },

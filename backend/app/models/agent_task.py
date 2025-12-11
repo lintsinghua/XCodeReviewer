@@ -23,6 +23,7 @@ class AgentTaskStatus:
     """Agent 任务状态"""
     PENDING = "pending"           # 等待执行
     INITIALIZING = "initializing" # 初始化中
+    RUNNING = "running"           # 运行中
     PLANNING = "planning"         # 规划阶段
     INDEXING = "indexing"         # 索引阶段
     ANALYZING = "analyzing"       # 分析阶段
