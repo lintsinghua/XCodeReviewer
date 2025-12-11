@@ -28,14 +28,12 @@ import {
   cancelAgentTask,
 } from "@/shared/api/agentTasks";
 
-// 事件类型图标映射 - 🔥 重点展示 LLM 相关事件
+// 事件类型图标映射
 const eventTypeIcons: Record<string, React.ReactNode> = {
-  // 🧠 LLM 核心事件 - 最重要！
+  // LLM 核心事件
   llm_start: <Brain className="w-3 h-3 text-purple-400 animate-pulse" />,
   llm_thought: <Sparkles className="w-3 h-3 text-purple-300" />,
   llm_decision: <Zap className="w-3 h-3 text-yellow-400" />,
-  llm_action: <Zap className="w-3 h-3 text-orange-400" />,
-  llm_observation: <Search className="w-3 h-3 text-blue-400" />,
   llm_complete: <CheckCircle2 className="w-3 h-3 text-green-400" />,
   
   // 阶段相关
@@ -43,7 +41,7 @@ const eventTypeIcons: Record<string, React.ReactNode> = {
   phase_complete: <CheckCircle2 className="w-3 h-3 text-green-400" />,
   thinking: <Brain className="w-3 h-3 text-purple-400" />,
   
-  // 工具相关 - LLM 决定的工具调用
+  // 工具相关
   tool_call: <Wrench className="w-3 h-3 text-yellow-400" />,
   tool_result: <CheckCircle2 className="w-3 h-3 text-green-400" />,
   tool_error: <XCircle className="w-3 h-3 text-red-400" />,
@@ -65,14 +63,12 @@ const eventTypeIcons: Record<string, React.ReactNode> = {
   task_cancel: <Square className="w-3 h-3 text-yellow-500" />,
 };
 
-// 事件类型颜色映射 - 🔥 LLM 事件突出显示
+// 事件类型颜色映射
 const eventTypeColors: Record<string, string> = {
-  // 🧠 LLM 核心事件 - 使用紫色系突出
+  // LLM 核心事件
   llm_start: "text-purple-400 font-semibold",
-  llm_thought: "text-purple-300 bg-purple-950/30 rounded px-1",  // 思考内容特别高亮
-  llm_decision: "text-yellow-300 font-semibold",                  // 决策特别突出
-  llm_action: "text-orange-300 font-medium",
-  llm_observation: "text-blue-300",
+  llm_thought: "text-purple-300 bg-purple-950/30 rounded px-1",
+  llm_decision: "text-yellow-300 font-semibold",
   llm_complete: "text-green-400 font-semibold",
   
   // 阶段相关
@@ -411,7 +407,7 @@ export default function AgentAuditPage() {
         {/* 左侧：执行日志 */}
         <div className="flex-1 p-4 flex flex-col min-w-0">
           
-          {/* 🧠 LLM 思考过程展示区域 - 核心！展示 LLM 的大脑活动 */}
+          {/* LLM 思考过程展示区域 */}
           {(isThinking || thinking) && showThinking && (
             <div className="mb-4 bg-purple-950/40 rounded-lg border-2 border-purple-700/60 overflow-hidden shadow-lg shadow-purple-900/20">
               <div 
@@ -423,8 +419,8 @@ export default function AgentAuditPage() {
                     <Brain className={`w-5 h-5 ${isThinking ? "animate-pulse" : ""}`} />
                   </div>
                   <div>
-                    <span className="uppercase tracking-wider font-semibold">🧠 LLM Thinking</span>
-                    <span className="text-purple-400 ml-2 text-xs">Agent 的大脑正在工作</span>
+                    <span className="uppercase tracking-wider font-semibold">LLM Thinking</span>
+                    <span className="text-purple-400 ml-2 text-xs">Agent 思考过程</span>
                   </div>
                   {isThinking && (
                     <span className="flex items-center gap-1 text-purple-200 bg-purple-800/50 px-2 py-0.5 rounded-full text-xs">
@@ -438,7 +434,7 @@ export default function AgentAuditPage() {
               
               <div className="max-h-52 overflow-y-auto bg-[#1a1025]">
                 <div className="p-4 text-sm text-purple-100 font-mono whitespace-pre-wrap leading-relaxed">
-                  {thinking || "🤔 正在思考下一步..."}
+                  {thinking || "正在思考下一步..."}
                   {isThinking && <span className="animate-pulse text-purple-400 text-lg">▌</span>}
                 </div>
                 <div ref={thinkingEndRef} />
@@ -446,7 +442,7 @@ export default function AgentAuditPage() {
             </div>
           )}
           
-          {/* 🔧 LLM 工具调用展示区域 - LLM 决定调用的工具 */}
+          {/* 工具调用展示区域 */}
           {toolCalls.length > 0 && showToolDetails && (
             <div className="mb-4 bg-yellow-950/30 rounded-lg border-2 border-yellow-700/50 overflow-hidden shadow-lg shadow-yellow-900/10">
               <div 
@@ -458,8 +454,8 @@ export default function AgentAuditPage() {
                     <Wrench className="w-5 h-5" />
                   </div>
                   <div>
-                    <span className="uppercase tracking-wider font-semibold">🔧 LLM Tool Calls</span>
-                    <span className="text-yellow-500 ml-2 text-xs">LLM 决定调用的工具</span>
+                    <span className="uppercase tracking-wider font-semibold">Tool Calls</span>
+                    <span className="text-yellow-500 ml-2 text-xs">工具调用记录</span>
                   </div>
                   <Badge variant="outline" className="text-xs px-2 py-0.5 bg-yellow-900/50 border-yellow-600 text-yellow-300">
                     {toolCalls.length} 次调用
@@ -488,9 +484,9 @@ export default function AgentAuditPage() {
             <div className="flex items-center gap-3 text-sm text-cyan-400">
               <div className="flex items-center gap-2">
                 <Terminal className="w-4 h-4" />
-                <span className="uppercase tracking-wider font-semibold">LLM Execution Log</span>
+                <span className="uppercase tracking-wider font-semibold">Execution Log</span>
               </div>
-              <span className="text-xs text-gray-500">LLM 思考 & 工具调用记录</span>
+              <span className="text-xs text-gray-500">执行日志</span>
               {(isStreaming || isStreamConnected) && (
                 <span className="flex items-center gap-1.5 text-green-400 bg-green-900/30 px-2 py-0.5 rounded-full text-xs">
                   <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
@@ -708,7 +704,7 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-// 事件行组件 - 增强 LLM 事件展示
+// 事件行组件
 function EventLine({ event }: { event: AgentEvent }) {
   const icon = eventTypeIcons[event.event_type] || <ChevronRight className="w-3 h-3 text-gray-500" />;
   const colorClass = eventTypeColors[event.event_type] || "text-gray-400";
@@ -717,19 +713,19 @@ function EventLine({ event }: { event: AgentEvent }) {
     ? new Date(event.timestamp).toLocaleTimeString("zh-CN", { hour12: false })
     : "";
   
-  // LLM 思考事件特殊处理 - 展示多行内容
+  // 特殊事件处理
   const isLLMThought = event.event_type === "llm_thought";
   const isLLMDecision = event.event_type === "llm_decision";
-  const isLLMAction = event.event_type === "llm_action";
-  const isImportantLLMEvent = isLLMThought || isLLMDecision || isLLMAction;
+  const isToolCall = event.event_type === "tool_call";
+  const isToolResult = event.event_type === "tool_result";
   
-  // LLM 事件背景色
+  // 背景色
   const bgClass = isLLMThought 
     ? "bg-purple-950/40 border-l-2 border-purple-600" 
     : isLLMDecision 
       ? "bg-yellow-950/30 border-l-2 border-yellow-600"
-      : isLLMAction
-        ? "bg-orange-950/30 border-l-2 border-orange-600"
+      : isToolCall || isToolResult
+        ? "bg-gray-900/30"
         : "";
   
   return (
@@ -738,7 +734,7 @@ function EventLine({ event }: { event: AgentEvent }) {
         {timestamp}
       </span>
       <span className="flex-shrink-0 mt-0.5">{icon}</span>
-      <span className={`flex-1 text-sm break-all ${isImportantLLMEvent ? "whitespace-pre-wrap" : ""}`}>
+      <span className={`flex-1 text-sm break-all ${isLLMThought ? "whitespace-pre-wrap" : ""}`}>
         {event.message}
         {event.tool_duration_ms && (
           <span className="text-gray-600 ml-2">({event.tool_duration_ms}ms)</span>

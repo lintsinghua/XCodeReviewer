@@ -28,6 +28,7 @@ from app.models.agent_task import (
 )
 from app.models.project import Project
 from app.models.user import User
+from app.models.user_config import UserConfig
 from app.services.agent import AgentRunner, EventManager, run_agent_task
 from app.services.agent.streaming import StreamHandler, StreamEvent, StreamEventType
 
@@ -199,7 +200,7 @@ class TaskSummaryResponse(BaseModel):
 
 # ============ 后台任务执行 ============
 
-async def _execute_agent_task(task_id: str, project_root: str):
+async def _execute_agent_task(task_id: str):
     """在后台执行 Agent 任务"""
     async with async_session_factory() as db:
         try:
@@ -209,14 +210,57 @@ async def _execute_agent_task(task_id: str, project_root: str):
                 logger.error(f"Task {task_id} not found")
                 return
             
+            # 获取项目
+            project = task.project
+            if not project:
+                logger.error(f"Project not found for task {task_id}")
+                return
+            
+            # 🔥 获取项目根目录（解压 ZIP 或克隆仓库）
+            project_root = await _get_project_root(project, task_id)
+            
+            # 🔥 获取用户配置（从系统配置页面）
+            # 优先级：1. 数据库用户配置 > 2. 环境变量配置
+            user_config = None
+            if task.created_by:
+                from app.api.v1.endpoints.config import (
+                    decrypt_config, 
+                    SENSITIVE_LLM_FIELDS, SENSITIVE_OTHER_FIELDS
+                )
+                import json
+                
+                result = await db.execute(
+                    select(UserConfig).where(UserConfig.user_id == task.created_by)
+                )
+                config = result.scalar_one_or_none()
+                
+                if config and config.llm_config:
+                    # 🔥 有数据库配置：使用数据库配置（优先）
+                    user_llm_config = json.loads(config.llm_config) if config.llm_config else {}
+                    user_other_config = json.loads(config.other_config) if config.other_config else {}
+                    
+                    # 解密敏感字段
+                    user_llm_config = decrypt_config(user_llm_config, SENSITIVE_LLM_FIELDS)
+                    user_other_config = decrypt_config(user_other_config, SENSITIVE_OTHER_FIELDS)
+                    
+                    user_config = {
+                        "llmConfig": user_llm_config,  # 直接使用数据库配置，不合并默认值
+                        "otherConfig": user_other_config,
+                    }
+                    logger.info(f"✅ Using database user config for task {task_id}, LLM provider: {user_llm_config.get('llmProvider', 'N/A')}")
+                else:
+                    # 🔥 无数据库配置：传递 None，让 LLMService 使用环境变量
+                    user_config = None
+                    logger.info(f"⚠️ No database config found for user {task.created_by}, will use environment variables for task {task_id}")
+            
             # 更新状态为运行中
             task.status = AgentTaskStatus.RUNNING
             task.started_at = datetime.now(timezone.utc)
             await db.commit()
             logger.info(f"Task {task_id} started")
             
-            # 创建 Runner
-            runner = AgentRunner(db, task, project_root)
+            # 创建 Runner（传入用户配置）
+            runner = AgentRunner(db, task, project_root, user_config=user_config)
             _running_tasks[task_id] = runner
             
             # 执行
@@ -296,11 +340,8 @@ async def create_agent_task(
     await db.commit()
     await db.refresh(task)
     
-    # 确定项目根目录
-    project_root = _get_project_root(project, task.id)
-    
-    # 在后台启动任务
-    background_tasks.add_task(_execute_agent_task, task.id, project_root)
+    # 在后台启动任务（项目根目录在任务内部获取）
+    background_tasks.add_task(_execute_agent_task, task.id)
     
     logger.info(f"Created agent task {task.id} for project {project.name}")
     
@@ -897,24 +938,73 @@ async def update_finding_status(
 
 # ============ Helper Functions ============
 
-def _get_project_root(project: Project, task_id: str) -> str:
+async def _get_project_root(project: Project, task_id: str) -> str:
     """
     获取项目根目录
     
-    TODO: 实际实现中需要：
-    - 对于 ZIP 项目：解压到临时目录
-    - 对于 Git 仓库：克隆到临时目录
+    支持两种项目类型：
+    - ZIP 项目：解压 ZIP 文件到临时目录
+    - 仓库项目：克隆仓库到临时目录
     """
+    import zipfile
+    import subprocess
+    
     base_path = f"/tmp/deepaudit/{task_id}"
     
     # 确保目录存在
     os.makedirs(base_path, exist_ok=True)
     
-    # 如果项目有存储路径，复制过来
-    if hasattr(project, 'storage_path') and project.storage_path:
-        if os.path.exists(project.storage_path):
-            # 复制项目文件
-            shutil.copytree(project.storage_path, base_path, dirs_exist_ok=True)
+    # 根据项目类型处理
+    if project.source_type == "zip":
+        # 🔥 ZIP 项目：解压 ZIP 文件
+        from app.services.zip_storage import load_project_zip
+        
+        zip_path = await load_project_zip(project.id)
+        
+        if zip_path and os.path.exists(zip_path):
+            try:
+                with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+                    zip_ref.extractall(base_path)
+                logger.info(f"✅ Extracted ZIP project {project.id} to {base_path}")
+            except Exception as e:
+                logger.error(f"Failed to extract ZIP {zip_path}: {e}")
+        else:
+            logger.warning(f"⚠️ ZIP file not found for project {project.id}")
+    
+    elif project.source_type == "repository" and project.repository_url:
+        # 🔥 仓库项目：克隆仓库
+        try:
+            branch = project.default_branch or "main"
+            repo_url = project.repository_url
+            
+            # 克隆仓库
+            result = subprocess.run(
+                ["git", "clone", "--depth", "1", "--branch", branch, repo_url, base_path],
+                capture_output=True,
+                text=True,
+                timeout=300,
+            )
+            
+            if result.returncode == 0:
+                logger.info(f"✅ Cloned repository {repo_url} (branch: {branch}) to {base_path}")
+            else:
+                logger.warning(f"Failed to clone branch {branch}, trying default branch: {result.stderr}")
+                # 如果克隆失败，尝试使用默认分支
+                if branch != "main":
+                    result = subprocess.run(
+                        ["git", "clone", "--depth", "1", repo_url, base_path],
+                        capture_output=True,
+                        text=True,
+                        timeout=300,
+                    )
+                    if result.returncode == 0:
+                        logger.info(f"✅ Cloned repository {repo_url} (default branch) to {base_path}")
+                    else:
+                        logger.error(f"Failed to clone repository: {result.stderr}")
+        except subprocess.TimeoutExpired:
+            logger.error(f"Git clone timeout for {project.repository_url}")
+        except Exception as e:
+            logger.error(f"Failed to clone repository {project.repository_url}: {e}")
     
     return base_path
 

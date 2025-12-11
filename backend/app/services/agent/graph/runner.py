@@ -39,167 +39,8 @@ from .nodes import ReconNode, AnalysisNode, VerificationNode, ReportNode
 logger = logging.getLogger(__name__)
 
 
-class LLMService:
-    """
-    LLM 服务封装
-    提供代码分析、漏洞检测等 AI 功能
-    """
-    
-    def __init__(self, model: Optional[str] = None, api_key: Optional[str] = None):
-        self.model = model or settings.LLM_MODEL or "gpt-4o-mini"
-        self.api_key = api_key or settings.LLM_API_KEY
-        self.base_url = settings.LLM_BASE_URL
-    
-    async def chat_completion_raw(
-        self,
-        messages: List[Dict[str, str]],
-        temperature: float = 0.1,
-        max_tokens: int = 4096,
-    ) -> Dict[str, Any]:
-        """调用 LLM 生成响应"""
-        try:
-            import litellm
-            
-            response = await litellm.acompletion(
-                model=self.model,
-                messages=messages,
-                temperature=temperature,
-                max_tokens=max_tokens,
-                api_key=self.api_key,
-                base_url=self.base_url,
-            )
-            
-            return {
-                "content": response.choices[0].message.content,
-                "usage": {
-                    "prompt_tokens": response.usage.prompt_tokens,
-                    "completion_tokens": response.usage.completion_tokens,
-                    "total_tokens": response.usage.total_tokens,
-                } if response.usage else {},
-            }
-            
-        except Exception as e:
-            logger.error(f"LLM call failed: {e}")
-            raise
-    
-    async def analyze_code(self, code: str, language: str) -> Dict[str, Any]:
-        """
-        分析代码安全问题
-        
-        Args:
-            code: 代码内容
-            language: 编程语言
-            
-        Returns:
-            分析结果，包含 issues 列表
-        """
-        prompt = f"""请分析以下 {language} 代码的安全问题。
-
-代码:
-```{language}
-{code[:8000]}
-```
-
-请识别所有潜在的安全漏洞，包括但不限于:
-- SQL 注入
-- XSS (跨站脚本)
-- 命令注入
-- 路径遍历
-- 不安全的反序列化
-- 硬编码密钥/密码
-- 不安全的加密
-- SSRF
-- 认证/授权问题
-
-对于每个发现的问题，请提供:
-1. 漏洞类型
-2. 严重程度 (critical/high/medium/low)
-3. 问题描述
-4. 具体行号
-5. 修复建议
-
-请以 JSON 格式返回结果:
-{{
-    "issues": [
-        {{
-            "type": "漏洞类型",
-            "severity": "严重程度",
-            "title": "问题标题",
-            "description": "详细描述",
-            "line": 行号,
-            "code_snippet": "相关代码片段",
-            "suggestion": "修复建议"
-        }}
-    ],
-    "quality_score": 0-100
-}}
-
-如果没有发现安全问题，返回空的 issues 数组和较高的 quality_score。"""
-
-        try:
-            result = await self.chat_completion_raw(
-                messages=[
-                    {"role": "system", "content": "你是一位专业的代码安全审计专家，擅长发现代码中的安全漏洞。请只返回 JSON 格式的结果，不要包含其他内容。"},
-                    {"role": "user", "content": prompt},
-                ],
-                temperature=0.1,
-                max_tokens=4096,
-            )
-            
-            content = result.get("content", "{}")
-            
-            # 尝试提取 JSON
-            import json
-            import re
-            
-            # 尝试直接解析
-            try:
-                return json.loads(content)
-            except json.JSONDecodeError:
-                pass
-            
-            # 尝试从 markdown 代码块提取
-            json_match = re.search(r'```(?:json)?\s*([\s\S]*?)\s*```', content)
-            if json_match:
-                try:
-                    return json.loads(json_match.group(1))
-                except json.JSONDecodeError:
-                    pass
-            
-            # 返回空结果
-            return {"issues": [], "quality_score": 80}
-            
-        except Exception as e:
-            logger.error(f"Code analysis failed: {e}")
-            return {"issues": [], "quality_score": 0, "error": str(e)}
-    
-    async def analyze_code_with_custom_prompt(
-        self,
-        code: str,
-        language: str,
-        prompt: str,
-        **kwargs
-    ) -> Dict[str, Any]:
-        """使用自定义提示词分析代码"""
-        full_prompt = prompt.replace("{code}", code).replace("{language}", language)
-        
-        try:
-            result = await self.chat_completion_raw(
-                messages=[
-                    {"role": "system", "content": "你是一位专业的代码安全审计专家。"},
-                    {"role": "user", "content": full_prompt},
-                ],
-                temperature=0.1,
-            )
-            
-            return {
-                "analysis": result.get("content", ""),
-                "usage": result.get("usage", {}),
-            }
-            
-        except Exception as e:
-            logger.error(f"Custom analysis failed: {e}")
-            return {"analysis": "", "error": str(e)}
+# 🔥 使用系统统一的 LLMService（支持用户配置）
+from app.services.llm.service import LLMService
 
 
 class AgentRunner:
@@ -217,18 +58,22 @@ class AgentRunner:
         db: AsyncSession,
         task: AgentTask,
         project_root: str,
+        user_config: Optional[Dict[str, Any]] = None,
     ):
         self.db = db
         self.task = task
         self.project_root = project_root
+        
+        # 🔥 保存用户配置，供 RAG 初始化使用
+        self.user_config = user_config or {}
         
         # 事件管理 - 传入 db_session_factory 以持久化事件
         from app.db.session import async_session_factory
         self.event_manager = EventManager(db_session_factory=async_session_factory)
         self.event_emitter = AgentEventEmitter(task.id, self.event_manager)
         
-        # LLM 服务
-        self.llm_service = LLMService()
+        # 🔥 LLM 服务 - 使用用户配置（从系统配置页面获取）
+        self.llm_service = LLMService(user_config=self.user_config)
         
         # 工具集
         self.tools: Dict[str, Any] = {}
@@ -248,14 +93,26 @@ class AgentRunner:
         self._cancelled = False
         self._running_task: Optional[asyncio.Task] = None
         
+        # Agent 引用（用于取消传播）
+        self._agents: List[Any] = []
+        
         # 流式处理器
         self.stream_handler = StreamHandler(task.id)
     
     def cancel(self):
         """取消任务"""
         self._cancelled = True
+        
+        # 🔥 取消所有 Agent
+        for agent in self._agents:
+            if hasattr(agent, 'cancel'):
+                agent.cancel()
+                logger.debug(f"Cancelled agent: {agent.name if hasattr(agent, 'name') else 'unknown'}")
+        
+        # 取消运行中的任务
         if self._running_task and not self._running_task.done():
             self._running_task.cancel()
+        
         logger.info(f"Task {self.task.id} cancellation requested")
     
     @property
@@ -283,11 +140,33 @@ class AgentRunner:
         await self.event_emitter.emit_info("📚 初始化 RAG 代码检索系统...")
         
         try:
+            # 🔥 从用户配置中获取 LLM 配置（用于 Embedding API Key）
+            # 优先级：用户配置 > 环境变量
+            user_llm_config = self.user_config.get('llmConfig', {})
+            
+            # 获取 Embedding 配置（优先使用用户配置的 LLM API Key）
+            embedding_provider = getattr(settings, 'EMBEDDING_PROVIDER', 'openai')
+            embedding_model = getattr(settings, 'EMBEDDING_MODEL', 'text-embedding-3-small')
+            
+            # 🔥 API Key 优先级：用户配置 > 环境变量
+            embedding_api_key = (
+                user_llm_config.get('llmApiKey') or
+                getattr(settings, 'LLM_API_KEY', '') or
+                ''
+            )
+            
+            # 🔥 Base URL 优先级：用户配置 > 环境变量
+            embedding_base_url = (
+                user_llm_config.get('llmBaseUrl') or
+                getattr(settings, 'LLM_BASE_URL', None) or
+                None
+            )
+            
             embedding_service = EmbeddingService(
-                provider=settings.EMBEDDING_PROVIDER,
-                model=settings.EMBEDDING_MODEL,
-                api_key=settings.LLM_API_KEY,
-                base_url=settings.LLM_BASE_URL,
+                provider=embedding_provider,
+                model=embedding_model,
+                api_key=embedding_api_key,
+                base_url=embedding_base_url,
             )
             
             self.indexer = CodeIndexer(
@@ -308,35 +187,59 @@ class AgentRunner:
     
     async def _initialize_tools(self):
         """初始化工具集"""
-        await self.event_emitter.emit_info("🔧 初始化 Agent 工具集...")
+        await self.event_emitter.emit_info("初始化 Agent 工具集...")
         
-        # 文件工具
-        self.tools["read_file"] = FileReadTool(self.project_root)
-        self.tools["search_code"] = FileSearchTool(self.project_root)
-        self.tools["list_files"] = ListFilesTool(self.project_root)
+        # ============ 基础工具（所有 Agent 共享）============
+        base_tools = {
+            "read_file": FileReadTool(self.project_root),
+            "list_files": ListFilesTool(self.project_root),
+        }
         
-        # RAG 工具
+        # ============ Recon Agent 专属工具 ============
+        # 职责：信息收集、项目结构分析、技术栈识别
+        self.recon_tools = {
+            **base_tools,
+            "search_code": FileSearchTool(self.project_root),
+        }
+        
+        # RAG 工具（Recon 用于语义搜索）
         if self.retriever:
-            self.tools["rag_query"] = RAGQueryTool(self.retriever)
-            self.tools["security_search"] = SecurityCodeSearchTool(self.retriever)
-            self.tools["function_context"] = FunctionContextTool(self.retriever)
+            self.recon_tools["rag_query"] = RAGQueryTool(self.retriever)
         
-        # 分析工具
-        self.tools["pattern_match"] = PatternMatchTool(self.project_root)
-        self.tools["code_analysis"] = CodeAnalysisTool(self.llm_service)
-        self.tools["dataflow_analysis"] = DataFlowAnalysisTool(self.llm_service)
-        self.tools["vulnerability_validation"] = VulnerabilityValidationTool(self.llm_service)
+        # ============ Analysis Agent 专属工具 ============
+        # 职责：漏洞分析、代码审计、模式匹配
+        self.analysis_tools = {
+            **base_tools,
+            "search_code": FileSearchTool(self.project_root),
+            # 模式匹配和代码分析
+            "pattern_match": PatternMatchTool(self.project_root),
+            "code_analysis": CodeAnalysisTool(self.llm_service),
+            "dataflow_analysis": DataFlowAnalysisTool(self.llm_service),
+            # 外部静态分析工具
+            "semgrep_scan": SemgrepTool(self.project_root),
+            "bandit_scan": BanditTool(self.project_root),
+            "gitleaks_scan": GitleaksTool(self.project_root),
+            "trufflehog_scan": TruffleHogTool(self.project_root),
+            "npm_audit": NpmAuditTool(self.project_root),
+            "safety_scan": SafetyTool(self.project_root),
+            "osv_scan": OSVScannerTool(self.project_root),
+        }
         
-        # 外部安全工具
-        self.tools["semgrep_scan"] = SemgrepTool(self.project_root)
-        self.tools["bandit_scan"] = BanditTool(self.project_root)
-        self.tools["gitleaks_scan"] = GitleaksTool(self.project_root)
-        self.tools["trufflehog_scan"] = TruffleHogTool(self.project_root)
-        self.tools["npm_audit"] = NpmAuditTool(self.project_root)
-        self.tools["safety_scan"] = SafetyTool(self.project_root)
-        self.tools["osv_scan"] = OSVScannerTool(self.project_root)
+        # RAG 工具（Analysis 用于安全相关代码搜索）
+        if self.retriever:
+            self.analysis_tools["security_search"] = SecurityCodeSearchTool(self.retriever)
+            self.analysis_tools["function_context"] = FunctionContextTool(self.retriever)
         
-        # 沙箱工具
+        # ============ Verification Agent 专属工具 ============
+        # 职责：漏洞验证、PoC 执行、误报排除
+        self.verification_tools = {
+            **base_tools,
+            # 验证工具
+            "vulnerability_validation": VulnerabilityValidationTool(self.llm_service),
+            "dataflow_analysis": DataFlowAnalysisTool(self.llm_service),
+        }
+        
+        # 沙箱工具（仅 Verification Agent 可用）
         try:
             self.sandbox_manager = SandboxManager(
                 image=settings.SANDBOX_IMAGE,
@@ -344,14 +247,20 @@ class AgentRunner:
                 cpu_limit=settings.SANDBOX_CPU_LIMIT,
             )
             
-            self.tools["sandbox_exec"] = SandboxTool(self.sandbox_manager)
-            self.tools["sandbox_http"] = SandboxHttpTool(self.sandbox_manager)
-            self.tools["verify_vulnerability"] = VulnerabilityVerifyTool(self.sandbox_manager)
+            self.verification_tools["sandbox_exec"] = SandboxTool(self.sandbox_manager)
+            self.verification_tools["sandbox_http"] = SandboxHttpTool(self.sandbox_manager)
+            self.verification_tools["verify_vulnerability"] = VulnerabilityVerifyTool(self.sandbox_manager)
             
         except Exception as e:
             logger.warning(f"Sandbox initialization failed: {e}")
         
-        await self.event_emitter.emit_info(f"✅ 已加载 {len(self.tools)} 个工具")
+        # 统计总工具数
+        total_tools = len(set(
+            list(self.recon_tools.keys()) + 
+            list(self.analysis_tools.keys()) + 
+            list(self.verification_tools.keys())
+        ))
+        await self.event_emitter.emit_info(f"已加载 {total_tools} 个工具")
     
     async def _build_graph(self):
         """构建 LangGraph 审计图"""
@@ -360,24 +269,27 @@ class AgentRunner:
         # 导入 Agent
         from app.services.agent.agents import ReconAgent, AnalysisAgent, VerificationAgent
         
-        # 创建 Agent 实例
+        # 创建 Agent 实例（每个 Agent 使用专属工具集）
         recon_agent = ReconAgent(
             llm_service=self.llm_service,
-            tools=self.tools,
+            tools=self.recon_tools,  # Recon 专属工具
             event_emitter=self.event_emitter,
         )
         
         analysis_agent = AnalysisAgent(
             llm_service=self.llm_service,
-            tools=self.tools,
+            tools=self.analysis_tools,  # Analysis 专属工具
             event_emitter=self.event_emitter,
         )
         
         verification_agent = VerificationAgent(
             llm_service=self.llm_service,
-            tools=self.tools,
+            tools=self.verification_tools,  # Verification 专属工具
             event_emitter=self.event_emitter,
         )
+        
+        # 🔥 保存 Agent 引用以便取消时传播信号
+        self._agents = [recon_agent, analysis_agent, verification_agent]
         
         # 创建节点
         recon_node = ReconNode(recon_agent, self.event_emitter)
@@ -481,6 +393,10 @@ class AgentRunner:
                 "iteration": 0,
                 "max_iterations": self.task.max_iterations or 50,
                 "should_continue_analysis": False,
+                # 🔥 Agent 协作交接信息
+                "recon_handoff": None,
+                "analysis_handoff": None,
+                "verification_handoff": None,
                 "messages": [],
                 "events": [],
                 "summary": None,
@@ -555,6 +471,33 @@ class AgentRunner:
             if not final_state:
                 graph_state = self.graph.get_state(run_config)
                 final_state = graph_state.values if graph_state else {}
+            
+            # 🔥 检查是否有错误
+            error = final_state.get("error")
+            if error:
+                # 检查是否是 LLM 认证错误
+                error_str = str(error)
+                if "AuthenticationError" in error_str or "API key" in error_str or "invalid_api_key" in error_str:
+                    error_message = "LLM API 密钥配置错误。请检查环境变量 LLM_API_KEY 或配置中的 API 密钥是否正确。"
+                    logger.error(f"LLM authentication error: {error}")
+                else:
+                    error_message = error_str
+                
+                duration_ms = int((time.time() - start_time) * 1000)
+                
+                # 标记任务为失败
+                await self._update_task_status(AgentTaskStatus.FAILED, error_message)
+                await self.event_emitter.emit_task_error(error_message)
+                
+                yield StreamEvent(
+                    event_type=StreamEventType.TASK_ERROR,
+                    sequence=self.stream_handler._next_sequence(),
+                    data={
+                        "error": error_message,
+                        "message": f"❌ 任务失败: {error_message}",
+                    },
+                )
+                return
             
             # 6. 保存发现
             findings = final_state.get("findings", [])

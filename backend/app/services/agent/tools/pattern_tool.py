@@ -291,7 +291,18 @@ class PatternMatchTool(AgentTool):
         return f"""快速扫描代码中的危险模式和常见漏洞。
 使用正则表达式检测已知的不安全代码模式。
 
+⚠️ 重要：此工具需要代码内容作为输入，不是目录路径！
+使用步骤：
+1. 先用 read_file 工具读取文件内容
+2. 然后将读取的代码内容传递给此工具的 code 参数
+
 支持的漏洞类型: {vuln_types}
+
+输入参数:
+- code (必需): 要扫描的代码内容（字符串）
+- file_path (可选): 文件路径，用于上下文
+- pattern_types (可选): 要检测的漏洞类型列表，如 ['sql_injection', 'xss']
+- language (可选): 编程语言，如 'python', 'php', 'javascript'
 
 这是一个快速扫描工具，可以在分析开始时使用来快速发现潜在问题。
 发现的问题需要进一步分析确认。"""

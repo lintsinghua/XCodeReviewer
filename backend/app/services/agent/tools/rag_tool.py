@@ -189,10 +189,27 @@ class SecurityCodeSearchTool(AgentTool):
             )
             
         except Exception as e:
-            return ToolResult(
-                success=False,
-                error=f"安全代码搜索失败: {str(e)}",
-            )
+            error_msg = str(e)
+            # 提供更友好的错误信息
+            if "401" in error_msg or "Unauthorized" in error_msg:
+                return ToolResult(
+                    success=False,
+                    error=f"安全代码搜索失败: API 认证失败（401 Unauthorized）。\n"
+                          f"请检查系统配置中的 LLM API Key 是否正确设置。\n"
+                          f"错误详情: {error_msg[:200]}",
+                )
+            elif "403" in error_msg or "Forbidden" in error_msg:
+                return ToolResult(
+                    success=False,
+                    error=f"安全代码搜索失败: API 访问被拒绝（403 Forbidden）。\n"
+                          f"请检查 API Key 是否有足够的权限。\n"
+                          f"错误详情: {error_msg[:200]}",
+                )
+            else:
+                return ToolResult(
+                    success=False,
+                    error=f"安全代码搜索失败: {error_msg[:500]}",
+                )
 
 
 class FunctionContextInput(BaseModel):

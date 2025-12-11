@@ -10,6 +10,7 @@ LLM 是真正的安全分析大脑！
 类型: ReAct (真正的!)
 """
 
+import asyncio
 import json
 import logging
 import re
@@ -17,6 +18,7 @@ from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
 
 from .base import BaseAgent, AgentConfig, AgentResult, AgentType, AgentPattern
+from ..json_parser import AgentJsonParser
 
 logger = logging.getLogger(__name__)
 
@@ -33,18 +35,13 @@ ANALYSIS_SYSTEM_PROMPT = """你是 DeepAudit 的漏洞分析 Agent，一个**自
 
 ## 你可以使用的工具
 
-### 外部扫描工具
-- **semgrep_scan**: Semgrep 静态分析（推荐首先使用）
-  参数: rules (str), max_results (int)
-- **bandit_scan**: Python 安全扫描
-
-### RAG 语义搜索
-- **rag_query**: 语义代码搜索
-  参数: query (str), top_k (int)
-- **security_search**: 安全相关代码搜索
-  参数: vulnerability_type (str), top_k (int)
-- **function_context**: 函数上下文分析
-  参数: function_name (str)
+### 文件操作
+- **read_file**: 读取文件内容
+  参数: file_path (str), start_line (int), end_line (int)
+- **list_files**: 列出目录文件
+  参数: directory (str), pattern (str)
+- **search_code**: 代码关键字搜索
+  参数: keyword (str), max_results (int)
 
 ### 深度分析
 - **pattern_match**: 危险模式匹配
@@ -53,16 +50,28 @@ ANALYSIS_SYSTEM_PROMPT = """你是 DeepAudit 的漏洞分析 Agent，一个**自
   参数: code (str), file_path (str), focus (str)
 - **dataflow_analysis**: 数据流追踪
   参数: source (str), sink (str)
-- **vulnerability_validation**: 漏洞验证
-  参数: code (str), vulnerability_type (str)
 
-### 文件操作
-- **read_file**: 读取文件内容
-  参数: file_path (str), start_line (int), end_line (int)
-- **search_code**: 代码关键字搜索
-  参数: keyword (str), max_results (int)
-- **list_files**: 列出目录文件
-  参数: directory (str), pattern (str)
+### 外部静态分析工具
+- **semgrep_scan**: Semgrep 静态分析（推荐首先使用）
+  参数: rules (str), max_results (int)
+- **bandit_scan**: Python 安全扫描
+  参数: target (str)
+- **gitleaks_scan**: Git 密钥泄露扫描
+  参数: target (str)
+- **trufflehog_scan**: 敏感信息扫描
+  参数: target (str)
+- **npm_audit**: NPM 依赖漏洞扫描
+  参数: target (str)
+- **safety_scan**: Python 依赖安全扫描
+  参数: target (str)
+- **osv_scan**: OSV 漏洞数据库扫描
+  参数: target (str)
+
+### RAG 语义搜索
+- **security_search**: 安全相关代码搜索
+  参数: vulnerability_type (str), top_k (int)
+- **function_context**: 函数上下文分析
+  参数: function_name (str)
 
 ## 工作方式
 每一步，你需要输出：
@@ -168,15 +177,7 @@ class AnalysisAgent(BaseAgent):
         self._conversation_history: List[Dict[str, str]] = []
         self._steps: List[AnalysisStep] = []
     
-    def _get_tools_description(self) -> str:
-        """生成工具描述"""
-        tools_info = []
-        for name, tool in self.tools.items():
-            if name.startswith("_"):
-                continue
-            desc = f"- {name}: {getattr(tool, 'description', 'No description')}"
-            tools_info.append(desc)
-        return "\n".join(tools_info)
+
     
     def _parse_llm_response(self, response: str) -> AnalysisStep:
         """解析 LLM 响应"""
@@ -191,13 +192,20 @@ class AnalysisAgent(BaseAgent):
         final_match = re.search(r'Final Answer:\s*(.*?)$', response, re.DOTALL)
         if final_match:
             step.is_final = True
-            try:
-                answer_text = final_match.group(1).strip()
-                answer_text = re.sub(r'```json\s*', '', answer_text)
-                answer_text = re.sub(r'```\s*', '', answer_text)
-                step.final_answer = json.loads(answer_text)
-            except json.JSONDecodeError:
-                step.final_answer = {"findings": [], "raw_answer": final_match.group(1).strip()}
+            answer_text = final_match.group(1).strip()
+            answer_text = re.sub(r'```json\s*', '', answer_text)
+            answer_text = re.sub(r'```\s*', '', answer_text)
+            # 使用增强的 JSON 解析器
+            step.final_answer = AgentJsonParser.parse(
+                answer_text, 
+                default={"findings": [], "raw_answer": answer_text}
+            )
+            # 确保 findings 格式正确
+            if "findings" in step.final_answer:
+                step.final_answer["findings"] = [
+                    f for f in step.final_answer["findings"] 
+                    if isinstance(f, dict)
+                ]
             return step
         
         # 提取 Action
@@ -211,51 +219,15 @@ class AnalysisAgent(BaseAgent):
             input_text = input_match.group(1).strip()
             input_text = re.sub(r'```json\s*', '', input_text)
             input_text = re.sub(r'```\s*', '', input_text)
-            try:
-                step.action_input = json.loads(input_text)
-            except json.JSONDecodeError:
-                step.action_input = {"raw_input": input_text}
+            # 使用增强的 JSON 解析器
+            step.action_input = AgentJsonParser.parse(
+                input_text,
+                default={"raw_input": input_text}
+            )
         
         return step
     
-    async def _execute_tool(self, tool_name: str, tool_input: Dict) -> str:
-        """执行工具"""
-        tool = self.tools.get(tool_name)
-        
-        if not tool:
-            return f"错误: 工具 '{tool_name}' 不存在。可用工具: {list(self.tools.keys())}"
-        
-        try:
-            self._tool_calls += 1
-            await self.emit_tool_call(tool_name, tool_input)
-            
-            import time
-            start = time.time()
-            
-            result = await tool.execute(**tool_input)
-            
-            duration_ms = int((time.time() - start) * 1000)
-            await self.emit_tool_result(tool_name, str(result.data)[:200], duration_ms)
-            
-            if result.success:
-                output = str(result.data)
-                
-                # 如果是代码分析工具，也包含 metadata
-                if result.metadata:
-                    if "issues" in result.metadata:
-                        output += f"\n\n发现的问题:\n{json.dumps(result.metadata['issues'], ensure_ascii=False, indent=2)}"
-                    if "findings" in result.metadata:
-                        output += f"\n\n发现:\n{json.dumps(result.metadata['findings'][:10], ensure_ascii=False, indent=2)}"
-                
-                if len(output) > 6000:
-                    output = output[:6000] + f"\n\n... [输出已截断，共 {len(str(result.data))} 字符]"
-                return output
-            else:
-                return f"工具执行失败: {result.error}"
-                
-        except Exception as e:
-            logger.error(f"Tool execution error: {e}")
-            return f"工具执行错误: {str(e)}"
+
     
     async def run(self, input_data: Dict[str, Any]) -> AgentResult:
         """
@@ -271,6 +243,14 @@ class AnalysisAgent(BaseAgent):
         task = input_data.get("task", "")
         task_context = input_data.get("task_context", "")
         
+        # 🔥 处理交接信息
+        handoff = input_data.get("handoff")
+        if handoff:
+            from .base import TaskHandoff
+            if isinstance(handoff, dict):
+                handoff = TaskHandoff.from_dict(handoff)
+            self.receive_handoff(handoff)
+        
         # 从 Recon 结果获取上下文
         recon_data = previous_results.get("recon", {})
         if isinstance(recon_data, dict) and "data" in recon_data:
@@ -281,7 +261,9 @@ class AnalysisAgent(BaseAgent):
         high_risk_areas = recon_data.get("high_risk_areas", plan.get("high_risk_areas", []))
         initial_findings = recon_data.get("initial_findings", [])
         
-        # 构建初始消息
+        # 🔥 构建包含交接上下文的初始消息
+        handoff_context = self.get_handoff_context()
+        
         initial_message = f"""请开始对项目进行安全漏洞分析。
 
 ## 项目信息
@@ -289,7 +271,7 @@ class AnalysisAgent(BaseAgent):
 - 语言: {tech_stack.get('languages', [])}
 - 框架: {tech_stack.get('frameworks', [])}
 
-## 上下文信息
+{handoff_context if handoff_context else f'''## 上下文信息
 ### 高风险区域
 {json.dumps(high_risk_areas[:20], ensure_ascii=False)}
 
@@ -297,7 +279,7 @@ class AnalysisAgent(BaseAgent):
 {json.dumps(entry_points[:10], ensure_ascii=False, indent=2)}
 
 ### 初步发现 (如果有)
-{json.dumps(initial_findings[:5], ensure_ascii=False, indent=2) if initial_findings else '无'}
+{json.dumps(initial_findings[:5], ensure_ascii=False, indent=2) if initial_findings else "无"}'''}
 
 ## 任务
 {task_context or task or '进行全面的安全漏洞分析，发现代码中的安全问题。'}
@@ -306,9 +288,12 @@ class AnalysisAgent(BaseAgent):
 {config.get('target_vulnerabilities', ['all'])}
 
 ## 可用工具
-{self._get_tools_description()}
+{self.get_tools_description()}
 
 请开始你的安全分析。首先思考分析策略，然后选择合适的工具开始分析。"""
+        
+        # 🔥 记录工作开始
+        self.record_work("开始安全漏洞分析")
 
         # 初始化对话历史
         self._conversation_history = [
@@ -328,18 +313,22 @@ class AnalysisAgent(BaseAgent):
                 
                 self._iteration = iteration + 1
                 
-                # 🔥 发射 LLM 开始思考事件
-                await self.emit_llm_start(iteration + 1)
+                # 🔥 再次检查取消标志（在LLM调用之前）
+                if self.is_cancelled:
+                    await self.emit_thinking("🛑 任务已取消，停止执行")
+                    break
                 
-                # 🔥 调用 LLM 进行思考和决策
-                response = await self.llm_service.chat_completion_raw(
-                    messages=self._conversation_history,
-                    temperature=0.1,
-                    max_tokens=2048,
-                )
+                # 调用 LLM 进行思考和决策（流式输出）
+                try:
+                    llm_output, tokens_this_round = await self.stream_llm_call(
+                        self._conversation_history,
+                        temperature=0.1,
+                        max_tokens=2048,
+                    )
+                except asyncio.CancelledError:
+                    logger.info(f"[{self.name}] LLM call cancelled")
+                    break
                 
-                llm_output = response.get("content", "")
-                tokens_this_round = response.get("usage", {}).get("total_tokens", 0)
                 self._total_tokens += tokens_this_round
                 
                 # 解析 LLM 响应
@@ -369,6 +358,14 @@ class AnalysisAgent(BaseAgent):
                                 finding.get("vulnerability_type", "other"),
                                 finding.get("file_path", "")
                             )
+                            # 🔥 记录洞察
+                            self.add_insight(
+                                f"发现 {finding.get('severity', 'medium')} 级别漏洞: {finding.get('title', 'Unknown')}"
+                            )
+                    
+                    # 🔥 记录工作完成
+                    self.record_work(f"完成安全分析，发现 {len(all_findings)} 个潜在漏洞")
+                    
                     await self.emit_llm_complete(
                         f"分析完成，发现 {len(all_findings)} 个潜在漏洞",
                         self._total_tokens
@@ -380,7 +377,7 @@ class AnalysisAgent(BaseAgent):
                     # 🔥 发射 LLM 动作决策事件
                     await self.emit_llm_action(step.action, step.action_input or {})
                     
-                    observation = await self._execute_tool(
+                    observation = await self.execute_tool(
                         step.action,
                         step.action_input or {}
                     )
@@ -427,7 +424,7 @@ class AnalysisAgent(BaseAgent):
             
             await self.emit_event(
                 "info",
-                f"🎯 Analysis Agent 完成: {len(standardized_findings)} 个发现, {self._iteration} 轮迭代, {self._tool_calls} 次工具调用"
+                f"Analysis Agent 完成: {len(standardized_findings)} 个发现, {self._iteration} 轮迭代, {self._tool_calls} 次工具调用"
             )
             
             return AgentResult(

@@ -10,6 +10,7 @@ LLM 是验证的大脑！
 类型: ReAct (真正的!)
 """
 
+import asyncio
 import json
 import logging
 import re
@@ -18,6 +19,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 
 from .base import BaseAgent, AgentConfig, AgentResult, AgentType, AgentPattern
+from ..json_parser import AgentJsonParser
 
 logger = logging.getLogger(__name__)
 
@@ -34,15 +36,17 @@ VERIFICATION_SYSTEM_PROMPT = """你是 DeepAudit 的漏洞验证 Agent，一个*
 
 ## 你可以使用的工具
 
-### 代码分析
+### 文件操作
 - **read_file**: 读取更多代码上下文
   参数: file_path (str), start_line (int), end_line (int)
-- **function_context**: 分析函数调用关系
-  参数: function_name (str)
-- **dataflow_analysis**: 追踪数据流
-  参数: source (str), sink (str), file_path (str)
+- **list_files**: 列出目录文件
+  参数: directory (str), pattern (str)
+
+### 验证分析
 - **vulnerability_validation**: LLM 深度验证 ⭐
   参数: code (str), vulnerability_type (str), context (str)
+- **dataflow_analysis**: 追踪数据流
+  参数: source (str), sink (str), file_path (str)
 
 ### 沙箱验证
 - **sandbox_exec**: 在沙箱中执行命令
@@ -157,16 +161,6 @@ class VerificationAgent(BaseAgent):
         self._conversation_history: List[Dict[str, str]] = []
         self._steps: List[VerificationStep] = []
     
-    def _get_tools_description(self) -> str:
-        """生成工具描述"""
-        tools_info = []
-        for name, tool in self.tools.items():
-            if name.startswith("_"):
-                continue
-            desc = f"- {name}: {getattr(tool, 'description', 'No description')}"
-            tools_info.append(desc)
-        return "\n".join(tools_info)
-    
     def _parse_llm_response(self, response: str) -> VerificationStep:
         """解析 LLM 响应"""
         step = VerificationStep(thought="")
@@ -180,13 +174,20 @@ class VerificationAgent(BaseAgent):
         final_match = re.search(r'Final Answer:\s*(.*?)$', response, re.DOTALL)
         if final_match:
             step.is_final = True
-            try:
-                answer_text = final_match.group(1).strip()
-                answer_text = re.sub(r'```json\s*', '', answer_text)
-                answer_text = re.sub(r'```\s*', '', answer_text)
-                step.final_answer = json.loads(answer_text)
-            except json.JSONDecodeError:
-                step.final_answer = {"findings": [], "raw_answer": final_match.group(1).strip()}
+            answer_text = final_match.group(1).strip()
+            answer_text = re.sub(r'```json\s*', '', answer_text)
+            answer_text = re.sub(r'```\s*', '', answer_text)
+            # 使用增强的 JSON 解析器
+            step.final_answer = AgentJsonParser.parse(
+                answer_text, 
+                default={"findings": [], "raw_answer": answer_text}
+            )
+            # 确保 findings 格式正确
+            if "findings" in step.final_answer:
+                step.final_answer["findings"] = [
+                    f for f in step.final_answer["findings"] 
+                    if isinstance(f, dict)
+                ]
             return step
         
         # 提取 Action
@@ -200,49 +201,13 @@ class VerificationAgent(BaseAgent):
             input_text = input_match.group(1).strip()
             input_text = re.sub(r'```json\s*', '', input_text)
             input_text = re.sub(r'```\s*', '', input_text)
-            try:
-                step.action_input = json.loads(input_text)
-            except json.JSONDecodeError:
-                step.action_input = {"raw_input": input_text}
+            # 使用增强的 JSON 解析器
+            step.action_input = AgentJsonParser.parse(
+                input_text,
+                default={"raw_input": input_text}
+            )
         
         return step
-    
-    async def _execute_tool(self, tool_name: str, tool_input: Dict) -> str:
-        """执行工具"""
-        tool = self.tools.get(tool_name)
-        
-        if not tool:
-            return f"错误: 工具 '{tool_name}' 不存在。可用工具: {list(self.tools.keys())}"
-        
-        try:
-            self._tool_calls += 1
-            await self.emit_tool_call(tool_name, tool_input)
-            
-            import time
-            start = time.time()
-            
-            result = await tool.execute(**tool_input)
-            
-            duration_ms = int((time.time() - start) * 1000)
-            await self.emit_tool_result(tool_name, str(result.data)[:200], duration_ms)
-            
-            if result.success:
-                output = str(result.data)
-                
-                # 包含 metadata
-                if result.metadata:
-                    if "validation" in result.metadata:
-                        output += f"\n\n验证结果:\n{json.dumps(result.metadata['validation'], ensure_ascii=False, indent=2)}"
-                
-                if len(output) > 4000:
-                    output = output[:4000] + f"\n\n... [输出已截断]"
-                return output
-            else:
-                return f"工具执行失败: {result.error}"
-                
-        except Exception as e:
-            logger.error(f"Tool execution error: {e}")
-            return f"工具执行错误: {str(e)}"
     
     async def run(self, input_data: Dict[str, Any]) -> AgentResult:
         """
@@ -256,20 +221,32 @@ class VerificationAgent(BaseAgent):
         task = input_data.get("task", "")
         task_context = input_data.get("task_context", "")
         
+        # 🔥 处理交接信息
+        handoff = input_data.get("handoff")
+        if handoff:
+            from .base import TaskHandoff
+            if isinstance(handoff, dict):
+                handoff = TaskHandoff.from_dict(handoff)
+            self.receive_handoff(handoff)
+        
         # 收集所有待验证的发现
         findings_to_verify = []
         
-        for phase_name, result in previous_results.items():
-            if isinstance(result, dict):
-                data = result.get("data", {})
-            else:
-                data = result.data if hasattr(result, 'data') else {}
-            
-            if isinstance(data, dict):
-                phase_findings = data.get("findings", [])
-                for f in phase_findings:
-                    if f.get("needs_verification", True):
-                        findings_to_verify.append(f)
+        # 🔥 优先从交接信息获取发现
+        if self._incoming_handoff and self._incoming_handoff.key_findings:
+            findings_to_verify = self._incoming_handoff.key_findings.copy()
+        else:
+            for phase_name, result in previous_results.items():
+                if isinstance(result, dict):
+                    data = result.get("data", {})
+                else:
+                    data = result.data if hasattr(result, 'data') else {}
+                
+                if isinstance(data, dict):
+                    phase_findings = data.get("findings", [])
+                    for f in phase_findings:
+                        if f.get("needs_verification", True):
+                            findings_to_verify.append(f)
         
         # 去重
         findings_to_verify = self._deduplicate(findings_to_verify)
@@ -289,7 +266,12 @@ class VerificationAgent(BaseAgent):
             f"开始验证 {len(findings_to_verify)} 个发现"
         )
         
-        # 构建初始消息
+        # 🔥 记录工作开始
+        self.record_work(f"开始验证 {len(findings_to_verify)} 个漏洞发现")
+        
+        # 🔥 构建包含交接上下文的初始消息
+        handoff_context = self.get_handoff_context()
+        
         findings_summary = []
         for i, f in enumerate(findings_to_verify):
             findings_summary.append(f"""
@@ -306,6 +288,8 @@ class VerificationAgent(BaseAgent):
         
         initial_message = f"""请验证以下 {len(findings_to_verify)} 个安全发现。
 
+{handoff_context if handoff_context else ''}
+
 ## 待验证发现
 {''.join(findings_summary)}
 
@@ -313,9 +297,10 @@ class VerificationAgent(BaseAgent):
 - 验证级别: {config.get('verification_level', 'standard')}
 
 ## 可用工具
-{self._get_tools_description()}
+{self.get_tools_description()}
 
-请开始验证。对于每个发现，思考如何验证它，使用合适的工具获取更多信息，然后判断是否为真实漏洞。"""
+请开始验证。对于每个发现，思考如何验证它，使用合适的工具获取更多信息，然后判断是否为真实漏洞。
+{f"特别注意 Analysis Agent 提到的关注点。" if handoff_context else ""}"""
 
         # 初始化对话历史
         self._conversation_history = [
@@ -335,18 +320,22 @@ class VerificationAgent(BaseAgent):
                 
                 self._iteration = iteration + 1
                 
-                # 🔥 发射 LLM 开始思考事件
-                await self.emit_llm_start(iteration + 1)
+                # 🔥 再次检查取消标志（在LLM调用之前）
+                if self.is_cancelled:
+                    await self.emit_thinking("🛑 任务已取消，停止执行")
+                    break
                 
-                # 🔥 调用 LLM 进行思考和决策
-                response = await self.llm_service.chat_completion_raw(
-                    messages=self._conversation_history,
-                    temperature=0.1,
-                    max_tokens=3000,
-                )
+                # 调用 LLM 进行思考和决策（流式输出）
+                try:
+                    llm_output, tokens_this_round = await self.stream_llm_call(
+                        self._conversation_history,
+                        temperature=0.1,
+                        max_tokens=3000,
+                    )
+                except asyncio.CancelledError:
+                    logger.info(f"[{self.name}] LLM call cancelled")
+                    break
                 
-                llm_output = response.get("content", "")
-                tokens_this_round = response.get("usage", {}).get("total_tokens", 0)
                 self._total_tokens += tokens_this_round
                 
                 # 解析 LLM 响应
@@ -367,6 +356,14 @@ class VerificationAgent(BaseAgent):
                 if step.is_final:
                     await self.emit_llm_decision("完成漏洞验证", "LLM 判断验证已充分")
                     final_result = step.final_answer
+                    
+                    # 🔥 记录洞察和工作
+                    if final_result and "findings" in final_result:
+                        verified_count = len([f for f in final_result["findings"] if f.get("is_verified")])
+                        fp_count = len([f for f in final_result["findings"] if f.get("verdict") == "false_positive"])
+                        self.add_insight(f"验证了 {len(final_result['findings'])} 个发现，{verified_count} 个确认，{fp_count} 个误报")
+                        self.record_work(f"完成漏洞验证: {verified_count} 个确认, {fp_count} 个误报")
+                    
                     await self.emit_llm_complete(
                         f"验证完成",
                         self._total_tokens
@@ -378,7 +375,7 @@ class VerificationAgent(BaseAgent):
                     # 🔥 发射 LLM 动作决策事件
                     await self.emit_llm_action(step.action, step.action_input or {})
                     
-                    observation = await self._execute_tool(
+                    observation = await self.execute_tool(
                         step.action,
                         step.action_input or {}
                     )
@@ -438,7 +435,7 @@ class VerificationAgent(BaseAgent):
             
             await self.emit_event(
                 "info",
-                f"🎯 Verification Agent 完成: {confirmed_count} 确认, {likely_count} 可能, {false_positive_count} 误报"
+                f"Verification Agent 完成: {confirmed_count} 确认, {likely_count} 可能, {false_positive_count} 误报"
             )
             
             return AgentResult(

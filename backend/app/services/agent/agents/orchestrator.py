@@ -18,6 +18,7 @@ from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
 
 from .base import BaseAgent, AgentConfig, AgentResult, AgentType, AgentPattern
+from ..json_parser import AgentJsonParser
 
 logger = logging.getLogger(__name__)
 
@@ -178,18 +179,22 @@ class OrchestratorAgent(BaseAgent):
                 
                 self._iteration = iteration + 1
                 
-                # 🔥 发射 LLM 开始思考事件
-                await self.emit_llm_start(iteration + 1)
+                # 🔥 再次检查取消标志（在LLM调用之前）
+                if self.is_cancelled:
+                    await self.emit_thinking("🛑 任务已取消，停止执行")
+                    break
                 
-                # 🔥 调用 LLM 进行思考和决策
-                response = await self.llm_service.chat_completion_raw(
-                    messages=self._conversation_history,
-                    temperature=0.1,
-                    max_tokens=2048,
-                )
+                # 调用 LLM 进行思考和决策（流式输出）
+                try:
+                    llm_output, tokens_this_round = await self.stream_llm_call(
+                        self._conversation_history,
+                        temperature=0.1,
+                        max_tokens=2048,
+                    )
+                except asyncio.CancelledError:
+                    logger.info(f"[{self.name}] LLM call cancelled")
+                    break
                 
-                llm_output = response.get("content", "")
-                tokens_this_round = response.get("usage", {}).get("total_tokens", 0)
                 self._total_tokens += tokens_this_round
                 
                 # 解析 LLM 的决策
@@ -348,10 +353,11 @@ class OrchestratorAgent(BaseAgent):
         input_text = re.sub(r'```json\s*', '', input_text)
         input_text = re.sub(r'```\s*', '', input_text)
         
-        try:
-            action_input = json.loads(input_text)
-        except json.JSONDecodeError:
-            action_input = {"raw": input_text}
+        # 使用增强的 JSON 解析器
+        action_input = AgentJsonParser.parse(
+            input_text,
+            default={"raw": input_text}
+        )
         
         return AgentStep(
             thought=thought,

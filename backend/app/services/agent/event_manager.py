@@ -299,8 +299,9 @@ class EventManager:
             "timestamp": timestamp.isoformat(),
         }
         
-        # 保存到数据库
-        if self.db_session_factory:
+        # 保存到数据库（跳过高频事件如 thinking_token）
+        skip_db_events = {"thinking_token", "thinking_start", "thinking_end"}
+        if self.db_session_factory and event_type not in skip_db_events:
             try:
                 await self._save_event_to_db(event_data)
             except Exception as e:

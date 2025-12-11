@@ -69,6 +69,11 @@ class AuditState(TypedDict):
     llm_next_action: Optional[str]  # LLM 建议的下一步: "continue_analysis", "verify", "report", "end"
     llm_routing_reason: Optional[str]  # LLM 的决策理由
     
+    # 🔥 新增：Agent 间协作的任务交接信息
+    recon_handoff: Optional[Dict[str, Any]]        # Recon -> Analysis 的交接
+    analysis_handoff: Optional[Dict[str, Any]]     # Analysis -> Verification 的交接
+    verification_handoff: Optional[Dict[str, Any]] # Verification -> Report 的交接
+    
     # 消息和事件
     messages: Annotated[List[Dict], operator.add]
     events: Annotated[List[Dict], operator.add]
@@ -146,6 +151,9 @@ class LLMRouter:
         # 统计发现
         severity_counts = {"critical": 0, "high": 0, "medium": 0, "low": 0}
         for f in findings:
+            # 跳过非字典类型的 finding
+            if not isinstance(f, dict):
+                continue
             sev = f.get("severity", "medium")
             severity_counts[sev] = severity_counts.get(sev, 0) + 1
         
@@ -243,6 +251,11 @@ def route_after_recon(state: AuditState) -> Literal["analysis", "end"]:
     Recon 后的路由决策
     优先使用 LLM 的决策，否则使用默认逻辑
     """
+    # 🔥 检查是否有错误
+    if state.get("error") or state.get("current_phase") == "error":
+        logger.error(f"Recon phase has error, routing to end: {state.get('error')}")
+        return "end"
+    
     # 检查 LLM 是否有决策
     llm_action = state.get("llm_next_action")
     if llm_action:

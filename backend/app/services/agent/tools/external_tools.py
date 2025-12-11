@@ -109,10 +109,14 @@ Semgrep 是业界领先的静态分析工具，支持 30+ 种编程语言。
         """执行 Semgrep 扫描"""
         # 检查 semgrep 是否可用
         if not await self._check_semgrep():
-            return ToolResult(
-                success=False,
-                error="Semgrep 未安装。请使用 'pip install semgrep' 安装。",
-            )
+            # 尝试自动安装
+            logger.info("Semgrep 未安装，尝试自动安装...")
+            install_success = await self._try_install_semgrep()
+            if not install_success:
+                return ToolResult(
+                    success=False,
+                    error="Semgrep 未安装。请使用 'pip install semgrep' 安装，或联系管理员安装。",
+                )
         
         # 构建完整路径
         full_path = os.path.normpath(os.path.join(self.project_root, target_path))
@@ -215,6 +219,30 @@ Semgrep 是业界领先的静态分析工具，支持 30+ 种编程语言。
             await proc.communicate()
             return proc.returncode == 0
         except:
+            return False
+    
+    async def _try_install_semgrep(self) -> bool:
+        """尝试自动安装 Semgrep"""
+        try:
+            logger.info("正在安装 Semgrep...")
+            proc = await asyncio.create_subprocess_exec(
+                "pip", "install", "semgrep",
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+            stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=120)
+            if proc.returncode == 0:
+                logger.info("Semgrep 安装成功")
+                # 验证安装
+                return await self._check_semgrep()
+            else:
+                logger.warning(f"Semgrep 安装失败: {stderr.decode()[:200]}")
+                return False
+        except asyncio.TimeoutError:
+            logger.warning("Semgrep 安装超时")
+            return False
+        except Exception as e:
+            logger.warning(f"Semgrep 安装出错: {e}")
             return False
 
 
@@ -422,7 +450,11 @@ Gitleaks 是专业的密钥检测工具，支持 150+ 种密钥类型。
         if not await self._check_gitleaks():
             return ToolResult(
                 success=False,
-                error="Gitleaks 未安装。请从 https://github.com/gitleaks/gitleaks 安装。",
+                error="Gitleaks 未安装。Gitleaks 需要手动安装，请参考: https://github.com/gitleaks/gitleaks/releases\n"
+                      "安装方法:\n"
+                      "- macOS: brew install gitleaks\n"
+                      "- Linux: 下载二进制文件并添加到 PATH\n"
+                      "- Windows: 下载二进制文件并添加到 PATH",
             )
         
         full_path = os.path.normpath(os.path.join(self.project_root, target_path))

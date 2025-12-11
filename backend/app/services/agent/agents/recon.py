@@ -10,6 +10,7 @@ LLM 是真正的大脑！
 类型: ReAct (真正的!)
 """
 
+import asyncio
 import json
 import logging
 import re
@@ -17,22 +18,24 @@ from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
 
 from .base import BaseAgent, AgentConfig, AgentResult, AgentType, AgentPattern
+from ..json_parser import AgentJsonParser
 
 logger = logging.getLogger(__name__)
 
 
-RECON_SYSTEM_PROMPT = """你是 DeepAudit 的信息收集 Agent，负责在安全审计前**自主**收集项目信息。
+RECON_SYSTEM_PROMPT = """你是 DeepAudit 的信息收集 Agent，负责在安全审计前收集项目信息。
 
-## 你的角色
-你是信息收集的**大脑**，不是机械执行者。你需要：
-1. 自主思考需要收集什么信息
-2. 选择合适的工具获取信息
-3. 根据发现动态调整策略
-4. 判断何时信息收集足够
+## 你的职责
+你专注于**信息收集**，为后续的漏洞分析提供基础数据：
+1. 分析项目结构和目录布局
+2. 识别技术栈（语言、框架、数据库）
+3. 找出入口点（API、路由、用户输入处理）
+4. 标记高风险区域（认证、数据库操作、文件处理）
+5. 收集依赖信息
 
 ## 你可以使用的工具
 
-### 文件系统
+### 文件系统工具
 - **list_files**: 列出目录内容
   参数: directory (str), recursive (bool), pattern (str), max_files (int)
   
@@ -42,12 +45,14 @@ RECON_SYSTEM_PROMPT = """你是 DeepAudit 的信息收集 Agent，负责在安�
 - **search_code**: 代码关键字搜索
   参数: keyword (str), max_results (int)
 
-### 安全扫描
-- **semgrep_scan**: Semgrep 静态分析扫描
-- **npm_audit**: npm 依赖漏洞审计
-- **safety_scan**: Python 依赖漏洞审计
-- **gitleaks_scan**: 密钥/敏感信息泄露扫描
-- **osv_scan**: OSV 通用依赖漏洞扫描
+### 语义搜索工具
+- **rag_query**: 语义代码搜索（如果可用）
+  参数: query (str), top_k (int)
+
+## 注意
+- 你只负责信息收集，不要进行漏洞分析
+- 漏洞分析由 Analysis Agent 负责
+- 专注于收集项目结构、技术栈、入口点等信息
 
 ## 工作方式
 每一步，你需要输出：
@@ -142,15 +147,7 @@ class ReconAgent(BaseAgent):
         self._conversation_history: List[Dict[str, str]] = []
         self._steps: List[ReconStep] = []
     
-    def _get_tools_description(self) -> str:
-        """生成工具描述"""
-        tools_info = []
-        for name, tool in self.tools.items():
-            if name.startswith("_"):
-                continue
-            desc = f"- {name}: {getattr(tool, 'description', 'No description')}"
-            tools_info.append(desc)
-        return "\n".join(tools_info)
+
     
     def _parse_llm_response(self, response: str) -> ReconStep:
         """解析 LLM 响应"""
@@ -165,13 +162,14 @@ class ReconAgent(BaseAgent):
         final_match = re.search(r'Final Answer:\s*(.*?)$', response, re.DOTALL)
         if final_match:
             step.is_final = True
-            try:
-                answer_text = final_match.group(1).strip()
-                answer_text = re.sub(r'```json\s*', '', answer_text)
-                answer_text = re.sub(r'```\s*', '', answer_text)
-                step.final_answer = json.loads(answer_text)
-            except json.JSONDecodeError:
-                step.final_answer = {"raw_answer": final_match.group(1).strip()}
+            answer_text = final_match.group(1).strip()
+            answer_text = re.sub(r'```json\s*', '', answer_text)
+            answer_text = re.sub(r'```\s*', '', answer_text)
+            # 使用增强的 JSON 解析器
+            step.final_answer = AgentJsonParser.parse(
+                answer_text, 
+                default={"raw_answer": answer_text}
+            )
             return step
         
         # 提取 Action
@@ -185,43 +183,15 @@ class ReconAgent(BaseAgent):
             input_text = input_match.group(1).strip()
             input_text = re.sub(r'```json\s*', '', input_text)
             input_text = re.sub(r'```\s*', '', input_text)
-            try:
-                step.action_input = json.loads(input_text)
-            except json.JSONDecodeError:
-                step.action_input = {"raw_input": input_text}
+            # 使用增强的 JSON 解析器
+            step.action_input = AgentJsonParser.parse(
+                input_text,
+                default={"raw_input": input_text}
+            )
         
         return step
     
-    async def _execute_tool(self, tool_name: str, tool_input: Dict) -> str:
-        """执行工具"""
-        tool = self.tools.get(tool_name)
-        
-        if not tool:
-            return f"错误: 工具 '{tool_name}' 不存在。可用工具: {list(self.tools.keys())}"
-        
-        try:
-            self._tool_calls += 1
-            await self.emit_tool_call(tool_name, tool_input)
-            
-            import time
-            start = time.time()
-            
-            result = await tool.execute(**tool_input)
-            
-            duration_ms = int((time.time() - start) * 1000)
-            await self.emit_tool_result(tool_name, str(result.data)[:200], duration_ms)
-            
-            if result.success:
-                output = str(result.data)
-                if len(output) > 4000:
-                    output = output[:4000] + f"\n\n... [输出已截断，共 {len(str(result.data))} 字符]"
-                return output
-            else:
-                return f"工具执行失败: {result.error}"
-                
-        except Exception as e:
-            logger.error(f"Tool execution error: {e}")
-            return f"工具执行错误: {str(e)}"
+
     
     async def run(self, input_data: Dict[str, Any]) -> AgentResult:
         """
@@ -246,7 +216,7 @@ class ReconAgent(BaseAgent):
 {task_context or task or '进行全面的信息收集，为安全审计做准备。'}
 
 ## 可用工具
-{self._get_tools_description()}
+{self.get_tools_description()}
 
 请开始你的信息收集工作。首先思考应该收集什么信息，然后选择合适的工具。"""
 
@@ -259,7 +229,7 @@ class ReconAgent(BaseAgent):
         self._steps = []
         final_result = None
         
-        await self.emit_thinking("🔍 Recon Agent 启动，LLM 开始自主收集信息...")
+        await self.emit_thinking("Recon Agent 启动，LLM 开始自主收集信息...")
         
         try:
             for iteration in range(self.config.max_iterations):
@@ -268,18 +238,22 @@ class ReconAgent(BaseAgent):
                 
                 self._iteration = iteration + 1
                 
-                # 🔥 发射 LLM 开始思考事件
-                await self.emit_llm_start(iteration + 1)
+                # 🔥 再次检查取消标志（在LLM调用之前）
+                if self.is_cancelled:
+                    await self.emit_thinking("🛑 任务已取消，停止执行")
+                    break
                 
-                # 🔥 调用 LLM 进行思考和决策
-                response = await self.llm_service.chat_completion_raw(
-                    messages=self._conversation_history,
-                    temperature=0.1,
-                    max_tokens=2048,
-                )
+                # 调用 LLM 进行思考和决策（使用基类统一方法）
+                try:
+                    llm_output, tokens_this_round = await self.stream_llm_call(
+                        self._conversation_history,
+                        temperature=0.1,
+                        max_tokens=2048,
+                    )
+                except asyncio.CancelledError:
+                    logger.info(f"[{self.name}] LLM call cancelled")
+                    break
                 
-                llm_output = response.get("content", "")
-                tokens_this_round = response.get("usage", {}).get("total_tokens", 0)
                 self._total_tokens += tokens_this_round
                 
                 # 解析 LLM 响应
@@ -311,7 +285,7 @@ class ReconAgent(BaseAgent):
                     # 🔥 发射 LLM 动作决策事件
                     await self.emit_llm_action(step.action, step.action_input or {})
                     
-                    observation = await self._execute_tool(
+                    observation = await self.execute_tool(
                         step.action,
                         step.action_input or {}
                     )
@@ -341,9 +315,18 @@ class ReconAgent(BaseAgent):
             if not final_result:
                 final_result = self._summarize_from_steps()
             
+            # 🔥 记录工作和洞察
+            self.record_work(f"完成项目信息收集，发现 {len(final_result.get('entry_points', []))} 个入口点")
+            self.record_work(f"识别技术栈: {final_result.get('tech_stack', {})}")
+            
+            if final_result.get("high_risk_areas"):
+                self.add_insight(f"发现 {len(final_result['high_risk_areas'])} 个高风险区域需要重点分析")
+            if final_result.get("initial_findings"):
+                self.add_insight(f"初步发现 {len(final_result['initial_findings'])} 个潜在问题")
+            
             await self.emit_event(
                 "info",
-                f"🎯 Recon Agent 完成: {self._iteration} 轮迭代, {self._tool_calls} 次工具调用"
+                f"Recon Agent 完成: {self._iteration} 轮迭代, {self._tool_calls} 次工具调用"
             )
             
             return AgentResult(

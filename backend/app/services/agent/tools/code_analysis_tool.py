@@ -79,9 +79,25 @@ class CodeAnalysisTool(AgentTool):
         **kwargs
     ) -> ToolResult:
         """执行代码分析"""
+        import asyncio
+        
         try:
-            # 构建分析结果
-            analysis = await self.llm_service.analyze_code(code, language)
+            # 限制代码长度，避免超时
+            max_code_length = 50000  # 约 50KB
+            if len(code) > max_code_length:
+                code = code[:max_code_length] + "\n\n... (代码已截断，仅分析前 50000 字符)"
+            
+            # 添加超时保护（5分钟）
+            try:
+                analysis = await asyncio.wait_for(
+                    self.llm_service.analyze_code(code, language),
+                    timeout=300.0  # 5分钟超时
+                )
+            except asyncio.TimeoutError:
+                return ToolResult(
+                    success=False,
+                    error="代码分析超时（超过5分钟）。代码可能过长或过于复杂，请尝试分析较小的代码片段。",
+                )
             
             issues = analysis.get("issues", [])
             

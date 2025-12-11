@@ -1,6 +1,8 @@
 """
 LangGraph 节点实现
 每个节点封装一个 Agent 的执行逻辑
+
+协作增强：节点之间通过 TaskHandoff 传递结构化的上下文和洞察
 """
 
 from typing import Dict, Any, List, Optional
@@ -28,6 +30,14 @@ class BaseNode:
                 await self.event_emitter.emit_info(message)
             except Exception as e:
                 logger.warning(f"Failed to emit event: {e}")
+    
+    def _extract_handoff_from_state(self, state: Dict[str, Any], from_phase: str):
+        """从状态中提取前序 Agent 的 handoff"""
+        handoff_data = state.get(f"{from_phase}_handoff")
+        if handoff_data:
+            from ..agents.base import TaskHandoff
+            return TaskHandoff.from_dict(handoff_data)
+        return None
 
 
 class ReconNode(BaseNode):
@@ -35,7 +45,7 @@ class ReconNode(BaseNode):
     信息收集节点
     
     输入: project_root, project_info, config
-    输出: tech_stack, entry_points, high_risk_areas, dependencies
+    输出: tech_stack, entry_points, high_risk_areas, dependencies, recon_handoff
     """
     
     async def __call__(self, state: Dict[str, Any]) -> Dict[str, Any]:
@@ -52,6 +62,35 @@ class ReconNode(BaseNode):
             if result.success and result.data:
                 data = result.data
                 
+                # 🔥 创建交接信息给 Analysis Agent
+                handoff = self.agent.create_handoff(
+                    to_agent="Analysis",
+                    summary=f"项目信息收集完成。发现 {len(data.get('entry_points', []))} 个入口点，{len(data.get('high_risk_areas', []))} 个高风险区域。",
+                    key_findings=data.get("initial_findings", []),
+                    suggested_actions=[
+                        {
+                            "type": "deep_analysis",
+                            "description": f"深入分析高风险区域: {', '.join(data.get('high_risk_areas', [])[:5])}",
+                            "priority": "high",
+                        },
+                        {
+                            "type": "entry_point_audit",
+                            "description": "审计所有入口点的输入验证",
+                            "priority": "high",
+                        },
+                    ],
+                    attention_points=[
+                        f"技术栈: {data.get('tech_stack', {}).get('frameworks', [])}",
+                        f"主要语言: {data.get('tech_stack', {}).get('languages', [])}",
+                    ],
+                    priority_areas=data.get("high_risk_areas", [])[:10],
+                    context_data={
+                        "tech_stack": data.get("tech_stack", {}),
+                        "entry_points": data.get("entry_points", []),
+                        "dependencies": data.get("dependencies", {}),
+                    },
+                )
+                
                 await self.emit_event(
                     "phase_complete",
                     f"✅ 信息收集完成: 发现 {len(data.get('entry_points', []))} 个入口点"
@@ -63,12 +102,15 @@ class ReconNode(BaseNode):
                     "high_risk_areas": data.get("high_risk_areas", []),
                     "dependencies": data.get("dependencies", {}),
                     "current_phase": "recon_complete",
-                    "findings": data.get("initial_findings", []),  # 初步发现
+                    "findings": data.get("initial_findings", []),
+                    # 🔥 保存交接信息
+                    "recon_handoff": handoff.to_dict(),
                     "events": [{
                         "type": "recon_complete",
                         "data": {
                             "entry_points_count": len(data.get("entry_points", [])),
                             "high_risk_areas_count": len(data.get("high_risk_areas", [])),
+                            "handoff_summary": handoff.summary,
                         }
                     }],
                 }
@@ -90,8 +132,8 @@ class AnalysisNode(BaseNode):
     """
     漏洞分析节点
     
-    输入: tech_stack, entry_points, high_risk_areas, previous findings
-    输出: findings (累加), should_continue_analysis
+    输入: tech_stack, entry_points, high_risk_areas, recon_handoff
+    输出: findings (累加), should_continue_analysis, analysis_handoff
     """
     
     async def __call__(self, state: Dict[str, Any]) -> Dict[str, Any]:
@@ -104,6 +146,15 @@ class AnalysisNode(BaseNode):
         )
         
         try:
+            # 🔥 提取 Recon 的交接信息
+            recon_handoff = self._extract_handoff_from_state(state, "recon")
+            if recon_handoff:
+                self.agent.receive_handoff(recon_handoff)
+                await self.emit_event(
+                    "handoff_received",
+                    f"📨 收到 Recon Agent 交接: {recon_handoff.summary[:50]}..."
+                )
+            
             # 构建分析输入
             analysis_input = {
                 "phase_name": "analysis",
@@ -121,6 +172,8 @@ class AnalysisNode(BaseNode):
                         }
                     }
                 },
+                # 🔥 传递交接信息
+                "handoff": recon_handoff,
             }
             
             # 调用 Analysis Agent
@@ -130,10 +183,49 @@ class AnalysisNode(BaseNode):
                 new_findings = result.data.get("findings", [])
                 
                 # 判断是否需要继续分析
-                # 如果这一轮发现了很多问题，可能还有更多
                 should_continue = (
                     len(new_findings) >= 5 and 
                     iteration < state.get("max_iterations", 3)
+                )
+                
+                # 🔥 创建交接信息给 Verification Agent
+                # 统计严重程度
+                severity_counts = {"critical": 0, "high": 0, "medium": 0, "low": 0}
+                for f in new_findings:
+                    if isinstance(f, dict):
+                        sev = f.get("severity", "medium")
+                        severity_counts[sev] = severity_counts.get(sev, 0) + 1
+                
+                handoff = self.agent.create_handoff(
+                    to_agent="Verification",
+                    summary=f"漏洞分析完成。发现 {len(new_findings)} 个潜在漏洞 (Critical: {severity_counts['critical']}, High: {severity_counts['high']}, Medium: {severity_counts['medium']}, Low: {severity_counts['low']})",
+                    key_findings=new_findings[:20],  # 传递前20个发现
+                    suggested_actions=[
+                        {
+                            "type": "verify_critical",
+                            "description": "优先验证 Critical 和 High 级别的漏洞",
+                            "priority": "critical",
+                        },
+                        {
+                            "type": "poc_generation",
+                            "description": "为确认的漏洞生成 PoC",
+                            "priority": "high",
+                        },
+                    ],
+                    attention_points=[
+                        f"共 {severity_counts['critical']} 个 Critical 级别漏洞需要立即验证",
+                        f"共 {severity_counts['high']} 个 High 级别漏洞需要优先验证",
+                        "注意检查是否有误报，特别是静态分析工具的结果",
+                    ],
+                    priority_areas=[
+                        f.get("file_path", "") for f in new_findings 
+                        if f.get("severity") in ["critical", "high"]
+                    ][:10],
+                    context_data={
+                        "severity_distribution": severity_counts,
+                        "total_findings": len(new_findings),
+                        "iteration": iteration,
+                    },
                 )
                 
                 await self.emit_event(
@@ -142,15 +234,19 @@ class AnalysisNode(BaseNode):
                 )
                 
                 return {
-                    "findings": new_findings,  # 会自动累加
+                    "findings": new_findings,
                     "iteration": iteration,
                     "should_continue_analysis": should_continue,
                     "current_phase": "analysis_complete",
+                    # 🔥 保存交接信息
+                    "analysis_handoff": handoff.to_dict(),
                     "events": [{
                         "type": "analysis_iteration",
                         "data": {
                             "iteration": iteration,
                             "findings_count": len(new_findings),
+                            "severity_distribution": severity_counts,
+                            "handoff_summary": handoff.summary,
                         }
                     }],
                 }
@@ -174,8 +270,8 @@ class VerificationNode(BaseNode):
     """
     漏洞验证节点
     
-    输入: findings
-    输出: verified_findings, false_positives
+    输入: findings, analysis_handoff
+    输出: verified_findings, false_positives, verification_handoff
     """
     
     async def __call__(self, state: Dict[str, Any]) -> Dict[str, Any]:
@@ -195,6 +291,15 @@ class VerificationNode(BaseNode):
         )
         
         try:
+            # 🔥 提取 Analysis 的交接信息
+            analysis_handoff = self._extract_handoff_from_state(state, "analysis")
+            if analysis_handoff:
+                self.agent.receive_handoff(analysis_handoff)
+                await self.emit_event(
+                    "handoff_received",
+                    f"📨 收到 Analysis Agent 交接: {analysis_handoff.summary[:50]}..."
+                )
+            
             # 构建验证输入
             verification_input = {
                 "previous_results": {
@@ -205,15 +310,48 @@ class VerificationNode(BaseNode):
                     }
                 },
                 "config": state["config"],
+                # 🔥 传递交接信息
+                "handoff": analysis_handoff,
             }
             
             # 调用 Verification Agent
             result = await self.agent.run(verification_input)
             
             if result.success and result.data:
-                verified = [f for f in result.data.get("findings", []) if f.get("is_verified")]
-                false_pos = [f["id"] for f in result.data.get("findings", []) 
+                all_verified_findings = result.data.get("findings", [])
+                verified = [f for f in all_verified_findings if f.get("is_verified")]
+                false_pos = [f.get("id", f.get("title", "unknown")) for f in all_verified_findings 
                            if f.get("verdict") == "false_positive"]
+                
+                # 🔥 创建交接信息给 Report 节点
+                handoff = self.agent.create_handoff(
+                    to_agent="Report",
+                    summary=f"漏洞验证完成。{len(verified)} 个漏洞已确认，{len(false_pos)} 个误报已排除。",
+                    key_findings=verified,
+                    suggested_actions=[
+                        {
+                            "type": "generate_report",
+                            "description": "生成详细的安全审计报告",
+                            "priority": "high",
+                        },
+                        {
+                            "type": "remediation_plan",
+                            "description": "为确认的漏洞制定修复计划",
+                            "priority": "high",
+                        },
+                    ],
+                    attention_points=[
+                        f"共 {len(verified)} 个漏洞已确认存在",
+                        f"共 {len(false_pos)} 个误报已排除",
+                        "建议按严重程度优先修复 Critical 和 High 级别漏洞",
+                    ],
+                    context_data={
+                        "verified_count": len(verified),
+                        "false_positive_count": len(false_pos),
+                        "total_analyzed": len(findings),
+                        "verification_rate": len(verified) / len(findings) if findings else 0,
+                    },
+                )
                 
                 await self.emit_event(
                     "phase_complete",
@@ -224,11 +362,14 @@ class VerificationNode(BaseNode):
                     "verified_findings": verified,
                     "false_positives": false_pos,
                     "current_phase": "verification_complete",
+                    # 🔥 保存交接信息
+                    "verification_handoff": handoff.to_dict(),
                     "events": [{
                         "type": "verification_complete",
                         "data": {
                             "verified_count": len(verified),
                             "false_positive_count": len(false_pos),
+                            "handoff_summary": handoff.summary,
                         }
                     }],
                 }
@@ -269,6 +410,11 @@ class ReportNode(BaseNode):
             type_counts = {}
             
             for finding in findings:
+                # 跳过非字典类型的 finding（防止数据格式异常）
+                if not isinstance(finding, dict):
+                    logger.warning(f"Skipping invalid finding (not a dict): {type(finding)}")
+                    continue
+                    
                 sev = finding.get("severity", "medium")
                 severity_counts[sev] = severity_counts.get(sev, 0) + 1
                 
@@ -300,7 +446,7 @@ class ReportNode(BaseNode):
             
             await self.emit_event(
                 "phase_complete",
-                f"✅ 报告生成完成: 安全评分 {security_score}/100"
+                f"报告生成完成: 安全评分 {security_score}/100"
             )
             
             return {

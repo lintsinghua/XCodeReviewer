@@ -6,7 +6,7 @@ LLM服务 - 代码分析核心服务
 import json
 import re
 import logging
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from .types import LLMConfig, LLMProvider, LLMMessage, LLMRequest, DEFAULT_MODELS
 from .factory import LLMFactory
 from app.core.config import settings
@@ -36,15 +36,23 @@ class LLMService:
     
     @property
     def config(self) -> LLMConfig:
-        """获取LLM配置（优先使用用户配置，然后使用系统配置）"""
+        """
+        获取LLM配置
+        
+        🔥 优先级（从高到低）：
+        1. 数据库用户配置（系统配置页面保存的配置）
+        2. 环境变量配置（.env 文件中的配置）
+        
+        如果用户配置中某个字段为空，则自动回退到环境变量。
+        """
         if self._config is None:
             user_llm_config = self._user_config.get('llmConfig', {})
             
-            # 优先使用用户配置的provider，否则使用系统配置
+            # 🔥 Provider 优先级：用户配置 > 环境变量
             provider_str = user_llm_config.get('llmProvider') or getattr(settings, 'LLM_PROVIDER', 'openai')
             provider = self._parse_provider(provider_str)
             
-            # 获取API Key - 优先级：用户配置 > 系统通用配置 > 系统平台专属配置
+            # 🔥 API Key 优先级：用户配置 > 环境变量通用配置 > 环境变量平台专属配置
             api_key = (
                 user_llm_config.get('llmApiKey') or
                 getattr(settings, 'LLM_API_KEY', '') or
@@ -52,33 +60,33 @@ class LLMService:
                 self._get_provider_api_key(provider)
             )
             
-            # 获取Base URL
+            # 🔥 Base URL 优先级：用户配置 > 环境变量
             base_url = (
                 user_llm_config.get('llmBaseUrl') or
                 getattr(settings, 'LLM_BASE_URL', None) or
                 self._get_provider_base_url(provider)
             )
             
-            # 获取模型
+            # 🔥 Model 优先级：用户配置 > 环境变量 > 默认模型
             model = (
                 user_llm_config.get('llmModel') or
                 getattr(settings, 'LLM_MODEL', '') or
                 DEFAULT_MODELS.get(provider, 'gpt-4o-mini')
             )
             
-            # 获取超时时间（用户配置是毫秒，系统配置是秒）
+            # 🔥 Timeout 优先级：用户配置（毫秒） > 环境变量（秒）
             timeout_ms = user_llm_config.get('llmTimeout')
             if timeout_ms:
                 # 用户配置是毫秒，转换为秒
                 timeout = int(timeout_ms / 1000) if timeout_ms > 1000 else int(timeout_ms)
             else:
-                # 系统配置是秒
+                # 环境变量是秒
                 timeout = int(getattr(settings, 'LLM_TIMEOUT', 150))
             
-            # 获取温度
+            # 🔥 Temperature 优先级：用户配置 > 环境变量
             temperature = user_llm_config.get('llmTemperature') if user_llm_config.get('llmTemperature') is not None else float(getattr(settings, 'LLM_TEMPERATURE', 0.1))
             
-            # 获取最大token数
+            # 🔥 Max Tokens 优先级：用户配置 > 环境变量
             max_tokens = user_llm_config.get('llmMaxTokens') or int(getattr(settings, 'LLM_MAX_TOKENS', 4096))
             
             self._config = LLMConfig(
@@ -393,6 +401,83 @@ Please analyze the following code:
             logger.error(f"Provider: {self.config.provider.value}, Model: {self.config.model}")
             # 重新抛出异常，让调用者处理
             raise
+    
+    async def chat_completion_raw(
+        self,
+        messages: List[Dict[str, str]],
+        temperature: float = 0.1,
+        max_tokens: int = 4096,
+    ) -> Dict[str, Any]:
+        """
+        🔥 Agent 使用的原始聊天完成接口（兼容旧接口）
+        
+        Args:
+            messages: 消息列表，格式为 [{"role": "user", "content": "..."}]
+            temperature: 温度参数
+            max_tokens: 最大token数
+            
+        Returns:
+            包含 content 和 usage 的字典
+        """
+        # 转换消息格式
+        llm_messages = [
+            LLMMessage(role=msg["role"], content=msg["content"])
+            for msg in messages
+        ]
+        
+        request = LLMRequest(
+            messages=llm_messages,
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
+        
+        adapter = LLMFactory.create_adapter(self.config)
+        response = await adapter.complete(request)
+        
+        return {
+            "content": response.content,
+            "usage": {
+                "prompt_tokens": response.usage.prompt_tokens if response.usage else 0,
+                "completion_tokens": response.usage.completion_tokens if response.usage else 0,
+                "total_tokens": response.usage.total_tokens if response.usage else 0,
+            },
+        }
+    
+    async def chat_completion_stream(
+        self,
+        messages: List[Dict[str, str]],
+        temperature: float = 0.1,
+        max_tokens: int = 4096,
+    ):
+        """
+        流式聊天完成接口，逐 token 返回
+        
+        Args:
+            messages: 消息列表
+            temperature: 温度参数
+            max_tokens: 最大token数
+            
+        Yields:
+            dict: {"type": "token", "content": str} 或 {"type": "done", ...}
+        """
+        from .adapters.litellm_adapter import LiteLLMAdapter
+        
+        llm_messages = [
+            LLMMessage(role=msg["role"], content=msg["content"])
+            for msg in messages
+        ]
+        
+        request = LLMRequest(
+            messages=llm_messages,
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
+        
+        # 使用 LiteLLM adapter 进行流式调用
+        adapter = LiteLLMAdapter(self.config)
+        
+        async for chunk in adapter.stream_complete(request):
+            yield chunk
     
     def _parse_json(self, text: str) -> Dict[str, Any]:
         """从LLM响应中解析JSON（增强版）"""

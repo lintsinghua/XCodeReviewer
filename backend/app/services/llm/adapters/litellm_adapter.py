@@ -177,6 +177,85 @@ class LiteLLMAdapter(BaseLLMAdapter):
             finish_reason=choice.finish_reason,
         )
 
+    async def stream_complete(self, request: LLMRequest):
+        """
+        流式调用 LLM，逐 token 返回
+        
+        Yields:
+            dict: {"type": "token", "content": str} 或 {"type": "done", "content": str, "usage": dict}
+        """
+        import litellm
+        
+        await self.validate_config()
+        
+        litellm.cache = None
+        litellm.drop_params = True
+        
+        messages = [{"role": msg.role, "content": msg.content} for msg in request.messages]
+        
+        kwargs = {
+            "model": self._litellm_model,
+            "messages": messages,
+            "temperature": request.temperature if request.temperature is not None else self.config.temperature,
+            "max_tokens": request.max_tokens if request.max_tokens is not None else self.config.max_tokens,
+            "top_p": request.top_p if request.top_p is not None else self.config.top_p,
+            "stream": True,  # 启用流式输出
+        }
+        
+        if self.config.api_key and self.config.api_key != "ollama":
+            kwargs["api_key"] = self.config.api_key
+        
+        if self._api_base:
+            kwargs["api_base"] = self._api_base
+        
+        kwargs["timeout"] = self.config.timeout
+        
+        accumulated_content = ""
+        
+        try:
+            response = await litellm.acompletion(**kwargs)
+            
+            async for chunk in response:
+                if not chunk.choices:
+                    continue
+                
+                delta = chunk.choices[0].delta
+                content = getattr(delta, "content", "") or ""
+                finish_reason = chunk.choices[0].finish_reason
+                
+                if content:
+                    accumulated_content += content
+                    yield {
+                        "type": "token",
+                        "content": content,
+                        "accumulated": accumulated_content,
+                    }
+                
+                if finish_reason:
+                    # 流式完成
+                    usage = None
+                    if hasattr(chunk, "usage") and chunk.usage:
+                        usage = {
+                            "prompt_tokens": chunk.usage.prompt_tokens or 0,
+                            "completion_tokens": chunk.usage.completion_tokens or 0,
+                            "total_tokens": chunk.usage.total_tokens or 0,
+                        }
+                    
+                    yield {
+                        "type": "done",
+                        "content": accumulated_content,
+                        "usage": usage,
+                        "finish_reason": finish_reason,
+                    }
+                    break
+                    
+        except Exception as e:
+            yield {
+                "type": "error",
+                "error": str(e),
+                "accumulated": accumulated_content,
+            }
+
     async def validate_config(self) -> bool:
         """验证配置"""
         # Ollama 不需要 API Key

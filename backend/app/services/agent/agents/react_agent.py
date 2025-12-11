@@ -16,6 +16,7 @@ from typing import List, Dict, Any, Optional, Tuple
 from dataclasses import dataclass
 
 from .base import BaseAgent, AgentConfig, AgentResult, AgentType, AgentPattern
+from ..json_parser import AgentJsonParser
 
 logger = logging.getLogger(__name__)
 
@@ -182,15 +183,20 @@ class ReActAgent(BaseAgent):
         final_match = re.search(r'Final Answer:\s*(.*?)$', response, re.DOTALL)
         if final_match:
             step.is_final = True
-            try:
-                # 尝试提取 JSON
-                answer_text = final_match.group(1).strip()
-                # 移除 markdown 代码块
-                answer_text = re.sub(r'```json\s*', '', answer_text)
-                answer_text = re.sub(r'```\s*', '', answer_text)
-                step.final_answer = json.loads(answer_text)
-            except json.JSONDecodeError:
-                step.final_answer = {"raw_answer": final_match.group(1).strip()}
+            answer_text = final_match.group(1).strip()
+            answer_text = re.sub(r'```json\s*', '', answer_text)
+            answer_text = re.sub(r'```\s*', '', answer_text)
+            # 使用增强的 JSON 解析器
+            step.final_answer = AgentJsonParser.parse(
+                answer_text, 
+                default={"raw_answer": answer_text}
+            )
+            # 确保 findings 格式正确
+            if "findings" in step.final_answer:
+                step.final_answer["findings"] = [
+                    f for f in step.final_answer["findings"] 
+                    if isinstance(f, dict)
+                ]
             return step
         
         # 提取 Action
@@ -202,14 +208,13 @@ class ReActAgent(BaseAgent):
         input_match = re.search(r'Action Input:\s*(.*?)(?=Thought:|Action:|Observation:|$)', response, re.DOTALL)
         if input_match:
             input_text = input_match.group(1).strip()
-            # 移除 markdown 代码块
             input_text = re.sub(r'```json\s*', '', input_text)
             input_text = re.sub(r'```\s*', '', input_text)
-            try:
-                step.action_input = json.loads(input_text)
-            except json.JSONDecodeError:
-                # 尝试简单解析
-                step.action_input = {"raw_input": input_text}
+            # 使用增强的 JSON 解析器
+            step.action_input = AgentJsonParser.parse(
+                input_text,
+                default={"raw_input": input_text}
+            )
         
         return step
     
