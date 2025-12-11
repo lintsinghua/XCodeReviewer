@@ -5,6 +5,7 @@ import RecycleBin from "@/pages/RecycleBin";
 import InstantAnalysis from "@/pages/InstantAnalysis";
 import AuditTasks from "@/pages/AuditTasks";
 import TaskDetail from "@/pages/TaskDetail";
+import AgentAudit from "@/pages/AgentAudit";
 import AdminDashboard from "@/pages/AdminDashboard";
 import LogsPage from "@/pages/LogsPage";
 import Account from "@/pages/Account";
@@ -54,6 +55,12 @@ const routes: RouteConfig[] = [
     name: "任务详情",
     path: "/tasks/:id",
     element: <TaskDetail />,
+    visible: false,
+  },
+  {
+    name: "Agent审计",
+    path: "/agent-audit/:taskId",
+    element: <AgentAudit />,
     visible: false,
   },
   {

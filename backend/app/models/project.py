@@ -31,6 +31,7 @@ class Project(Base):
     owner = relationship("User", backref="projects")
     members = relationship("ProjectMember", back_populates="project", cascade="all, delete-orphan")
     tasks = relationship("AuditTask", back_populates="project", cascade="all, delete-orphan")
+    agent_tasks = relationship("AgentTask", back_populates="project", cascade="all, delete-orphan")
 
 class ProjectMember(Base):
     __tablename__ = "project_members"
@@ -47,5 +48,6 @@ class ProjectMember(Base):
     # Relationships
     project = relationship("Project", back_populates="members")
     user = relationship("User", backref="project_memberships")
+
 
 

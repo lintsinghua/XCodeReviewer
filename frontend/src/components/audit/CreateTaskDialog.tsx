@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Dialog,
   DialogContent,
@@ -35,16 +36,19 @@ import {
   Shield,
   Loader2,
   Zap,
+  Bot,
 } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/shared/config/database";
 import { getRuleSets, type AuditRuleSet } from "@/shared/api/rules";
 import { getPromptTemplates, type PromptTemplate } from "@/shared/api/prompts";
+import { createAgentTask } from "@/shared/api/agentTasks";
 
 import { useProjects } from "./hooks/useTaskForm";
 import { useZipFile, formatFileSize } from "./hooks/useZipFile";
 import TerminalProgressDialog from "./TerminalProgressDialog";
 import FileSelectionDialog from "./FileSelectionDialog";
+import AgentModeSelector, { type AuditMode } from "@/components/agent/AgentModeSelector";
 
 import { runRepositoryAudit } from "@/features/projects/services/repoScan";
 import {
@@ -76,6 +80,7 @@ export default function CreateTaskDialog({
   onTaskCreated,
   preselectedProjectId,
 }: CreateTaskDialogProps) {
+  const navigate = useNavigate();
   const [selectedProjectId, setSelectedProjectId] = useState<string>("");
   const [searchTerm, setSearchTerm] = useState("");
   const [branch, setBranch] = useState("main");
@@ -89,6 +94,9 @@ export default function CreateTaskDialog({
   const [uploading, setUploading] = useState(false);
   const [showTerminal, setShowTerminal] = useState(false);
   const [currentTaskId, setCurrentTaskId] = useState<string | null>(null);
+  
+  // 审计模式
+  const [auditMode, setAuditMode] = useState<AuditMode>("agent");
   
   // 规则集和提示词模板
   const [ruleSets, setRuleSets] = useState<AuditRuleSet[]>([]);
@@ -205,6 +213,31 @@ export default function CreateTaskDialog({
       setCreating(true);
       let taskId: string;
 
+      // Agent 审计模式
+      if (auditMode === "agent") {
+        const agentTask = await createAgentTask({
+          project_id: selectedProject.id,
+          name: `Agent审计-${selectedProject.name}`,
+          branch_name: isRepositoryProject(selectedProject) ? branch : undefined,
+          exclude_patterns: excludePatterns,
+          target_files: selectedFiles,
+          verification_level: "sandbox",
+        });
+        
+        onOpenChange(false);
+        onTaskCreated();
+        toast.success("Agent 审计任务已创建");
+        
+        // 导航到 Agent 审计页面
+        navigate(`/agent-audit/${agentTask.id}`);
+        
+        setSelectedProjectId("");
+        setSelectedFiles(undefined);
+        setExcludePatterns(DEFAULT_EXCLUDES);
+        return;
+      }
+
+      // 快速审计模式（原有逻辑）
       if (isZipProject(selectedProject)) {
         if (zipState.useStoredZip && zipState.storedZipInfo?.has_file) {
           taskId = await scanStoredZipFile({
@@ -338,6 +371,15 @@ export default function CreateTaskDialog({
                 )}
               </ScrollArea>
             </div>
+
+            {/* 审计模式选择 */}
+            {selectedProject && (
+              <AgentModeSelector
+                value={auditMode}
+                onChange={setAuditMode}
+                disabled={creating}
+              />
+            )}
 
             {/* 配置区域 */}
             {selectedProject && (
@@ -589,10 +631,15 @@ export default function CreateTaskDialog({
                   <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent mr-2" />
                   启动中...
                 </>
+              ) : auditMode === "agent" ? (
+                <>
+                  <Bot className="w-4 h-4 mr-2" />
+                  启动 Agent 审计
+                </>
               ) : (
                 <>
-                  <Play className="w-4 h-4 mr-2" />
-                  开始扫描
+                  <Zap className="w-4 h-4 mr-2" />
+                  开始快速扫描
                 </>
               )}
             </Button>

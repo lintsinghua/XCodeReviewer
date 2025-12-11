@@ -23,3 +23,4 @@ class InstantAnalysis(Base):
     user = relationship("User", backref="instant_analyses")
 
 
+

@@ -11,3 +11,4 @@ class Base:
         return cls.__name__.lower() + "s"
 
 
+

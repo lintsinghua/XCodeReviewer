@@ -6,10 +6,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Settings, Save, RotateCcw, Eye, EyeOff, CheckCircle2, AlertCircle,
-  Info, Zap, Globe, PlayCircle, Loader2
+  Info, Zap, Globe, PlayCircle, Loader2, Brain
 } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/shared/api/database";
+import EmbeddingConfig from "@/components/agent/EmbeddingConfig";
 
 // LLM 提供商配置 - 2025年最新
 const LLM_PROVIDERS = [
@@ -246,9 +247,12 @@ export function SystemConfig() {
       </div>
 
       <Tabs defaultValue="llm" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 bg-transparent border-2 border-black p-0 h-auto gap-0 mb-6">
+        <TabsList className="grid w-full grid-cols-4 bg-transparent border-2 border-black p-0 h-auto gap-0 mb-6">
           <TabsTrigger value="llm" className="rounded-none border-r-2 border-black data-[state=active]:bg-black data-[state=active]:text-white font-mono font-bold uppercase h-10 text-xs">
             <Zap className="w-3 h-3 mr-2" /> LLM 配置
+          </TabsTrigger>
+          <TabsTrigger value="embedding" className="rounded-none border-r-2 border-black data-[state=active]:bg-black data-[state=active]:text-white font-mono font-bold uppercase h-10 text-xs">
+            <Brain className="w-3 h-3 mr-2" /> 嵌入模型
           </TabsTrigger>
           <TabsTrigger value="analysis" className="rounded-none border-r-2 border-black data-[state=active]:bg-black data-[state=active]:text-white font-mono font-bold uppercase h-10 text-xs">
             <Settings className="w-3 h-3 mr-2" /> 分析参数
@@ -386,6 +390,11 @@ export function SystemConfig() {
             <p>• <strong>原生适配器</strong>: 百度、MiniMax、豆包因 API 格式特殊，使用专用适配器</p>
             <p>• <strong>API 中转站</strong>: 在 Base URL 填入中转站地址即可，API Key 填中转站提供的 Key</p>
           </div>
+        </TabsContent>
+
+        {/* 嵌入模型配置 */}
+        <TabsContent value="embedding" className="space-y-6">
+          <EmbeddingConfig />
         </TabsContent>
 
         {/* 分析参数 */}

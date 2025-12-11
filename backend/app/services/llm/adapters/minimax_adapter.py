@@ -85,3 +85,4 @@ class MinimaxAdapter(BaseLLMAdapter):
         return True
 
 
+

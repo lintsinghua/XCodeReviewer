@@ -76,6 +76,32 @@ class Settings(BaseSettings):
     
     # 输出语言配置 - 支持 zh-CN（中文）和 en-US（英文）
     OUTPUT_LANGUAGE: str = "zh-CN"
+    
+    # ============ Agent 模块配置 ============
+    
+    # 嵌入模型配置
+    EMBEDDING_PROVIDER: str = "openai"  # openai, ollama, litellm
+    EMBEDDING_MODEL: str = "text-embedding-3-small"
+    
+    # 向量数据库配置
+    VECTOR_DB_PATH: str = "./data/vector_db"  # 向量数据库持久化目录
+    
+    # Agent 配置
+    AGENT_MAX_ITERATIONS: int = 50  # Agent 最大迭代次数
+    AGENT_TOKEN_BUDGET: int = 100000  # Agent Token 预算
+    AGENT_TIMEOUT_SECONDS: int = 1800  # Agent 超时时间（30分钟）
+    
+    # 沙箱配置
+    SANDBOX_IMAGE: str = "deepaudit-sandbox:latest"  # 沙箱 Docker 镜像
+    SANDBOX_MEMORY_LIMIT: str = "512m"  # 沙箱内存限制
+    SANDBOX_CPU_LIMIT: float = 1.0  # 沙箱 CPU 限制
+    SANDBOX_TIMEOUT: int = 60  # 沙箱命令超时（秒）
+    SANDBOX_NETWORK_MODE: str = "none"  # 沙箱网络模式 (none, bridge)
+    
+    # RAG 配置
+    RAG_CHUNK_SIZE: int = 1500  # 代码块大小（Token）
+    RAG_CHUNK_OVERLAP: int = 50  # 代码块重叠（Token）
+    RAG_TOP_K: int = 10  # 检索返回数量
 
     class Config:
         case_sensitive = True

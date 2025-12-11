@@ -17,3 +17,51 @@ reportlab>=4.0.0
 weasyprint>=66.0
 jinja2>=3.1.6
 json-repair>=0.30.0
+
+# ============ Agent 模块依赖 ============
+
+# LangChain 核心
+langchain>=0.1.0
+langchain-community>=0.0.20
+langchain-openai>=0.0.5
+
+# LangGraph (状态图工作流)
+langgraph>=0.0.40
+
+# 向量数据库
+chromadb>=0.4.22
+
+# Token 计算
+tiktoken>=0.5.2
+
+# Docker 沙箱
+docker>=7.0.0
+
+# 异步文件操作
+aiofiles>=23.2.1
+
+# SSE 流
+sse-starlette>=1.8.2
+
+# ============ 代码解析 (高级库) ============
+
+# Tree-sitter AST 解析
+tree-sitter>=0.21.0
+tree-sitter-languages>=1.10.0
+
+# 通用代码解析
+pygments>=2.17.0
+
+# ============ 外部安全工具 (可选安装) ============
+# 这些工具可以通过 pip 安装，或使用系统包管理器
+
+# Python 安全扫描
+bandit>=1.7.0
+safety>=2.3.0
+
+# 静态分析 (需要单独安装 semgrep CLI)
+# pip install semgrep
+
+# 依赖漏洞扫描
+pip-audit>=2.6.0
+
