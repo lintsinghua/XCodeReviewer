@@ -12,7 +12,7 @@ import {
   AgentStreamState,
 } from '../shared/api/agentStream';
 
-export interface UseAgentStreamOptions extends Omit<StreamOptions, 'onEvent'> {
+export interface UseAgentStreamOptions extends StreamOptions {
   autoConnect?: boolean;
   maxEvents?: number;
 }
@@ -73,6 +73,10 @@ export function useAgentStream(
     ...callbackOptions
   } = options;
 
+  // 🔥 使用 ref 存储 callback options，避免 connect 函数依赖变化导致重连
+  const callbackOptionsRef = useRef(callbackOptions);
+  callbackOptionsRef.current = callbackOptions;
+
   // 状态
   const [events, setEvents] = useState<StreamEventData[]>([]);
   const [thinking, setThinking] = useState('');
@@ -115,8 +119,17 @@ export function useAgentStream(
       includeThinking,
       includeToolCalls,
       afterSequence,
-      
+
       onEvent: (event) => {
+        // Pass to custom callback first (important for capturing metadata like agent_name)
+        callbackOptionsRef.current.onEvent?.(event);
+
+        // 忽略 thinking 事件，防止污染日志列表 (它们会通过 onThinking* 回调单独处理)
+        if (
+          event.type === 'thinking_token' ||
+          event.type === 'thinking_start' ||
+          event.type === 'thinking_end'
+        ) return;
         setEvents((prev) => [...prev.slice(-maxEvents + 1), event]);
       },
 
@@ -124,20 +137,20 @@ export function useAgentStream(
         thinkingBufferRef.current = [];
         setIsThinking(true);
         setThinking('');
-        callbackOptions.onThinkingStart?.();
+        callbackOptionsRef.current.onThinkingStart?.();
       },
 
       onThinkingToken: (token, accumulated) => {
         thinkingBufferRef.current.push(token);
         setThinking(accumulated);
-        callbackOptions.onThinkingToken?.(token, accumulated);
+        callbackOptionsRef.current.onThinkingToken?.(token, accumulated);
       },
 
       onThinkingEnd: (response) => {
         setIsThinking(false);
         setThinking(response);
         thinkingBufferRef.current = [];
-        callbackOptions.onThinkingEnd?.(response);
+        callbackOptionsRef.current.onThinkingEnd?.(response);
       },
 
       onToolStart: (name, input) => {
@@ -145,7 +158,7 @@ export function useAgentStream(
           ...prev,
           { name, input, status: 'running' as const },
         ]);
-        callbackOptions.onToolStart?.(name, input);
+        callbackOptionsRef.current.onToolStart?.(name, input);
       },
 
       onToolEnd: (name, output, durationMs) => {
@@ -156,16 +169,16 @@ export function useAgentStream(
               : tc
           )
         );
-        callbackOptions.onToolEnd?.(name, output, durationMs);
+        callbackOptionsRef.current.onToolEnd?.(name, output, durationMs);
       },
 
       onNodeStart: (nodeName, phase) => {
         setCurrentPhase(phase);
-        callbackOptions.onNodeStart?.(nodeName, phase);
+        callbackOptionsRef.current.onNodeStart?.(nodeName, phase);
       },
 
       onNodeEnd: (nodeName, summary) => {
-        callbackOptions.onNodeEnd?.(nodeName, summary);
+        callbackOptionsRef.current.onNodeEnd?.(nodeName, summary);
       },
 
       onProgress: (current, total, message) => {
@@ -174,35 +187,35 @@ export function useAgentStream(
           total,
           percentage: total > 0 ? Math.round((current / total) * 100) : 0,
         });
-        callbackOptions.onProgress?.(current, total, message);
+        callbackOptionsRef.current.onProgress?.(current, total, message);
       },
 
       onFinding: (finding, isVerified) => {
         setFindings((prev) => [...prev, finding]);
-        callbackOptions.onFinding?.(finding, isVerified);
+        callbackOptionsRef.current.onFinding?.(finding, isVerified);
       },
 
       onComplete: (data) => {
         setIsComplete(true);
         setIsConnected(false);
-        callbackOptions.onComplete?.(data);
+        callbackOptionsRef.current.onComplete?.(data);
       },
 
       onError: (err) => {
         setError(err);
         setIsComplete(true);
         setIsConnected(false);
-        callbackOptions.onError?.(err);
+        callbackOptionsRef.current.onError?.(err);
       },
 
       onHeartbeat: () => {
-        callbackOptions.onHeartbeat?.();
+        callbackOptionsRef.current.onHeartbeat?.();
       },
     });
 
     handlerRef.current.connect();
     setIsConnected(true);
-  }, [taskId, includeThinking, includeToolCalls, afterSequence, maxEvents, callbackOptions]);
+  }, [taskId, includeThinking, includeToolCalls, afterSequence, maxEvents]); // 🔥 移除 callbackOptions 依赖
 
   // 断开连接
   const disconnect = useCallback(() => {
@@ -261,7 +274,7 @@ export function useAgentThinking(taskId: string | null) {
   const { thinking, isThinking, connect, disconnect } = useAgentStream(taskId, {
     includeToolCalls: false,
   });
-  
+
   return { thinking, isThinking, connect, disconnect };
 }
 
@@ -272,9 +285,8 @@ export function useAgentToolCalls(taskId: string | null) {
   const { toolCalls, connect, disconnect } = useAgentStream(taskId, {
     includeThinking: false,
   });
-  
+
   return { toolCalls, connect, disconnect };
 }
 
 export default useAgentStream;
-

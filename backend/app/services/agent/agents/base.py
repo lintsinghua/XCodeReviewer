@@ -409,17 +409,38 @@ class BaseAgent(ABC):
         """发射事件"""
         if self.event_emitter:
             from ..event_manager import AgentEventData
+            
+            # 准备 metadata
+            metadata = kwargs.get("metadata", {}) or {}
+            if "agent_name" not in metadata:
+                metadata["agent_name"] = self.name
+            
+            # 分离已知字段和未知字段
+            known_fields = {
+                "phase", "tool_name", "tool_input", "tool_output", 
+                "tool_duration_ms", "finding_id", "tokens_used"
+            }
+            
+            event_kwargs = {}
+            for k, v in kwargs.items():
+                if k in known_fields:
+                    event_kwargs[k] = v
+                elif k != "metadata":
+                    # 将未知字段放入 metadata
+                    metadata[k] = v
+            
             await self.event_emitter.emit(AgentEventData(
                 event_type=event_type,
                 message=message,
-                **kwargs
+                metadata=metadata,
+                **event_kwargs
             ))
     
     # ============ LLM 思考相关事件 ============
     
     async def emit_thinking(self, message: str):
         """发射 LLM 思考事件"""
-        await self.emit_event("thinking", f"[{self.name}] {message}")
+        await self.emit_event("thinking", message)
     
     async def emit_llm_start(self, iteration: int):
         """发射 LLM 开始思考事件"""
@@ -444,7 +465,7 @@ class BaseAgent(ABC):
     
     async def emit_thinking_start(self):
         """发射开始思考事件（流式输出用）"""
-        await self.emit_event("thinking_start", f"[{self.name}] 开始思考...")
+        await self.emit_event("thinking_start", "开始思考...")
     
     async def emit_thinking_token(self, token: str, accumulated: str):
         """发射思考 token 事件（流式输出用）"""
@@ -461,7 +482,7 @@ class BaseAgent(ABC):
         """发射思考结束事件（流式输出用）"""
         await self.emit_event(
             "thinking_end",
-            f"[{self.name}] 思考完成",
+            "思考完成",
             metadata={"accumulated": full_response}
         )
     
@@ -690,6 +711,9 @@ class BaseAgent(ABC):
                     token = chunk["content"]
                     accumulated = chunk["accumulated"]
                     await self.emit_thinking_token(token, accumulated)
+                    # 🔥 CRITICAL: 让出控制权给事件循环，让 SSE 有机会发送事件
+                    # 如果不这样做，所有 token 会在循环结束后一起发送
+                    await asyncio.sleep(0)
                     
                 elif chunk["type"] == "done":
                     accumulated = chunk["content"]

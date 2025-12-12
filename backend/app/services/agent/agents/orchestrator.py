@@ -421,6 +421,9 @@ class OrchestratorAgent(BaseAgent):
 ### 发现摘要
 """
                 for i, f in enumerate(findings[:10]):  # 最多显示 10 个
+                    if not isinstance(f, dict):
+                         continue
+                         
                     observation += f"""
 {i+1}. [{f.get('severity', 'unknown')}] {f.get('title', 'Unknown')}
    - 类型: {f.get('vulnerability_type', 'unknown')}
@@ -452,6 +455,9 @@ class OrchestratorAgent(BaseAgent):
         type_counts = {}
         
         for f in self._all_findings:
+            if not isinstance(f, dict):
+                continue
+                
             sev = f.get("severity", "low")
             severity_counts[sev] = severity_counts.get(sev, 0) + 1
             
@@ -475,7 +481,8 @@ class OrchestratorAgent(BaseAgent):
         
         summary += "\n### 详细列表\n"
         for i, f in enumerate(self._all_findings):
-            summary += f"{i+1}. [{f.get('severity')}] {f.get('title')} ({f.get('file_path')})\n"
+            if isinstance(f, dict):
+                summary += f"{i+1}. [{f.get('severity')}] {f.get('title')} ({f.get('file_path')})\n"
         
         return summary
     
@@ -484,8 +491,9 @@ class OrchestratorAgent(BaseAgent):
         severity_counts = {"critical": 0, "high": 0, "medium": 0, "low": 0}
         
         for f in self._all_findings:
-            sev = f.get("severity", "low")
-            severity_counts[sev] = severity_counts.get(sev, 0) + 1
+            if isinstance(f, dict):
+                sev = f.get("severity", "low")
+                severity_counts[sev] = severity_counts.get(sev, 0) + 1
         
         return {
             "total_findings": len(self._all_findings),

@@ -300,16 +300,19 @@ class EventManager:
         }
         
         # 保存到数据库（跳过高频事件如 thinking_token）
-        skip_db_events = {"thinking_token", "thinking_start", "thinking_end"}
+        skip_db_events = {"thinking_token"}
         if self.db_session_factory and event_type not in skip_db_events:
             try:
                 await self._save_event_to_db(event_data)
             except Exception as e:
                 logger.error(f"Failed to save event to database: {e}")
         
-        # 推送到队列
+        # 推送到队列（非阻塞）
         if task_id in self._event_queues:
-            await self._event_queues[task_id].put(event_data)
+            try:
+                self._event_queues[task_id].put_nowait(event_data)
+            except asyncio.QueueFull:
+                logger.warning(f"Event queue full for task {task_id}, dropping event: {event_type}")
         
         # 调用回调
         if task_id in self._event_callbacks:
@@ -348,9 +351,10 @@ class EventManager:
             await db.commit()
     
     def create_queue(self, task_id: str) -> asyncio.Queue:
-        """创建事件队列"""
+        """创建或获取事件队列"""
         if task_id not in self._event_queues:
-            self._event_queues[task_id] = asyncio.Queue()
+            # 🔥 使用较大的队列容量，缓存更多 token 事件
+            self._event_queues[task_id] = asyncio.Queue(maxsize=1000)
         return self._event_queues[task_id]
     
     def remove_queue(self, task_id: str):
@@ -398,13 +402,43 @@ class EventManager:
         task_id: str,
         after_sequence: int = 0,
     ) -> AsyncGenerator[Dict, None]:
-        """流式获取事件"""
-        queue = self.create_queue(task_id)
+        """流式获取事件
         
-        # 先发送历史事件
-        history = await self.get_events(task_id, after_sequence)
-        for event in history:
-            yield event
+        🔥 重要: 此方法会先排空队列中已缓存的事件（在 SSE 连接前产生的），
+        然后继续实时推送新事件。
+        """
+        # 获取现有队列（由 AgentRunner 在初始化时创建）
+        queue = self._event_queues.get(task_id)
+        
+        if not queue:
+            # 如果队列不存在，创建一个新的（回退逻辑）
+            queue = self.create_queue(task_id)
+            logger.warning(f"Queue not found for task {task_id}, created new one")
+        
+        # 🔥 先排空队列中已缓存的事件（这些是在 SSE 连接前产生的）
+        buffered_count = 0
+        while not queue.empty():
+            try:
+                buffered_event = queue.get_nowait()
+                buffered_count += 1
+                yield buffered_event
+                
+                # 🔥 为所有缓存事件添加延迟，确保不会一起输出
+                event_type = buffered_event.get("event_type")
+                if event_type == "thinking_token":
+                    await asyncio.sleep(0.015)  # 15ms for tokens
+                else:
+                    await asyncio.sleep(0.005)  # 5ms for other events
+                
+                # 检查是否是结束事件
+                if event_type in ["task_complete", "task_error", "task_cancel"]:
+                    logger.info(f"Task {task_id} already completed, sent {buffered_count} buffered events")
+                    return
+            except asyncio.QueueEmpty:
+                break
+        
+        if buffered_count > 0:
+            logger.info(f"Drained {buffered_count} buffered events for task {task_id}")
         
         # 然后实时推送新事件
         try:
@@ -412,6 +446,10 @@ class EventManager:
                 try:
                     event = await asyncio.wait_for(queue.get(), timeout=30)
                     yield event
+                    
+                    # 🔥 为 thinking_token 添加微延迟确保流式效果
+                    if event.get("event_type") == "thinking_token":
+                        await asyncio.sleep(0.01)  # 10ms
                     
                     # 检查是否是结束事件
                     if event.get("event_type") in ["task_complete", "task_error", "task_cancel"]:
@@ -421,8 +459,10 @@ class EventManager:
                     # 发送心跳
                     yield {"event_type": "heartbeat", "timestamp": datetime.now(timezone.utc).isoformat()}
                     
-        finally:
-            self.remove_queue(task_id)
+        except GeneratorExit:
+            # SSE 连接断开
+            logger.debug(f"SSE stream closed for task {task_id}")
+        # 🔥 不要移除队列，让 AgentRunner 管理队列的生命周期
     
     def create_emitter(self, task_id: str) -> AgentEventEmitter:
         """创建事件发射器"""

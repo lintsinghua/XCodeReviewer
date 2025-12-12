@@ -187,6 +187,10 @@ class AnalysisAgent(BaseAgent):
         thought_match = re.search(r'Thought:\s*(.*?)(?=Action:|Final Answer:|$)', response, re.DOTALL)
         if thought_match:
             step.thought = thought_match.group(1).strip()
+        elif not re.search(r'Action:|Final Answer:', response):
+             # 🔥 Fallback: If no markers found, treat the whole response as Thought
+             if response.strip():
+                 step.thought = response.strip()
         
         # 检查是否是最终答案
         final_match = re.search(r'Final Answer:\s*(.*?)$', response, re.DOTALL)
@@ -330,7 +334,17 @@ class AnalysisAgent(BaseAgent):
                     break
                 
                 self._total_tokens += tokens_this_round
-                
+
+                # 🔥 Handle empty LLM response to prevent loops
+                if not llm_output or not llm_output.strip():
+                    logger.warning(f"[{self.name}] Empty LLM response in iteration {self._iteration}")
+                    await self.emit_llm_decision("收到空响应", "LLM 返回内容为空，尝试重试通过提示")
+                    self._conversation_history.append({
+                        "role": "user",
+                        "content": "Received empty response. Please output your Thought and Action.",
+                    })
+                    continue
+
                 # 解析 LLM 响应
                 step = self._parse_llm_response(llm_output)
                 self._steps.append(step)
@@ -406,6 +420,11 @@ class AnalysisAgent(BaseAgent):
             # 标准化发现
             standardized_findings = []
             for finding in all_findings:
+                # 确保 finding 是字典
+                if not isinstance(finding, dict):
+                    logger.warning(f"Skipping invalid finding (not a dict): {finding}")
+                    continue
+                    
                 standardized = {
                     "vulnerability_type": finding.get("vulnerability_type", "other"),
                     "severity": finding.get("severity", "medium"),

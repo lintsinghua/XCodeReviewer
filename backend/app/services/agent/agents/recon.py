@@ -157,6 +157,11 @@ class ReconAgent(BaseAgent):
         thought_match = re.search(r'Thought:\s*(.*?)(?=Action:|Final Answer:|$)', response, re.DOTALL)
         if thought_match:
             step.thought = thought_match.group(1).strip()
+        elif not re.search(r'Action:|Final Answer:', response):
+             # 🔥 Fallback: If no markers found, treat the whole response as Thought
+             # This prevents empty steps loops "Decision: Continue Thinking"
+             if response.strip():
+                 step.thought = response.strip()
         
         # 检查是否是最终答案
         final_match = re.search(r'Final Answer:\s*(.*?)$', response, re.DOTALL)
@@ -170,6 +175,12 @@ class ReconAgent(BaseAgent):
                 answer_text, 
                 default={"raw_answer": answer_text}
             )
+            # 确保 findings 格式正确
+            if "initial_findings" in step.final_answer:
+                step.final_answer["initial_findings"] = [
+                    f for f in step.final_answer["initial_findings"] 
+                    if isinstance(f, dict)
+                ]
             return step
         
         # 提取 Action
@@ -256,6 +267,16 @@ class ReconAgent(BaseAgent):
                 
                 self._total_tokens += tokens_this_round
                 
+                # 🔥 Handle empty LLM response to prevent loops
+                if not llm_output or not llm_output.strip():
+                    logger.warning(f"[{self.name}] Empty LLM response in iteration {self._iteration}")
+                    await self.emit_llm_decision("收到空响应", "LLM 返回内容为空，尝试重试通过提示")
+                    self._conversation_history.append({
+                        "role": "user",
+                        "content": "Received empty response. Please output your Thought and Action.",
+                    })
+                    continue
+
                 # 解析 LLM 响应
                 step = self._parse_llm_response(llm_output)
                 self._steps.append(step)

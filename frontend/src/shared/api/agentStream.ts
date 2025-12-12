@@ -10,6 +10,7 @@
 // 事件类型定义
 export type StreamEventType =
   // LLM 相关
+  | 'thinking' // General thinking event
   | 'thinking_start'
   | 'thinking_token'
   | 'thinking_end'
@@ -19,6 +20,8 @@ export type StreamEventType =
   | 'tool_call_output'
   | 'tool_call_end'
   | 'tool_call_error'
+  | 'tool_call'      // Backend sends this
+  | 'tool_result'    // Backend sends this
   // 节点相关
   | 'node_start'
   | 'node_end'
@@ -69,6 +72,12 @@ export interface StreamEventData {
   error?: string;           // task_error
   findings_count?: number;  // task_complete
   security_score?: number;  // task_complete
+  // Backend tool event fields
+  tool_name?: string;       // tool_call, tool_result
+  tool_input?: Record<string, unknown>;  // tool_call
+  tool_output?: unknown;    // tool_result
+  tool_duration_ms?: number; // tool_result
+  agent_name?: string;      // Extracted from metadata
 }
 
 // 事件回调类型
@@ -191,19 +200,24 @@ export class AgentStreamHandler {
         }
 
         const { done, value } = await this.reader.read();
-        
+
         if (done) {
           break;
         }
 
         buffer += decoder.decode(value, { stream: true });
-        
+
         // 解析 SSE 事件
         const events = this.parseSSE(buffer);
         buffer = events.remaining;
-        
+
+        // 🔥 逐个处理事件，添加微延迟确保 React 能逐个渲染
         for (const event of events.parsed) {
           this.handleEvent(event);
+          // 为 thinking_token 添加微延迟确保打字效果
+          if (event.type === 'thinking_token') {
+            await new Promise(resolve => setTimeout(resolve, 5));
+          }
         }
       }
 
@@ -220,7 +234,7 @@ export class AgentStreamHandler {
 
       this.isConnected = false;
       console.error('Stream connection error:', error);
-      
+
       // 🔥 只有在未断开时才尝试重连
       if (!this.isDisconnecting && this.reconnectAttempts < this.maxReconnectAttempts) {
         this.reconnectAttempts++;
@@ -253,10 +267,10 @@ export class AgentStreamHandler {
     const lines = buffer.split('\n');
     let remaining = '';
     let currentEvent: Partial<StreamEventData> = {};
-    
+
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
-      
+
       // 空行表示事件结束
       if (line === '') {
         if (currentEvent.type) {
@@ -265,13 +279,13 @@ export class AgentStreamHandler {
         }
         continue;
       }
-      
+
       // 检查是否是最后一行（可能不完整）
       if (i === lines.length - 1 && !buffer.endsWith('\n')) {
         remaining = line;
         break;
       }
-      
+
       // 解析 event: 行
       if (line.startsWith('event:')) {
         currentEvent.type = line.slice(6).trim() as StreamEventType;
@@ -286,7 +300,7 @@ export class AgentStreamHandler {
         }
       }
     }
-    
+
     return { parsed, remaining };
   }
 
@@ -294,6 +308,11 @@ export class AgentStreamHandler {
    * 处理事件
    */
   private handleEvent(event: StreamEventData): void {
+    // Extract agent_name from metadata if present
+    if (event.metadata?.agent_name && !event.agent_name) {
+      event.agent_name = event.metadata.agent_name as string;
+    }
+
     // 通用回调
     this.options.onEvent?.(event);
 
@@ -304,19 +323,23 @@ export class AgentStreamHandler {
         this.thinkingBuffer = [];
         this.options.onThinkingStart?.();
         break;
-        
+
       case 'thinking_token':
-        if (event.token) {
-          this.thinkingBuffer.push(event.token);
+        // 兼容处理：token 可能在顶层，也可能在 metadata 中
+        const token = event.token || (event.metadata?.token as string);
+        const accumulated = event.accumulated || (event.metadata?.accumulated as string);
+
+        if (token) {
+          this.thinkingBuffer.push(token);
           this.options.onThinkingToken?.(
-            event.token,
-            event.accumulated || this.thinkingBuffer.join('')
+            token,
+            accumulated || this.thinkingBuffer.join('')
           );
         }
         break;
-        
+
       case 'thinking_end':
-        const fullResponse = event.accumulated || this.thinkingBuffer.join('');
+        const fullResponse = event.accumulated || (event.metadata?.accumulated as string) || this.thinkingBuffer.join('');
         this.thinkingBuffer = [];
         this.options.onThinkingEnd?.(fullResponse);
         break;
@@ -330,7 +353,7 @@ export class AgentStreamHandler {
           );
         }
         break;
-        
+
       case 'tool_call_end':
         if (event.tool) {
           this.options.onToolEnd?.(
@@ -341,6 +364,22 @@ export class AgentStreamHandler {
         }
         break;
 
+      // Alternative event names (backend sends these)
+      case 'tool_call':
+        this.options.onToolStart?.(
+          event.tool_name || 'unknown',
+          event.tool_input || {}
+        );
+        break;
+
+      case 'tool_result':
+        this.options.onToolEnd?.(
+          event.tool_name || 'unknown',
+          event.tool_output,
+          event.tool_duration_ms || 0
+        );
+        break;
+
       // 节点
       case 'node_start':
         this.options.onNodeStart?.(
@@ -348,7 +387,7 @@ export class AgentStreamHandler {
           event.phase || ''
         );
         break;
-        
+
       case 'node_end':
         this.options.onNodeEnd?.(
           event.metadata?.node as string || 'unknown',
@@ -407,13 +446,13 @@ export class AgentStreamHandler {
     // 🔥 标记正在断开，防止重连
     this.isDisconnecting = true;
     this.isConnected = false;
-    
+
     // 🔥 取消 fetch 请求
     if (this.abortController) {
       this.abortController.abort();
       this.abortController = null;
     }
-    
+
     // 🔥 清理 reader
     if (this.reader) {
       try {
@@ -424,13 +463,13 @@ export class AgentStreamHandler {
       }
       this.reader = null;
     }
-    
+
     // 清理 EventSource（如果使用）
     if (this.eventSource) {
       this.eventSource.close();
       this.eventSource = null;
     }
-    
+
     // 重置重连计数
     this.reconnectAttempts = 0;
   }
@@ -469,6 +508,7 @@ export interface AgentStreamState {
   events: StreamEventData[];
   thinking: string;
   isThinking: boolean;
+  thinkingAgent?: string; // Who is thinking
   toolCalls: Array<{
     name: string;
     input: Record<string, unknown>;
@@ -494,6 +534,7 @@ export function createAgentStreamWithState(
     events: [],
     thinking: '',
     isThinking: false,
+    thinkingAgent: undefined,
     toolCalls: [],
     currentPhase: '',
     progress: { current: 0, total: 100, percentage: 0 },
@@ -509,9 +550,16 @@ export function createAgentStreamWithState(
 
   return new AgentStreamHandler(taskId, {
     onEvent: (event) => {
-      updateState({
-        events: [...state.events, event].slice(-500), // 保留最近 500 条
-      });
+      const updates: Partial<AgentStreamState> = {
+        events: [...state.events, event].slice(-500),
+      };
+
+      // Update thinking agent if available
+      if (event.agent_name && (event.type === 'thinking' || event.type === 'thinking_start' || event.type === 'thinking_token')) {
+        updates.thinkingAgent = event.agent_name;
+      }
+
+      updateState(updates);
     },
     onThinkingStart: () => {
       updateState({ isThinking: true, thinking: '' });

@@ -72,6 +72,10 @@ class AgentRunner:
         self.event_manager = EventManager(db_session_factory=async_session_factory)
         self.event_emitter = AgentEventEmitter(task.id, self.event_manager)
         
+        # 🔥 CRITICAL: 立即创建事件队列，确保在 Agent 开始执行前队列就存在
+        # 这样即使前端 SSE 连接稍晚，token 事件也不会丢失
+        self.event_manager.create_queue(task.id)
+        
         # 🔥 LLM 服务 - 使用用户配置（从系统配置页面获取）
         self.llm_service = LLMService(user_config=self.user_config)
         
@@ -708,6 +712,11 @@ class AgentRunner:
         
         for finding in findings:
             try:
+                # 确保 finding 是字典
+                if not isinstance(finding, dict):
+                    logger.warning(f"Skipping invalid finding (not a dict): {finding}")
+                    continue
+                    
                 db_finding = AgentFinding(
                     id=str(uuid.uuid4()),
                     task_id=self.task.id,

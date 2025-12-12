@@ -601,25 +601,13 @@ async def stream_agent_with_thinking(
     增强版事件流 (SSE)
     
     支持:
-    - LLM 思考过程的 Token 级流式输出
+    - LLM 思考过程的 Token 级流式输出 (仅运行时)
     - 工具调用的详细输入/输出
     - 节点执行状态
     - 发现事件
     
-    事件类型:
-    - thinking_start: LLM 开始思考
-    - thinking_token: LLM 输出 Token
-    - thinking_end: LLM 思考结束
-    - tool_call_start: 工具调用开始
-    - tool_call_end: 工具调用结束
-    - node_start: 节点开始
-    - node_end: 节点结束
-    - finding_new: 新发现
-    - finding_verified: 验证通过
-    - progress: 进度更新
-    - task_complete: 任务完成
-    - task_error: 任务错误
-    - heartbeat: 心跳
+    优先使用内存中的事件队列 (支持 thinking_token)，
+    如果任务未在运行，则回退到数据库轮询 (不支持 thinking_token 复盘)。
     """
     task = await db.get(AgentTask, task_id)
     if not task:
@@ -629,119 +617,156 @@ async def stream_agent_with_thinking(
     if not project or project.owner_id != current_user.id:
         raise HTTPException(status_code=403, detail="无权访问此任务")
     
+    # 定义 SSE 格式化函数
+    def format_sse_event(event_data: Dict[str, Any]) -> str:
+        """格式化为 SSE 事件"""
+        event_type = event_data.get("event_type") or event_data.get("type")
+        
+        # 统一字段
+        if "type" not in event_data:
+            event_data["type"] = event_type
+            
+        return f"event: {event_type}\ndata: {json.dumps(event_data, ensure_ascii=False)}\n\n"
+
     async def enhanced_event_generator():
         """生成增强版 SSE 事件流"""
-        last_sequence = after_sequence
-        poll_interval = 0.3  # 更短的轮询间隔以支持流式
-        heartbeat_interval = 15  # 心跳间隔
-        max_idle = 600  # 10 分钟无事件后关闭
-        idle_time = 0
-        last_heartbeat = 0
+        # 1. 检查任务是否在运行中 (内存)
+        runner = _running_tasks.get(task_id)
         
-        # 事件类型过滤
-        skip_types = set()
-        if not include_thinking:
-            skip_types.update(["thinking_start", "thinking_token", "thinking_end"])
-        if not include_tool_calls:
-            skip_types.update(["tool_call_start", "tool_call_input", "tool_call_output", "tool_call_end"])
-        
-        while True:
+        if runner:
+            logger.info(f"Stream {task_id}: Using in-memory event manager")
             try:
-                async with async_session_factory() as session:
-                    # 查询新事件
-                    result = await session.execute(
-                        select(AgentEvent)
-                        .where(AgentEvent.task_id == task_id)
-                        .where(AgentEvent.sequence > last_sequence)
-                        .order_by(AgentEvent.sequence)
-                        .limit(100)
-                    )
-                    events = result.scalars().all()
+                # 使用 EventManager 的流式接口
+                # 过滤选项
+                skip_types = set()
+                if not include_thinking:
+                    skip_types.update(["thinking_start", "thinking_token", "thinking_end"])
+                if not include_tool_calls:
+                    skip_types.update(["tool_call_start", "tool_call_input", "tool_call_output", "tool_call_end"])
+                
+                async for event in runner.event_manager.stream_events(task_id, after_sequence=after_sequence):
+                    event_type = event.get("event_type")
                     
-                    # 获取任务状态
-                    current_task = await session.get(AgentTask, task_id)
-                    task_status = current_task.status if current_task else None
-                
-                if events:
-                    idle_time = 0
-                    for event in events:
-                        last_sequence = event.sequence
+                    if event_type in skip_types:
+                        continue
+                    
+                    # 🔥 Debug: 记录 thinking_token 事件
+                    if event_type == "thinking_token":
+                        token = event.get("metadata", {}).get("token", "")[:20]
+                        logger.debug(f"Stream {task_id}: Sending thinking_token: '{token}...'")
                         
-                        # 获取事件类型字符串（event_type 已经是字符串）
-                        event_type = str(event.event_type)
-                        
-                        # 过滤事件
-                        if event_type in skip_types:
-                            continue
-                        
-                        # 构建事件数据
-                        data = {
-                            "id": event.id,
-                            "type": event_type,
-                            "phase": str(event.phase) if event.phase else None,
-                            "message": event.message,
-                            "sequence": event.sequence,
-                            "timestamp": event.created_at.isoformat() if event.created_at else None,
-                        }
-                        
-                        # 添加工具调用详情
-                        if include_tool_calls and event.tool_name:
-                            data["tool"] = {
-                                "name": event.tool_name,
-                                "input": event.tool_input,
-                                "output": event.tool_output,
-                                "duration_ms": event.tool_duration_ms,
-                            }
-                        
-                        # 添加元数据
-                        if event.event_metadata:
-                            data["metadata"] = event.event_metadata
-                        
-                        # 添加 Token 使用
-                        if event.tokens_used:
-                            data["tokens_used"] = event.tokens_used
-                        
-                        # 使用标准 SSE 格式
-                        yield f"event: {event_type}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
-                else:
-                    idle_time += poll_interval
-                
-                # 检查任务是否结束
-                if task_status:
-                    status_str = str(task_status)
-                    if status_str in ["completed", "failed", "cancelled"]:
-                        end_data = {
-                            "type": "task_end",
-                            "status": status_str,
-                            "message": f"任务{'完成' if status_str == 'completed' else '结束'}",
-                        }
-                        yield f"event: task_end\ndata: {json.dumps(end_data, ensure_ascii=False)}\n\n"
-                        break
-                
-                # 发送心跳
-                last_heartbeat += poll_interval
-                if last_heartbeat >= heartbeat_interval:
-                    last_heartbeat = 0
-                    heartbeat_data = {
-                        "type": "heartbeat",
-                        "timestamp": datetime.now(timezone.utc).isoformat(),
-                        "last_sequence": last_sequence,
-                    }
-                    yield f"event: heartbeat\ndata: {json.dumps(heartbeat_data)}\n\n"
-                
-                # 检查空闲超时
-                if idle_time >= max_idle:
-                    timeout_data = {"type": "timeout", "message": "连接超时"}
-                    yield f"event: timeout\ndata: {json.dumps(timeout_data)}\n\n"
-                    break
-                
-                await asyncio.sleep(poll_interval)
-                
+                    # 格式化并 yield
+                    yield format_sse_event(event)
+                    
+                    # 🔥 CRITICAL: 为 thinking_token 添加微小延迟
+                    # 确保事件在不同的 TCP 包中发送，让前端能够逐个处理
+                    # 没有这个延迟，所有 token 会在一次 read() 中被接收，导致 React 批量更新
+                    if event_type == "thinking_token":
+                        await asyncio.sleep(0.01)  # 10ms 延迟
+                    
             except Exception as e:
-                logger.error(f"Stream error: {e}")
-                error_data = {"type": "error", "message": str(e)}
-                yield f"event: error\ndata: {json.dumps(error_data)}\n\n"
-                break
+                logger.error(f"In-memory stream error: {e}")
+                err_data = {"type": "error", "message": str(e)}
+                yield format_sse_event(err_data)
+                
+        else:
+            logger.info(f"Stream {task_id}: Task not running, falling back to DB polling")
+            # 2. 回退到数据库轮询 (无法获取 thinking_token)
+            last_sequence = after_sequence
+            poll_interval = 2.0  # 完成的任务轮询可以慢一点
+            heartbeat_interval = 15
+            max_idle = 60  # 1分钟无事件关闭
+            idle_time = 0
+            last_heartbeat = 0
+            
+            skip_types = set()
+            if not include_thinking:
+                skip_types.update(["thinking_start", "thinking_token", "thinking_end"])
+            
+            while True:
+                try:
+                    async with async_session_factory() as session:
+                        # 查询新事件
+                        result = await session.execute(
+                            select(AgentEvent)
+                            .where(AgentEvent.task_id == task_id)
+                            .where(AgentEvent.sequence > last_sequence)
+                            .order_by(AgentEvent.sequence)
+                            .limit(100)
+                        )
+                        events = result.scalars().all()
+                        
+                        # 获取任务状态
+                        current_task = await session.get(AgentTask, task_id)
+                        task_status = current_task.status if current_task else None
+                    
+                    if events:
+                        idle_time = 0
+                        for event in events:
+                            last_sequence = event.sequence
+                            event_type = str(event.event_type)
+                            
+                            if event_type in skip_types:
+                                continue
+                            
+                            # 构建数据
+                            data = {
+                                "id": event.id,
+                                "type": event_type,
+                                "phase": str(event.phase) if event.phase else None,
+                                "message": event.message,
+                                "sequence": event.sequence,
+                                "timestamp": event.created_at.isoformat() if event.created_at else None,
+                            }
+                            
+                            # 添加详情
+                            if include_tool_calls and event.tool_name:
+                                data["tool"] = {
+                                    "name": event.tool_name,
+                                    "input": event.tool_input,
+                                    "output": event.tool_output,
+                                    "duration_ms": event.tool_duration_ms,
+                                }
+                                
+                            if event.event_metadata:
+                                data["metadata"] = event.event_metadata
+                                
+                            if event.tokens_used:
+                                data["tokens_used"] = event.tokens_used
+                            
+                            yield format_sse_event(data)
+                    else:
+                        idle_time += poll_interval
+                        
+                        # 检查是否应该结束
+                        if task_status:
+                            status_str = str(task_status)
+                            # 如果任务已完成且没有新事件，结束流
+                            if status_str in ["completed", "failed", "cancelled"]:
+                                end_data = {
+                                    "type": "task_end",
+                                    "status": status_str,
+                                    "message": f"任务已{status_str}"
+                                }
+                                yield format_sse_event(end_data)
+                                break
+                    
+                    # 心跳
+                    last_heartbeat += poll_interval
+                    if last_heartbeat >= heartbeat_interval:
+                        last_heartbeat = 0
+                        yield format_sse_event({"type": "heartbeat", "timestamp": datetime.now(timezone.utc).isoformat()})
+                    
+                    # 超时
+                    if idle_time >= max_idle:
+                        break
+                    
+                    await asyncio.sleep(poll_interval)
+                    
+                except Exception as e:
+                    logger.error(f"DB poll stream error: {e}")
+                    yield format_sse_event({"type": "error", "message": str(e)})
+                    break
     
     return StreamingResponse(
         enhanced_event_generator(),
