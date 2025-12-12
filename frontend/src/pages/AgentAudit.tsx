@@ -49,21 +49,21 @@ interface LogItem {
  */
 function buildAgentTree(flatNodes: AgentTreeNode[]): AgentTreeNode[] {
   if (!flatNodes || flatNodes.length === 0) return [];
-  
+
   // 创建节点映射（使用 agent_id 作为 key）
   const nodeMap = new Map<string, AgentTreeNode>();
-  
+
   // 首先克隆所有节点并重置 children
   flatNodes.forEach(node => {
     nodeMap.set(node.agent_id, { ...node, children: [] });
   });
-  
+
   // 构建树结构
   const rootNodes: AgentTreeNode[] = [];
-  
+
   flatNodes.forEach(node => {
     const currentNode = nodeMap.get(node.agent_id)!;
-    
+
     if (node.parent_agent_id && nodeMap.has(node.parent_agent_id)) {
       // 有父节点，添加到父节点的 children
       const parentNode = nodeMap.get(node.parent_agent_id)!;
@@ -73,7 +73,7 @@ function buildAgentTree(flatNodes: AgentTreeNode[]): AgentTreeNode[] {
       rootNodes.push(currentNode);
     }
   });
-  
+
   return rootNodes;
 }
 
@@ -118,7 +118,7 @@ function SplashScreen({ onComplete }: { onComplete: () => void }) {
     <div className="h-screen bg-[#0a0a0f] flex items-center justify-center">
       <div className="text-center space-y-6">
         <pre className="text-primary font-mono text-xs sm:text-sm leading-tight select-none">
-{`
+          {`
  ██████╗ ███████╗███████╗██████╗  █████╗ ██╗   ██╗██████╗ ██╗████████╗
  ██╔══██╗██╔════╝██╔════╝██╔══██╗██╔══██╗██║   ██║██╔══██╗██║╚══██╔══╝
  ██║  ██║█████╗  █████╗  ██████╔╝███████║██║   ██║██║  ██║██║   ██║   
@@ -145,43 +145,43 @@ function SplashScreen({ onComplete }: { onComplete: () => void }) {
 }
 
 // Agent 树节点 - 增强版
-function AgentTreeNodeItem({ 
-  node, 
-  depth = 0, 
-  selectedId, 
-  onSelect 
-}: { 
-  node: AgentTreeNode; 
-  depth?: number; 
+function AgentTreeNodeItem({
+  node,
+  depth = 0,
+  selectedId,
+  onSelect
+}: {
+  node: AgentTreeNode;
+  depth?: number;
   selectedId: string | null;
   onSelect: (id: string) => void;
 }) {
   const [expanded, setExpanded] = useState(true);
   const hasChildren = node.children && node.children.length > 0;
   const isSelected = selectedId === node.agent_id;
-  
+
   // 状态图标和颜色
   const statusConfig: Record<string, { icon: React.ReactNode; color: string; animate?: boolean }> = {
-    running: { 
-      icon: <div className="w-2 h-2 rounded-full bg-green-400" />, 
+    running: {
+      icon: <div className="w-2 h-2 rounded-full bg-green-400" />,
       color: "text-green-400",
-      animate: true 
+      animate: true
     },
-    completed: { 
-      icon: <CheckCircle2 className="w-3 h-3" />, 
-      color: "text-green-400" 
+    completed: {
+      icon: <CheckCircle2 className="w-3 h-3" />,
+      color: "text-green-400"
     },
-    failed: { 
-      icon: <XCircle className="w-3 h-3" />, 
-      color: "text-red-400" 
+    failed: {
+      icon: <XCircle className="w-3 h-3" />,
+      color: "text-red-400"
     },
-    waiting: { 
-      icon: <Clock className="w-3 h-3" />, 
-      color: "text-yellow-400" 
+    waiting: {
+      icon: <Clock className="w-3 h-3" />,
+      color: "text-yellow-400"
     },
-    created: { 
-      icon: <div className="w-2 h-2 rounded-full bg-gray-500" />, 
-      color: "text-gray-400" 
+    created: {
+      icon: <div className="w-2 h-2 rounded-full bg-gray-500" />,
+      color: "text-gray-400"
     },
   };
 
@@ -207,30 +207,30 @@ function AgentTreeNodeItem({
         onClick={() => onSelect(node.agent_id)}
       >
         {hasChildren ? (
-          <button 
+          <button
             onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}
             className="hover:bg-white/10 rounded p-0.5"
           >
-            {expanded ? 
-              <ChevronDown className="w-3 h-3 text-gray-500" /> : 
+            {expanded ?
+              <ChevronDown className="w-3 h-3 text-gray-500" /> :
               <ChevronRight className="w-3 h-3 text-gray-500" />
             }
           </button>
         ) : <span className="w-4" />}
-        
+
         {/* 状态指示器 */}
         <span className={`${config.color} ${config.animate ? 'animate-pulse' : ''}`}>
           {config.icon}
         </span>
-        
+
         {/* Agent 类型图标 */}
         {typeIcons[node.agent_type] || <Bot className="w-3 h-3 text-gray-400" />}
-        
+
         {/* Agent 名称 */}
         <span className={`text-xs font-mono truncate flex-1 ${isSelected ? 'text-white font-semibold' : 'text-gray-300'}`}>
           {node.agent_name}
         </span>
-        
+
         {/* 发现数量 */}
         {node.findings_count > 0 && (
           <Badge className="h-4 px-1 text-[10px] bg-red-500/20 text-red-400 border-0">
@@ -238,13 +238,13 @@ function AgentTreeNodeItem({
           </Badge>
         )}
       </div>
-      
+
       {expanded && hasChildren && (
         <div className="border-l border-gray-800 ml-4">
           {node.children.map(child => (
-            <AgentTreeNodeItem 
-              key={child.agent_id} 
-              node={child} 
+            <AgentTreeNodeItem
+              key={child.agent_id}
+              node={child}
               depth={depth + 1}
               selectedId={selectedId}
               onSelect={onSelect}
@@ -262,48 +262,48 @@ function LogEntry({ item, isExpanded, onToggle }: {
   isExpanded: boolean;
   onToggle: () => void;
 }) {
-  const config: Record<string, { 
-    icon: React.ReactNode; 
+  const config: Record<string, {
+    icon: React.ReactNode;
     borderColor: string;
     bgColor: string;
   }> = {
-    thinking: { 
-      icon: <Brain className="w-4 h-4 text-purple-400" />, 
+    thinking: {
+      icon: <Brain className="w-4 h-4 text-purple-400" />,
       borderColor: "border-l-purple-500",
       bgColor: "bg-purple-950/20"
     },
-    tool: { 
-      icon: <Wrench className="w-4 h-4 text-amber-400" />, 
+    tool: {
+      icon: <Wrench className="w-4 h-4 text-amber-400" />,
       borderColor: "border-l-amber-500",
       bgColor: "bg-amber-950/20"
     },
-    phase: { 
-      icon: <Target className="w-4 h-4 text-cyan-400" />, 
+    phase: {
+      icon: <Target className="w-4 h-4 text-cyan-400" />,
       borderColor: "border-l-cyan-500",
       bgColor: "bg-cyan-950/20"
     },
-    finding: { 
-      icon: <Bug className="w-4 h-4 text-red-400" />, 
+    finding: {
+      icon: <Bug className="w-4 h-4 text-red-400" />,
       borderColor: "border-l-red-500",
       bgColor: "bg-red-950/20"
     },
-    dispatch: { 
-      icon: <Zap className="w-4 h-4 text-blue-400" />, 
+    dispatch: {
+      icon: <Zap className="w-4 h-4 text-blue-400" />,
       borderColor: "border-l-blue-500",
       bgColor: "bg-blue-950/20"
     },
-    info: { 
-      icon: <Terminal className="w-4 h-4 text-gray-400" />, 
+    info: {
+      icon: <Terminal className="w-4 h-4 text-gray-400" />,
       borderColor: "border-l-gray-600",
       bgColor: "bg-gray-900/30"
     },
-    error: { 
-      icon: <AlertTriangle className="w-4 h-4 text-red-500" />, 
+    error: {
+      icon: <AlertTriangle className="w-4 h-4 text-red-500" />,
       borderColor: "border-l-red-600",
       bgColor: "bg-red-950/30"
     },
-    user: { 
-      icon: <Shield className="w-4 h-4 text-blue-400" />, 
+    user: {
+      icon: <Shield className="w-4 h-4 text-blue-400" />,
       borderColor: "border-l-blue-500",
       bgColor: "bg-blue-950/20"
     },
@@ -327,26 +327,26 @@ function LogEntry({ item, isExpanded, onToggle }: {
         <div className="flex items-center gap-2 min-w-0 flex-1">
           {c.icon}
           <span className="text-xs text-gray-500 font-mono flex-shrink-0">{item.time}</span>
-          
+
           {!isThinking && (
             <span className="text-sm text-gray-200 truncate">{item.title}</span>
           )}
-          
+
           {item.isStreaming && (
             <span className="w-2 h-4 bg-purple-400 animate-pulse rounded-sm" />
           )}
-          
+
           {item.tool?.status === 'running' && (
             <Loader2 className="w-3 h-3 animate-spin text-amber-400 flex-shrink-0" />
           )}
-          
+
           {item.agentName && (
             <Badge variant="outline" className="h-5 px-1.5 text-[10px] uppercase tracking-wider border-gray-700 text-gray-400 flex-shrink-0">
               {item.agentName}
             </Badge>
           )}
         </div>
-        
+
         <div className="flex items-center gap-2 flex-shrink-0">
           {item.tool?.duration !== undefined && (
             <span className="text-xs text-gray-500 font-mono">{item.tool.duration}ms</span>
@@ -357,13 +357,13 @@ function LogEntry({ item, isExpanded, onToggle }: {
             </Badge>
           )}
           {isCollapsible && (
-            isExpanded ? 
-              <ChevronUp className="w-4 h-4 text-gray-500" /> : 
+            isExpanded ?
+              <ChevronUp className="w-4 h-4 text-gray-500" /> :
               <ChevronDown className="w-4 h-4 text-gray-500" />
           )}
         </div>
       </div>
-      
+
       {showContent && item.content && (
         <div className={`
           mt-2 text-sm whitespace-pre-wrap break-words
@@ -377,12 +377,12 @@ function LogEntry({ item, isExpanded, onToggle }: {
 }
 
 // 选中 Agent 详情面板
-function AgentDetailPanel({ 
-  agentId, 
-  treeNodes, 
-  onClose 
-}: { 
-  agentId: string; 
+function AgentDetailPanel({
+  agentId,
+  treeNodes,
+  onClose
+}: {
+  agentId: string;
   treeNodes: AgentTreeNode[];
   onClose: () => void;
 }) {
@@ -424,14 +424,14 @@ function AgentDetailPanel({
           {typeInfo.icon}
           <span className="text-sm font-bold text-white">{agent.agent_name}</span>
         </div>
-        <button 
+        <button
           onClick={onClose}
           className="text-gray-500 hover:text-white text-xs"
         >
           ✕
         </button>
       </div>
-      
+
       <div className="grid grid-cols-2 gap-2 text-xs">
         <div className="flex justify-between">
           <span className="text-gray-500">Type</span>
@@ -480,7 +480,7 @@ function AgentDetailPanel({
 // 实时统计面板 - 增强版
 function StatsPanel({ task, findings }: { task: AgentTask | null; findings: AgentFinding[] }) {
   if (!task) return null;
-  
+
   const severityCounts = {
     critical: findings.filter(f => f.severity === 'critical').length,
     high: findings.filter(f => f.severity === 'high').length,
@@ -496,7 +496,7 @@ function StatsPanel({ task, findings }: { task: AgentTask | null; findings: Agen
         <Activity className="w-4 h-4 text-primary" />
         <span className="font-bold uppercase tracking-wider">Live Stats</span>
       </div>
-      
+
       {/* 进度条 */}
       <div className="space-y-1">
         <div className="flex justify-between text-xs">
@@ -504,13 +504,13 @@ function StatsPanel({ task, findings }: { task: AgentTask | null; findings: Agen
           <span className="text-white font-mono">{task.progress_percentage?.toFixed(0) || 0}%</span>
         </div>
         <div className="h-1.5 bg-gray-800 rounded-full overflow-hidden">
-          <div 
+          <div
             className="h-full bg-primary transition-all duration-500 rounded-full"
             style={{ width: `${task.progress_percentage || 0}%` }}
           />
         </div>
       </div>
-      
+
       {/* 统计数据 */}
       <div className="grid grid-cols-2 gap-2 text-xs">
         <div className="flex justify-between">
@@ -568,11 +568,10 @@ function StatsPanel({ task, findings }: { task: AgentTask | null; findings: Agen
         <div className="pt-2 border-t border-gray-800">
           <div className="flex justify-between items-center">
             <span className="text-xs text-gray-500">Security Score</span>
-            <span className={`text-lg font-bold font-mono ${
-              task.security_score >= 80 ? 'text-green-400' :
+            <span className={`text-lg font-bold font-mono ${task.security_score >= 80 ? 'text-green-400' :
               task.security_score >= 60 ? 'text-yellow-400' :
-              'text-red-400'
-            }`}>
+                'text-red-400'
+              }`}>
               {task.security_score.toFixed(0)}
             </span>
           </div>
@@ -627,7 +626,8 @@ export default function AgentAuditPage() {
   const currentThinkingId = useRef<string | null>(null);
   const currentAgentName = useRef<string | null>(null);
 
-  const isRunning = task?.status === "running";
+  // 任务是否可取消（包括 pending 和 running 状态）
+  const isRunning = task?.status === "running" || task?.status === "pending";
   const isComplete = task?.status === "completed" || task?.status === "failed" || task?.status === "cancelled";
 
   // 构建 Agent 树结构（将扁平列表转换为树）
@@ -653,8 +653,8 @@ export default function AgentAuditPage() {
     };
     const selectedAgentName = findAgentName(treeNodes, selectedAgentId);
     if (!selectedAgentName) return logs;
-    
-    return logs.filter(log => 
+
+    return logs.filter(log =>
       log.agentName?.toLowerCase() === selectedAgentName.toLowerCase() ||
       log.agentName?.toLowerCase().includes(selectedAgentName.toLowerCase().split('_')[0])
     );
@@ -727,6 +727,36 @@ export default function AgentAuditPage() {
     }
   }, [taskId]);
 
+  // 🔥 Agent 树刷新防抖 ref
+  const agentTreeRefreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastAgentTreeRefreshTime = useRef<number>(0);
+
+  // 🔥 防抖刷新 Agent 树
+  const debouncedLoadAgentTree = useCallback(() => {
+    const now = Date.now();
+    const minInterval = 500; // 最小刷新间隔 500ms
+
+    // 清除之前的定时器
+    if (agentTreeRefreshTimer.current) {
+      clearTimeout(agentTreeRefreshTimer.current);
+    }
+
+    // 如果距离上次刷新不到 minInterval，延迟刷新
+    const timeSinceLastRefresh = now - lastAgentTreeRefreshTime.current;
+    if (timeSinceLastRefresh < minInterval) {
+      agentTreeRefreshTimer.current = setTimeout(() => {
+        lastAgentTreeRefreshTime.current = Date.now();
+        loadAgentTree();
+      }, minInterval - timeSinceLastRefresh);
+    } else {
+      // 立即刷新，但添加一个小延迟确保后端数据已更新
+      agentTreeRefreshTimer.current = setTimeout(() => {
+        lastAgentTreeRefreshTime.current = Date.now();
+        loadAgentTree();
+      }, 100);
+    }
+  }, [loadAgentTree]);
+
   // 流式事件处理
   const streamOptions = useMemo(() => ({
     includeThinking: true,
@@ -736,16 +766,19 @@ export default function AgentAuditPage() {
       if (event.metadata?.agent_name) {
         currentAgentName.current = event.metadata.agent_name;
       }
-      
-      // 处理 dispatch 事件
-      if (event.type === 'dispatch' || event.type === 'dispatch_complete') {
-        addLog({
-          type: 'dispatch',
-          title: event.message || `Agent dispatch: ${event.metadata?.agent || 'unknown'}`,
-          agentName: currentAgentName.current || undefined,
-        });
-        // 🔥 刷新 Agent 树，显示新创建的子 Agent
-        loadAgentTree();
+
+      // 🔥 处理 dispatch 相关事件 - 增加更多事件类型
+      const dispatchEvents = ['dispatch', 'dispatch_complete', 'node_start', 'phase_start'];
+      if (dispatchEvents.includes(event.type)) {
+        if (event.type === 'dispatch' || event.type === 'dispatch_complete') {
+          addLog({
+            type: 'dispatch',
+            title: event.message || `Agent dispatch: ${event.metadata?.agent || 'unknown'}`,
+            agentName: currentAgentName.current || undefined,
+          });
+        }
+        // 🔥 使用防抖刷新 Agent 树，显示新创建的子 Agent
+        debouncedLoadAgentTree();
       }
     },
     onThinkingStart: () => {
@@ -789,12 +822,12 @@ export default function AgentAuditPage() {
       if (currentThinkingId.current) {
         setLogs(prev => prev.map(log =>
           log.id === currentThinkingId.current
-            ? { 
-                ...log, 
-                title: cleanResponse.slice(0, 100) + (cleanResponse.length > 100 ? '...' : ''), 
-                content: cleanResponse, 
-                isStreaming: false 
-              }
+            ? {
+              ...log,
+              title: cleanResponse.slice(0, 100) + (cleanResponse.length > 100 ? '...' : ''),
+              content: cleanResponse,
+              isStreaming: false
+            }
             : log
         ));
         currentThinkingId.current = null;
@@ -819,9 +852,9 @@ export default function AgentAuditPage() {
       setLogs(prev => {
         let idx = -1;
         for (let i = prev.length - 1; i >= 0; i--) {
-          if (prev[i].type === 'tool' && prev[i].tool?.name === name && prev[i].tool?.status === 'running') { 
-            idx = i; 
-            break; 
+          if (prev[i].type === 'tool' && prev[i].tool?.name === name && prev[i].tool?.status === 'running') {
+            idx = i;
+            break;
           }
         }
         if (idx >= 0) {
@@ -859,7 +892,7 @@ export default function AgentAuditPage() {
     onError: (err: string) => {
       addLog({ type: 'error', title: `Error: ${err}` });
     },
-  }), [addLog, loadTask, loadFindings, loadAgentTree]);
+  }), [addLog, loadTask, loadFindings, loadAgentTree, debouncedLoadAgentTree]);
 
   const { connect: connectStream, disconnect: disconnectStream, isConnected } = useAgentStream(taskId || null, streamOptions);
 
@@ -871,7 +904,7 @@ export default function AgentAuditPage() {
     }
     setShowSplash(false);
     setIsLoading(true);
-    
+
     Promise.all([loadTask(), loadFindings(), loadAgentTree()])
       .finally(() => setIsLoading(false));
   }, [taskId, loadTask, loadFindings, loadAgentTree]);
@@ -885,10 +918,10 @@ export default function AgentAuditPage() {
     return () => disconnectStream();
   }, [taskId, task?.status, connectStream, disconnectStream, addLog]);
 
-  // 定期刷新 Agent 树
+  // 定期刷新 Agent 树 - 每 2 秒刷新一次
   useEffect(() => {
     if (!taskId || !isRunning) return;
-    const interval = setInterval(loadAgentTree, 3000);
+    const interval = setInterval(loadAgentTree, 2000);
     return () => clearInterval(interval);
   }, [taskId, isRunning, loadAgentTree]);
 
@@ -906,15 +939,30 @@ export default function AgentAuditPage() {
     }
   }, [logs, isAutoScroll]);
 
+  // 取消状态
+  const [isCancelling, setIsCancelling] = useState(false);
+
   // 取消任务
   const handleCancel = async () => {
-    if (!taskId) return;
+    if (!taskId || isCancelling) return;
+
+    setIsCancelling(true);
+    addLog({ type: 'info', title: '🛑 Requesting task cancellation...' });
+
     try {
       await cancelAgentTask(taskId);
-      toast.success("Task cancelled");
-      loadTask();
-    } catch {
-      toast.error("Failed to cancel task");
+      toast.success("Task cancellation requested");
+      addLog({ type: 'info', title: '🛑 Task cancellation confirmed' });
+      // 立即刷新任务状态
+      await loadTask();
+      // 断开流连接
+      disconnectStream();
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      toast.error(`Failed to cancel task: ${errorMessage}`);
+      addLog({ type: 'error', title: `Failed to cancel: ${errorMessage}` });
+    } finally {
+      setIsCancelling(false);
     }
   };
 
@@ -978,10 +1026,15 @@ export default function AgentAuditPage() {
               variant="ghost"
               size="sm"
               onClick={handleCancel}
-              className="text-red-400 hover:text-red-300 hover:bg-red-950/30"
+              disabled={isCancelling}
+              className="text-red-400 hover:text-red-300 hover:bg-red-950/30 disabled:opacity-50"
             >
-              <Square className="w-4 h-4 mr-1" />
-              Stop
+              {isCancelling ? (
+                <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+              ) : (
+                <Square className="w-4 h-4 mr-1" />
+              )}
+              {isCancelling ? 'Stopping...' : 'Stop'}
             </Button>
           )}
           <Button
@@ -1018,9 +1071,8 @@ export default function AgentAuditPage() {
             </div>
             <button
               onClick={() => setIsAutoScroll(!isAutoScroll)}
-              className={`text-xs px-2 py-1 rounded transition-colors ${
-                isAutoScroll ? 'bg-primary/20 text-primary' : 'text-gray-500 hover:text-gray-300'
-              }`}
+              className={`text-xs px-2 py-1 rounded transition-colors ${isAutoScroll ? 'bg-primary/20 text-primary' : 'text-gray-500 hover:text-gray-300'
+                }`}
             >
               Auto-scroll {isAutoScroll ? 'ON' : 'OFF'}
             </button>
@@ -1047,7 +1099,7 @@ export default function AgentAuditPage() {
                 {isRunning ? (
                   <span className="flex items-center gap-2">
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    {selectedAgentId && !showAllLogs 
+                    {selectedAgentId && !showAllLogs
                       ? 'Waiting for activity from selected agent...'
                       : 'Waiting for agent activity...'}
                   </span>
@@ -1152,8 +1204,8 @@ export default function AgentAuditPage() {
           <div className="flex-shrink-0 p-3 space-y-3">
             {/* 选中 Agent 详情 */}
             {selectedAgentId && !showAllLogs && (
-              <AgentDetailPanel 
-                agentId={selectedAgentId} 
+              <AgentDetailPanel
+                agentId={selectedAgentId}
                 treeNodes={treeNodes}
                 onClose={() => { setShowAllLogs(true); setSelectedAgentId(null); }}
               />
