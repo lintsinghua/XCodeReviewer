@@ -368,7 +368,7 @@ async def _execute_agent_task(task_id: str):
                 # 更新任务统计
                 task.status = AgentTaskStatus.COMPLETED
                 task.completed_at = datetime.now(timezone.utc)
-                task.current_phase = AgentTaskPhase.COMPLETED
+                task.current_phase = AgentTaskPhase.REPORTING
                 task.findings_count = len(findings)
                 task.total_iterations = result.iterations
                 task.tool_calls_count = result.tool_calls
