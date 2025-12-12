@@ -1,9 +1,15 @@
 """
 LiteLLM 统一适配器
 支持通过 LiteLLM 调用多个 LLM 提供商，使用统一的 OpenAI 兼容格式
+
+增强功能:
+- Prompt Caching: 为支持的 LLM（如 Claude）添加缓存标记
+- 智能重试: 指数退避重试策略
+- 流式输出: 支持逐 token 返回
 """
 
-from typing import Dict, Any, Optional
+import logging
+from typing import Dict, Any, Optional, List
 from ..base_adapter import BaseLLMAdapter
 from ..types import (
     LLMConfig,
@@ -14,6 +20,9 @@ from ..types import (
     LLMError,
     DEFAULT_BASE_URLS,
 )
+from ..prompt_cache import prompt_cache_manager, estimate_tokens
+
+logger = logging.getLogger(__name__)
 
 
 class LiteLLMAdapter(BaseLLMAdapter):
@@ -107,6 +116,25 @@ class LiteLLMAdapter(BaseLLMAdapter):
         
         # 构建消息
         messages = [{"role": msg.role, "content": msg.content} for msg in request.messages]
+        
+        # 🔥 Prompt Caching: 为支持的 LLM 添加缓存标记
+        cache_enabled = False
+        if self.config.provider == LLMProvider.CLAUDE:
+            # 估算系统提示词 token 数
+            system_tokens = 0
+            for msg in messages:
+                if msg.get("role") == "system":
+                    system_tokens += estimate_tokens(msg.get("content", ""))
+            
+            messages, cache_enabled = prompt_cache_manager.process_messages(
+                messages=messages,
+                model=self.config.model,
+                provider=self.config.provider.value,
+                system_prompt_tokens=system_tokens,
+            )
+            
+            if cache_enabled:
+                logger.debug(f"🔥 Prompt Caching enabled for {self.config.model}")
 
         # 构建请求参数
         kwargs: Dict[str, Any] = {
@@ -169,6 +197,14 @@ class LiteLLMAdapter(BaseLLMAdapter):
                 completion_tokens=response.usage.completion_tokens or 0,
                 total_tokens=response.usage.total_tokens or 0,
             )
+            
+            # 🔥 更新 Prompt Cache 统计
+            if cache_enabled and hasattr(response.usage, "cache_creation_input_tokens"):
+                prompt_cache_manager.update_stats(
+                    cache_creation_input_tokens=getattr(response.usage, "cache_creation_input_tokens", 0),
+                    cache_read_input_tokens=getattr(response.usage, "cache_read_input_tokens", 0),
+                    total_input_tokens=response.usage.prompt_tokens or 0,
+                )
 
         return LLMResponse(
             content=choice.message.content or "",

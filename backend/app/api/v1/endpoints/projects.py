@@ -676,14 +676,25 @@ async def get_project_branches(
     
     repo_type = project.repository_type or "other"
     
+    # 详细日志
+    print(f"[Branch] 项目: {project.name}, 类型: {repo_type}, URL: {project.repository_url}")
+    print(f"[Branch] GitHub Token: {'已配置' if github_token else '未配置'}, GitLab Token: {'已配置' if gitlab_token else '未配置'}")
+    
     try:
         if repo_type == "github":
+            if not github_token:
+                print("[Branch] 警告: GitHub Token 未配置，可能会遇到 API 限制")
             branches = await get_github_branches(project.repository_url, github_token)
         elif repo_type == "gitlab":
+            if not gitlab_token:
+                print("[Branch] 警告: GitLab Token 未配置，可能无法访问私有仓库")
             branches = await get_gitlab_branches(project.repository_url, gitlab_token)
         else:
             # 对于其他类型，返回默认分支
+            print(f"[Branch] 仓库类型 '{repo_type}' 不支持获取分支，返回默认分支")
             branches = [project.default_branch or "main"]
+        
+        print(f"[Branch] 成功获取 {len(branches)} 个分支")
         
         # 将默认分支放在第一位
         default_branch = project.default_branch or "main"
@@ -694,7 +705,8 @@ async def get_project_branches(
         return {"branches": branches, "default_branch": default_branch}
     
     except Exception as e:
-        print(f"获取分支列表失败: {e}")
+        error_msg = str(e)
+        print(f"[Branch] 获取分支列表失败: {error_msg}")
         # 返回默认分支作为后备
         return {
             "branches": [project.default_branch or "main"],

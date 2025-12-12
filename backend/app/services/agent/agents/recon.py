@@ -99,6 +99,12 @@ Final Answer: [JSON 格式的收集结果]
 4. 运行安全扫描发现初步问题
 5. 根据发现继续深入
 
+## 重要提示
+- 用户可能指定了特定的目标文件进行审计
+- 如果 list_files 显示"审计范围限定为 X 个指定文件"，说明只需要分析这些文件
+- 在这种情况下，直接读取和分析指定的文件，不要浪费时间遍历其他目录
+- 如果目录显示为空，可能是因为该目录不包含目标文件
+
 ## 重要原则
 1. **你是大脑** - 每一步都要思考，不要机械执行
 2. **动态调整** - 根据发现调整策略
@@ -216,13 +222,38 @@ class ReconAgent(BaseAgent):
         task = input_data.get("task", "")
         task_context = input_data.get("task_context", "")
         
+        # 🔥 获取目标文件列表
+        target_files = config.get("target_files", [])
+        exclude_patterns = config.get("exclude_patterns", [])
+        
         # 构建初始消息
         initial_message = f"""请开始收集项目信息。
 
 ## 项目基本信息
 - 名称: {project_info.get('name', 'unknown')}
 - 根目录: {project_info.get('root', '.')}
+- 文件数量: {project_info.get('file_count', 'unknown')}
 
+## 审计范围
+"""
+        # 🔥 如果指定了目标文件，明确告知 Agent
+        if target_files:
+            initial_message += f"""⚠️ **重要**: 用户指定了 {len(target_files)} 个目标文件进行审计：
+"""
+            for tf in target_files[:10]:
+                initial_message += f"- {tf}\n"
+            if len(target_files) > 10:
+                initial_message += f"- ... 还有 {len(target_files) - 10} 个文件\n"
+            initial_message += """
+请直接读取和分析这些指定的文件，不要浪费时间遍历其他目录。
+"""
+        else:
+            initial_message += "全项目审计（无特定文件限制）\n"
+        
+        if exclude_patterns:
+            initial_message += f"\n排除模式: {', '.join(exclude_patterns[:5])}\n"
+        
+        initial_message += f"""
 ## 任务上下文
 {task_context or task or '进行全面的信息收集，为安全审计做准备。'}
 
@@ -239,6 +270,7 @@ class ReconAgent(BaseAgent):
         
         self._steps = []
         final_result = None
+        error_message = None  # 🔥 跟踪错误信息
         
         await self.emit_thinking("Recon Agent 启动，LLM 开始自主收集信息...")
         
@@ -259,7 +291,7 @@ class ReconAgent(BaseAgent):
                     llm_output, tokens_this_round = await self.stream_llm_call(
                         self._conversation_history,
                         temperature=0.1,
-                        max_tokens=2048,
+                        max_tokens=4096,  # 🔥 增加到 4096，避免截断
                     )
                 except asyncio.CancelledError:
                     logger.info(f"[{self.name}] LLM call cancelled")
@@ -270,12 +302,21 @@ class ReconAgent(BaseAgent):
                 # 🔥 Handle empty LLM response to prevent loops
                 if not llm_output or not llm_output.strip():
                     logger.warning(f"[{self.name}] Empty LLM response in iteration {self._iteration}")
-                    await self.emit_llm_decision("收到空响应", "LLM 返回内容为空，尝试重试通过提示")
+                    empty_retry_count = getattr(self, '_empty_retry_count', 0) + 1
+                    self._empty_retry_count = empty_retry_count
+                    if empty_retry_count >= 3:
+                        logger.error(f"[{self.name}] Too many empty responses, stopping")
+                        error_message = "连续收到空响应，停止信息收集"
+                        await self.emit_event("error", error_message)
+                        break
                     self._conversation_history.append({
                         "role": "user",
                         "content": "Received empty response. Please output your Thought and Action.",
                     })
                     continue
+                
+                # 重置空响应计数器
+                self._empty_retry_count = 0
 
                 # 解析 LLM 响应
                 step = self._parse_llm_response(llm_output)
@@ -311,6 +352,11 @@ class ReconAgent(BaseAgent):
                         step.action_input or {}
                     )
                     
+                    # 🔥 工具执行后检查取消状态
+                    if self.is_cancelled:
+                        logger.info(f"[{self.name}] Cancelled after tool execution")
+                        break
+                    
                     step.observation = observation
                     
                     # 🔥 发射 LLM 观察事件
@@ -329,8 +375,83 @@ class ReconAgent(BaseAgent):
                         "content": "请继续，选择一个工具执行，或者如果信息收集完成，输出 Final Answer。",
                     })
             
+            # 🔥 如果循环结束但没有 final_result，强制 LLM 总结
+            if not final_result and not self.is_cancelled and not error_message:
+                await self.emit_thinking("📝 信息收集阶段结束，正在生成总结...")
+                
+                # 添加强制总结的提示
+                self._conversation_history.append({
+                    "role": "user",
+                    "content": """信息收集阶段已结束。请立即输出 Final Answer，总结你收集到的所有信息。
+
+请按以下 JSON 格式输出：
+```json
+{
+    "project_structure": {"directories": [...], "key_files": [...]},
+    "tech_stack": {"languages": [...], "frameworks": [...], "databases": [...]},
+    "entry_points": [{"type": "...", "file": "...", "description": "..."}],
+    "high_risk_areas": ["file1.py", "file2.js"],
+    "initial_findings": [{"title": "...", "description": "...", "file_path": "..."}],
+    "summary": "项目总结描述"
+}
+```
+
+Final Answer:""",
+                })
+                
+                try:
+                    summary_output, _ = await self.stream_llm_call(
+                        self._conversation_history,
+                        temperature=0.1,
+                        max_tokens=2048,
+                    )
+                    
+                    if summary_output and summary_output.strip():
+                        # 解析总结输出
+                        summary_text = summary_output.strip()
+                        summary_text = re.sub(r'```json\s*', '', summary_text)
+                        summary_text = re.sub(r'```\s*', '', summary_text)
+                        final_result = AgentJsonParser.parse(
+                            summary_text,
+                            default=self._summarize_from_steps()
+                        )
+                except Exception as e:
+                    logger.warning(f"[{self.name}] Failed to generate summary: {e}")
+            
             # 处理结果
             duration_ms = int((time.time() - start_time) * 1000)
+            
+            # 🔥 如果被取消，返回取消结果
+            if self.is_cancelled:
+                await self.emit_event(
+                    "info",
+                    f"🛑 Recon Agent 已取消: {self._iteration} 轮迭代"
+                )
+                return AgentResult(
+                    success=False,
+                    error="任务已取消",
+                    data=self._summarize_from_steps(),
+                    iterations=self._iteration,
+                    tool_calls=self._tool_calls,
+                    tokens_used=self._total_tokens,
+                    duration_ms=duration_ms,
+                )
+            
+            # 🔥 如果有错误，返回失败结果
+            if error_message:
+                await self.emit_event(
+                    "error",
+                    f"❌ Recon Agent 失败: {error_message}"
+                )
+                return AgentResult(
+                    success=False,
+                    error=error_message,
+                    data=self._summarize_from_steps(),
+                    iterations=self._iteration,
+                    tool_calls=self._tool_calls,
+                    tokens_used=self._total_tokens,
+                    duration_ms=duration_ms,
+                )
             
             # 如果没有最终结果，从历史中汇总
             if not final_result:
@@ -364,7 +485,7 @@ class ReconAgent(BaseAgent):
             return AgentResult(success=False, error=str(e))
     
     def _summarize_from_steps(self) -> Dict[str, Any]:
-        """从步骤中汇总结果"""
+        """从步骤中汇总结果 - 增强版，从 LLM 思考过程中提取更多信息"""
         # 默认结果结构
         result = {
             "project_structure": {},
@@ -377,34 +498,90 @@ class ReconAgent(BaseAgent):
             "high_risk_areas": [],
             "dependencies": {},
             "initial_findings": [],
+            "summary": "",  # 🔥 新增：汇总 LLM 的思考
         }
         
-        # 从步骤的观察结果中提取信息
+        # 🔥 收集所有 LLM 的思考内容
+        thoughts = []
+        
+        # 从步骤的观察结果和思考中提取信息
         for step in self._steps:
+            # 收集思考内容
+            if step.thought:
+                thoughts.append(step.thought)
+            
             if step.observation:
                 # 尝试从观察中识别技术栈等信息
                 obs_lower = step.observation.lower()
                 
-                if "package.json" in obs_lower:
+                # 识别语言
+                if "package.json" in obs_lower or ".js" in obs_lower or ".ts" in obs_lower:
                     result["tech_stack"]["languages"].append("JavaScript/TypeScript")
-                if "requirements.txt" in obs_lower or "setup.py" in obs_lower:
+                if "requirements.txt" in obs_lower or "setup.py" in obs_lower or ".py" in obs_lower:
                     result["tech_stack"]["languages"].append("Python")
-                if "go.mod" in obs_lower:
+                if "go.mod" in obs_lower or ".go" in obs_lower:
                     result["tech_stack"]["languages"].append("Go")
+                if "pom.xml" in obs_lower or ".java" in obs_lower:
+                    result["tech_stack"]["languages"].append("Java")
+                if ".php" in obs_lower:
+                    result["tech_stack"]["languages"].append("PHP")
+                if ".rb" in obs_lower or "gemfile" in obs_lower:
+                    result["tech_stack"]["languages"].append("Ruby")
                 
                 # 识别框架
                 if "react" in obs_lower:
                     result["tech_stack"]["frameworks"].append("React")
+                if "vue" in obs_lower:
+                    result["tech_stack"]["frameworks"].append("Vue")
+                if "angular" in obs_lower:
+                    result["tech_stack"]["frameworks"].append("Angular")
                 if "django" in obs_lower:
                     result["tech_stack"]["frameworks"].append("Django")
+                if "flask" in obs_lower:
+                    result["tech_stack"]["frameworks"].append("Flask")
                 if "fastapi" in obs_lower:
                     result["tech_stack"]["frameworks"].append("FastAPI")
                 if "express" in obs_lower:
                     result["tech_stack"]["frameworks"].append("Express")
+                if "spring" in obs_lower:
+                    result["tech_stack"]["frameworks"].append("Spring")
+                if "streamlit" in obs_lower:
+                    result["tech_stack"]["frameworks"].append("Streamlit")
+                
+                # 识别数据库
+                if "mysql" in obs_lower or "pymysql" in obs_lower:
+                    result["tech_stack"]["databases"].append("MySQL")
+                if "postgres" in obs_lower or "asyncpg" in obs_lower:
+                    result["tech_stack"]["databases"].append("PostgreSQL")
+                if "mongodb" in obs_lower or "pymongo" in obs_lower:
+                    result["tech_stack"]["databases"].append("MongoDB")
+                if "redis" in obs_lower:
+                    result["tech_stack"]["databases"].append("Redis")
+                if "sqlite" in obs_lower:
+                    result["tech_stack"]["databases"].append("SQLite")
+                
+                # 🔥 识别高风险区域（从观察中提取）
+                risk_keywords = ["api", "auth", "login", "password", "secret", "key", "token", 
+                               "admin", "upload", "download", "exec", "eval", "sql", "query"]
+                for keyword in risk_keywords:
+                    if keyword in obs_lower:
+                        # 尝试从观察中提取文件路径
+                        import re
+                        file_matches = re.findall(r'[\w/]+\.(?:py|js|ts|java|php|go|rb)', step.observation)
+                        for file_path in file_matches[:3]:  # 限制数量
+                            if file_path not in result["high_risk_areas"]:
+                                result["high_risk_areas"].append(file_path)
         
         # 去重
         result["tech_stack"]["languages"] = list(set(result["tech_stack"]["languages"]))
         result["tech_stack"]["frameworks"] = list(set(result["tech_stack"]["frameworks"]))
+        result["tech_stack"]["databases"] = list(set(result["tech_stack"]["databases"]))
+        result["high_risk_areas"] = list(set(result["high_risk_areas"]))[:20]  # 限制数量
+        
+        # 🔥 汇总 LLM 的思考作为 summary
+        if thoughts:
+            # 取最后几个思考作为总结
+            result["summary"] = "\n".join(thoughts[-3:])
         
         return result
     

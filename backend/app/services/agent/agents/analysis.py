@@ -46,8 +46,6 @@ ANALYSIS_SYSTEM_PROMPT = """你是 DeepAudit 的漏洞分析 Agent，一个**自
 ### 深度分析
 - **pattern_match**: 危险模式匹配
   参数: pattern (str), file_types (list)
-- **code_analysis**: LLM 深度代码分析 ⭐
-  参数: code (str), file_path (str), focus (str)
 - **dataflow_analysis**: 数据流追踪
   参数: source (str), sink (str)
 
@@ -114,7 +112,7 @@ Final Answer: [JSON 格式的漏洞报告]
 
 ## 分析策略建议
 1. **快速扫描**: 先用 semgrep_scan 获得概览
-2. **重点深入**: 对可疑文件使用 read_file + code_analysis
+2. **重点深入**: 对可疑文件使用 read_file + pattern_match
 3. **模式搜索**: 用 search_code 找危险模式 (eval, exec, query 等)
 4. **语义搜索**: 用 RAG 找相似的漏洞模式
 5. **数据流**: 用 dataflow_analysis 追踪用户输入
@@ -268,6 +266,9 @@ class AnalysisAgent(BaseAgent):
         # 🔥 构建包含交接上下文的初始消息
         handoff_context = self.get_handoff_context()
         
+        # 🔥 获取目标文件列表
+        target_files = config.get("target_files", [])
+        
         initial_message = f"""请开始对项目进行安全漏洞分析。
 
 ## 项目信息
@@ -275,7 +276,22 @@ class AnalysisAgent(BaseAgent):
 - 语言: {tech_stack.get('languages', [])}
 - 框架: {tech_stack.get('frameworks', [])}
 
-{handoff_context if handoff_context else f'''## 上下文信息
+"""
+        # 🔥 如果指定了目标文件，明确告知 Agent
+        if target_files:
+            initial_message += f"""## ⚠️ 审计范围
+用户指定了 {len(target_files)} 个目标文件进行审计：
+"""
+            for tf in target_files[:10]:
+                initial_message += f"- {tf}\n"
+            if len(target_files) > 10:
+                initial_message += f"- ... 还有 {len(target_files) - 10} 个文件\n"
+            initial_message += """
+请直接分析这些指定的文件，不要分析其他文件。
+
+"""
+        
+        initial_message += f"""{handoff_context if handoff_context else f'''## 上下文信息
 ### 高风险区域
 {json.dumps(high_risk_areas[:20], ensure_ascii=False)}
 
@@ -307,6 +323,7 @@ class AnalysisAgent(BaseAgent):
         
         self._steps = []
         all_findings = []
+        error_message = None  # 🔥 跟踪错误信息
         
         await self.emit_thinking("🔬 Analysis Agent 启动，LLM 开始自主安全分析...")
         
@@ -323,11 +340,12 @@ class AnalysisAgent(BaseAgent):
                     break
                 
                 # 调用 LLM 进行思考和决策（流式输出）
+                # 🔥 增加 max_tokens 到 4096，避免长输出被截断
                 try:
                     llm_output, tokens_this_round = await self.stream_llm_call(
                         self._conversation_history,
                         temperature=0.1,
-                        max_tokens=2048,
+                        max_tokens=4096,
                     )
                 except asyncio.CancelledError:
                     logger.info(f"[{self.name}] LLM call cancelled")
@@ -338,12 +356,21 @@ class AnalysisAgent(BaseAgent):
                 # 🔥 Handle empty LLM response to prevent loops
                 if not llm_output or not llm_output.strip():
                     logger.warning(f"[{self.name}] Empty LLM response in iteration {self._iteration}")
-                    await self.emit_llm_decision("收到空响应", "LLM 返回内容为空，尝试重试通过提示")
+                    empty_retry_count = getattr(self, '_empty_retry_count', 0) + 1
+                    self._empty_retry_count = empty_retry_count
+                    if empty_retry_count >= 3:
+                        logger.error(f"[{self.name}] Too many empty responses, stopping")
+                        error_message = "连续收到空响应，停止分析"
+                        await self.emit_event("error", error_message)
+                        break
                     self._conversation_history.append({
                         "role": "user",
                         "content": "Received empty response. Please output your Thought and Action.",
                     })
                     continue
+                
+                # 重置空响应计数器
+                self._empty_retry_count = 0
 
                 # 解析 LLM 响应
                 step = self._parse_llm_response(llm_output)
@@ -396,6 +423,11 @@ class AnalysisAgent(BaseAgent):
                         step.action_input or {}
                     )
                     
+                    # 🔥 工具执行后检查取消状态
+                    if self.is_cancelled:
+                        logger.info(f"[{self.name}] Cancelled after tool execution")
+                        break
+                    
                     step.observation = observation
                     
                     # 🔥 发射 LLM 观察事件
@@ -414,8 +446,95 @@ class AnalysisAgent(BaseAgent):
                         "content": "请继续分析。选择一个工具执行，或者如果分析完成，输出 Final Answer 汇总所有发现。",
                     })
             
+            # 🔥 如果循环结束但没有发现，强制 LLM 总结
+            if not all_findings and not self.is_cancelled and not error_message:
+                await self.emit_thinking("📝 分析阶段结束，正在生成漏洞总结...")
+                
+                # 添加强制总结的提示
+                self._conversation_history.append({
+                    "role": "user",
+                    "content": """分析阶段已结束。请立即输出 Final Answer，总结你发现的所有安全问题。
+
+即使没有发现严重漏洞，也请总结你的分析过程和观察到的潜在风险点。
+
+请按以下 JSON 格式输出：
+```json
+{
+    "findings": [
+        {
+            "vulnerability_type": "sql_injection|xss|command_injection|path_traversal|ssrf|hardcoded_secret|other",
+            "severity": "critical|high|medium|low",
+            "title": "漏洞标题",
+            "description": "详细描述",
+            "file_path": "文件路径",
+            "line_start": 行号,
+            "code_snippet": "相关代码片段",
+            "suggestion": "修复建议"
+        }
+    ],
+    "summary": "分析总结"
+}
+```
+
+Final Answer:""",
+                })
+                
+                try:
+                    summary_output, _ = await self.stream_llm_call(
+                        self._conversation_history,
+                        temperature=0.1,
+                        max_tokens=4096,
+                    )
+                    
+                    if summary_output and summary_output.strip():
+                        # 解析总结输出
+                        import re
+                        summary_text = summary_output.strip()
+                        summary_text = re.sub(r'```json\s*', '', summary_text)
+                        summary_text = re.sub(r'```\s*', '', summary_text)
+                        parsed_result = AgentJsonParser.parse(
+                            summary_text,
+                            default={"findings": [], "summary": ""}
+                        )
+                        if "findings" in parsed_result:
+                            all_findings = parsed_result["findings"]
+                except Exception as e:
+                    logger.warning(f"[{self.name}] Failed to generate summary: {e}")
+            
             # 处理结果
             duration_ms = int((time.time() - start_time) * 1000)
+            
+            # 🔥 如果被取消，返回取消结果
+            if self.is_cancelled:
+                await self.emit_event(
+                    "info",
+                    f"🛑 Analysis Agent 已取消: {len(all_findings)} 个发现, {self._iteration} 轮迭代"
+                )
+                return AgentResult(
+                    success=False,
+                    error="任务已取消",
+                    data={"findings": all_findings},
+                    iterations=self._iteration,
+                    tool_calls=self._tool_calls,
+                    tokens_used=self._total_tokens,
+                    duration_ms=duration_ms,
+                )
+            
+            # 🔥 如果有错误，返回失败结果
+            if error_message:
+                await self.emit_event(
+                    "error",
+                    f"❌ Analysis Agent 失败: {error_message}"
+                )
+                return AgentResult(
+                    success=False,
+                    error=error_message,
+                    data={"findings": all_findings},
+                    iterations=self._iteration,
+                    tool_calls=self._tool_calls,
+                    tokens_used=self._total_tokens,
+                    duration_ms=duration_ms,
+                )
             
             # 标准化发现
             standardized_findings = []

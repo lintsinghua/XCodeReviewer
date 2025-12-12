@@ -4,10 +4,13 @@
 """
 
 import json
+import logging
 from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, Field
 
 from .base import AgentTool, ToolResult
+
+logger = logging.getLogger(__name__)
 
 
 class CodeAnalysisInput(BaseModel):
@@ -155,6 +158,12 @@ class CodeAnalysisTool(AgentTool):
             )
             
         except Exception as e:
+            import traceback
+            logger.error(f"代码分析失败: {e}")
+            logger.error(f"LLM Provider: {self.llm_service.config.provider.value if self.llm_service.config else 'N/A'}")
+            logger.error(f"LLM Model: {self.llm_service.config.model if self.llm_service.config else 'N/A'}")
+            logger.error(f"API Key 前缀: {self.llm_service.config.api_key[:10] + '...' if self.llm_service.config and self.llm_service.config.api_key else 'N/A'}")
+            logger.error(traceback.format_exc())
             return ToolResult(
                 success=False,
                 error=f"代码分析失败: {str(e)}",

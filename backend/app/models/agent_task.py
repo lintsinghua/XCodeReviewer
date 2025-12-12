@@ -442,3 +442,141 @@ class AgentFinding(Base):
             "ai_confidence": self.ai_confidence,
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }
+
+
+class AgentCheckpoint(Base):
+    """
+    Agent 检查点
+    
+    用于持久化 Agent 状态，支持：
+    - 任务恢复
+    - 状态回滚
+    - 执行历史追踪
+    """
+    __tablename__ = "agent_checkpoints"
+    
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    task_id = Column(String(36), ForeignKey("agent_tasks.id", ondelete="CASCADE"), nullable=False, index=True)
+    
+    # Agent 信息
+    agent_id = Column(String(50), nullable=False, index=True)
+    agent_name = Column(String(255), nullable=False)
+    agent_type = Column(String(50), nullable=False)
+    parent_agent_id = Column(String(50), nullable=True)
+    
+    # 状态数据（JSON 序列化的 AgentState）
+    state_data = Column(Text, nullable=False)
+    
+    # 执行状态
+    iteration = Column(Integer, default=0)
+    status = Column(String(30), nullable=False)
+    
+    # 统计信息
+    total_tokens = Column(Integer, default=0)
+    tool_calls = Column(Integer, default=0)
+    findings_count = Column(Integer, default=0)
+    
+    # 检查点类型
+    checkpoint_type = Column(String(30), default="auto")  # auto, manual, error, final
+    checkpoint_name = Column(String(255), nullable=True)
+    
+    # 元数据
+    checkpoint_metadata = Column(JSON, nullable=True)
+    
+    # 时间戳
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+    
+    def __repr__(self):
+        return f"<AgentCheckpoint {self.agent_id} - iter {self.iteration}>"
+    
+    def to_dict(self) -> dict:
+        """转换为字典"""
+        return {
+            "id": self.id,
+            "task_id": self.task_id,
+            "agent_id": self.agent_id,
+            "agent_name": self.agent_name,
+            "agent_type": self.agent_type,
+            "parent_agent_id": self.parent_agent_id,
+            "iteration": self.iteration,
+            "status": self.status,
+            "total_tokens": self.total_tokens,
+            "tool_calls": self.tool_calls,
+            "findings_count": self.findings_count,
+            "checkpoint_type": self.checkpoint_type,
+            "checkpoint_name": self.checkpoint_name,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
+
+
+class AgentTreeNode(Base):
+    """
+    Agent 树节点
+    
+    记录动态 Agent 树的结构，用于：
+    - 可视化 Agent 树
+    - 追踪 Agent 间关系
+    - 分析执行流程
+    """
+    __tablename__ = "agent_tree_nodes"
+    
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    task_id = Column(String(36), ForeignKey("agent_tasks.id", ondelete="CASCADE"), nullable=False, index=True)
+    
+    # Agent 信息
+    agent_id = Column(String(50), nullable=False, unique=True, index=True)
+    agent_name = Column(String(255), nullable=False)
+    agent_type = Column(String(50), nullable=False)
+    
+    # 树结构
+    parent_agent_id = Column(String(50), nullable=True, index=True)
+    depth = Column(Integer, default=0)  # 树深度
+    
+    # 任务信息
+    task_description = Column(Text, nullable=True)
+    knowledge_modules = Column(JSON, nullable=True)
+    
+    # 执行状态
+    status = Column(String(30), default="created")
+    
+    # 执行结果
+    result_summary = Column(Text, nullable=True)
+    findings_count = Column(Integer, default=0)
+    
+    # 统计
+    iterations = Column(Integer, default=0)
+    tokens_used = Column(Integer, default=0)
+    tool_calls = Column(Integer, default=0)
+    duration_ms = Column(Integer, nullable=True)
+    
+    # 时间戳
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    started_at = Column(DateTime(timezone=True), nullable=True)
+    finished_at = Column(DateTime(timezone=True), nullable=True)
+    
+    def __repr__(self):
+        return f"<AgentTreeNode {self.agent_name} ({self.agent_id})>"
+    
+    def to_dict(self) -> dict:
+        """转换为字典"""
+        return {
+            "id": self.id,
+            "task_id": self.task_id,
+            "agent_id": self.agent_id,
+            "agent_name": self.agent_name,
+            "agent_type": self.agent_type,
+            "parent_agent_id": self.parent_agent_id,
+            "depth": self.depth,
+            "task_description": self.task_description,
+            "knowledge_modules": self.knowledge_modules,
+            "status": self.status,
+            "result_summary": self.result_summary,
+            "findings_count": self.findings_count,
+            "iterations": self.iterations,
+            "tokens_used": self.tokens_used,
+            "tool_calls": self.tool_calls,
+            "duration_ms": self.duration_ms,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "started_at": self.started_at.isoformat() if self.started_at else None,
+            "finished_at": self.finished_at.isoformat() if self.finished_at else None,
+        }

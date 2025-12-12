@@ -16,7 +16,8 @@ import {
     Github,
     UserCircle,
     Shield,
-    MessageSquare
+    MessageSquare,
+    Bot
 } from "lucide-react";
 import routes from "@/app/routes";
 import { version } from "../../../package.json";
@@ -27,6 +28,7 @@ const routeIcons: Record<string, React.ReactNode> = {
     "/projects": <FolderGit2 className="w-5 h-5" />,
     "/instant-analysis": <Zap className="w-5 h-5" />,
     "/audit-tasks": <ListTodo className="w-5 h-5" />,
+    "/agent-audit": <Bot className="w-5 h-5" />,
     "/audit-rules": <Shield className="w-5 h-5" />,
     "/prompts": <MessageSquare className="w-5 h-5" />,
     "/admin": <Settings className="w-5 h-5" />,

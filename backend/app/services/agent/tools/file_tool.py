@@ -26,15 +26,24 @@ class FileReadTool(AgentTool):
     读取项目中的文件内容
     """
     
-    def __init__(self, project_root: str):
+    def __init__(
+        self, 
+        project_root: str,
+        exclude_patterns: Optional[List[str]] = None,
+        target_files: Optional[List[str]] = None,
+    ):
         """
         初始化文件读取工具
         
         Args:
             project_root: 项目根目录
+            exclude_patterns: 排除模式列表
+            target_files: 目标文件列表（如果指定，只允许读取这些文件）
         """
         super().__init__()
         self.project_root = project_root
+        self.exclude_patterns = exclude_patterns or []
+        self.target_files = set(target_files) if target_files else None
     
     @property
     def name(self) -> str:
@@ -61,6 +70,22 @@ class FileReadTool(AgentTool):
     def args_schema(self):
         return FileReadInput
     
+    def _should_exclude(self, file_path: str) -> bool:
+        """检查文件是否应该被排除"""
+        # 如果指定了目标文件，只允许读取这些文件
+        if self.target_files and file_path not in self.target_files:
+            return True
+        
+        # 检查排除模式
+        for pattern in self.exclude_patterns:
+            if fnmatch.fnmatch(file_path, pattern):
+                return True
+            # 也检查文件名
+            if fnmatch.fnmatch(os.path.basename(file_path), pattern):
+                return True
+        
+        return False
+    
     async def _execute(
         self,
         file_path: str,
@@ -71,6 +96,13 @@ class FileReadTool(AgentTool):
     ) -> ToolResult:
         """执行文件读取"""
         try:
+            # 检查是否被排除
+            if self._should_exclude(file_path):
+                return ToolResult(
+                    success=False,
+                    error=f"文件被排除或不在目标文件列表中: {file_path}",
+                )
+            
             # 安全检查：防止路径遍历
             full_path = os.path.normpath(os.path.join(self.project_root, file_path))
             if not full_path.startswith(os.path.normpath(self.project_root)):
@@ -178,15 +210,30 @@ class FileSearchTool(AgentTool):
     """
     
     # 排除的目录
-    EXCLUDE_DIRS = {
+    DEFAULT_EXCLUDE_DIRS = {
         "node_modules", "vendor", "dist", "build", ".git",
         "__pycache__", ".pytest_cache", "coverage", ".nyc_output",
         ".vscode", ".idea", ".vs", "target", "venv", "env",
     }
     
-    def __init__(self, project_root: str):
+    def __init__(
+        self, 
+        project_root: str,
+        exclude_patterns: Optional[List[str]] = None,
+        target_files: Optional[List[str]] = None,
+    ):
         super().__init__()
         self.project_root = project_root
+        self.exclude_patterns = exclude_patterns or []
+        self.target_files = set(target_files) if target_files else None
+        
+        # 从 exclude_patterns 中提取目录排除
+        self.exclude_dirs = set(self.DEFAULT_EXCLUDE_DIRS)
+        for pattern in self.exclude_patterns:
+            if pattern.endswith("/**"):
+                self.exclude_dirs.add(pattern[:-3])
+            elif "/" not in pattern and "*" not in pattern:
+                self.exclude_dirs.add(pattern)
     
     @property
     def name(self) -> str:
@@ -256,7 +303,7 @@ class FileSearchTool(AgentTool):
             # 遍历文件
             for root, dirs, files in os.walk(search_dir):
                 # 排除目录
-                dirs[:] = [d for d in dirs if d not in self.EXCLUDE_DIRS]
+                dirs[:] = [d for d in dirs if d not in self.exclude_dirs]
                 
                 for filename in files:
                     # 检查文件模式
@@ -265,6 +312,19 @@ class FileSearchTool(AgentTool):
                     
                     file_path = os.path.join(root, filename)
                     relative_path = os.path.relpath(file_path, self.project_root)
+                    
+                    # 检查是否在目标文件列表中
+                    if self.target_files and relative_path not in self.target_files:
+                        continue
+                    
+                    # 检查排除模式
+                    should_skip = False
+                    for excl_pattern in self.exclude_patterns:
+                        if fnmatch.fnmatch(relative_path, excl_pattern) or fnmatch.fnmatch(filename, excl_pattern):
+                            should_skip = True
+                            break
+                    if should_skip:
+                        continue
                     
                     try:
                         with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
@@ -351,14 +411,30 @@ class ListFilesTool(AgentTool):
     列出目录中的文件
     """
     
-    EXCLUDE_DIRS = {
+    DEFAULT_EXCLUDE_DIRS = {
         "node_modules", "vendor", "dist", "build", ".git",
         "__pycache__", ".pytest_cache", "coverage",
     }
     
-    def __init__(self, project_root: str):
+    def __init__(
+        self, 
+        project_root: str,
+        exclude_patterns: Optional[List[str]] = None,
+        target_files: Optional[List[str]] = None,
+    ):
         super().__init__()
         self.project_root = project_root
+        self.exclude_patterns = exclude_patterns or []
+        self.target_files = set(target_files) if target_files else None
+        
+        # 从 exclude_patterns 中提取目录排除
+        self.exclude_dirs = set(self.DEFAULT_EXCLUDE_DIRS)
+        for pattern in self.exclude_patterns:
+            # 如果是目录模式（如 node_modules/**），提取目录名
+            if pattern.endswith("/**"):
+                self.exclude_dirs.add(pattern[:-3])
+            elif "/" not in pattern and "*" not in pattern:
+                self.exclude_dirs.add(pattern)
     
     @property
     def name(self) -> str:
@@ -412,7 +488,7 @@ class ListFilesTool(AgentTool):
             if recursive:
                 for root, dirnames, filenames in os.walk(target_dir):
                     # 排除目录
-                    dirnames[:] = [d for d in dirnames if d not in self.EXCLUDE_DIRS]
+                    dirnames[:] = [d for d in dirnames if d not in self.exclude_dirs]
                     
                     for filename in filenames:
                         if pattern and not fnmatch.fnmatch(filename, pattern):
@@ -420,6 +496,20 @@ class ListFilesTool(AgentTool):
                         
                         full_path = os.path.join(root, filename)
                         relative_path = os.path.relpath(full_path, self.project_root)
+                        
+                        # 检查是否在目标文件列表中
+                        if self.target_files and relative_path not in self.target_files:
+                            continue
+                        
+                        # 检查排除模式
+                        should_skip = False
+                        for excl_pattern in self.exclude_patterns:
+                            if fnmatch.fnmatch(relative_path, excl_pattern) or fnmatch.fnmatch(filename, excl_pattern):
+                                should_skip = True
+                                break
+                        if should_skip:
+                            continue
+                        
                         files.append(relative_path)
                         
                         if len(files) >= max_files:
@@ -428,25 +518,77 @@ class ListFilesTool(AgentTool):
                     if len(files) >= max_files:
                         break
             else:
-                for item in os.listdir(target_dir):
-                    if item in self.EXCLUDE_DIRS:
-                        continue
+                # 🔥 如果设置了 target_files，只显示目标文件和包含目标文件的目录
+                if self.target_files:
+                    # 计算哪些目录包含目标文件
+                    dirs_with_targets = set()
+                    for tf in self.target_files:
+                        # 获取目标文件的目录部分
+                        tf_dir = os.path.dirname(tf)
+                        while tf_dir:
+                            dirs_with_targets.add(tf_dir)
+                            tf_dir = os.path.dirname(tf_dir)
                     
-                    full_path = os.path.join(target_dir, item)
-                    relative_path = os.path.relpath(full_path, self.project_root)
-                    
-                    if os.path.isdir(full_path):
-                        dirs.append(relative_path + "/")
-                    else:
-                        if pattern and not fnmatch.fnmatch(item, pattern):
+                    for item in os.listdir(target_dir):
+                        if item in self.exclude_dirs:
                             continue
-                        files.append(relative_path)
                         
-                        if len(files) >= max_files:
-                            break
+                        full_path = os.path.join(target_dir, item)
+                        relative_path = os.path.relpath(full_path, self.project_root)
+                        
+                        if os.path.isdir(full_path):
+                            # 只显示包含目标文件的目录
+                            if relative_path in dirs_with_targets or any(
+                                tf.startswith(relative_path + "/") for tf in self.target_files
+                            ):
+                                dirs.append(relative_path + "/")
+                        else:
+                            if pattern and not fnmatch.fnmatch(item, pattern):
+                                continue
+                            
+                            # 检查是否在目标文件列表中
+                            if relative_path not in self.target_files:
+                                continue
+                            
+                            files.append(relative_path)
+                            
+                            if len(files) >= max_files:
+                                break
+                else:
+                    # 没有设置 target_files，正常列出
+                    for item in os.listdir(target_dir):
+                        if item in self.exclude_dirs:
+                            continue
+                        
+                        full_path = os.path.join(target_dir, item)
+                        relative_path = os.path.relpath(full_path, self.project_root)
+                        
+                        if os.path.isdir(full_path):
+                            dirs.append(relative_path + "/")
+                        else:
+                            if pattern and not fnmatch.fnmatch(item, pattern):
+                                continue
+                            
+                            # 检查排除模式
+                            should_skip = False
+                            for excl_pattern in self.exclude_patterns:
+                                if fnmatch.fnmatch(relative_path, excl_pattern) or fnmatch.fnmatch(item, excl_pattern):
+                                    should_skip = True
+                                    break
+                            if should_skip:
+                                continue
+                            
+                            files.append(relative_path)
+                            
+                            if len(files) >= max_files:
+                                break
             
             # 格式化输出
             output_parts = [f"📁 目录: {directory}\n"]
+            
+            # 🔥 如果设置了 target_files，显示提示信息
+            if self.target_files:
+                output_parts.append(f"⚠️ 注意: 审计范围限定为 {len(self.target_files)} 个指定文件\n")
             
             if dirs:
                 output_parts.append("目录:")
@@ -459,6 +601,13 @@ class ListFilesTool(AgentTool):
                 output_parts.append(f"\n文件 ({len(files)}):")
                 for f in sorted(files):
                     output_parts.append(f"  📄 {f}")
+            elif self.target_files:
+                # 如果没有文件但设置了 target_files，显示目标文件列表
+                output_parts.append(f"\n指定的目标文件 ({len(self.target_files)}):")
+                for f in sorted(self.target_files)[:20]:
+                    output_parts.append(f"  📄 {f}")
+                if len(self.target_files) > 20:
+                    output_parts.append(f"  ... 还有 {len(self.target_files) - 20} 个文件")
             
             if len(files) >= max_files:
                 output_parts.append(f"\n... 结果已截断（最大 {max_files} 个文件）")

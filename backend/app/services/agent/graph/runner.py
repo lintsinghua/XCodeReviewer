@@ -193,17 +193,36 @@ class AgentRunner:
         """初始化工具集"""
         await self.event_emitter.emit_info("初始化 Agent 工具集...")
         
+        # 🔥 导入新工具
+        from app.services.agent.tools import (
+            ThinkTool, ReflectTool,
+            CreateVulnerabilityReportTool,
+        )
+        # 🔥 导入知识查询工具
+        from app.services.agent.knowledge import (
+            SecurityKnowledgeQueryTool,
+            GetVulnerabilityKnowledgeTool,
+        )
+        
+        # 🔥 获取排除模式和目标文件
+        exclude_patterns = self.task.exclude_patterns or []
+        target_files = self.task.target_files or None
+        
         # ============ 基础工具（所有 Agent 共享）============
         base_tools = {
-            "read_file": FileReadTool(self.project_root),
-            "list_files": ListFilesTool(self.project_root),
+            "read_file": FileReadTool(self.project_root, exclude_patterns, target_files),
+            "list_files": ListFilesTool(self.project_root, exclude_patterns, target_files),
+            # 🔥 新增：思考工具（所有Agent可用）
+            "think": ThinkTool(),
         }
         
         # ============ Recon Agent 专属工具 ============
         # 职责：信息收集、项目结构分析、技术栈识别
         self.recon_tools = {
             **base_tools,
-            "search_code": FileSearchTool(self.project_root),
+            "search_code": FileSearchTool(self.project_root, exclude_patterns, target_files),
+            # 🔥 新增：反思工具
+            "reflect": ReflectTool(),
         }
         
         # RAG 工具（Recon 用于语义搜索）
@@ -214,10 +233,11 @@ class AgentRunner:
         # 职责：漏洞分析、代码审计、模式匹配
         self.analysis_tools = {
             **base_tools,
-            "search_code": FileSearchTool(self.project_root),
+            "search_code": FileSearchTool(self.project_root, exclude_patterns, target_files),
             # 模式匹配和代码分析
             "pattern_match": PatternMatchTool(self.project_root),
-            "code_analysis": CodeAnalysisTool(self.llm_service),
+            # TODO: code_analysis 工具暂时禁用，因为 LLM 调用经常失败
+            # "code_analysis": CodeAnalysisTool(self.llm_service),
             "dataflow_analysis": DataFlowAnalysisTool(self.llm_service),
             # 外部静态分析工具
             "semgrep_scan": SemgrepTool(self.project_root),
@@ -227,6 +247,11 @@ class AgentRunner:
             "npm_audit": NpmAuditTool(self.project_root),
             "safety_scan": SafetyTool(self.project_root),
             "osv_scan": OSVScannerTool(self.project_root),
+            # 🔥 新增：反思工具
+            "reflect": ReflectTool(),
+            # 🔥 新增：安全知识查询工具（基于RAG）
+            "query_security_knowledge": SecurityKnowledgeQueryTool(),
+            "get_vulnerability_knowledge": GetVulnerabilityKnowledgeTool(),
         }
         
         # RAG 工具（Analysis 用于安全相关代码搜索）
@@ -241,6 +266,10 @@ class AgentRunner:
             # 验证工具
             "vulnerability_validation": VulnerabilityValidationTool(self.llm_service),
             "dataflow_analysis": DataFlowAnalysisTool(self.llm_service),
+            # 🔥 新增：漏洞报告工具（仅Verification可用）
+            "create_vulnerability_report": CreateVulnerabilityReportTool(),
+            # 🔥 新增：反思工具
+            "reflect": ReflectTool(),
         }
         
         # 沙箱工具（仅 Verification Agent 可用）

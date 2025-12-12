@@ -2,16 +2,17 @@
 DeepAudit Agent 服务模块
 基于 LangGraph 的 AI Agent 代码安全审计
 
-架构:
-    LangGraph 状态图工作流
-    
+架构升级版本 - 支持：
+- 动态Agent树结构
+- 专业知识模块系统
+- Agent间通信机制
+- 完整状态管理
+- Think工具和漏洞报告工具
+
+工作流:
     START → Recon → Analysis ⟲ → Verification → Report → END
     
-节点:
-    - Recon: 信息收集 (项目结构、技术栈、入口点)
-    - Analysis: 漏洞分析 (静态分析、RAG、模式匹配)
-    - Verification: 漏洞验证 (LLM 验证、沙箱测试)
-    - Report: 报告生成
+    支持动态创建子Agent进行专业化分析
 """
 
 # 从 graph 模块导入主要组件
@@ -30,6 +31,29 @@ from .event_manager import EventManager, AgentEventEmitter
 from .agents import (
     BaseAgent, AgentConfig, AgentResult,
     OrchestratorAgent, ReconAgent, AnalysisAgent, VerificationAgent,
+)
+
+# 🔥 新增：核心模块（状态管理、注册表、消息）
+from .core import (
+    AgentState, AgentStatus,
+    AgentRegistry, agent_registry,
+    AgentMessage, MessageType, MessagePriority, MessageBus,
+)
+
+# 🔥 新增：知识模块系统（基于RAG）
+from .knowledge import (
+    KnowledgeLoader, knowledge_loader,
+    get_available_modules, get_module_content,
+    SecurityKnowledgeRAG, security_knowledge_rag,
+    SecurityKnowledgeQueryTool, GetVulnerabilityKnowledgeTool,
+)
+
+# 🔥 新增：协作工具
+from .tools import (
+    ThinkTool, ReflectTool,
+    CreateVulnerabilityReportTool,
+    CreateSubAgentTool, SendMessageTool, ViewAgentGraphTool,
+    WaitForMessageTool, AgentFinishTool,
 )
 
 __all__ = [
@@ -54,5 +78,35 @@ __all__ = [
     "ReconAgent",
     "AnalysisAgent",
     "VerificationAgent",
+    
+    # 🔥 核心模块
+    "AgentState",
+    "AgentStatus",
+    "AgentRegistry",
+    "agent_registry",
+    "AgentMessage",
+    "MessageType",
+    "MessagePriority",
+    "MessageBus",
+    
+    # 🔥 知识模块（基于RAG）
+    "KnowledgeLoader",
+    "knowledge_loader",
+    "get_available_modules",
+    "get_module_content",
+    "SecurityKnowledgeRAG",
+    "security_knowledge_rag",
+    "SecurityKnowledgeQueryTool",
+    "GetVulnerabilityKnowledgeTool",
+    
+    # 🔥 协作工具
+    "ThinkTool",
+    "ReflectTool",
+    "CreateVulnerabilityReportTool",
+    "CreateSubAgentTool",
+    "SendMessageTool",
+    "ViewAgentGraphTool",
+    "WaitForMessageTool",
+    "AgentFinishTool",
 ]
 

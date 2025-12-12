@@ -354,7 +354,7 @@ class EventManager:
         """创建或获取事件队列"""
         if task_id not in self._event_queues:
             # 🔥 使用较大的队列容量，缓存更多 token 事件
-            self._event_queues[task_id] = asyncio.Queue(maxsize=1000)
+            self._event_queues[task_id] = asyncio.Queue(maxsize=5000)
         return self._event_queues[task_id]
     
     def remove_queue(self, task_id: str):

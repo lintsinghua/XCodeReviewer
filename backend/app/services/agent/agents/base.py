@@ -6,6 +6,8 @@ Agent 基类
 1. LLM 是 Agent 的大脑，全程参与决策
 2. Agent 之间通过 TaskHandoff 传递结构化上下文
 3. 事件分为流式事件（前端展示）和持久化事件（数据库记录）
+4. 支持动态Agent树和专业知识模块
+5. 完整的状态管理和Agent间通信
 """
 
 from abc import ABC, abstractmethod
@@ -16,6 +18,10 @@ from datetime import datetime, timezone
 import asyncio
 import logging
 import uuid
+
+from ..core.state import AgentState, AgentStatus
+from ..core.registry import agent_registry
+from ..core.message import message_bus, MessageType, AgentMessage
 
 logger = logging.getLogger(__name__)
 
@@ -238,6 +244,11 @@ class BaseAgent(ABC):
     1. 通过 TaskHandoff 接收前序 Agent 的上下文
     2. 执行完成后生成 TaskHandoff 传递给下一个 Agent
     3. 洞察和发现应该结构化记录
+    
+    动态Agent树：
+    1. 支持动态创建子Agent
+    2. Agent间通过消息总线通信
+    3. 完整的状态管理和生命周期
     """
     
     def __init__(
@@ -246,6 +257,8 @@ class BaseAgent(ABC):
         llm_service,
         tools: Dict[str, Any],
         event_emitter=None,
+        parent_id: Optional[str] = None,
+        knowledge_modules: Optional[List[str]] = None,
     ):
         """
         初始化 Agent
@@ -255,13 +268,30 @@ class BaseAgent(ABC):
             llm_service: LLM 服务
             tools: 可用工具字典
             event_emitter: 事件发射器
+            parent_id: 父Agent ID（用于动态Agent树）
+            knowledge_modules: 要加载的知识模块
         """
         self.config = config
         self.llm_service = llm_service
         self.tools = tools
         self.event_emitter = event_emitter
+        self.parent_id = parent_id
+        self.knowledge_modules = knowledge_modules or []
         
-        # 运行状态
+        # 🔥 生成唯一ID
+        self._agent_id = f"agent_{uuid.uuid4().hex[:8]}"
+        
+        # 🔥 增强的状态管理
+        self._state = AgentState(
+            agent_id=self._agent_id,
+            agent_name=config.name,
+            agent_type=config.agent_type.value,
+            parent_id=parent_id,
+            max_iterations=config.max_iterations,
+            knowledge_modules=self.knowledge_modules,
+        )
+        
+        # 运行状态（保持向后兼容）
         self._iteration = 0
         self._total_tokens = 0
         self._tool_calls = 0
@@ -271,14 +301,170 @@ class BaseAgent(ABC):
         self._incoming_handoff: Optional[TaskHandoff] = None
         self._insights: List[str] = []  # 收集的洞察
         self._work_completed: List[str] = []  # 完成的工作记录
+        
+        # 🔥 是否已注册到注册表
+        self._registered = False
+        
+        # 🔥 加载知识模块到系统提示词
+        if self.knowledge_modules:
+            self._load_knowledge_modules()
+    
+    def _register_to_registry(self, task: Optional[str] = None) -> None:
+        """注册到Agent注册表（延迟注册，在run时调用）"""
+        logger.info(f"[AgentTree] _register_to_registry 被调用: {self.config.name} (id={self._agent_id}, parent={self.parent_id}, _registered={self._registered})")
+        
+        if self._registered:
+            logger.warning(f"[AgentTree] {self.config.name} 已注册，跳过 (id={self._agent_id})")
+            return
+        
+        logger.info(f"[AgentTree] 正在注册 Agent: {self.config.name} (id={self._agent_id}, parent={self.parent_id})")
+        
+        agent_registry.register_agent(
+            agent_id=self._agent_id,
+            agent_name=self.config.name,
+            agent_type=self.config.agent_type.value,
+            task=task or self._state.task or "Initializing",
+            parent_id=self.parent_id,
+            agent_instance=self,
+            state=self._state,
+            knowledge_modules=self.knowledge_modules,
+        )
+        
+        # 创建消息队列
+        message_bus.create_queue(self._agent_id)
+        self._registered = True
+        
+        tree = agent_registry.get_agent_tree()
+        logger.info(f"[AgentTree] Agent 注册完成: {self.config.name}, 当前树节点数: {len(tree['nodes'])}")
+    
+    def set_parent_id(self, parent_id: str) -> None:
+        """设置父Agent ID（在调度时调用）"""
+        self.parent_id = parent_id
+        self._state.parent_id = parent_id
+    
+    def _load_knowledge_modules(self) -> None:
+        """加载知识模块到系统提示词"""
+        if not self.knowledge_modules:
+            return
+        
+        try:
+            from ..knowledge import knowledge_loader
+            
+            enhanced_prompt = knowledge_loader.build_system_prompt_with_modules(
+                self.config.system_prompt or "",
+                self.knowledge_modules,
+            )
+            self.config.system_prompt = enhanced_prompt
+            
+            logger.info(f"[{self.name}] Loaded knowledge modules: {self.knowledge_modules}")
+        except Exception as e:
+            logger.warning(f"Failed to load knowledge modules: {e}")
     
     @property
     def name(self) -> str:
         return self.config.name
     
     @property
+    def agent_id(self) -> str:
+        return self._agent_id
+    
+    @property
+    def state(self) -> AgentState:
+        return self._state
+    
+    @property
     def agent_type(self) -> AgentType:
         return self.config.agent_type
+    
+    # ============ Agent间消息处理 ============
+    
+    def check_messages(self) -> List[AgentMessage]:
+        """
+        检查并处理收到的消息
+        
+        Returns:
+            未读消息列表
+        """
+        messages = message_bus.get_messages(
+            self._agent_id,
+            unread_only=True,
+            mark_as_read=True,
+        )
+        
+        for msg in messages:
+            # 处理消息
+            if msg.from_agent == "user":
+                # 用户消息直接添加到对话历史
+                self._state.add_message("user", msg.content)
+            else:
+                # Agent间消息使用XML格式
+                self._state.add_message("user", msg.to_xml())
+            
+            # 如果在等待状态，恢复执行
+            if self._state.is_waiting_for_input():
+                self._state.resume_from_waiting()
+                agent_registry.update_agent_status(self._agent_id, "running")
+        
+        return messages
+    
+    def has_pending_messages(self) -> bool:
+        """检查是否有待处理的消息"""
+        return message_bus.has_unread_messages(self._agent_id)
+    
+    def send_message_to_parent(
+        self,
+        content: str,
+        message_type: MessageType = MessageType.INFORMATION,
+    ) -> None:
+        """向父Agent发送消息"""
+        if self.parent_id:
+            message_bus.send_message(
+                from_agent=self._agent_id,
+                to_agent=self.parent_id,
+                content=content,
+                message_type=message_type,
+            )
+    
+    def send_message_to_agent(
+        self,
+        target_id: str,
+        content: str,
+        message_type: MessageType = MessageType.INFORMATION,
+    ) -> None:
+        """向指定Agent发送消息"""
+        message_bus.send_message(
+            from_agent=self._agent_id,
+            to_agent=target_id,
+            content=content,
+            message_type=message_type,
+        )
+    
+    # ============ 生命周期管理 ============
+    
+    def on_start(self) -> None:
+        """Agent开始执行时调用"""
+        self._state.start()
+        agent_registry.update_agent_status(self._agent_id, "running")
+    
+    def on_complete(self, result: Dict[str, Any]) -> None:
+        """Agent完成时调用"""
+        self._state.set_completed(result)
+        agent_registry.update_agent_status(self._agent_id, "completed", result)
+        
+        # 向父Agent报告完成
+        if self.parent_id:
+            message_bus.send_completion_report(
+                from_agent=self._agent_id,
+                to_agent=self.parent_id,
+                summary=result.get("summary", "Task completed"),
+                findings=result.get("findings", []),
+                success=True,
+            )
+    
+    def on_error(self, error: str) -> None:
+        """Agent出错时调用"""
+        self._state.set_failed(error)
+        agent_registry.update_agent_status(self._agent_id, "failed", {"error": error})
     
     @abstractmethod
     async def run(self, input_data: Dict[str, Any]) -> AgentResult:
@@ -296,6 +482,7 @@ class BaseAgent(ABC):
     def cancel(self):
         """取消执行"""
         self._cancelled = True
+        logger.info(f"[{self.name}] Cancel requested")
     
     @property
     def is_cancelled(self) -> bool:
@@ -671,6 +858,35 @@ class BaseAgent(ABC):
             "tokens_used": self._total_tokens,
         }
     
+    # ============ Memory Compression ============
+    
+    def compress_messages_if_needed(
+        self,
+        messages: List[Dict[str, str]],
+        max_tokens: int = 100000,
+    ) -> List[Dict[str, str]]:
+        """
+        如果消息历史过长，自动压缩
+        
+        Args:
+            messages: 消息列表
+            max_tokens: 最大token数
+            
+        Returns:
+            压缩后的消息列表
+        """
+        from ...llm.memory_compressor import MemoryCompressor
+        
+        compressor = MemoryCompressor(max_total_tokens=max_tokens)
+        
+        if compressor.should_compress(messages):
+            logger.info(f"[{self.name}] Compressing conversation history...")
+            compressed = compressor.compress_history(messages)
+            logger.info(f"[{self.name}] Compressed {len(messages)} -> {len(compressed)} messages")
+            return compressed
+        
+        return messages
+    
     # ============ 统一的流式 LLM 调用 ============
     
     async def stream_llm_call(
@@ -678,6 +894,7 @@ class BaseAgent(ABC):
         messages: List[Dict[str, str]],
         temperature: float = 0.1,
         max_tokens: int = 2048,
+        auto_compress: bool = True,
     ) -> Tuple[str, int]:
         """
         统一的流式 LLM 调用方法
@@ -688,12 +905,22 @@ class BaseAgent(ABC):
             messages: 消息列表
             temperature: 温度
             max_tokens: 最大 token 数
+            auto_compress: 是否自动压缩过长的消息历史
             
         Returns:
             (完整响应内容, token数量)
         """
+        # 🔥 自动压缩过长的消息历史
+        if auto_compress:
+            messages = self.compress_messages_if_needed(messages)
+        
         accumulated = ""
         total_tokens = 0
+        
+        # 🔥 在开始 LLM 调用前检查取消
+        if self.is_cancelled:
+            logger.info(f"[{self.name}] Cancelled before LLM call")
+            return "", 0
         
         await self.emit_thinking_start()
         
@@ -705,6 +932,7 @@ class BaseAgent(ABC):
             ):
                 # 检查取消
                 if self.is_cancelled:
+                    logger.info(f"[{self.name}] Cancelled during LLM streaming")
                     break
                 
                 if chunk["type"] == "token":
@@ -745,6 +973,10 @@ class BaseAgent(ABC):
         Returns:
             工具执行结果字符串
         """
+        # 🔥 在执行工具前检查取消
+        if self.is_cancelled:
+            return "任务已取消"
+        
         tool = self.tools.get(tool_name)
         
         if not tool:

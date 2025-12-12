@@ -79,7 +79,7 @@ Action Input: [JSON 参数]
 ```
 
 ## 审计策略建议
-- 先用 recon Agent 了解项目全貌
+- 先用 recon Agent 了解项目全貌（只需调度一次）
 - 根据 recon 结果，让 analysis Agent 重点审计高风险区域
 - 发现可疑漏洞后，用 verification Agent 验证
 - 随时根据新发现调整策略，不要机械执行
@@ -90,6 +90,15 @@ Action Input: [JSON 参数]
 2. **动态调整** - 根据发现调整策略
 3. **主动决策** - 不要等待，主动推进
 4. **质量优先** - 宁可深入分析几个真实漏洞，不要浅尝辄止
+5. **避免重复** - 每个 Agent 通常只需要调度一次，如果结果不理想，尝试其他 Agent 或直接完成审计
+
+## 处理子 Agent 结果
+- 子 Agent 返回的 Observation 包含它们的分析结果
+- 即使结果看起来不完整，也要基于已有信息继续推进
+- 不要反复调度同一个 Agent 期望得到不同结果
+- 如果 recon 完成后，应该调度 analysis 进行深度分析
+- 如果 analysis 完成后有发现，可以调度 verification 验证
+- 如果没有更多工作要做，使用 finish 结束审计
 
 现在，基于项目信息开始你的审计工作！"""
 
@@ -136,10 +145,31 @@ class OrchestratorAgent(BaseAgent):
         self._conversation_history: List[Dict[str, str]] = []
         self._steps: List[AgentStep] = []
         self._all_findings: List[Dict] = []
+        
+        # 🔥 存储运行时上下文，用于传递给子 Agent
+        self._runtime_context: Dict[str, Any] = {}
+        
+        # 🔥 跟踪已调度的 Agent 任务，避免重复调度
+        self._dispatched_tasks: Dict[str, int] = {}  # agent_name -> dispatch_count
     
     def register_sub_agent(self, name: str, agent: BaseAgent):
         """注册子 Agent"""
         self.sub_agents[name] = agent
+    
+    def cancel(self):
+        """
+        取消执行 - 同时取消所有子 Agent
+        
+        重写父类方法，确保取消信号传播到所有子 Agent
+        """
+        self._cancelled = True
+        logger.info(f"[{self.name}] Cancel requested, propagating to {len(self.sub_agents)} sub-agents")
+        
+        # 🔥 传播取消信号到所有子 Agent
+        for name, agent in self.sub_agents.items():
+            if hasattr(agent, 'cancel'):
+                agent.cancel()
+                logger.info(f"[{self.name}] Cancelled sub-agent: {name}")
     
     async def run(self, input_data: Dict[str, Any]) -> AgentResult:
         """
@@ -149,6 +179,8 @@ class OrchestratorAgent(BaseAgent):
             input_data: {
                 "project_info": 项目信息,
                 "config": 审计配置,
+                "project_root": 项目根目录,
+                "task_id": 任务ID,
             }
         """
         import time
@@ -156,6 +188,14 @@ class OrchestratorAgent(BaseAgent):
         
         project_info = input_data.get("project_info", {})
         config = input_data.get("config", {})
+        
+        # 🔥 保存运行时上下文，用于传递给子 Agent
+        self._runtime_context = {
+            "project_info": project_info,
+            "config": config,
+            "project_root": input_data.get("project_root", project_info.get("root", ".")),
+            "task_id": input_data.get("task_id"),
+        }
         
         # 构建初始消息
         initial_message = self._build_initial_message(project_info, config)
@@ -169,6 +209,7 @@ class OrchestratorAgent(BaseAgent):
         self._steps = []
         self._all_findings = []
         final_result = None
+        error_message = None  # 🔥 跟踪错误信息
         
         await self.emit_thinking("🧠 Orchestrator Agent 启动，LLM 开始自主编排决策...")
         
@@ -189,7 +230,7 @@ class OrchestratorAgent(BaseAgent):
                     llm_output, tokens_this_round = await self.stream_llm_call(
                         self._conversation_history,
                         temperature=0.1,
-                        max_tokens=2048,
+                        max_tokens=4096,  # 🔥 增加到 4096，避免截断
                     )
                 except asyncio.CancelledError:
                     logger.info(f"[{self.name}] LLM call cancelled")
@@ -197,11 +238,37 @@ class OrchestratorAgent(BaseAgent):
                 
                 self._total_tokens += tokens_this_round
                 
+                # 🔥 检测空响应
+                if not llm_output or not llm_output.strip():
+                    logger.warning(f"[{self.name}] Empty LLM response")
+                    empty_retry_count = getattr(self, '_empty_retry_count', 0) + 1
+                    self._empty_retry_count = empty_retry_count
+                    if empty_retry_count >= 3:
+                        logger.error(f"[{self.name}] Too many empty responses, stopping")
+                        error_message = "连续收到空响应，停止编排"
+                        await self.emit_event("error", error_message)
+                        break
+                    self._conversation_history.append({
+                        "role": "user",
+                        "content": "Received empty response. Please output Thought + Action + Action Input.",
+                    })
+                    continue
+                
+                # 重置空响应计数器
+                self._empty_retry_count = 0
+                
                 # 解析 LLM 的决策
                 step = self._parse_llm_response(llm_output)
                 
                 if not step:
                     # LLM 输出格式不正确，提示重试
+                    format_retry_count = getattr(self, '_format_retry_count', 0) + 1
+                    self._format_retry_count = format_retry_count
+                    if format_retry_count >= 3:
+                        logger.error(f"[{self.name}] Too many format errors, stopping")
+                        error_message = "连续格式错误，停止编排"
+                        await self.emit_event("error", error_message)
+                        break
                     await self.emit_llm_decision("格式错误", "需要重新输出")
                     self._conversation_history.append({
                         "role": "assistant",
@@ -212,6 +279,9 @@ class OrchestratorAgent(BaseAgent):
                         "content": "请按照规定格式输出：Thought + Action + Action Input",
                     })
                     continue
+                
+                # 重置格式重试计数器
+                self._format_retry_count = 0
                 
                 self._steps.append(step)
                 
@@ -249,6 +319,11 @@ class OrchestratorAgent(BaseAgent):
                     observation = await self._dispatch_agent(step.action_input)
                     step.observation = observation
                     
+                    # 🔥 子 Agent 执行完成后检查取消状态
+                    if self.is_cancelled:
+                        logger.info(f"[{self.name}] Cancelled after sub-agent dispatch")
+                        break
+                    
                     # 🔥 发射观察事件
                     await self.emit_llm_observation(observation)
                     
@@ -271,6 +346,60 @@ class OrchestratorAgent(BaseAgent):
             
             # 生成最终结果
             duration_ms = int((time.time() - start_time) * 1000)
+            
+            # 🔥 如果被取消，返回取消结果
+            if self.is_cancelled:
+                await self.emit_event(
+                    "info",
+                    f"🛑 Orchestrator 已取消: {len(self._all_findings)} 个发现, {self._iteration} 轮决策"
+                )
+                return AgentResult(
+                    success=False,
+                    error="任务已取消",
+                    data={
+                        "findings": self._all_findings,
+                        "steps": [
+                            {
+                                "thought": s.thought,
+                                "action": s.action,
+                                "action_input": s.action_input,
+                                "observation": s.observation[:500] if s.observation else None,
+                            }
+                            for s in self._steps
+                        ],
+                    },
+                    iterations=self._iteration,
+                    tool_calls=self._tool_calls,
+                    tokens_used=self._total_tokens,
+                    duration_ms=duration_ms,
+                )
+            
+            # 🔥 如果有错误，返回失败结果
+            if error_message:
+                await self.emit_event(
+                    "error",
+                    f"❌ Orchestrator 失败: {error_message}"
+                )
+                return AgentResult(
+                    success=False,
+                    error=error_message,
+                    data={
+                        "findings": self._all_findings,
+                        "steps": [
+                            {
+                                "thought": s.thought,
+                                "action": s.action,
+                                "action_input": s.action_input,
+                                "observation": s.observation[:500] if s.observation else None,
+                            }
+                            for s in self._steps
+                        ],
+                    },
+                    iterations=self._iteration,
+                    tool_calls=self._tool_calls,
+                    tokens_used=self._total_tokens,
+                    duration_ms=duration_ms,
+                )
             
             await self.emit_event(
                 "info",
@@ -377,6 +506,30 @@ class OrchestratorAgent(BaseAgent):
             available = list(self.sub_agents.keys())
             return f"错误: Agent '{agent_name}' 不存在。可用的 Agent: {available}"
         
+        # 🔥 检查是否重复调度同一个 Agent
+        dispatch_count = self._dispatched_tasks.get(agent_name, 0)
+        if dispatch_count >= 2:
+            return f"""## ⚠️ 重复调度警告
+
+你已经调度 {agent_name} Agent {dispatch_count} 次了。
+
+如果之前的调度没有返回有用的结果，请考虑：
+1. 尝试调度其他 Agent（如 analysis 或 verification）
+2. 使用 finish 操作结束审计并汇总已有发现
+3. 提供更具体的任务描述
+
+当前已收集的发现数量: {len(self._all_findings)}
+"""
+        
+        self._dispatched_tasks[agent_name] = dispatch_count + 1
+        
+        # 🔥 设置父 Agent ID 并注册到注册表（动态 Agent 树）
+        logger.info(f"[Orchestrator] 准备调度 {agent_name} Agent, agent._registered={agent._registered}")
+        agent.set_parent_id(self._agent_id)
+        logger.info(f"[Orchestrator] 设置 parent_id 完成，准备注册 {agent_name}")
+        agent._register_to_registry(task=task)
+        logger.info(f"[Orchestrator] {agent_name} 注册完成，agent._registered={agent._registered}")
+        
         await self.emit_event(
             "dispatch",
             f"📤 调度 {agent_name} Agent: {task[:100]}...",
@@ -387,31 +540,92 @@ class OrchestratorAgent(BaseAgent):
         self._tool_calls += 1
         
         try:
-            # 构建子 Agent 输入
+            # 🔥 构建子 Agent 输入 - 传递完整的运行时上下文
+            project_info = self._runtime_context.get("project_info", {}).copy()
+            # 确保 project_info 包含 root 路径
+            if "root" not in project_info:
+                project_info["root"] = self._runtime_context.get("project_root", ".")
+            
             sub_input = {
                 "task": task,
                 "task_context": context,
-                "project_info": {},  # 从上下文获取
-                "config": {},
+                "project_info": project_info,
+                "config": self._runtime_context.get("config", {}),
+                "project_root": self._runtime_context.get("project_root", "."),
+                "previous_results": {
+                    "findings": self._all_findings,  # 传递已收集的发现
+                },
             }
+            
+            # 🔥 执行子 Agent 前检查取消状态
+            if self.is_cancelled:
+                return f"## {agent_name} Agent 执行取消\n\n任务已被用户取消"
             
             # 执行子 Agent
             result = await agent.run(sub_input)
             
-            # 收集发现
+            # 🔥 执行后再次检查取消状态
+            if self.is_cancelled:
+                return f"## {agent_name} Agent 执行中断\n\n任务已被用户取消"
+            
+            # 🔥 处理子 Agent 结果 - 不同 Agent 返回不同的数据结构
             if result.success and result.data:
-                findings = result.data.get("findings", [])
-                self._all_findings.extend(findings)
+                data = result.data
+                
+                # 🔥 收集发现 - 只收集格式正确的漏洞对象
+                # findings 字段通常来自 Analysis/Verification Agent，是漏洞对象数组
+                # initial_findings 来自 Recon Agent，可能是字符串数组（观察）或对象数组
+                findings = data.get("findings", [])
+                if findings:
+                    # 只添加字典格式的发现
+                    valid_findings = [f for f in findings if isinstance(f, dict)]
+                    self._all_findings.extend(valid_findings)
                 
                 await self.emit_event(
                     "dispatch_complete",
-                    f"✅ {agent_name} Agent 完成: {len(findings)} 个发现",
+                    f"✅ {agent_name} Agent 完成",
                     agent=agent_name,
                     findings_count=len(findings),
                 )
                 
-                # 构建观察结果
-                observation = f"""## {agent_name} Agent 执行结果
+                # 🔥 根据 Agent 类型构建不同的观察结果
+                if agent_name == "recon":
+                    # Recon Agent 返回项目信息
+                    observation = f"""## Recon Agent 执行结果
+
+**状态**: 成功
+**迭代次数**: {result.iterations}
+**耗时**: {result.duration_ms}ms
+
+### 项目结构
+{json.dumps(data.get('project_structure', {}), ensure_ascii=False, indent=2)}
+
+### 技术栈
+- 语言: {data.get('tech_stack', {}).get('languages', [])}
+- 框架: {data.get('tech_stack', {}).get('frameworks', [])}
+- 数据库: {data.get('tech_stack', {}).get('databases', [])}
+
+### 入口点 ({len(data.get('entry_points', []))} 个)
+"""
+                    for i, ep in enumerate(data.get('entry_points', [])[:10]):
+                        if isinstance(ep, dict):
+                            observation += f"{i+1}. [{ep.get('type', 'unknown')}] {ep.get('file', '')}:{ep.get('line', '')}\n"
+                    
+                    observation += f"""
+### 高风险区域
+{data.get('high_risk_areas', [])}
+
+### 初步发现 ({len(data.get('initial_findings', []))} 个)
+"""
+                    for finding in data.get('initial_findings', [])[:5]:
+                        if isinstance(finding, str):
+                            observation += f"- {finding}\n"
+                        elif isinstance(finding, dict):
+                            observation += f"- {finding.get('title', finding)}\n"
+                    
+                else:
+                    # Analysis/Verification Agent 返回漏洞发现
+                    observation = f"""## {agent_name} Agent 执行结果
 
 **状态**: 成功
 **发现数量**: {len(findings)}
@@ -420,22 +634,21 @@ class OrchestratorAgent(BaseAgent):
 
 ### 发现摘要
 """
-                for i, f in enumerate(findings[:10]):  # 最多显示 10 个
-                    if not isinstance(f, dict):
-                         continue
-                         
-                    observation += f"""
+                    for i, f in enumerate(findings[:10]):
+                        if not isinstance(f, dict):
+                            continue
+                        observation += f"""
 {i+1}. [{f.get('severity', 'unknown')}] {f.get('title', 'Unknown')}
    - 类型: {f.get('vulnerability_type', 'unknown')}
    - 文件: {f.get('file_path', 'unknown')}
    - 描述: {f.get('description', '')[:200]}...
 """
+                    
+                    if len(findings) > 10:
+                        observation += f"\n... 还有 {len(findings) - 10} 个发现"
                 
-                if len(findings) > 10:
-                    observation += f"\n... 还有 {len(findings) - 10} 个发现"
-                
-                if result.data.get("summary"):
-                    observation += f"\n\n### Agent 总结\n{result.data['summary']}"
+                if data.get("summary"):
+                    observation += f"\n\n### Agent 总结\n{data['summary']}"
                 
                 return observation
             else:

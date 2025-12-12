@@ -1,7 +1,12 @@
 """
 Agent 工具集
-提供 LangChain Agent 使用的各种工具
-包括内置工具和外部安全工具
+
+提供 Agent 使用的各种工具，包括：
+- 基础工具（文件操作、代码搜索）
+- 分析工具（模式匹配、数据流分析）
+- 外部安全工具（Semgrep、Bandit等）
+- 协作工具（Think、Agent通信）
+- 报告工具（漏洞报告）
 """
 
 from .base import AgentTool, ToolResult
@@ -20,6 +25,23 @@ from .external_tools import (
     SafetyTool,
     TruffleHogTool,
     OSVScannerTool,
+)
+
+# 🔥 新增：思考和推理工具
+from .thinking_tool import ThinkTool, ReflectTool
+
+# 🔥 新增：漏洞报告工具
+from .reporting_tool import CreateVulnerabilityReportTool
+
+# 🔥 新增：Agent协作工具
+from .agent_tools import (
+    CreateSubAgentTool,
+    SendMessageTool,
+    ViewAgentGraphTool,
+    WaitForMessageTool,
+    AgentFinishTool,
+    RunSubAgentsTool,
+    CollectSubAgentResultsTool,
 )
 
 __all__ = [
@@ -57,5 +79,21 @@ __all__ = [
     "SafetyTool",
     "TruffleHogTool",
     "OSVScannerTool",
+    
+    # 🔥 思考和推理工具
+    "ThinkTool",
+    "ReflectTool",
+    
+    # 🔥 漏洞报告工具
+    "CreateVulnerabilityReportTool",
+    
+    # 🔥 Agent协作工具
+    "CreateSubAgentTool",
+    "SendMessageTool",
+    "ViewAgentGraphTool",
+    "WaitForMessageTool",
+    "AgentFinishTool",
+    "RunSubAgentsTool",
+    "CollectSubAgentResultsTool",
 ]
 

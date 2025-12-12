@@ -334,7 +334,7 @@ class VerificationAgent(BaseAgent):
                     llm_output, tokens_this_round = await self.stream_llm_call(
                         self._conversation_history,
                         temperature=0.1,
-                        max_tokens=3000,
+                        max_tokens=4096,  # 🔥 增加到 4096，避免截断
                     )
                 except asyncio.CancelledError:
                     logger.info(f"[{self.name}] LLM call cancelled")
@@ -414,6 +414,22 @@ class VerificationAgent(BaseAgent):
             
             # 处理结果
             duration_ms = int((time.time() - start_time) * 1000)
+            
+            # 🔥 如果被取消，返回取消结果
+            if self.is_cancelled:
+                await self.emit_event(
+                    "info",
+                    f"🛑 Verification Agent 已取消: {self._iteration} 轮迭代"
+                )
+                return AgentResult(
+                    success=False,
+                    error="任务已取消",
+                    data={"findings": findings_to_verify},
+                    iterations=self._iteration,
+                    tool_calls=self._tool_calls,
+                    tokens_used=self._total_tokens,
+                    duration_ms=duration_ms,
+                )
             
             # 处理最终结果
             verified_findings = []

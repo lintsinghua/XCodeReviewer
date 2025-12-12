@@ -59,6 +59,12 @@ const routes: RouteConfig[] = [
   },
   {
     name: "Agent审计",
+    path: "/agent-audit",
+    element: <AgentAudit />,
+    visible: true,
+  },
+  {
+    name: "Agent审计任务",
     path: "/agent-audit/:taskId",
     element: <AgentAudit />,
     visible: false,

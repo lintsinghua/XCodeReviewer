@@ -34,7 +34,7 @@ ORCHESTRATOR_SYSTEM_PROMPT = """你是一个专业的代码安全审计 Agent，
 ## 分析方法
 1. **快速扫描**: 首先使用 pattern_match 快速发现可疑代码
 2. **语义搜索**: 使用 rag_query 查找相关上下文
-3. **深度分析**: 对可疑代码使用 code_analysis 深入分析
+3. **深度分析**: 对可疑代码使用 read_file 读取并分析
 4. **数据流追踪**: 追踪用户输入到危险函数的路径
 5. **漏洞验证**: 在沙箱中验证发现的漏洞
 
@@ -67,7 +67,6 @@ ANALYSIS_SYSTEM_PROMPT = """你是一个专注于代码漏洞分析的安全专�
 ## 可用工具
 - rag_query: 语义搜索相关代码
 - pattern_match: 快速模式匹配
-- code_analysis: LLM 深度分析
 - read_file: 读取文件内容
 - search_code: 关键字搜索
 - dataflow_analysis: 数据流分析

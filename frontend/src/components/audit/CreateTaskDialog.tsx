@@ -30,7 +30,6 @@ import {
   Upload,
   FolderOpen,
   Settings2,
-  Play,
   Package,
   Globe,
   Shield,
@@ -111,28 +110,39 @@ export default function CreateTaskDialog({
   // 加载分支列表
   useEffect(() => {
     const loadBranches = async () => {
-      if (!selectedProject || !isRepositoryProject(selectedProject)) {
+      // 使用 selectedProjectId 从 projects 中获取最新的 project 对象
+      const project = projects.find((p) => p.id === selectedProjectId);
+      if (!project || !isRepositoryProject(project)) {
         setBranches([]);
         return;
       }
 
       setLoadingBranches(true);
       try {
-        const result = await api.getProjectBranches(selectedProject.id);
+        const result = await api.getProjectBranches(project.id);
+        console.log("[Branch] 加载分支结果:", result);
+        
+        if (result.error) {
+          console.warn("[Branch] 加载分支警告:", result.error);
+          toast.error(`加载分支失败: ${result.error}`);
+        }
+        
         setBranches(result.branches);
         if (result.default_branch) {
           setBranch(result.default_branch);
         }
       } catch (error) {
-        console.error("加载分支失败:", error);
-        setBranches([selectedProject.default_branch || "main"]);
+        const msg = error instanceof Error ? error.message : "未知错误";
+        console.error("[Branch] 加载分支失败:", msg);
+        toast.error(`加载分支失败: ${msg}`);
+        setBranches([project.default_branch || "main"]);
       } finally {
         setLoadingBranches(false);
       }
     };
 
     loadBranches();
-  }, [selectedProject?.id]);
+  }, [selectedProjectId, projects]);
 
   const filteredProjects = useMemo(() => {
     if (!searchTerm) return projects;
@@ -437,45 +447,47 @@ export default function CreateTaskDialog({
                 )}
 
                 {/* 高级选项 */}
-                {/* 规则集和提示词选择 */}
-                <div className="p-3 border-2 border-black bg-purple-50 space-y-3">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Zap className="w-4 h-4 text-purple-700" />
-                    <span className="font-mono text-sm font-bold text-purple-900 uppercase">审计配置</span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-mono font-bold text-gray-600 mb-1 uppercase">规则集</label>
-                      <Select value={selectedRuleSetId} onValueChange={setSelectedRuleSetId}>
-                        <SelectTrigger className="h-9 rounded-none border-2 border-black font-mono text-xs focus:ring-0">
-                          <SelectValue placeholder="选择规则集" />
-                        </SelectTrigger>
-                        <SelectContent className="rounded-none border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                          {ruleSets.map((rs) => (
-                            <SelectItem key={rs.id} value={rs.id} className="font-mono text-xs">
-                              {rs.name} {rs.is_default && '(默认)'} ({rs.enabled_rules_count})
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                {/* 规则集和提示词选择 - 仅快速扫描模式显示 */}
+                {auditMode !== "agent" && (
+                  <div className="p-3 border-2 border-black bg-purple-50 space-y-3">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Zap className="w-4 h-4 text-purple-700" />
+                      <span className="font-mono text-sm font-bold text-purple-900 uppercase">审计配置</span>
                     </div>
-                    <div>
-                      <label className="block text-xs font-mono font-bold text-gray-600 mb-1 uppercase">提示词模板</label>
-                      <Select value={selectedPromptTemplateId} onValueChange={setSelectedPromptTemplateId}>
-                        <SelectTrigger className="h-9 rounded-none border-2 border-black font-mono text-xs focus:ring-0">
-                          <SelectValue placeholder="选择提示词模板" />
-                        </SelectTrigger>
-                        <SelectContent className="rounded-none border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                          {promptTemplates.map((pt) => (
-                            <SelectItem key={pt.id} value={pt.id} className="font-mono text-xs">
-                              {pt.name} {pt.is_default && '(默认)'}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-mono font-bold text-gray-600 mb-1 uppercase">规则集</label>
+                        <Select value={selectedRuleSetId} onValueChange={setSelectedRuleSetId}>
+                          <SelectTrigger className="h-9 rounded-none border-2 border-black font-mono text-xs focus:ring-0">
+                            <SelectValue placeholder="选择规则集" />
+                          </SelectTrigger>
+                          <SelectContent className="rounded-none border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                            {ruleSets.map((rs) => (
+                              <SelectItem key={rs.id} value={rs.id} className="font-mono text-xs">
+                                {rs.name} {rs.is_default && '(默认)'} ({rs.enabled_rules_count})
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-mono font-bold text-gray-600 mb-1 uppercase">提示词模板</label>
+                        <Select value={selectedPromptTemplateId} onValueChange={setSelectedPromptTemplateId}>
+                          <SelectTrigger className="h-9 rounded-none border-2 border-black font-mono text-xs focus:ring-0">
+                            <SelectValue placeholder="选择提示词模板" />
+                          </SelectTrigger>
+                          <SelectContent className="rounded-none border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                            {promptTemplates.map((pt) => (
+                              <SelectItem key={pt.id} value={pt.id} className="font-mono text-xs">
+                                {pt.name} {pt.is_default && '(默认)'}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
 
                 <Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>
                   <CollapsibleTrigger className="flex items-center gap-2 text-sm font-mono text-gray-600 hover:text-black transition-colors">

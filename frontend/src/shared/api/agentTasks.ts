@@ -26,6 +26,11 @@ export interface AgentTask {
   verified_count: number;
   false_positive_count: number;
   
+  // Agent 统计
+  total_iterations: number;
+  tool_calls_count: number;
+  tokens_used: number;
+  
   // 严重程度统计
   critical_count: number;
   high_count: number;
@@ -34,7 +39,7 @@ export interface AgentTask {
   
   // 评分
   quality_score: number;
-  security_score: number;
+  security_score: number | null;
   
   // 时间
   created_at: string;
@@ -43,6 +48,13 @@ export interface AgentTask {
   
   // 进度
   progress_percentage: number;
+  
+  // 配置
+  audit_scope: Record<string, unknown> | null;
+  target_vulnerabilities: string[] | null;
+  verification_level: string | null;
+  exclude_patterns: string[] | null;
+  target_files: string[] | null;
   
   // 错误信息
   error_message: string | null;
@@ -305,5 +317,91 @@ export async function* streamAgentEvents(
   } finally {
     reader.releaseLock();
   }
+}
+
+// ============ Agent Tree Types ============
+
+export interface AgentTreeNode {
+  id: string;
+  agent_id: string;
+  agent_name: string;
+  agent_type: string;
+  parent_agent_id: string | null;
+  depth: number;
+  task_description: string | null;
+  knowledge_modules: string[] | null;
+  status: "created" | "running" | "completed" | "failed" | "waiting";
+  result_summary: string | null;
+  findings_count: number;
+  iterations: number;
+  tokens_used: number;
+  tool_calls: number;
+  duration_ms: number | null;
+  children: AgentTreeNode[];
+}
+
+export interface AgentTreeResponse {
+  task_id: string;
+  root_agent_id: string | null;
+  total_agents: number;
+  running_agents: number;
+  completed_agents: number;
+  failed_agents: number;
+  total_findings: number;
+  nodes: AgentTreeNode[];
+}
+
+export interface AgentCheckpoint {
+  id: string;
+  agent_id: string;
+  agent_name: string;
+  agent_type: string;
+  iteration: number;
+  status: string;
+  total_tokens: number;
+  tool_calls: number;
+  findings_count: number;
+  checkpoint_type: "auto" | "manual" | "error" | "final";
+  checkpoint_name: string | null;
+  created_at: string | null;
+}
+
+export interface CheckpointDetail extends AgentCheckpoint {
+  task_id: string;
+  parent_agent_id: string | null;
+  state_data: Record<string, unknown>;
+  metadata: Record<string, unknown> | null;
+}
+
+// ============ Agent Tree API Functions ============
+
+/**
+ * 获取任务的 Agent 树结构
+ */
+export async function getAgentTree(taskId: string): Promise<AgentTreeResponse> {
+  const response = await apiClient.get(`/agent-tasks/${taskId}/agent-tree`);
+  return response.data;
+}
+
+/**
+ * 获取任务的检查点列表
+ */
+export async function getAgentCheckpoints(
+  taskId: string,
+  params?: { agent_id?: string; limit?: number }
+): Promise<AgentCheckpoint[]> {
+  const response = await apiClient.get(`/agent-tasks/${taskId}/checkpoints`, { params });
+  return response.data;
+}
+
+/**
+ * 获取检查点详情
+ */
+export async function getCheckpointDetail(
+  taskId: string,
+  checkpointId: string
+): Promise<CheckpointDetail> {
+  const response = await apiClient.get(`/agent-tasks/${taskId}/checkpoints/${checkpointId}`);
+  return response.data;
 }
 
