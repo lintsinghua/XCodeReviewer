@@ -500,10 +500,21 @@ class OrchestratorAgent(BaseAgent):
         task = params.get("task", "")
         context = params.get("context", "")
         
+        logger.debug(f"[Orchestrator] _dispatch_agent 被调用: agent_name='{agent_name}', task='{task[:50]}...'")
+        
+        # 🔥 尝试大小写不敏感匹配
         agent = self.sub_agents.get(agent_name)
+        if not agent:
+            # 尝试小写匹配
+            agent_name_lower = agent_name.lower()
+            agent = self.sub_agents.get(agent_name_lower)
+            if agent:
+                agent_name = agent_name_lower
+                logger.debug(f"[Orchestrator] 使用小写匹配: {agent_name}")
         
         if not agent:
             available = list(self.sub_agents.keys())
+            logger.warning(f"[Orchestrator] Agent '{agent_name}' 不存在，可用: {available}")
             return f"错误: Agent '{agent_name}' 不存在。可用的 Agent: {available}"
         
         # 🔥 检查是否重复调度同一个 Agent
@@ -524,11 +535,11 @@ class OrchestratorAgent(BaseAgent):
         self._dispatched_tasks[agent_name] = dispatch_count + 1
         
         # 🔥 设置父 Agent ID 并注册到注册表（动态 Agent 树）
-        logger.info(f"[Orchestrator] 准备调度 {agent_name} Agent, agent._registered={agent._registered}")
+        logger.debug(f"[Orchestrator] 准备调度 {agent_name} Agent, agent._registered={agent._registered}")
         agent.set_parent_id(self._agent_id)
-        logger.info(f"[Orchestrator] 设置 parent_id 完成，准备注册 {agent_name}")
+        logger.debug(f"[Orchestrator] 设置 parent_id 完成，准备注册 {agent_name}")
         agent._register_to_registry(task=task)
-        logger.info(f"[Orchestrator] {agent_name} 注册完成，agent._registered={agent._registered}")
+        logger.debug(f"[Orchestrator] {agent_name} 注册完成，agent._registered={agent._registered}")
         
         await self.emit_event(
             "dispatch",

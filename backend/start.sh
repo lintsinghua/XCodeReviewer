@@ -24,5 +24,5 @@ uv run alembic upgrade head
 
 # 启动服务
 echo "✅ 启动后端服务..."
-uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --no-access-log
 

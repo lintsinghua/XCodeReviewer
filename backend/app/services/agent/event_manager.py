@@ -432,13 +432,13 @@ class EventManager:
                 
                 # 检查是否是结束事件
                 if event_type in ["task_complete", "task_error", "task_cancel"]:
-                    logger.info(f"Task {task_id} already completed, sent {buffered_count} buffered events")
+                    logger.debug(f"Task {task_id} already completed, sent {buffered_count} buffered events")
                     return
             except asyncio.QueueEmpty:
                 break
         
         if buffered_count > 0:
-            logger.info(f"Drained {buffered_count} buffered events for task {task_id}")
+            logger.debug(f"Drained {buffered_count} buffered events for task {task_id}")
         
         # 然后实时推送新事件
         try:

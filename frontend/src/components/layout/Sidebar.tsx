@@ -10,7 +10,6 @@ import {
     ListTodo,
     Settings,
     Trash2,
-    FileText,
     ChevronLeft,
     ChevronRight,
     Github,
@@ -33,7 +32,6 @@ const routeIcons: Record<string, React.ReactNode> = {
     "/prompts": <MessageSquare className="w-5 h-5" />,
     "/admin": <Settings className="w-5 h-5" />,
     "/recycle-bin": <Trash2 className="w-5 h-5" />,
-    "/logs": <FileText className="w-5 h-5" />,
 };
 
 interface SidebarProps {

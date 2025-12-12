@@ -77,8 +77,8 @@ class AgentRegistry:
         Returns:
             注册的节点信息
         """
-        logger.info(f"[AgentRegistry] register_agent 被调用: {agent_name} (id={agent_id}, parent={parent_id})")
-        logger.info(f"[AgentRegistry] 当前节点数: {len(self._agent_graph['nodes'])}, 节点列表: {list(self._agent_graph['nodes'].keys())}")
+        logger.debug(f"[AgentRegistry] register_agent 被调用: {agent_name} (id={agent_id}, parent={parent_id})")
+        logger.debug(f"[AgentRegistry] 当前节点数: {len(self._agent_graph['nodes'])}, 节点列表: {list(self._agent_graph['nodes'].keys())}")
         
         with self._lock:
             node = {
@@ -124,8 +124,8 @@ class AgentRegistry:
             if parent_id is None and self._root_agent_id is None:
                 self._root_agent_id = agent_id
             
-            logger.info(f"[AgentRegistry] 注册完成: {agent_name} ({agent_id}), parent: {parent_id}")
-            logger.info(f"[AgentRegistry] 注册后节点数: {len(self._agent_graph['nodes'])}, 节点列表: {list(self._agent_graph['nodes'].keys())}")
+            logger.debug(f"[AgentRegistry] 注册完成: {agent_name} ({agent_id}), parent: {parent_id}")
+            logger.debug(f"[AgentRegistry] 注册后节点数: {len(self._agent_graph['nodes'])}, 节点列表: {list(self._agent_graph['nodes'].keys())}")
             return node
     
     def unregister_agent(self, agent_id: str) -> None:
@@ -145,7 +145,7 @@ class AgentRegistry:
                 if e["from"] != agent_id and e["to"] != agent_id
             ]
             
-            logger.info(f"Unregistered agent: {agent_id}")
+            logger.debug(f"Unregistered agent: {agent_id}")
     
     # ============ Agent 状态更新 ============
     
@@ -287,7 +287,7 @@ class AgentRegistry:
             self._agent_messages.clear()
             self._running_agents.clear()
             self._root_agent_id = None
-            logger.info("Agent registry cleared")
+            logger.debug("Agent registry cleared")
     
     def cleanup_finished_agents(self) -> int:
         """清理已完成的Agent"""

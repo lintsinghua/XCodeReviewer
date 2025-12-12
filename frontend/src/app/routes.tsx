@@ -7,7 +7,6 @@ import AuditTasks from "@/pages/AuditTasks";
 import TaskDetail from "@/pages/TaskDetail";
 import AgentAudit from "@/pages/AgentAudit";
 import AdminDashboard from "@/pages/AdminDashboard";
-import LogsPage from "@/pages/LogsPage";
 import Account from "@/pages/Account";
 import AuditRules from "@/pages/AuditRules";
 import PromptManager from "@/pages/PromptManager";
@@ -91,12 +90,6 @@ const routes: RouteConfig[] = [
     name: "回收站",
     path: "/recycle-bin",
     element: <RecycleBin />,
-    visible: true,
-  },
-  {
-    name: "系统日志",
-    path: "/logs",
-    element: <LogsPage />,
     visible: true,
   },
   {

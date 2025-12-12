@@ -12,6 +12,11 @@ from app.db.init_db import init_db
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# 禁用 uvicorn access log 和 LiteLLM INFO 日志
+logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
+logging.getLogger("LiteLLM").setLevel(logging.WARNING)
+logging.getLogger("litellm").setLevel(logging.WARNING)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

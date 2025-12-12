@@ -1110,7 +1110,7 @@ async def stream_agent_with_thinking(
         event_manager = _running_event_managers.get(task_id)
         
         if event_manager:
-            logger.info(f"Stream {task_id}: Using in-memory event manager")
+            logger.debug(f"Stream {task_id}: Using in-memory event manager")
             try:
                 # 使用 EventManager 的流式接口
                 # 过滤选项
@@ -1146,7 +1146,7 @@ async def stream_agent_with_thinking(
                 yield format_sse_event(err_data)
                 
         else:
-            logger.info(f"Stream {task_id}: Task not running, falling back to DB polling")
+            logger.debug(f"Stream {task_id}: Task not running, falling back to DB polling")
             # 2. 回退到数据库轮询 (无法获取 thinking_token)
             last_sequence = after_sequence
             poll_interval = 2.0  # 完成的任务轮询可以慢一点
@@ -1572,15 +1572,15 @@ async def get_agent_tree(
     
     # 尝试从内存中获取 Agent 树（运行中的任务）
     runner = _running_tasks.get(task_id)
-    logger.info(f"[AgentTree API] task_id={task_id}, runner exists={runner is not None}")
+    logger.debug(f"[AgentTree API] task_id={task_id}, runner exists={runner is not None}")
     
     if runner:
         from app.services.agent.core import agent_registry
         
         tree = agent_registry.get_agent_tree()
         stats = agent_registry.get_statistics()
-        logger.info(f"[AgentTree API] tree nodes={len(tree.get('nodes', {}))}, root={tree.get('root_agent_id')}")
-        logger.info(f"[AgentTree API] 节点详情: {list(tree.get('nodes', {}).keys())}")
+        logger.debug(f"[AgentTree API] tree nodes={len(tree.get('nodes', {}))}, root={tree.get('root_agent_id')}")
+        logger.debug(f"[AgentTree API] 节点详情: {list(tree.get('nodes', {}).keys())}")
         
         # 构建节点列表
         nodes = []

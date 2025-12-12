@@ -267,7 +267,7 @@ class AgentStatePersistence:
                 session.add(checkpoint)
                 await session.commit()
                 
-                logger.info(f"Saved agent state to database: {state.agent_id}")
+                logger.debug(f"Saved agent state to database: {state.agent_id}")
                 return True
                 
         except Exception as e:

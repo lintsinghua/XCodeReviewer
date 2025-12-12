@@ -311,13 +311,13 @@ class BaseAgent(ABC):
     
     def _register_to_registry(self, task: Optional[str] = None) -> None:
         """注册到Agent注册表（延迟注册，在run时调用）"""
-        logger.info(f"[AgentTree] _register_to_registry 被调用: {self.config.name} (id={self._agent_id}, parent={self.parent_id}, _registered={self._registered})")
+        logger.debug(f"[AgentTree] _register_to_registry 被调用: {self.config.name} (id={self._agent_id}, parent={self.parent_id}, _registered={self._registered})")
         
         if self._registered:
-            logger.warning(f"[AgentTree] {self.config.name} 已注册，跳过 (id={self._agent_id})")
+            logger.debug(f"[AgentTree] {self.config.name} 已注册，跳过 (id={self._agent_id})")
             return
         
-        logger.info(f"[AgentTree] 正在注册 Agent: {self.config.name} (id={self._agent_id}, parent={self.parent_id})")
+        logger.debug(f"[AgentTree] 正在注册 Agent: {self.config.name} (id={self._agent_id}, parent={self.parent_id})")
         
         agent_registry.register_agent(
             agent_id=self._agent_id,
@@ -335,7 +335,7 @@ class BaseAgent(ABC):
         self._registered = True
         
         tree = agent_registry.get_agent_tree()
-        logger.info(f"[AgentTree] Agent 注册完成: {self.config.name}, 当前树节点数: {len(tree['nodes'])}")
+        logger.debug(f"[AgentTree] Agent 注册完成: {self.config.name}, 当前树节点数: {len(tree['nodes'])}")
     
     def set_parent_id(self, parent_id: str) -> None:
         """设置父Agent ID（在调度时调用）"""
