@@ -440,14 +440,52 @@ class OrchestratorAgent(BaseAgent):
         config: Dict[str, Any],
     ) -> str:
         """构建初始消息"""
+        structure = project_info.get('structure', {})
+        
+        # 🔥 检查是否是限定范围的审计
+        scope_limited = structure.get('scope_limited', False)
+        scope_message = structure.get('scope_message', '')
+        
         msg = f"""请开始对以下项目进行安全审计。
 
 ## 项目信息
 - 名称: {project_info.get('name', 'unknown')}
 - 语言: {project_info.get('languages', [])}
 - 文件数量: {project_info.get('file_count', 0)}
-- 目录结构: {json.dumps(project_info.get('structure', {}), ensure_ascii=False, indent=2)}
+"""
+        
+        # 🔥 根据是否限定范围显示不同的结构信息
+        if scope_limited:
+            msg += f"""
+## ⚠️ 审计范围限定
+**{scope_message}**
 
+### 目标文件列表
+"""
+            for f in structure.get('files', []):
+                msg += f"- {f}\n"
+            
+            if structure.get('directories'):
+                msg += f"""
+### 相关目录
+{structure.get('directories', [])}
+"""
+        else:
+            msg += f"""
+## 目录结构
+{json.dumps(structure, ensure_ascii=False, indent=2)}
+"""
+        
+        # 🔥 如果配置了 target_files，也明确显示
+        target_files = config.get('target_files', [])
+        if target_files:
+            msg += f"""
+## ⚠️ 重要提示
+用户指定了 **{len(target_files)}** 个目标文件进行审计。
+请确保你的分析集中在这些指定的文件上，不要浪费时间分析其他文件。
+"""
+        
+        msg += f"""
 ## 用户配置
 - 目标漏洞: {config.get('target_vulnerabilities', ['all'])}
 - 验证级别: {config.get('verification_level', 'sandbox')}

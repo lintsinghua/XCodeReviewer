@@ -299,19 +299,40 @@ class ReconAgent(BaseAgent):
                 
                 self._total_tokens += tokens_this_round
                 
-                # 🔥 Handle empty LLM response to prevent loops
+                # 🔥 Enhanced: Handle empty LLM response with better diagnostics
                 if not llm_output or not llm_output.strip():
-                    logger.warning(f"[{self.name}] Empty LLM response in iteration {self._iteration}")
                     empty_retry_count = getattr(self, '_empty_retry_count', 0) + 1
                     self._empty_retry_count = empty_retry_count
+                    
+                    # 🔥 记录更详细的诊断信息
+                    logger.warning(
+                        f"[{self.name}] Empty LLM response in iteration {self._iteration} "
+                        f"(retry {empty_retry_count}/3, tokens_this_round={tokens_this_round})"
+                    )
+                    
                     if empty_retry_count >= 3:
-                        logger.error(f"[{self.name}] Too many empty responses, stopping")
-                        error_message = "连续收到空响应，停止信息收集"
-                        await self.emit_event("error", error_message)
+                        logger.error(f"[{self.name}] Too many empty responses, generating fallback result")
+                        error_message = "连续收到空响应，使用回退结果"
+                        await self.emit_event("warning", error_message)
+                        # 🔥 不是直接 break，而是尝试生成一个回退结果
                         break
+                    
+                    # 🔥 更有针对性的重试提示
+                    retry_prompt = f"""收到空响应。请根据以下格式输出你的思考和行动：
+
+Thought: [你对当前情况的分析]
+Action: [工具名称，如 list_files, read_file, search_code]
+Action Input: {{"参数名": "参数值"}}
+
+可用工具: {', '.join(self.tools.keys())}
+
+如果你认为信息收集已经完成，请输出：
+Thought: [总结收集到的信息]
+Final Answer: [JSON格式的结果]"""
+                    
                     self._conversation_history.append({
                         "role": "user",
-                        "content": "Received empty response. Please output your Thought and Action.",
+                        "content": retry_prompt,
                     })
                     continue
                 

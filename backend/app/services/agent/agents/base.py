@@ -951,14 +951,32 @@ class BaseAgent(ABC):
                     
                 elif chunk["type"] == "error":
                     accumulated = chunk.get("accumulated", "")
-                    logger.error(f"Stream error: {chunk.get('error')}")
+                    error_msg = chunk.get("error", "Unknown error")
+                    logger.error(f"[{self.name}] Stream error: {error_msg}")
+                    # 🔥 如果有部分累积内容，尝试使用它
+                    if accumulated:
+                        logger.warning(f"[{self.name}] Using partial accumulated content ({len(accumulated)} chars)")
+                        total_tokens = chunk.get("usage", {}).get("total_tokens", 0)
+                    else:
+                        # 🔥 返回一个提示 LLM 继续的消息，而不是空字符串
+                        accumulated = f"[系统错误: {error_msg}] 请重新思考并输出你的决策。"
                     break
                     
         except asyncio.CancelledError:
             logger.info(f"[{self.name}] LLM call cancelled")
             raise
+        except Exception as e:
+            # 🔥 增强异常处理，避免吞掉错误
+            logger.error(f"[{self.name}] Unexpected error in stream_llm_call: {e}", exc_info=True)
+            await self.emit_event("error", f"LLM 调用错误: {str(e)}")
+            # 返回错误提示，让 Agent 知道发生了什么
+            accumulated = f"[LLM调用错误: {str(e)}] 请重试。"
         finally:
             await self.emit_thinking_end(accumulated)
+        
+        # 🔥 记录空响应警告，帮助调试
+        if not accumulated or not accumulated.strip():
+            logger.warning(f"[{self.name}] Empty LLM response returned (total_tokens: {total_tokens})")
         
         return accumulated, total_tokens
     

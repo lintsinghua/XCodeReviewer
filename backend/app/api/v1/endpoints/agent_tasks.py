@@ -389,7 +389,8 @@ async def _execute_agent_task(task_id: str):
                 
                 # 计算安全评分
                 task.security_score = _calculate_security_score(findings)
-                task.progress_percentage = 100.0
+                # 🔥 注意: progress_percentage 是计算属性，不需要手动设置
+                # 当 status = COMPLETED 时会自动返回 100.0
                 
                 await db.commit()
                 
@@ -580,6 +581,9 @@ async def _collect_project_info(
         project_name: 项目名称
         exclude_patterns: 排除模式列表
         target_files: 目标文件列表
+    
+    🔥 重要：当指定了 target_files 时，返回的项目结构应该只包含目标文件相关的信息，
+    以确保 Orchestrator 和子 Agent 看到的是一致的、过滤后的视图。
     """
     import fnmatch
     
@@ -615,6 +619,10 @@ async def _collect_project_info(
             ".rb": "Ruby", ".rs": "Rust", ".c": "C", ".cpp": "C++",
         }
         
+        # 🔥 收集过滤后的文件列表
+        filtered_files = []
+        filtered_dirs = set()
+        
         for root, dirs, files in os.walk(project_root):
             dirs[:] = [d for d in dirs if d not in exclude_dirs]
             
@@ -636,20 +644,40 @@ async def _collect_project_info(
                     continue
                 
                 info["file_count"] += 1
+                filtered_files.append(relative_path)
+                
+                # 🔥 收集文件所在的目录
+                dir_path = os.path.dirname(relative_path)
+                if dir_path:
+                    # 添加目录及其父目录
+                    parts = dir_path.split(os.sep)
+                    for i in range(len(parts)):
+                        filtered_dirs.add(os.sep.join(parts[:i+1]))
                 
                 ext = os.path.splitext(f)[1].lower()
                 if ext in lang_map and lang_map[ext] not in info["languages"]:
                     info["languages"].append(lang_map[ext])
         
-        # 收集顶层目录结构
-        try:
-            top_items = os.listdir(project_root)
+        # 🔥 根据是否有目标文件限制，生成不同的结构信息
+        if target_files_set:
+            # 当指定了目标文件时，只显示目标文件和相关目录
             info["structure"] = {
-                "directories": [d for d in top_items if os.path.isdir(os.path.join(project_root, d)) and d not in exclude_dirs],
-                "files": [f for f in top_items if os.path.isfile(os.path.join(project_root, f))][:20],
+                "directories": sorted(list(filtered_dirs))[:20],
+                "files": filtered_files[:30],
+                "scope_limited": True,  # 🔥 标记这是限定范围的视图
+                "scope_message": f"审计范围限定为 {len(filtered_files)} 个指定文件",
             }
-        except Exception:
-            pass
+        else:
+            # 全项目审计时，显示顶层目录结构
+            try:
+                top_items = os.listdir(project_root)
+                info["structure"] = {
+                    "directories": [d for d in top_items if os.path.isdir(os.path.join(project_root, d)) and d not in exclude_dirs],
+                    "files": [f for f in top_items if os.path.isfile(os.path.join(project_root, f))][:20],
+                    "scope_limited": False,
+                }
+            except Exception:
+                pass
             
     except Exception as e:
         logger.warning(f"Failed to collect project info: {e}")
