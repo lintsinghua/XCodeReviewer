@@ -287,10 +287,13 @@ class AgentRunner:
             self.verification_tools["sandbox_exec"] = SandboxTool(self.sandbox_manager)
             self.verification_tools["sandbox_http"] = SandboxHttpTool(self.sandbox_manager)
             self.verification_tools["verify_vulnerability"] = VulnerabilityVerifyTool(self.sandbox_manager)
-            logger.info("Sandbox tools initialized successfully")
+            logger.info(f"✅ Sandbox tools initialized successfully: sandbox_exec, sandbox_http, verify_vulnerability")
+            logger.info(f"✅ Verification tools: {list(self.verification_tools.keys())}")
 
         except Exception as e:
-            logger.warning(f"Sandbox initialization failed: {e}")
+            logger.warning(f"❌ Sandbox initialization failed: {e}")
+            import traceback
+            logger.warning(f"Traceback: {traceback.format_exc()}")
         
         # 统计总工具数
         total_tools = len(set(
