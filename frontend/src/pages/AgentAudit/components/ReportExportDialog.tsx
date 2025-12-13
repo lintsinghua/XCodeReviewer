@@ -5,6 +5,7 @@
  */
 
 import { useState, useEffect, useCallback, memo } from "react";
+import { marked } from "marked";
 import {
   Dialog,
   DialogContent,
@@ -372,7 +373,7 @@ export const ReportExportDialog = memo(function ReportExportDialog({
           responseType: "text",
         });
 
-        const htmlContent = generateHtmlReport(mdResponse.data, task);
+        const htmlContent = await generateHtmlReport(mdResponse.data, task);
         setPreview({
           content: htmlContent,
           format: "html",
@@ -405,34 +406,29 @@ export const ReportExportDialog = memo(function ReportExportDialog({
   }, [task, findings]);
 
   // Generate HTML report from markdown
-  const generateHtmlReport = (markdown: string, task: AgentTask): string => {
-    // Convert markdown to HTML with styling
-    let html = markdown
-      .replace(/^# (.+)$/gm, '<h1 class="report-h1">$1</h1>')
-      .replace(/^## (.+)$/gm, '<h2 class="report-h2">$1</h2>')
-      .replace(/^### (.+)$/gm, '<h3 class="report-h3">$1</h3>')
-      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-      .replace(/`([^`]+)`/g, '<code class="report-code">$1</code>')
-      .replace(/^- (.+)$/gm, '<li>$1</li>')
-      .replace(/^---$/gm, '<hr class="report-hr">')
-      .replace(/\n\n/g, '</p><p class="report-p">');
+  const generateHtmlReport = async (markdown: string, task: AgentTask): Promise<string> => {
+    // Parse markdown to HTML using marked
+    const contentHtml = await marked.parse(markdown);
 
     return `<!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Security Audit Report - ${task.name || task.id}</title>
+  <title>安全审计报告 - ${task.name || task.id}</title>
   <style>
     :root {
       --bg-primary: #0a0a0f;
       --bg-secondary: #0d0d12;
+      --bg-tertiary: #1a1a24;
       --text-primary: #ffffff;
       --text-secondary: #94a3b8;
       --accent: #FF6B2C;
+      --border: #2d2d3d;
       --success: #34d399;
       --warning: #fbbf24;
       --error: #fb7185;
+      --code-bg: #1e1e2e;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -444,78 +440,124 @@ export const ReportExportDialog = memo(function ReportExportDialog({
       max-width: 900px;
       margin: 0 auto;
     }
-    .report-h1 {
+    
+    /* Typography */
+    h1, h2, h3, h4, h5, h6 {
       color: var(--text-primary);
-      font-size: 1.75rem;
-      margin: 2rem 0 1rem;
-      padding-bottom: 0.5rem;
-      border-bottom: 1px solid rgba(255,255,255,0.1);
+      margin-top: 2rem;
+      margin-bottom: 1rem;
+      font-weight: 600;
     }
-    .report-h2 {
-      color: var(--text-primary);
-      font-size: 1.25rem;
-      margin: 1.5rem 0 0.75rem;
-    }
-    .report-h3 {
-      color: var(--accent);
-      font-size: 1rem;
-      margin: 1rem 0 0.5rem;
-    }
-    .report-p { margin: 0.75rem 0; }
-    .report-code {
-      background: var(--bg-secondary);
-      padding: 0.125rem 0.375rem;
-      border-radius: 0.25rem;
-      font-family: 'SF Mono', Monaco, monospace;
-      font-size: 0.875em;
-    }
-    .report-hr {
-      border: none;
-      border-top: 1px solid rgba(255,255,255,0.1);
+    h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: 0.5rem; }
+    h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; }
+    h3 { font-size: 1.25rem; color: var(--text-primary); margin-top: 1.5rem; }
+    
+    p { margin-bottom: 1rem; }
+    
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
       margin: 1.5rem 0;
-    }
-    li {
-      margin: 0.25rem 0;
-      margin-left: 1.5rem;
-    }
-    pre {
       background: var(--bg-secondary);
-      padding: 1rem;
-      border-radius: 0.5rem;
-      overflow-x: auto;
-      font-size: 0.875rem;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid var(--border);
     }
-    .header {
-      text-align: center;
-      padding: 2rem;
-      background: var(--bg-secondary);
-      border-radius: 0.75rem;
-      margin-bottom: 2rem;
-      border: 1px solid rgba(255,255,255,0.05);
+    th, td {
+      padding: 0.75rem 1rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
     }
-    .header h1 {
+    th {
+      background: var(--bg-tertiary);
       color: var(--text-primary);
-      font-size: 1.5rem;
-      margin-bottom: 0.5rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 0.85rem;
+      letter-spacing: 0.05em;
     }
-    .header .subtitle {
-      color: var(--accent);
-      font-size: 0.875rem;
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(255, 255, 255, 0.02); }
+    
+    /* Code Blocks */
+    pre {
+      background: var(--code-bg);
+      padding: 1rem;
+      border-radius: 8px;
+      overflow-x: auto;
+      margin: 1rem 0;
+      border: 1px solid var(--border);
     }
-    .severity-critical { color: #fb7185; }
-    .severity-high { color: #fb923c; }
-    .severity-medium { color: #fbbf24; }
-    .severity-low { color: #38bdf8; }
+    code {
+      font-family: 'SF Mono', 'Menlo', 'Monaco', 'Courier New', monospace;
+      font-size: 0.9em;
+      color: #e2e8f0;
+    }
+    p code, li code, td code {
+      background: rgba(255, 255, 255, 0.1);
+      padding: 0.2em 0.4em;
+      border-radius: 4px;
+      font-size: 0.85em;
+      color: #e2e8f0;
+    }
+    
+    /* Lists */
+    ul, ol { margin-left: 1.5rem; margin-bottom: 1rem; }
+    li { margin-bottom: 0.5rem; }
+    
+    /* Blockquotes */
+    blockquote {
+      border-left: 4px solid var(--accent);
+      padding-left: 1rem;
+      margin: 1rem 0;
+      color: var(--text-secondary);
+      font-style: italic;
+      background: rgba(255, 107, 44, 0.05);
+      padding: 0.5rem 0.5rem 0.5rem 1rem;
+      border-radius: 0 4px 4px 0;
+    }
+    
+    /* Links */
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    
+    /* Horizontal Rule */
+    hr {
+      border: 0;
+      height: 1px;
+      background: var(--border);
+      margin: 2rem 0;
+    }
+    
+    /* Utilities */
+    strong { color: var(--text-primary); font-weight: 600; }
+    em { color: var(--text-secondary); }
+    
+    /* Print Styles */
+    @media print {
+      body {
+        background: white;
+        color: black;
+        max-width: 100%;
+        padding: 0;
+      }
+      h1, h2, h3, strong { color: black; }
+      pre, code { background: #f1f5f9; color: black; border-color: #e2e8f0; }
+      table { border-color: #e2e8f0; }
+      th { background: #f8fafc; color: black; border-bottom-color: #cbd5e1; }
+      td { border-bottom-color: #e2e8f0; }
+      p code, li code, td code { background: #f1f5f9; color: #0f172a; }
+      a { color: #2563eb; text-decoration: underline; }
+    }
   </style>
 </head>
 <body>
-  <div class="header">
-    <h1>DEEPAUDIT Security Report</h1>
-    <p class="subtitle">Generated ${new Date().toLocaleString()}</p>
-  </div>
-  <main>
-    <p class="report-p">${html}</p>
-  </main>
+  ${contentHtml}
+  
+  <footer style="margin-top: 4rem; padding-top: 2rem; border-top: 1px solid var(--border); text-align: center; font-size: 0.875rem; color: var(--text-secondary);">
+    <p>生成于 ${new Date().toLocaleString('zh-CN')} &bull; DeepAudit 安全审计系统</p>
+  </footer>
 </body>
 </html>`;
   };
@@ -540,26 +582,64 @@ export const ReportExportDialog = memo(function ReportExportDialog({
 
   // Handle download
   const handleDownload = async () => {
-    if (!task) return;
+    if (!task || !findings && activeFormat !== "json") return; // Allow json even if findings empty? Actually backend handles it.
 
     setDownloading(true);
     try {
-      if (activeFormat === "markdown" || activeFormat === "json") {
-        await downloadAgentReport(task.id, activeFormat);
-      } else {
-        // HTML download
-        const blob = new Blob([preview.content], { type: "text/html" });
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = `audit-report-${task.id.slice(0, 8)}.html`;
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-        window.URL.revokeObjectURL(url);
+      let content = "";
+      let filename = `audit_report_${task.id.substring(0, 8)}`;
+      let mimeType = "text/plain";
+
+      if (activeFormat === "markdown") {
+        content = preview.content; // Use cached preview
+        // Fallback if preview failed? Re-fetch.
+        if (!content) {
+          const response = await apiClient.get(`/agent-tasks/${task.id}/report`, {
+            params: { format: "markdown" },
+            responseType: "text",
+          });
+          content = response.data;
+        }
+        filename += ".md";
+      } else if (activeFormat === "json") {
+        // Fetch JSON directly from backend
+        const response = await apiClient.get(`/agent-tasks/${task.id}/report`, {
+          params: { format: "json" },
+          responseType: "json", // Important: axios parses JSON
+        });
+        // Pretty print JSON
+        content = JSON.stringify(response.data, null, 2);
+        filename += ".json";
+        mimeType = "application/json";
+      } else if (activeFormat === "html") { // HTML
+        if (preview.content && preview.format === "html") {
+          content = preview.content;
+        } else {
+          const response = await apiClient.get(`/agent-tasks/${task.id}/report`, {
+            params: { format: "markdown" },
+            responseType: "text",
+          });
+          content = await generateHtmlReport(response.data, task);
+        }
+        filename += ".html";
+        mimeType = "text/html";
       }
+
+      // Create download trigger
+      const blob = new Blob([content], { type: mimeType });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      onOpenChange(false);
     } catch (err) {
       console.error("Download failed:", err);
+      // Ideally show toast error here
     } finally {
       setDownloading(false);
     }
