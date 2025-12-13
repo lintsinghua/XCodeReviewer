@@ -6,7 +6,6 @@
 
 import { memo } from "react";
 import { X, Cpu, Scan, FileSearch, ShieldCheck, Bot, Repeat, Zap, Bug, FileCode, Clock, Network } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { AGENT_STATUS_CONFIG } from "../constants";
 import { findAgentInTree } from "../utils";
 import type { AgentDetailPanelProps } from "../types";
@@ -119,16 +118,36 @@ export const AgentDetailPanel = memo(function AgentDetailPanel({ agentId, treeNo
           </div>
         </div>
 
-        {/* Findings */}
-        <div className="flex items-center gap-2 p-2 rounded bg-gray-900/30 border border-gray-800/30">
-          <Bug className={`w-3.5 h-3.5 ${agent.findings_count > 0 ? 'text-red-400/70' : 'text-gray-500/70'}`} />
-          <div>
-            <div className="text-[9px] text-gray-600 uppercase">Findings</div>
-            <div className={`text-sm font-mono ${agent.findings_count > 0 ? 'text-red-400' : 'text-white'}`}>
-              {agent.findings_count}
+        {/* Findings - Only show for Orchestrator (root agent with no parent) */}
+        {!agent.parent_agent_id && (
+          <div className="flex items-center gap-2 p-2 rounded bg-gray-900/30 border border-gray-800/30">
+            <Bug className={`w-3.5 h-3.5 ${agent.findings_count > 0 ? 'text-red-400/70' : 'text-gray-500/70'}`} />
+            <div>
+              <div className="text-[9px] text-gray-600 uppercase">Findings</div>
+              <div className={`text-sm font-mono ${agent.findings_count > 0 ? 'text-red-400' : 'text-white'}`}>
+                {agent.findings_count}
+              </div>
             </div>
           </div>
-        </div>
+        )}
+
+        {/* Duration/Status - Show for sub-agents instead of Findings */}
+        {agent.parent_agent_id && (
+          <div className="flex items-center gap-2 p-2 rounded bg-gray-900/30 border border-gray-800/30">
+            <Clock className="w-3.5 h-3.5 text-slate-400/70" />
+            <div>
+              <div className="text-[9px] text-gray-600 uppercase">
+                {agent.duration_ms ? "Duration" : "Status"}
+              </div>
+              <div className="text-sm text-white font-mono">
+                {agent.duration_ms
+                  ? `${(agent.duration_ms / 1000).toFixed(1)}s`
+                  : (AGENT_STATUS_CONFIG[agent.status]?.text || agent.status)
+                }
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Tokens */}
         <div className="flex items-center gap-2 p-2 rounded bg-gray-900/30 border border-gray-800/30">

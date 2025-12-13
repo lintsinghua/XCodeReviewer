@@ -133,8 +133,8 @@ export const AgentTreeNodeItem = memo(function AgentTreeNodeItem({
             </span>
           )}
 
-          {/* Findings count */}
-          {node.findings_count > 0 && (
+          {/* Findings count - Only show for Orchestrator (root agent) */}
+          {!node.parent_agent_id && node.findings_count > 0 && (
             <Badge className="h-4 px-1.5 text-[9px] bg-rose-500/25 text-rose-300 border border-rose-500/40 font-mono font-semibold">
               {node.findings_count}
             </Badge>

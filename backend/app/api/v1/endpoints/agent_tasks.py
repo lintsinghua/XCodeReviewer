@@ -1919,6 +1919,9 @@ async def get_agent_tree(
         logger.debug(f"[AgentTree API] tree nodes={len(tree.get('nodes', {}))}, root={tree.get('root_agent_id')}")
         logger.debug(f"[AgentTree API] 节点详情: {list(tree.get('nodes', {}).keys())}")
         
+        # 🔥 获取 root agent ID，用于判断是否是 Orchestrator
+        root_agent_id = tree.get("root_agent_id")
+        
         # 构建节点列表
         nodes = []
         for agent_id, node_data in tree.get("nodes", {}).items():
@@ -1935,10 +1938,15 @@ async def get_agent_tree(
                 tool_calls = agent_stats.get("tool_calls", 0)
                 tokens_used = agent_stats.get("tokens_used", 0)
             
-            # 从结果中获取发现数量
-            if node_data.get("result"):
-                result = node_data.get("result", {})
-                findings_count = len(result.get("findings", []))
+            # 🔥 FIX: 对于 Orchestrator (root agent)，使用 task 的 findings_count
+            # 这确保了正确显示聚合的 findings 总数
+            if agent_id == root_agent_id:
+                findings_count = task.findings_count or 0
+            else:
+                # 从结果中获取发现数量（对于子 agent）
+                if node_data.get("result"):
+                    result = node_data.get("result", {})
+                    findings_count = len(result.get("findings", []))
             
             nodes.append(AgentTreeNodeResponse(
                 id=node_data.get("id", agent_id),
@@ -1956,14 +1964,15 @@ async def get_agent_tree(
                 children=[],
             ))
         
+        # 🔥 使用 task.findings_count 作为 total_findings，确保一致性
         return AgentTreeResponse(
             task_id=task_id,
-            root_agent_id=tree.get("root_agent_id"),
+            root_agent_id=root_agent_id,
             total_agents=stats.get("total", 0),
             running_agents=stats.get("running", 0),
             completed_agents=stats.get("completed", 0),
             failed_agents=stats.get("failed", 0),
-            total_findings=sum(n.findings_count for n in nodes),
+            total_findings=task.findings_count or 0,
             nodes=nodes,
         )
     
@@ -1989,7 +1998,6 @@ async def get_agent_tree(
     running = 0
     completed = 0
     failed = 0
-    total_findings = 0
     
     for node in db_nodes:
         if node.parent_agent_id is None:
@@ -2002,7 +2010,13 @@ async def get_agent_tree(
         elif node.status == "failed":
             failed += 1
         
-        total_findings += node.findings_count or 0
+        # 🔥 FIX: 对于 Orchestrator (root agent)，使用 task 的 findings_count
+        # 这确保了正确显示聚合的 findings 总数
+        if node.parent_agent_id is None:
+            # Root agent uses task's total findings
+            node_findings_count = task.findings_count or 0
+        else:
+            node_findings_count = node.findings_count or 0
         
         nodes.append(AgentTreeNodeResponse(
             id=node.id,
@@ -2015,7 +2029,7 @@ async def get_agent_tree(
             knowledge_modules=node.knowledge_modules,
             status=node.status,
             result_summary=node.result_summary,
-            findings_count=node.findings_count or 0,
+            findings_count=node_findings_count,
             iterations=node.iterations or 0,
             tokens_used=node.tokens_used or 0,
             tool_calls=node.tool_calls or 0,
@@ -2023,6 +2037,7 @@ async def get_agent_tree(
             children=[],
         ))
     
+    # 🔥 使用 task.findings_count 作为 total_findings，确保一致性
     return AgentTreeResponse(
         task_id=task_id,
         root_agent_id=root_id,
@@ -2030,7 +2045,7 @@ async def get_agent_tree(
         running_agents=running,
         completed_agents=completed,
         failed_agents=failed,
-        total_findings=total_findings,
+        total_findings=task.findings_count or 0,
         nodes=nodes,
     )
 
