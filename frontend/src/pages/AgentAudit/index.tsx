@@ -63,7 +63,11 @@ function AgentAuditPageContent() {
   const previousTaskIdRef = useRef<string | undefined>(undefined);
   const disconnectStreamRef = useRef<(() => void) | null>(null);
   const lastEventSequenceRef = useRef<number>(0);
-  const historicalEventsLoadedRef = useRef<boolean>(false);
+  const hasConnectedRef = useRef<boolean>(false); // 🔥 追踪是否已连接 SSE
+  const hasLoadedHistoricalEventsRef = useRef<boolean>(false); // 🔥 追踪是否已加载历史事件
+  // 🔥 使用 state 来标记历史事件加载状态和触发 streamOptions 重新计算
+  const [afterSequence, setAfterSequence] = useState<number>(0);
+  const [historicalEventsLoaded, setHistoricalEventsLoaded] = useState<boolean>(false);
 
   // 🔥 当 taskId 变化时立即重置状态（新建任务时清理旧日志）
   useEffect(() => {
@@ -79,7 +83,10 @@ function AgentAuditPageContent() {
       setShowSplash(!taskId);
       // 3. 重置事件序列号和加载状态
       lastEventSequenceRef.current = 0;
-      historicalEventsLoadedRef.current = false;
+      hasConnectedRef.current = false; // 🔥 重置 SSE 连接标志
+      hasLoadedHistoricalEventsRef.current = false; // 🔥 重置历史事件加载标志
+      setHistoricalEventsLoaded(false); // 🔥 重置历史事件加载状态
+      setAfterSequence(0); // 🔥 重置 afterSequence state
     }
     previousTaskIdRef.current = taskId;
   }, [taskId, reset]);
@@ -141,6 +148,14 @@ function AgentAuditPageContent() {
   // 🔥 NEW: 加载历史事件并转换为日志项
   const loadHistoricalEvents = useCallback(async () => {
     if (!taskId) return 0;
+
+    // 🔥 防止重复加载历史事件
+    if (hasLoadedHistoricalEventsRef.current) {
+      console.log('[AgentAudit] Historical events already loaded, skipping');
+      return 0;
+    }
+    hasLoadedHistoricalEventsRef.current = true;
+
     try {
       console.log(`[AgentAudit] Fetching historical events for task ${taskId}...`);
       const events = await getAgentEvents(taskId, { limit: 500 });
@@ -356,20 +371,22 @@ function AgentAuditPageContent() {
       });
 
       console.log(`[AgentAudit] Processed ${processedCount} events into logs, last sequence: ${lastEventSequenceRef.current}`);
+      // 🔥 更新 afterSequence state，触发 streamOptions 重新计算
+      setAfterSequence(lastEventSequenceRef.current);
       return events.length;
     } catch (err) {
       console.error('[AgentAudit] Failed to load historical events:', err);
       return 0;
     }
-  }, [taskId, dispatch]);
+  }, [taskId, dispatch, setAfterSequence]);
 
   // ============ Stream Event Handling ============
 
   const streamOptions = useMemo(() => ({
     includeThinking: true,
     includeToolCalls: true,
-    // 🔥 使用最后的事件序列号，避免重复接收历史事件
-    afterSequence: lastEventSequenceRef.current,
+    // 🔥 使用 state 变量，确保在历史事件加载后能获取最新值
+    afterSequence: afterSequence,
     onEvent: (event: { type: string; message?: string; metadata?: { agent_name?: string; agent?: string } }) => {
       if (event.metadata?.agent_name) {
         setCurrentAgentName(event.metadata.agent_name);
@@ -478,7 +495,20 @@ function AgentAuditPageContent() {
           agentName: getCurrentAgentName() || undefined,
         }
       });
-      loadFindings();
+      // 🔥 直接将 finding 添加到状态，不依赖 API（因为运行时数据库还没有数据）
+      dispatch({
+        type: 'ADD_FINDING',
+        payload: {
+          id: (finding.id as string) || `finding-${Date.now()}`,
+          title: (finding.title as string) || 'Vulnerability found',
+          severity: (finding.severity as string) || 'medium',
+          vulnerability_type: (finding.vulnerability_type as string) || 'unknown',
+          file_path: finding.file_path as string,
+          line_start: finding.line_start as number,
+          description: finding.description as string,
+          is_verified: (finding.is_verified as boolean) || false,
+        }
+      });
     },
     onComplete: () => {
       dispatch({ type: 'ADD_LOG', payload: { type: 'info', title: 'Audit completed successfully' } });
@@ -489,7 +519,7 @@ function AgentAuditPageContent() {
     onError: (err: string) => {
       dispatch({ type: 'ADD_LOG', payload: { type: 'error', title: `Error: ${err}` } });
     },
-  }), [dispatch, loadTask, loadFindings, loadAgentTree, debouncedLoadAgentTree,
+  }), [afterSequence, dispatch, loadTask, loadFindings, loadAgentTree, debouncedLoadAgentTree,
       updateLog, removeLog, getCurrentAgentName, getCurrentThinkingId,
       setCurrentAgentName, setCurrentThinkingId]);
 
@@ -523,7 +553,7 @@ function AgentAuditPageContent() {
     }
     setShowSplash(false);
     setLoading(true);
-    historicalEventsLoadedRef.current = false;
+    setHistoricalEventsLoaded(false);
 
     const loadAllData = async () => {
       try {
@@ -534,11 +564,11 @@ function AgentAuditPageContent() {
         const eventsLoaded = await loadHistoricalEvents();
         console.log(`[AgentAudit] Loaded ${eventsLoaded} historical events for task ${taskId}`);
 
-        // 标记历史事件已加载完成
-        historicalEventsLoadedRef.current = true;
+        // 标记历史事件已加载完成 (setAfterSequence 已在 loadHistoricalEvents 中调用)
+        setHistoricalEventsLoaded(true);
       } catch (error) {
         console.error('[AgentAudit] Failed to load data:', error);
-        historicalEventsLoadedRef.current = true; // 即使出错也标记为完成，避免无限等待
+        setHistoricalEventsLoaded(true); // 即使出错也标记为完成，避免无限等待
       } finally {
         setLoading(false);
       }
@@ -552,20 +582,21 @@ function AgentAuditPageContent() {
     // 等待历史事件加载完成，且任务正在运行
     if (!taskId || !task?.status || task.status !== 'running') return;
 
-    // 如果历史事件尚未加载完成，等待一下
-    const checkAndConnect = () => {
-      if (historicalEventsLoadedRef.current) {
-        connectStream();
-        dispatch({ type: 'ADD_LOG', payload: { type: 'info', title: 'Connected to audit stream' } });
-      } else {
-        // 延迟重试
-        setTimeout(checkAndConnect, 100);
-      }
-    };
+    // 🔥 使用 state 变量确保在历史事件加载完成后才连接
+    if (!historicalEventsLoaded) return;
 
-    checkAndConnect();
-    return () => disconnectStream();
-  }, [taskId, task?.status, connectStream, disconnectStream, dispatch]);
+    // 🔥 避免重复连接 - 只连接一次
+    if (hasConnectedRef.current) return;
+
+    hasConnectedRef.current = true;
+    console.log(`[AgentAudit] Connecting to stream with afterSequence=${afterSequence}`);
+    connectStream();
+    dispatch({ type: 'ADD_LOG', payload: { type: 'info', title: 'Connected to audit stream' } });
+
+    return () => {
+      disconnectStream();
+    };
+  }, [taskId, task?.status, historicalEventsLoaded, connectStream, disconnectStream, dispatch, afterSequence]);
 
   // Polling
   useEffect(() => {

@@ -216,22 +216,22 @@ class LiteLLMAdapter(BaseLLMAdapter):
     async def stream_complete(self, request: LLMRequest):
         """
         流式调用 LLM，逐 token 返回
-        
+
         Yields:
             dict: {"type": "token", "content": str} 或 {"type": "done", "content": str, "usage": dict}
         """
         import litellm
-        
+
         await self.validate_config()
-        
+
         litellm.cache = None
         litellm.drop_params = True
-        
+
         messages = [{"role": msg.role, "content": msg.content} for msg in request.messages]
-        
+
         # 🔥 估算输入 token 数量（用于在无法获取真实 usage 时进行估算）
         input_tokens_estimate = sum(estimate_tokens(msg["content"]) for msg in messages)
-        
+
         kwargs = {
             "model": self._litellm_model,
             "messages": messages,
@@ -240,27 +240,30 @@ class LiteLLMAdapter(BaseLLMAdapter):
             "top_p": request.top_p if request.top_p is not None else self.config.top_p,
             "stream": True,  # 启用流式输出
         }
-        
+
         # 🔥 对于支持的模型，请求在流式输出中包含 usage 信息
         # OpenAI API 支持 stream_options
         if self.config.provider in [LLMProvider.OPENAI, LLMProvider.DEEPSEEK]:
             kwargs["stream_options"] = {"include_usage": True}
-        
+
         if self.config.api_key and self.config.api_key != "ollama":
             kwargs["api_key"] = self.config.api_key
-        
+
         if self._api_base:
             kwargs["api_base"] = self._api_base
-        
+
         kwargs["timeout"] = self.config.timeout
-        
+
         accumulated_content = ""
         final_usage = None  # 🔥 存储最终的 usage 信息
-        
+        chunk_count = 0  # 🔥 跟踪 chunk 数量
+
         try:
             response = await litellm.acompletion(**kwargs)
-            
+
             async for chunk in response:
+                chunk_count += 1
+
                 # 🔥 检查是否有 usage 信息（某些 API 会在最后的 chunk 中包含）
                 if hasattr(chunk, "usage") and chunk.usage:
                     final_usage = {
@@ -269,14 +272,15 @@ class LiteLLMAdapter(BaseLLMAdapter):
                         "total_tokens": chunk.usage.total_tokens or 0,
                     }
                     logger.debug(f"Got usage from chunk: {final_usage}")
-                
+
                 if not chunk.choices:
+                    # 🔥 某些模型可能发送没有 choices 的 chunk（如心跳）
                     continue
-                
+
                 delta = chunk.choices[0].delta
                 content = getattr(delta, "content", "") or ""
                 finish_reason = chunk.choices[0].finish_reason
-                
+
                 if content:
                     accumulated_content += content
                     yield {
@@ -284,9 +288,8 @@ class LiteLLMAdapter(BaseLLMAdapter):
                         "content": content,
                         "accumulated": accumulated_content,
                     }
-                else:
-                    # Log when we get a chunk without content
-                    logger.debug(f"Chunk with no content: {chunk}")
+                # 🔥 ENHANCED: 处理没有 content 但也没有 finish_reason 的情况
+                # 某些模型（如智谱 GLM）可能在某些 chunk 中不返回内容
 
                 if finish_reason:
                     # 流式完成
@@ -299,7 +302,11 @@ class LiteLLMAdapter(BaseLLMAdapter):
                             "total_tokens": input_tokens_estimate + output_tokens_estimate,
                         }
                         logger.debug(f"Estimated usage: {final_usage}")
-                    
+
+                    # 🔥 ENHANCED: 如果累积内容为空但有 finish_reason，记录警告
+                    if not accumulated_content:
+                        logger.warning(f"Stream completed with no content after {chunk_count} chunks, finish_reason={finish_reason}")
+
                     yield {
                         "type": "done",
                         "content": accumulated_content,
@@ -307,9 +314,27 @@ class LiteLLMAdapter(BaseLLMAdapter):
                         "finish_reason": finish_reason,
                     }
                     break
-                    
+
+            # 🔥 ENHANCED: 如果循环结束但没有收到 finish_reason，也需要返回 done
+            if accumulated_content:
+                logger.warning(f"Stream ended without finish_reason, returning accumulated content ({len(accumulated_content)} chars)")
+                if not final_usage:
+                    output_tokens_estimate = estimate_tokens(accumulated_content)
+                    final_usage = {
+                        "prompt_tokens": input_tokens_estimate,
+                        "completion_tokens": output_tokens_estimate,
+                        "total_tokens": input_tokens_estimate + output_tokens_estimate,
+                    }
+                yield {
+                    "type": "done",
+                    "content": accumulated_content,
+                    "usage": final_usage,
+                    "finish_reason": "complete",
+                }
+
         except Exception as e:
             # 🔥 即使出错，也尝试返回估算的 usage
+            logger.error(f"Stream error: {e}")
             output_tokens_estimate = estimate_tokens(accumulated_content) if accumulated_content else 0
             yield {
                 "type": "error",

@@ -741,26 +741,43 @@ class BaseAgent(ABC):
         )
     
     # ============ 发现相关事件 ============
-    
-    async def emit_finding(self, title: str, severity: str, vuln_type: str, file_path: str = ""):
+
+    async def emit_finding(self, title: str, severity: str, vuln_type: str, file_path: str = "", is_verified: bool = False):
         """发射漏洞发现事件"""
-        severity_emoji = {
-            "critical": "🔴",
-            "high": "🟠",
-            "medium": "🟡",
-            "low": "🟢",
-        }.get(severity.lower(), "⚪")
-        
-        await self.emit_event(
-            "finding",
-            f"{severity_emoji} [{self.name}] 发现漏洞: [{severity.upper()}] {title}\n   类型: {vuln_type}\n   位置: {file_path}",
-            metadata={
-                "title": title,
-                "severity": severity,
-                "vulnerability_type": vuln_type,
-                "file_path": file_path,
-            }
-        )
+        import uuid
+        finding_id = str(uuid.uuid4())
+
+        # 🔥 使用 EventManager.emit_finding 发送正确的事件类型
+        if self.event_emitter and hasattr(self.event_emitter, 'emit_finding'):
+            await self.event_emitter.emit_finding(
+                finding_id=finding_id,
+                title=title,
+                severity=severity,
+                vulnerability_type=vuln_type,
+                is_verified=is_verified,
+            )
+        else:
+            # 回退：使用通用事件发射
+            severity_emoji = {
+                "critical": "🔴",
+                "high": "🟠",
+                "medium": "🟡",
+                "low": "🟢",
+            }.get(severity.lower(), "⚪")
+
+            event_type = "finding_verified" if is_verified else "finding_new"
+            await self.emit_event(
+                event_type,
+                f"{severity_emoji} [{self.name}] 发现漏洞: [{severity.upper()}] {title}\n   类型: {vuln_type}\n   位置: {file_path}",
+                metadata={
+                    "id": finding_id,
+                    "title": title,
+                    "severity": severity,
+                    "vulnerability_type": vuln_type,
+                    "file_path": file_path,
+                    "is_verified": is_verified,
+                }
+            )
     
     # ============ 通用工具方法 ============
     

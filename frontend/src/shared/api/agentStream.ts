@@ -396,6 +396,7 @@ export class AgentStreamHandler {
         break;
 
       // 发现
+      case 'finding':  // 🔥 向后兼容旧的事件类型
       case 'finding_new':
       case 'finding_verified':
         this.options.onFinding?.(

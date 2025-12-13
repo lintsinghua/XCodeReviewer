@@ -171,6 +171,7 @@ class AgentEventEmitter:
             finding_id=finding_id,
             message=f"{'✅ 已验证' if is_verified else '🔍 新发现'}: [{severity.upper()}] {title}",
             metadata={
+                "id": finding_id,  # 🔥 添加 id 字段供前端使用
                 "title": title,
                 "severity": severity,
                 "vulnerability_type": vulnerability_type,
@@ -330,7 +331,32 @@ class EventManager:
     async def _save_event_to_db(self, event_data: Dict):
         """保存事件到数据库"""
         from app.models.agent_task import AgentEvent
-        
+
+        # 🔥 清理无效的 UTF-8 字符（如二进制内容）
+        def sanitize_string(s):
+            """清理字符串中的无效 UTF-8 字符"""
+            if s is None:
+                return None
+            if not isinstance(s, str):
+                s = str(s)
+            # 移除 NULL 字节和其他不可打印的控制字符（保留换行和制表符）
+            return ''.join(
+                char for char in s
+                if char in '\n\r\t' or (ord(char) >= 32 and ord(char) != 127)
+            )
+
+        def sanitize_dict(d):
+            """递归清理字典中的字符串值"""
+            if d is None:
+                return None
+            if isinstance(d, dict):
+                return {k: sanitize_dict(v) for k, v in d.items()}
+            elif isinstance(d, list):
+                return [sanitize_dict(item) for item in d]
+            elif isinstance(d, str):
+                return sanitize_string(d)
+            return d
+
         async with self.db_session_factory() as db:
             event = AgentEvent(
                 id=event_data["id"],
@@ -338,14 +364,14 @@ class EventManager:
                 event_type=event_data["event_type"],
                 sequence=event_data["sequence"],
                 phase=event_data["phase"],
-                message=event_data["message"],
+                message=sanitize_string(event_data["message"]),  # 🔥 清理消息
                 tool_name=event_data["tool_name"],
-                tool_input=event_data["tool_input"],
-                tool_output=event_data["tool_output"],
+                tool_input=sanitize_dict(event_data["tool_input"]),  # 🔥 清理工具输入
+                tool_output=sanitize_dict(event_data["tool_output"]),  # 🔥 清理工具输出
                 tool_duration_ms=event_data["tool_duration_ms"],
                 finding_id=event_data["finding_id"],
                 tokens_used=event_data["tokens_used"],
-                event_metadata=event_data["metadata"],
+                event_metadata=sanitize_dict(event_data["metadata"]),  # 🔥 清理元数据
             )
             db.add(event)
             await db.commit()
@@ -403,62 +429,79 @@ class EventManager:
         after_sequence: int = 0,
     ) -> AsyncGenerator[Dict, None]:
         """流式获取事件
-        
+
         🔥 重要: 此方法会先排空队列中已缓存的事件（在 SSE 连接前产生的），
         然后继续实时推送新事件。
+        只返回序列号 > after_sequence 的事件。
         """
+        logger.info(f"[StreamEvents] Task {task_id}: Starting stream with after_sequence={after_sequence}")
+
         # 获取现有队列（由 AgentRunner 在初始化时创建）
         queue = self._event_queues.get(task_id)
-        
+
         if not queue:
             # 如果队列不存在，创建一个新的（回退逻辑）
             queue = self.create_queue(task_id)
             logger.warning(f"Queue not found for task {task_id}, created new one")
-        
+
         # 🔥 先排空队列中已缓存的事件（这些是在 SSE 连接前产生的）
         buffered_count = 0
+        skipped_count = 0
         while not queue.empty():
             try:
                 buffered_event = queue.get_nowait()
+
+                # 🔥 过滤掉序列号 <= after_sequence 的事件
+                event_sequence = buffered_event.get("sequence", 0)
+                if event_sequence <= after_sequence:
+                    skipped_count += 1
+                    continue
+
                 buffered_count += 1
                 yield buffered_event
-                
+
                 # 🔥 为所有缓存事件添加延迟，确保不会一起输出
                 event_type = buffered_event.get("event_type")
                 if event_type == "thinking_token":
                     await asyncio.sleep(0.015)  # 15ms for tokens
                 else:
                     await asyncio.sleep(0.005)  # 5ms for other events
-                
+
                 # 检查是否是结束事件
                 if event_type in ["task_complete", "task_error", "task_cancel"]:
-                    logger.debug(f"Task {task_id} already completed, sent {buffered_count} buffered events")
+                    logger.debug(f"Task {task_id} already completed, sent {buffered_count} buffered events (skipped {skipped_count})")
                     return
             except asyncio.QueueEmpty:
                 break
-        
-        if buffered_count > 0:
-            logger.debug(f"Drained {buffered_count} buffered events for task {task_id}")
-        
+
+        if buffered_count > 0 or skipped_count > 0:
+            logger.debug(f"Drained queue for task {task_id}: sent {buffered_count}, skipped {skipped_count} (after_sequence={after_sequence})")
+
         # 然后实时推送新事件
         try:
             while True:
                 try:
                     event = await asyncio.wait_for(queue.get(), timeout=30)
+
+                    # 🔥 过滤掉序列号 <= after_sequence 的事件
+                    event_sequence = event.get("sequence", 0)
+                    if event_sequence <= after_sequence:
+                        continue
+
                     yield event
-                    
+
                     # 🔥 为 thinking_token 添加微延迟确保流式效果
                     if event.get("event_type") == "thinking_token":
                         await asyncio.sleep(0.01)  # 10ms
-                    
+
                     # 检查是否是结束事件
                     if event.get("event_type") in ["task_complete", "task_error", "task_cancel"]:
                         break
-                        
+
                 except asyncio.TimeoutError:
                     # 发送心跳
                     yield {"event_type": "heartbeat", "timestamp": datetime.now(timezone.utc).isoformat()}
-                    
+
         except GeneratorExit:
             # SSE 连接断开
             logger.debug(f"SSE stream closed for task {task_id}")

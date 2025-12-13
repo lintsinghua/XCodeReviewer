@@ -274,16 +274,21 @@ class AgentRunner:
         
         # 沙箱工具（仅 Verification Agent 可用）
         try:
-            self.sandbox_manager = SandboxManager(
+            from app.services.agent.tools.sandbox_tool import SandboxConfig
+            sandbox_config = SandboxConfig(
                 image=settings.SANDBOX_IMAGE,
                 memory_limit=settings.SANDBOX_MEMORY_LIMIT,
                 cpu_limit=settings.SANDBOX_CPU_LIMIT,
+                timeout=settings.SANDBOX_TIMEOUT,
+                network_mode=settings.SANDBOX_NETWORK_MODE,
             )
-            
+            self.sandbox_manager = SandboxManager(config=sandbox_config)
+
             self.verification_tools["sandbox_exec"] = SandboxTool(self.sandbox_manager)
             self.verification_tools["sandbox_http"] = SandboxHttpTool(self.sandbox_manager)
             self.verification_tools["verify_vulnerability"] = VulnerabilityVerifyTool(self.sandbox_manager)
-            
+            logger.info("Sandbox tools initialized successfully")
+
         except Exception as e:
             logger.warning(f"Sandbox initialization failed: {e}")
         

@@ -71,6 +71,7 @@ export interface AgentTreeResponse {
 export type AgentAuditAction =
   | { type: 'SET_TASK'; payload: AgentTask }
   | { type: 'SET_FINDINGS'; payload: AgentFinding[] }
+  | { type: 'ADD_FINDING'; payload: Partial<AgentFinding> & { id: string } }
   | { type: 'SET_AGENT_TREE'; payload: AgentTreeResponse }
   | { type: 'SET_LOGS'; payload: LogItem[] }
   | { type: 'ADD_LOG'; payload: Omit<LogItem, 'id' | 'time'> & { id?: string } }

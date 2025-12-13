@@ -432,6 +432,8 @@ Action Input: {{"参数": "值"}}
 
             # 🔥 CRITICAL: Log final findings count before returning
             logger.info(f"[Orchestrator] Final result: {len(self._all_findings)} findings collected")
+            if len(self._all_findings) == 0:
+                logger.warning(f"[Orchestrator] ⚠️ No findings collected! Dispatched agents: {list(self._dispatched_tasks.keys())}, Iterations: {self._iteration}")
             for i, f in enumerate(self._all_findings[:5]):  # Log first 5 for debugging
                 logger.debug(f"[Orchestrator] Finding {i+1}: {f.get('title', 'N/A')} - {f.get('vulnerability_type', 'N/A')}")
 
@@ -654,18 +656,27 @@ Action Input: {{"参数": "值"}}
                 # findings 字段通常来自 Analysis/Verification Agent
                 # initial_findings 来自 Recon Agent
                 raw_findings = data.get("findings", [])
+                logger.info(f"[Orchestrator] {agent_name} returned data with {len(raw_findings)} findings in 'findings' field")
 
-                # 🔥 Also check for initial_findings (from Recon)
-                if not raw_findings and "initial_findings" in data:
+                # 🔥 ENHANCED: Also check for initial_findings (from Recon) - 改进逻辑
+                # 即使 findings 为空列表，也检查 initial_findings
+                if "initial_findings" in data:
                     initial = data.get("initial_findings", [])
-                    # Convert string findings to dict format
-                    raw_findings = []
+                    logger.info(f"[Orchestrator] {agent_name} has {len(initial)} initial_findings")
                     for f in initial:
                         if isinstance(f, dict):
-                            raw_findings.append(f)
+                            # 🔥 Normalize finding format - 处理 Recon 返回的格式
+                            normalized = self._normalize_finding(f)
+                            if normalized not in raw_findings:
+                                raw_findings.append(normalized)
                         elif isinstance(f, str):
                             # String finding from Recon - skip, it's just an observation
-                            pass
+                            logger.debug(f"[Orchestrator] Skipping string finding: {f[:50]}...")
+
+                # 🔥 Also check high_risk_areas from Recon for potential findings
+                if agent_name == "recon" and "high_risk_areas" in data:
+                    high_risk = data.get("high_risk_areas", [])
+                    logger.info(f"[Orchestrator] {agent_name} identified {len(high_risk)} high risk areas")
 
                 if raw_findings:
                     # 只添加字典格式的发现
@@ -673,33 +684,58 @@ Action Input: {{"参数": "值"}}
 
                     logger.info(f"[Orchestrator] {agent_name} returned {len(valid_findings)} valid findings")
 
-                    # 🔥 Merge findings to update existing ones and avoid duplicates
+                    # 🔥 ENHANCED: Merge findings with better deduplication
                     for new_f in valid_findings:
-                        # Create key for identification (file + line + type)
-                        new_key = (
-                            new_f.get("file_path", "") or new_f.get("file", ""),
-                            new_f.get("line_start") or new_f.get("line", 0),
-                            new_f.get("vulnerability_type", "") or new_f.get("type", ""),
-                        )
+                        # Normalize the finding first
+                        normalized_new = self._normalize_finding(new_f)
 
-                        # Check if exists
+                        # Create fingerprint for deduplication (file + description similarity)
+                        new_file = normalized_new.get("file_path", "").lower().strip()
+                        new_desc = (normalized_new.get("description", "") or "").lower()[:100]
+                        new_type = (normalized_new.get("vulnerability_type", "") or "").lower()
+                        new_line = normalized_new.get("line_start") or normalized_new.get("line", 0)
+
+                        # Check if exists (more flexible matching)
                         found = False
                         for i, existing_f in enumerate(self._all_findings):
-                            existing_key = (
-                                existing_f.get("file_path", "") or existing_f.get("file", ""),
-                                existing_f.get("line_start") or existing_f.get("line", 0),
-                                existing_f.get("vulnerability_type", "") or existing_f.get("type", ""),
+                            existing_file = (existing_f.get("file_path", "") or existing_f.get("file", "")).lower().strip()
+                            existing_desc = (existing_f.get("description", "") or "").lower()[:100]
+                            existing_type = (existing_f.get("vulnerability_type", "") or existing_f.get("type", "")).lower()
+                            existing_line = existing_f.get("line_start") or existing_f.get("line", 0)
+
+                            # Match if same file AND (same line OR similar description OR same vulnerability type)
+                            same_file = new_file and existing_file and (
+                                new_file == existing_file or
+                                new_file.endswith(existing_file) or
+                                existing_file.endswith(new_file)
                             )
-                            if new_key == existing_key:
+                            same_line = new_line and existing_line and new_line == existing_line
+                            similar_desc = new_desc and existing_desc and (
+                                new_desc in existing_desc or existing_desc in new_desc
+                            )
+                            same_type = new_type and existing_type and (
+                                new_type == existing_type or
+                                (new_type in existing_type) or (existing_type in new_type)
+                            )
+
+                            if same_file and (same_line or similar_desc or same_type):
                                 # Update existing with new info (e.g. verification results)
-                                self._all_findings[i] = {**existing_f, **new_f}
+                                # Prefer verified data over unverified
+                                merged = {**existing_f, **normalized_new}
+                                # Keep the better title
+                                if normalized_new.get("title") and len(normalized_new.get("title", "")) > len(existing_f.get("title", "")):
+                                    merged["title"] = normalized_new["title"]
+                                # Keep verified status if either is verified
+                                if existing_f.get("is_verified") or normalized_new.get("is_verified"):
+                                    merged["is_verified"] = True
+                                self._all_findings[i] = merged
                                 found = True
-                                logger.debug(f"[Orchestrator] Updated existing finding: {new_key}")
+                                logger.info(f"[Orchestrator] Merged finding: {new_file}:{new_line} ({new_type})")
                                 break
 
                         if not found:
-                            self._all_findings.append(new_f)
-                            logger.debug(f"[Orchestrator] Added new finding: {new_key}")
+                            self._all_findings.append(normalized_new)
+                            logger.info(f"[Orchestrator] Added new finding: {new_file}:{new_line} ({new_type})")
 
                     logger.info(f"[Orchestrator] Total findings now: {len(self._all_findings)}")
                 else:
@@ -752,13 +788,13 @@ Action Input: {{"参数": "值"}}
                     observation = f"""## {agent_name} Agent 执行结果
 
 **状态**: 成功
-**发现数量**: {len(findings)}
+**发现数量**: {len(valid_findings)}
 **迭代次数**: {result.iterations}
 **耗时**: {result.duration_ms}ms
 
 ### 发现摘要
 """
-                    for i, f in enumerate(findings[:10]):
+                    for i, f in enumerate(valid_findings[:10]):
                         if not isinstance(f, dict):
                             continue
                         observation += f"""
@@ -767,9 +803,9 @@ Action Input: {{"参数": "值"}}
    - 文件: {f.get('file_path', 'unknown')}
    - 描述: {f.get('description', '')[:200]}...
 """
-                    
-                    if len(findings) > 10:
-                        observation += f"\n... 还有 {len(findings) - 10} 个发现"
+
+                    if len(valid_findings) > 10:
+                        observation += f"\n... 还有 {len(valid_findings) - 10} 个发现"
                 
                 if data.get("summary"):
                     observation += f"\n\n### Agent 总结\n{data['summary']}"
@@ -782,6 +818,94 @@ Action Input: {{"参数": "值"}}
             logger.error(f"Sub-agent dispatch failed: {e}", exc_info=True)
             return f"## 调度失败\n\n错误: {str(e)}"
     
+    def _normalize_finding(self, finding: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        标准化发现格式
+
+        不同 Agent 可能返回不同格式的发现，这个方法将它们标准化为统一格式
+        """
+        normalized = dict(finding)  # 复制原始数据
+
+        # 🔥 处理 location 字段 -> file_path + line_start
+        if "location" in normalized and "file_path" not in normalized:
+            location = normalized["location"]
+            if isinstance(location, str) and ":" in location:
+                parts = location.split(":")
+                normalized["file_path"] = parts[0]
+                try:
+                    normalized["line_start"] = int(parts[1])
+                except (ValueError, IndexError):
+                    pass
+            elif isinstance(location, str):
+                normalized["file_path"] = location
+
+        # 🔥 处理 file 字段 -> file_path
+        if "file" in normalized and "file_path" not in normalized:
+            normalized["file_path"] = normalized["file"]
+
+        # 🔥 处理 line 字段 -> line_start
+        if "line" in normalized and "line_start" not in normalized:
+            normalized["line_start"] = normalized["line"]
+
+        # 🔥 处理 type 字段 -> vulnerability_type
+        if "type" in normalized and "vulnerability_type" not in normalized:
+            # 不是所有 type 都是漏洞类型，比如 "Vulnerability" 只是标记
+            type_val = normalized["type"]
+            if type_val and type_val.lower() not in ["vulnerability", "finding", "issue"]:
+                normalized["vulnerability_type"] = type_val
+            elif "description" in normalized:
+                # 尝试从描述中推断漏洞类型
+                desc = normalized["description"].lower()
+                if "command injection" in desc or "rce" in desc or "system(" in desc:
+                    normalized["vulnerability_type"] = "command_injection"
+                elif "sql injection" in desc or "sqli" in desc:
+                    normalized["vulnerability_type"] = "sql_injection"
+                elif "xss" in desc or "cross-site scripting" in desc:
+                    normalized["vulnerability_type"] = "xss"
+                elif "path traversal" in desc or "directory traversal" in desc:
+                    normalized["vulnerability_type"] = "path_traversal"
+                elif "ssrf" in desc:
+                    normalized["vulnerability_type"] = "ssrf"
+                elif "xxe" in desc:
+                    normalized["vulnerability_type"] = "xxe"
+                else:
+                    normalized["vulnerability_type"] = "other"
+
+        # 🔥 确保 severity 字段存在且为小写
+        if "severity" in normalized:
+            normalized["severity"] = str(normalized["severity"]).lower()
+        else:
+            normalized["severity"] = "medium"
+
+        # 🔥 处理 risk 字段 -> severity
+        if "risk" in normalized and "severity" not in normalized:
+            normalized["severity"] = str(normalized["risk"]).lower()
+
+        # 🔥 生成 title 如果不存在
+        if "title" not in normalized:
+            vuln_type = normalized.get("vulnerability_type", "Unknown")
+            file_path = normalized.get("file_path", "")
+            if file_path:
+                import os
+                normalized["title"] = f"{vuln_type.replace('_', ' ').title()} in {os.path.basename(file_path)}"
+            else:
+                normalized["title"] = f"{vuln_type.replace('_', ' ').title()} Vulnerability"
+
+        # 🔥 处理 code 字段 -> code_snippet
+        if "code" in normalized and "code_snippet" not in normalized:
+            normalized["code_snippet"] = normalized["code"]
+
+        # 🔥 处理 recommendation -> suggestion
+        if "recommendation" in normalized and "suggestion" not in normalized:
+            normalized["suggestion"] = normalized["recommendation"]
+
+        # 🔥 处理 impact -> 添加到 description
+        if "impact" in normalized and normalized.get("description"):
+            if "impact" not in normalized["description"].lower():
+                normalized["description"] += f"\n\nImpact: {normalized['impact']}"
+
+        return normalized
+
     def _summarize_findings(self) -> str:
         """汇总当前发现"""
         if not self._all_findings:

@@ -422,6 +422,7 @@ Final Answer: {{"findings": [...], "summary": "..."}}"""
                 # 检查是否完成
                 if step.is_final:
                     await self.emit_llm_decision("完成安全分析", "LLM 判断分析已充分")
+                    logger.info(f"[{self.name}] Received Final Answer: {step.final_answer}")
                     if step.final_answer and "findings" in step.final_answer:
                         all_findings = step.final_answer["findings"]
                         logger.info(f"[{self.name}] Final Answer contains {len(all_findings)} findings")
@@ -438,7 +439,7 @@ Final Answer: {{"findings": [...], "summary": "..."}}"""
                                 f"发现 {finding.get('severity', 'medium')} 级别漏洞: {finding.get('title', 'Unknown')}"
                             )
                     else:
-                        logger.warning(f"[{self.name}] Final Answer has no 'findings' key: {step.final_answer}")
+                        logger.warning(f"[{self.name}] Final Answer has no 'findings' key or is None: {step.final_answer}")
                     
                     # 🔥 记录工作完成
                     self.record_work(f"完成安全分析，发现 {len(all_findings)} 个潜在漏洞")

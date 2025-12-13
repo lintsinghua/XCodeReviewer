@@ -383,7 +383,7 @@ async def _execute_agent_task(task_id: str):
                         logger.debug(f"[AgentTask] Finding {i+1}: {f.get('title', 'N/A')[:50]} - {f.get('severity', 'N/A')}")
 
                 await _save_findings(db, task_id, findings)
-                
+
                 # 更新任务统计
                 task.status = AgentTaskStatus.COMPLETED
                 task.completed_at = datetime.now(timezone.utc)
@@ -392,11 +392,21 @@ async def _execute_agent_task(task_id: str):
                 task.total_iterations = result.iterations
                 task.tool_calls_count = result.tool_calls
                 task.tokens_used = result.tokens_used
-                
-                # 统计严重程度
+
+                # 🔥 统计分析的文件数量（从 findings 中提取唯一文件）
+                analyzed_file_set = set()
                 for f in findings:
                     if isinstance(f, dict):
-                        sev = f.get("severity", "low")
+                        file_path = f.get("file_path") or f.get("file") or f.get("location", "").split(":")[0]
+                        if file_path:
+                            analyzed_file_set.add(file_path)
+                task.analyzed_files = len(analyzed_file_set) if analyzed_file_set else task.total_files
+
+                # 统计严重程度和验证状态
+                verified_count = 0
+                for f in findings:
+                    if isinstance(f, dict):
+                        sev = str(f.get("severity", "low")).lower()
                         if sev == "critical":
                             task.critical_count += 1
                         elif sev == "high":
@@ -405,6 +415,10 @@ async def _execute_agent_task(task_id: str):
                             task.medium_count += 1
                         elif sev == "low":
                             task.low_count += 1
+                        # 🔥 统计已验证的发现
+                        if f.get("is_verified") or f.get("verdict") == "confirmed":
+                            verified_count += 1
+                task.verified_count = verified_count
                 
                 # 计算安全评分
                 task.security_score = _calculate_security_score(findings)
@@ -462,16 +476,22 @@ async def _execute_agent_task(task_id: str):
                 logger.error(f"Failed to update task status: {db_error}")
         
         finally:
+            # 🔥 在清理之前保存 Agent 树到数据库
+            try:
+                async with async_session_factory() as save_db:
+                    await _save_agent_tree(save_db, task_id)
+            except Exception as save_error:
+                logger.error(f"Failed to save agent tree: {save_error}")
+
             # 清理
             _running_orchestrators.pop(task_id, None)
             _running_tasks.pop(task_id, None)
             _running_event_managers.pop(task_id, None)
             _running_asyncio_tasks.pop(task_id, None)  # 🔥 清理 asyncio task
-            
-            # 从 Registry 注销
-            if orchestrator:
-                agent_registry.unregister_agent(orchestrator.agent_id)
-            
+
+            # 🔥 清理整个 Agent 注册表（包括所有子 Agent）
+            agent_registry.clear()
+
             logger.debug(f"Task {task_id} cleaned up")
 
 
@@ -713,7 +733,11 @@ async def _collect_project_info(
 
 
 async def _save_findings(db: AsyncSession, task_id: str, findings: List[Dict]) -> None:
-    """保存发现到数据库"""
+    """
+    保存发现到数据库
+
+    🔥 增强版：支持多种 Agent 输出格式，健壮的字段映射
+    """
     from app.models.agent_task import VulnerabilityType
 
     logger.info(f"[SaveFindings] Starting to save {len(findings)} findings for task {task_id}")
@@ -730,7 +754,7 @@ async def _save_findings(db: AsyncSession, task_id: str, findings: List[Dict]) -
         "low": VulnerabilitySeverity.LOW,
         "info": VulnerabilitySeverity.INFO,
     }
-    
+
     type_map = {
         "sql_injection": VulnerabilityType.SQL_INJECTION,
         "nosql_injection": VulnerabilityType.NOSQL_INJECTION,
@@ -744,65 +768,205 @@ async def _save_findings(db: AsyncSession, task_id: str, findings: List[Dict]) -
         "idor": VulnerabilityType.IDOR,
         "sensitive_data_exposure": VulnerabilityType.SENSITIVE_DATA_EXPOSURE,
         "hardcoded_secret": VulnerabilityType.HARDCODED_SECRET,
-        "deserialization": VulnerabilityType.DESERIALIZATION,  # Added common type
-        "weak_crypto": VulnerabilityType.WEAK_CRYPTO,          # Added common type
+        "deserialization": VulnerabilityType.DESERIALIZATION,
+        "weak_crypto": VulnerabilityType.WEAK_CRYPTO,
+        "file_inclusion": VulnerabilityType.FILE_INCLUSION,
+        "race_condition": VulnerabilityType.RACE_CONDITION,
+        "business_logic": VulnerabilityType.BUSINESS_LOGIC,
+        "memory_corruption": VulnerabilityType.MEMORY_CORRUPTION,
     }
-    
+
     saved_count = 0
     logger.info(f"Saving {len(findings)} findings for task {task_id}")
 
     for finding in findings:
         if not isinstance(finding, dict):
+            logger.debug(f"[SaveFindings] Skipping non-dict finding: {type(finding)}")
             continue
-        
+
         try:
-            # Handle severity (case-insensitive)
-            raw_severity = str(finding.get("severity", "medium")).lower().strip()
+            # 🔥 Handle severity (case-insensitive, support multiple field names)
+            raw_severity = str(
+                finding.get("severity") or
+                finding.get("risk") or
+                "medium"
+            ).lower().strip()
             severity_enum = severity_map.get(raw_severity, VulnerabilitySeverity.MEDIUM)
-            
-            # Handle vulnerability type (case-insensitive & snake_case normalization)
-            raw_type = str(finding.get("vulnerability_type", "other")).lower().strip().replace(" ", "_")
+
+            # 🔥 Handle vulnerability type (case-insensitive & snake_case normalization)
+            # Support multiple field names: vulnerability_type, type, vuln_type
+            raw_type = str(
+                finding.get("vulnerability_type") or
+                finding.get("type") or
+                finding.get("vuln_type") or
+                "other"
+            ).lower().strip().replace(" ", "_").replace("-", "_")
+
             type_enum = type_map.get(raw_type, VulnerabilityType.OTHER)
-            
-            # Additional fallback for known Agent output variations
-            if "sqli" in raw_type: type_enum = VulnerabilityType.SQL_INJECTION
-            if "xss" in raw_type: type_enum = VulnerabilityType.XSS
-            if "rce" in raw_type or "command" in raw_type: type_enum = VulnerabilityType.COMMAND_INJECTION
+
+            # 🔥 Additional fallback for common Agent output variations
+            if "sqli" in raw_type or "sql" in raw_type:
+                type_enum = VulnerabilityType.SQL_INJECTION
+            if "xss" in raw_type:
+                type_enum = VulnerabilityType.XSS
+            if "rce" in raw_type or "command" in raw_type or "cmd" in raw_type:
+                type_enum = VulnerabilityType.COMMAND_INJECTION
+            if "traversal" in raw_type or "lfi" in raw_type or "rfi" in raw_type:
+                type_enum = VulnerabilityType.PATH_TRAVERSAL
+            if "ssrf" in raw_type:
+                type_enum = VulnerabilityType.SSRF
+            if "xxe" in raw_type:
+                type_enum = VulnerabilityType.XXE
+            if "auth" in raw_type:
+                type_enum = VulnerabilityType.AUTH_BYPASS
+            if "secret" in raw_type or "credential" in raw_type or "password" in raw_type:
+                type_enum = VulnerabilityType.HARDCODED_SECRET
+            if "deserial" in raw_type:
+                type_enum = VulnerabilityType.DESERIALIZATION
+
+            # 🔥 Handle file path (support multiple field names)
+            file_path = (
+                finding.get("file_path") or
+                finding.get("file") or
+                finding.get("location", "").split(":")[0] if ":" in finding.get("location", "") else finding.get("location")
+            )
+
+            # 🔥 Handle line numbers (support multiple formats)
+            line_start = finding.get("line_start") or finding.get("line")
+            if not line_start and ":" in finding.get("location", ""):
+                try:
+                    line_start = int(finding.get("location", "").split(":")[1])
+                except (ValueError, IndexError):
+                    line_start = None
+
+            line_end = finding.get("line_end") or line_start
+
+            # 🔥 Handle code snippet (support multiple field names)
+            code_snippet = (
+                finding.get("code_snippet") or
+                finding.get("code") or
+                finding.get("vulnerable_code")
+            )
+
+            # 🔥 Handle title (generate from type if not provided)
+            title = finding.get("title")
+            if not title:
+                # Generate title from vulnerability type and file
+                type_display = raw_type.replace("_", " ").title()
+                if file_path:
+                    title = f"{type_display} in {os.path.basename(file_path)}"
+                else:
+                    title = f"{type_display} Vulnerability"
+
+            # 🔥 Handle description (support multiple field names)
+            description = (
+                finding.get("description") or
+                finding.get("details") or
+                finding.get("explanation") or
+                finding.get("impact") or
+                ""
+            )
+
+            # 🔥 Handle suggestion/recommendation
+            suggestion = (
+                finding.get("suggestion") or
+                finding.get("recommendation") or
+                finding.get("remediation") or
+                finding.get("fix")
+            )
+
+            # 🔥 Handle confidence (map to ai_confidence field in model)
+            confidence = finding.get("confidence") or finding.get("ai_confidence") or 0.5
+            if isinstance(confidence, str):
+                try:
+                    confidence = float(confidence)
+                except ValueError:
+                    confidence = 0.5
+
+            # 🔥 Handle verification status
+            is_verified = finding.get("is_verified", False)
+            if finding.get("verdict") == "confirmed":
+                is_verified = True
+
+            # 🔥 Handle PoC information
+            poc_data = finding.get("poc", {})
+            has_poc = bool(poc_data)
+            poc_code = None
+            poc_description = None
+            poc_steps = None
+
+            if isinstance(poc_data, dict):
+                poc_description = poc_data.get("description")
+                poc_steps = poc_data.get("steps")
+                poc_code = poc_data.get("payload") or poc_data.get("code")
+            elif isinstance(poc_data, str):
+                poc_description = poc_data
+
+            # 🔥 Handle verification details
+            verification_method = finding.get("verification_method")
+            verification_result = None
+            if finding.get("verification_details"):
+                verification_result = {"details": finding.get("verification_details")}
+
+            # 🔥 Handle CWE and CVSS
+            cwe_id = finding.get("cwe_id") or finding.get("cwe")
+            cvss_score = finding.get("cvss_score") or finding.get("cvss")
+            if isinstance(cvss_score, str):
+                try:
+                    cvss_score = float(cvss_score)
+                except ValueError:
+                    cvss_score = None
 
             db_finding = AgentFinding(
                 id=str(uuid4()),
                 task_id=task_id,
                 vulnerability_type=type_enum,
                 severity=severity_enum,
-                title=finding.get("title", "Unknown"),
-                description=finding.get("description", ""),
-                file_path=finding.get("file_path"),
-                line_start=finding.get("line_start"),
-                line_end=finding.get("line_end"),
-                code_snippet=finding.get("code_snippet"),
-                suggestion=finding.get("suggestion") or finding.get("recommendation"),
-                is_verified=finding.get("is_verified", False),
-                confidence=finding.get("confidence", 0.5),
-                status=FindingStatus.VERIFIED if finding.get("is_verified") else FindingStatus.NEW,
+                title=title[:500] if title else "Unknown Vulnerability",
+                description=description[:5000] if description else "",
+                file_path=file_path[:500] if file_path else None,
+                line_start=line_start,
+                line_end=line_end,
+                code_snippet=code_snippet[:10000] if code_snippet else None,
+                suggestion=suggestion[:5000] if suggestion else None,
+                is_verified=is_verified,
+                ai_confidence=confidence,  # 🔥 FIX: Use ai_confidence, not confidence
+                status=FindingStatus.VERIFIED if is_verified else FindingStatus.NEW,
+                # 🔥 Additional fields
+                has_poc=has_poc,
+                poc_code=poc_code,
+                poc_description=poc_description,
+                poc_steps=poc_steps,
+                verification_method=verification_method,
+                verification_result=verification_result,
+                cvss_score=cvss_score,
+                # References for CWE
+                references=[{"cwe": cwe_id}] if cwe_id else None,
             )
             db.add(db_finding)
             saved_count += 1
+            logger.debug(f"[SaveFindings] Prepared finding: {title[:50]}... ({severity_enum})")
+
         except Exception as e:
             logger.warning(f"Failed to save finding: {e}, data: {finding}")
-    
+            import traceback
+            logger.debug(f"[SaveFindings] Traceback: {traceback.format_exc()}")
+
     logger.info(f"Successfully prepared {saved_count} findings for commit")
-    
+
     try:
         await db.commit()
+        logger.info(f"[SaveFindings] Successfully committed {saved_count} findings to database")
     except Exception as e:
         logger.error(f"Failed to commit findings: {e}")
+        await db.rollback()
 
 
 def _calculate_security_score(findings: List[Dict]) -> float:
     """计算安全评分"""
     if not findings:
         return 100.0
-    
+
     # 基于发现的严重程度计算扣分
     deductions = {
         "critical": 25,
@@ -811,15 +975,101 @@ def _calculate_security_score(findings: List[Dict]) -> float:
         "low": 3,
         "info": 1,
     }
-    
+
     total_deduction = 0
     for f in findings:
         if isinstance(f, dict):
             sev = f.get("severity", "low")
             total_deduction += deductions.get(sev, 3)
-    
+
     score = max(0, 100 - total_deduction)
     return float(score)
+
+
+async def _save_agent_tree(db: AsyncSession, task_id: str) -> None:
+    """
+    保存 Agent 树到数据库
+
+    🔥 在任务完成前调用，将内存中的 Agent 树持久化到数据库
+    """
+    from app.models.agent_task import AgentTreeNode
+    from app.services.agent.core import agent_registry
+
+    try:
+        tree = agent_registry.get_agent_tree()
+        nodes = tree.get("nodes", {})
+
+        if not nodes:
+            logger.warning(f"[SaveAgentTree] No agent nodes to save for task {task_id}")
+            return
+
+        logger.info(f"[SaveAgentTree] Saving {len(nodes)} agent nodes for task {task_id}")
+
+        # 计算每个节点的深度
+        def get_depth(agent_id: str, visited: set = None) -> int:
+            if visited is None:
+                visited = set()
+            if agent_id in visited:
+                return 0
+            visited.add(agent_id)
+            node = nodes.get(agent_id)
+            if not node:
+                return 0
+            parent_id = node.get("parent_id")
+            if not parent_id:
+                return 0
+            return 1 + get_depth(parent_id, visited)
+
+        saved_count = 0
+        for agent_id, node_data in nodes.items():
+            # 获取 Agent 实例的统计数据
+            agent_instance = agent_registry.get_agent(agent_id)
+            iterations = 0
+            tool_calls = 0
+            tokens_used = 0
+
+            if agent_instance and hasattr(agent_instance, 'get_stats'):
+                stats = agent_instance.get_stats()
+                iterations = stats.get("iterations", 0)
+                tool_calls = stats.get("tool_calls", 0)
+                tokens_used = stats.get("tokens_used", 0)
+
+            # 从结果中获取发现数量
+            findings_count = 0
+            result_summary = None
+            if node_data.get("result"):
+                result = node_data.get("result", {})
+                if isinstance(result, dict):
+                    findings_count = len(result.get("findings", []))
+                    if result.get("summary"):
+                        result_summary = str(result.get("summary"))[:2000]
+
+            tree_node = AgentTreeNode(
+                id=str(uuid4()),
+                task_id=task_id,
+                agent_id=agent_id,
+                agent_name=node_data.get("name", "Unknown"),
+                agent_type=node_data.get("type", "unknown"),
+                parent_agent_id=node_data.get("parent_id"),
+                depth=get_depth(agent_id),
+                task_description=node_data.get("task"),
+                knowledge_modules=node_data.get("knowledge_modules"),
+                status=node_data.get("status", "unknown"),
+                result_summary=result_summary,
+                findings_count=findings_count,
+                iterations=iterations,
+                tool_calls=tool_calls,
+                tokens_used=tokens_used,
+            )
+            db.add(tree_node)
+            saved_count += 1
+
+        await db.commit()
+        logger.info(f"[SaveAgentTree] Successfully saved {saved_count} agent nodes to database")
+
+    except Exception as e:
+        logger.error(f"[SaveAgentTree] Failed to save agent tree: {e}", exc_info=True)
+        await db.rollback()
 
 
 # ============ API Endpoints ============
@@ -1992,6 +2242,9 @@ async def generate_audit_report(
                     "code_snippet": f.code_snippet,
                     "is_verified": f.is_verified,
                     "has_poc": f.has_poc,
+                    "poc_code": f.poc_code,
+                    "poc_description": f.poc_description,
+                    "poc_steps": f.poc_steps,
                     "confidence": f.ai_confidence,
                     "suggestion": f.suggestion,
                     "fix_code": f.fix_code,
@@ -2168,6 +2421,30 @@ async def generate_audit_report(
                     md_lines.append(f.fix_code.strip())
                     md_lines.append("```")
                     md_lines.append("")
+
+                # 🔥 添加 PoC 详情
+                if f.has_poc:
+                    md_lines.append("**Proof of Concept (PoC):**")
+                    md_lines.append("")
+
+                    if f.poc_description:
+                        md_lines.append(f"*{f.poc_description}*")
+                        md_lines.append("")
+
+                    if f.poc_steps:
+                        md_lines.append("**Reproduction Steps:**")
+                        md_lines.append("")
+                        for step_idx, step in enumerate(f.poc_steps, 1):
+                            md_lines.append(f"{step_idx}. {step}")
+                        md_lines.append("")
+
+                    if f.poc_code:
+                        md_lines.append("**PoC Payload:**")
+                        md_lines.append("")
+                        md_lines.append("```")
+                        md_lines.append(f.poc_code.strip())
+                        md_lines.append("```")
+                        md_lines.append("")
 
                 md_lines.append("---")
                 md_lines.append("")

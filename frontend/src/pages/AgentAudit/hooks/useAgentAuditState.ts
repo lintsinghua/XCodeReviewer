@@ -42,6 +42,16 @@ function agentAuditReducer(state: AgentAuditState, action: AgentAuditAction): Ag
     case 'SET_FINDINGS':
       return { ...state, findings: action.payload };
 
+    case 'ADD_FINDING': {
+      // 🔥 添加单个 finding，避免重复
+      const newFinding = action.payload;
+      const existingIds = new Set(state.findings.map(f => f.id));
+      if (newFinding.id && existingIds.has(newFinding.id)) {
+        return state; // 已存在，不添加
+      }
+      return { ...state, findings: [...state.findings, newFinding] };
+    }
+
     case 'SET_AGENT_TREE':
       return { ...state, agentTree: action.payload };
 
