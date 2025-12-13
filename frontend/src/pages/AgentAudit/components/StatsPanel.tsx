@@ -8,7 +8,6 @@
 import { memo } from "react";
 import { Activity, FileCode, Repeat, Zap, Bug, Shield, AlertTriangle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { calculateSeverityCounts } from "../utils";
 import type { StatsPanelProps } from "../types";
 
 // Circular progress component
@@ -86,8 +85,15 @@ function MetricCard({ icon, label, value, suffix = "", colorClass = "text-slate-
 export const StatsPanel = memo(function StatsPanel({ task, findings }: StatsPanelProps) {
   if (!task) return null;
 
-  const severityCounts = calculateSeverityCounts(findings);
-  const totalFindings = Object.values(severityCounts).reduce((a, b) => a + b, 0);
+  // 🔥 Use task's reliable statistics instead of computing from findings array
+  // This ensures consistency even when findings array is empty or not loaded
+  const severityCounts = {
+    critical: task.critical_count || 0,
+    high: task.high_count || 0,
+    medium: task.medium_count || 0,
+    low: task.low_count || 0,
+  };
+  const totalFindings = task.findings_count || 0;
   const progressPercent = task.progress_percentage || 0;
 
   // Determine score color
@@ -212,11 +218,10 @@ export const StatsPanel = memo(function StatsPanel({ task, findings }: StatsPane
                 color={getScoreColor(task.security_score)}
               />
               <div className="absolute inset-0 flex items-center justify-center">
-                <span className={`text-sm font-bold font-mono ${
-                  task.security_score >= 80 ? 'text-emerald-400' :
+                <span className={`text-sm font-bold font-mono ${task.security_score >= 80 ? 'text-emerald-400' :
                   task.security_score >= 60 ? 'text-amber-400' :
-                  'text-rose-400'
-                }`}>
+                    'text-rose-400'
+                  }`}>
                   {task.security_score.toFixed(0)}
                 </span>
               </div>

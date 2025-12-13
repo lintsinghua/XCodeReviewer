@@ -185,7 +185,8 @@ class AgentFindingResponse(BaseModel):
     code_snippet: Optional[str]
     
     is_verified: bool
-    confidence: float
+    # 🔥 FIX: Map from ai_confidence in ORM, make Optional with default
+    confidence: Optional[float] = Field(default=0.5, validation_alias="ai_confidence")
     status: str
     
     suggestion: Optional[str] = None
@@ -193,8 +194,10 @@ class AgentFindingResponse(BaseModel):
     
     created_at: datetime
     
-    class Config:
-        from_attributes = True
+    model_config = {
+        "from_attributes": True,
+        "populate_by_name": True,  # Allow both 'confidence' and 'ai_confidence'
+    }
 
 
 class TaskSummaryResponse(BaseModel):
@@ -2201,6 +2204,16 @@ async def generate_audit_report(
     )
     findings = findings.scalars().all()
     
+    # 🔥 Helper function to normalize severity for comparison (case-insensitive)
+    def normalize_severity(sev: str) -> str:
+        return str(sev).lower().strip() if sev else ""
+    
+    # Log findings for debugging
+    logger.info(f"[Report] Task {task_id}: Found {len(findings)} findings from database")
+    if findings:
+        for i, f in enumerate(findings[:3]):  # Log first 3
+            logger.debug(f"[Report] Finding {i+1}: severity='{f.severity}', title='{f.title[:50] if f.title else 'N/A'}'")
+    
     if format == "json":
         # Enhanced JSON report with full metadata
         return {
@@ -2218,10 +2231,10 @@ async def generate_audit_report(
                 "total_findings": len(findings),
                 "verified_findings": sum(1 for f in findings if f.is_verified),
                 "severity_distribution": {
-                    "critical": sum(1 for f in findings if f.severity == 'critical'),
-                    "high": sum(1 for f in findings if f.severity == 'high'),
-                    "medium": sum(1 for f in findings if f.severity == 'medium'),
-                    "low": sum(1 for f in findings if f.severity == 'low'),
+                    "critical": sum(1 for f in findings if normalize_severity(f.severity) == 'critical'),
+                    "high": sum(1 for f in findings if normalize_severity(f.severity) == 'high'),
+                    "medium": sum(1 for f in findings if normalize_severity(f.severity) == 'medium'),
+                    "low": sum(1 for f in findings if normalize_severity(f.severity) == 'low'),
                 },
                 "agent_metrics": {
                     "total_iterations": task.total_iterations,
@@ -2258,10 +2271,10 @@ async def generate_audit_report(
 
     # Calculate statistics
     total = len(findings)
-    critical = sum(1 for f in findings if f.severity == 'critical')
-    high = sum(1 for f in findings if f.severity == 'high')
-    medium = sum(1 for f in findings if f.severity == 'medium')
-    low = sum(1 for f in findings if f.severity == 'low')
+    critical = sum(1 for f in findings if normalize_severity(f.severity) == 'critical')
+    high = sum(1 for f in findings if normalize_severity(f.severity) == 'high')
+    medium = sum(1 for f in findings if normalize_severity(f.severity) == 'medium')
+    low = sum(1 for f in findings if normalize_severity(f.severity) == 'low')
     verified = sum(1 for f in findings if f.is_verified)
     with_poc = sum(1 for f in findings if f.has_poc)
 
@@ -2323,13 +2336,13 @@ async def generate_audit_report(
     md_lines.append(f"| Severity | Count | Verified |")
     md_lines.append(f"|----------|-------|----------|")
     if critical > 0:
-        md_lines.append(f"| **CRITICAL** | {critical} | {sum(1 for f in findings if f.severity == 'critical' and f.is_verified)} |")
+        md_lines.append(f"| **CRITICAL** | {critical} | {sum(1 for f in findings if normalize_severity(f.severity) == 'critical' and f.is_verified)} |")
     if high > 0:
-        md_lines.append(f"| **HIGH** | {high} | {sum(1 for f in findings if f.severity == 'high' and f.is_verified)} |")
+        md_lines.append(f"| **HIGH** | {high} | {sum(1 for f in findings if normalize_severity(f.severity) == 'high' and f.is_verified)} |")
     if medium > 0:
-        md_lines.append(f"| **MEDIUM** | {medium} | {sum(1 for f in findings if f.severity == 'medium' and f.is_verified)} |")
+        md_lines.append(f"| **MEDIUM** | {medium} | {sum(1 for f in findings if normalize_severity(f.severity) == 'medium' and f.is_verified)} |")
     if low > 0:
-        md_lines.append(f"| **LOW** | {low} | {sum(1 for f in findings if f.severity == 'low' and f.is_verified)} |")
+        md_lines.append(f"| **LOW** | {low} | {sum(1 for f in findings if normalize_severity(f.severity) == 'low' and f.is_verified)} |")
     md_lines.append(f"| **Total** | {total} | {verified} |")
     md_lines.append("")
 
@@ -2353,7 +2366,7 @@ async def generate_audit_report(
     else:
         # Group findings by severity
         for severity_level, severity_name in [('critical', 'Critical'), ('high', 'High'), ('medium', 'Medium'), ('low', 'Low')]:
-            severity_findings = [f for f in findings if f.severity == severity_level]
+            severity_findings = [f for f in findings if normalize_severity(f.severity) == severity_level]
             if not severity_findings:
                 continue
 

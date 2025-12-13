@@ -104,20 +104,18 @@ function formatBytes(bytes: number): string {
 
 // ============ Sub Components ============
 
-// Report stats summary
+// Report stats summary - uses task statistics for reliability
 const ReportStats = memo(function ReportStats({
   task,
-  findings,
 }: {
   task: AgentTask;
-  findings: AgentFinding[];
+  findings: AgentFinding[]; // Keep for API compatibility, but use task stats
 }) {
-  const severityCounts = {
-    critical: findings.filter(f => f.severity.toLowerCase() === "critical").length,
-    high: findings.filter(f => f.severity.toLowerCase() === "high").length,
-    medium: findings.filter(f => f.severity.toLowerCase() === "medium").length,
-    low: findings.filter(f => f.severity.toLowerCase() === "low").length,
-  };
+  // Use task's reliable statistics instead of computing from findings array
+  // This ensures consistency even when findings array is empty or not loaded
+  const totalFindings = task.findings_count || 0;
+  const criticalAndHigh = (task.critical_count || 0) + (task.high_count || 0);
+  const verified = task.verified_count || 0;
 
   return (
     <div className="grid grid-cols-4 gap-2 mb-4">
@@ -137,7 +135,7 @@ const ReportStats = memo(function ReportStats({
           <span className="text-[9px] text-slate-500 uppercase tracking-wider">Findings</span>
         </div>
         <div className="text-lg font-bold font-mono text-white">
-          {findings.length}
+          {totalFindings}
         </div>
       </div>
 
@@ -147,7 +145,7 @@ const ReportStats = memo(function ReportStats({
           <span className="text-[9px] text-slate-500 uppercase tracking-wider">Critical</span>
         </div>
         <div className="text-lg font-bold font-mono text-rose-400">
-          {severityCounts.critical + severityCounts.high}
+          {criticalAndHigh}
         </div>
       </div>
 
@@ -157,7 +155,7 @@ const ReportStats = memo(function ReportStats({
           <span className="text-[9px] text-slate-500 uppercase tracking-wider">Verified</span>
         </div>
         <div className="text-lg font-bold font-mono text-teal-400">
-          {findings.filter(f => f.is_verified).length}
+          {verified}
         </div>
       </div>
     </div>
@@ -351,49 +349,15 @@ export const ReportExportDialog = memo(function ReportExportDialog({
     setPreview(prev => ({ ...prev, loading: true, error: null }));
 
     try {
-      // For JSON, we can generate it client-side
+      // For JSON, fetch from backend API to ensure data consistency
+      // The backend properly queries findings from the database
       if (format === "json") {
-        const reportData = {
-          report_metadata: {
-            task_id: task.id,
-            project_id: task.project_id,
-            generated_at: new Date().toISOString(),
-            task_status: task.status,
-            duration_seconds: task.completed_at && task.started_at
-              ? Math.round((new Date(task.completed_at).getTime() - new Date(task.started_at).getTime()) / 1000)
-              : null,
-          },
-          summary: {
-            security_score: task.security_score,
-            total_files_analyzed: task.analyzed_files,
-            total_findings: findings.length,
-            verified_findings: findings.filter(f => f.is_verified).length,
-            severity_distribution: {
-              critical: task.critical_count,
-              high: task.high_count,
-              medium: task.medium_count,
-              low: task.low_count,
-            },
-          },
-          findings: findings.map(f => ({
-            id: f.id,
-            vulnerability_type: f.vulnerability_type,
-            severity: f.severity,
-            title: f.title,
-            description: f.description,
-            file_path: f.file_path,
-            line_start: f.line_start,
-            line_end: f.line_end,
-            code_snippet: f.code_snippet,
-            is_verified: f.is_verified,
-            has_poc: f.has_poc,
-            suggestion: f.suggestion,
-            ai_confidence: f.ai_confidence,
-          })),
-        };
+        const response = await apiClient.get(`/agent-tasks/${task.id}/report`, {
+          params: { format: "json" },
+        });
 
         setPreview({
-          content: JSON.stringify(reportData, null, 2),
+          content: JSON.stringify(response.data, null, 2),
           format: "json",
           loading: false,
           error: null,
