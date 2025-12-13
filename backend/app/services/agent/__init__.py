@@ -52,9 +52,14 @@ from .knowledge import (
 from .tools import (
     ThinkTool, ReflectTool,
     CreateVulnerabilityReportTool,
+    FinishScanTool,
     CreateSubAgentTool, SendMessageTool, ViewAgentGraphTool,
     WaitForMessageTool, AgentFinishTool,
 )
+
+# 🔥 新增：遥测模块
+from .telemetry import Tracer, get_global_tracer, set_global_tracer
+
 
 __all__ = [
     # 核心 Runner
@@ -103,10 +108,16 @@ __all__ = [
     "ThinkTool",
     "ReflectTool",
     "CreateVulnerabilityReportTool",
+    "FinishScanTool",
     "CreateSubAgentTool",
     "SendMessageTool",
     "ViewAgentGraphTool",
     "WaitForMessageTool",
     "AgentFinishTool",
+    
+    # 🔥 遥测模块
+    "Tracer",
+    "get_global_tracer",
+    "set_global_tracer",
 ]
 

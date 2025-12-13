@@ -422,6 +422,7 @@ class AgentRunner:
                 "findings": [],
                 "verified_findings": [],
                 "false_positives": [],
+                "_verified_findings_update": None,  # 🔥 NEW: 验证后的 findings 更新
                 "current_phase": "start",
                 "iteration": 0,
                 "max_iterations": self.task.max_iterations or 50,
@@ -501,9 +502,44 @@ class AgentRunner:
                         final_state = node_output
             
             # 5. 获取最终状态
-            if not final_state:
-                graph_state = self.graph.get_state(run_config)
-                final_state = graph_state.values if graph_state else {}
+            # 🔥 CRITICAL FIX: 始终从 graph 获取完整的累积状态
+            # 因为每个节点只返回自己的输出，findings 等字段是通过 operator.add 累积的
+            # 直接使用 node_output 会丢失之前节点累积的 findings
+            graph_state = self.graph.get_state(run_config)
+            if graph_state and graph_state.values:
+                # 合并完整状态和最后节点的输出
+                full_state = graph_state.values
+                if final_state:
+                    # 保留最后节点的输出（如 summary, security_score）
+                    full_state = {**full_state, **final_state}
+                final_state = full_state
+                logger.info(f"[Runner] Got full state from graph with {len(final_state.get('findings', []))} findings")
+            elif not final_state:
+                final_state = {}
+                logger.warning("[Runner] No final state available from graph")
+
+            # 🔥 CRITICAL FIX: 如果有验证后的 findings 更新，使用它替换原始 findings
+            # 这是因为 LangGraph 的 operator.add 累积器不适合更新已有 findings
+            verified_findings_update = final_state.get("_verified_findings_update")
+            if verified_findings_update:
+                logger.info(f"[Runner] Using verified findings update: {len(verified_findings_update)} findings")
+                final_state["findings"] = verified_findings_update
+            else:
+                # 🔥 FALLBACK: 如果没有 _verified_findings_update，尝试从 verified_findings 合并
+                findings = final_state.get("findings", [])
+                verified_findings = final_state.get("verified_findings", [])
+
+                if verified_findings and findings:
+                    # 创建合并后的 findings 列表
+                    merged_findings = self._merge_findings_with_verification(findings, verified_findings)
+                    final_state["findings"] = merged_findings
+                    logger.info(f"[Runner] Merged findings: {len(merged_findings)} total")
+                elif verified_findings and not findings:
+                    # 如果只有 verified_findings，直接使用
+                    final_state["findings"] = verified_findings
+                    logger.info(f"[Runner] Using verified_findings directly: {len(verified_findings)}")
+
+            logger.info(f"[Runner] Final findings count: {len(final_state.get('findings', []))}")
             
             # 🔥 检查是否有错误
             error = final_state.get("error")
@@ -710,6 +746,12 @@ class AgentRunner:
     
     async def _save_findings(self, findings: List[Dict]):
         """保存发现到数据库"""
+        logger.info(f"[Runner] Saving {len(findings)} findings to database for task {self.task.id}")
+
+        if not findings:
+            logger.info("[Runner] No findings to save")
+            return
+
         severity_map = {
             "critical": VulnerabilitySeverity.CRITICAL,
             "high": VulnerabilitySeverity.HIGH,
@@ -779,6 +821,7 @@ class AgentRunner:
         
         try:
             await self.db.commit()
+            logger.info(f"[Runner] Successfully saved {len(findings)} findings to database")
         except Exception as e:
             logger.error(f"Failed to commit findings: {e}")
             await self.db.rollback()
@@ -822,11 +865,68 @@ class AgentRunner:
         self.task.total_findings = total_findings
         self.task.verified_findings = verified_count
         self.task.security_score = security_score
-        
+
         try:
             await self.db.commit()
         except Exception as e:
             logger.error(f"Failed to update task summary: {e}")
+
+    def _merge_findings_with_verification(
+        self,
+        findings: List[Dict],
+        verified_findings: List[Dict],
+    ) -> List[Dict]:
+        """
+        合并原始 findings 和验证结果
+
+        Args:
+            findings: 原始 findings 列表
+            verified_findings: 验证后的 findings 列表
+
+        Returns:
+            合并后的 findings 列表
+        """
+        # 创建验证结果的查找映射
+        verified_map = {}
+        for vf in verified_findings:
+            if not isinstance(vf, dict):
+                continue
+            key = (
+                vf.get("file_path", ""),
+                vf.get("line_start", 0),
+                vf.get("vulnerability_type", ""),
+            )
+            verified_map[key] = vf
+
+        merged = []
+        seen_keys = set()
+
+        # 首先处理原始 findings
+        for f in findings:
+            if not isinstance(f, dict):
+                continue
+
+            key = (
+                f.get("file_path", ""),
+                f.get("line_start", 0),
+                f.get("vulnerability_type", ""),
+            )
+
+            if key in verified_map:
+                # 使用验证后的版本（包含 is_verified, poc 等）
+                merged.append(verified_map[key])
+            else:
+                # 保留原始 finding
+                merged.append(f)
+
+            seen_keys.add(key)
+
+        # 添加验证结果中的新发现（如果有）
+        for key, vf in verified_map.items():
+            if key not in seen_keys:
+                merged.append(vf)
+
+        return merged
     
     async def _cleanup(self):
         """清理资源"""

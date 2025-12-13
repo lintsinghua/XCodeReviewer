@@ -1,6 +1,6 @@
 /**
  * Agent 审计任务创建对话框
- * 专门用于 Agent Audit 页面，UI 风格与终端界面保持一致
+ * Cyberpunk Terminal Aesthetic
  */
 
 import { useState, useEffect, useMemo } from "react";
@@ -67,7 +67,7 @@ export default function CreateAgentTaskDialog({
   onOpenChange,
 }: CreateAgentTaskDialogProps) {
   const navigate = useNavigate();
-  
+
   // 状态
   const [projects, setProjects] = useState<Project[]>([]);
   const [loadingProjects, setLoadingProjects] = useState(true);
@@ -79,12 +79,12 @@ export default function CreateAgentTaskDialog({
   const [excludePatterns, setExcludePatterns] = useState(DEFAULT_EXCLUDES);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [creating, setCreating] = useState(false);
-  
+
   // ZIP 文件状态
   const [zipFile, setZipFile] = useState<File | null>(null);
   const [storedZipInfo, setStoredZipInfo] = useState<ZipFileMeta | null>(null);
   const [useStoredZip, setUseStoredZip] = useState(true);
-  
+
   // 文件选择状态
   const [selectedFiles, setSelectedFiles] = useState<string[] | undefined>();
   const [showFileSelection, setShowFileSelection] = useState(false);
@@ -103,7 +103,7 @@ export default function CreateAgentTaskDialog({
           toast.error("加载项目列表失败");
         })
         .finally(() => setLoadingProjects(false));
-      
+
       // 重置状态
       setSelectedProjectId("");
       setSearchTerm("");
@@ -119,7 +119,6 @@ export default function CreateAgentTaskDialog({
   // 加载分支列表
   useEffect(() => {
     const loadBranches = async () => {
-      // 使用 selectedProjectId 从 projects 中获取最新的 project 对象
       const project = projects.find((p) => p.id === selectedProjectId);
       if (!project || !isRepositoryProject(project)) {
         setBranches([]);
@@ -129,20 +128,17 @@ export default function CreateAgentTaskDialog({
       setLoadingBranches(true);
       try {
         const result = await api.getProjectBranches(project.id);
-        console.log("[Branch] 加载分支结果:", result);
-        
+
         if (result.error) {
-          console.warn("[Branch] 加载分支警告:", result.error);
           toast.error(`加载分支失败: ${result.error}`);
         }
-        
+
         setBranches(result.branches);
         if (result.default_branch) {
           setBranch(result.default_branch);
         }
       } catch (err) {
         const msg = err instanceof Error ? err.message : "未知错误";
-        console.error("[Branch] 加载分支失败:", msg);
         toast.error(`加载分支失败: ${msg}`);
         setBranches([project.default_branch || "main"]);
       } finally {
@@ -236,15 +232,15 @@ export default function CreateAgentTaskDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="!w-[min(90vw,480px)] !max-w-none max-h-[85vh] flex flex-col p-0 gap-0 bg-[#0d0d12] border border-gray-800 rounded-lg">
+      <DialogContent className="!w-[min(90vw,520px)] !max-w-none max-h-[85vh] flex flex-col p-0 gap-0 bg-[#0c0c12] border border-gray-800 rounded-lg">
         {/* Header */}
-        <DialogHeader className="px-5 py-4 border-b border-gray-800 flex-shrink-0">
+        <DialogHeader className="px-5 py-4 border-b border-gray-800 flex-shrink-0 bg-gray-900/50">
           <DialogTitle className="flex items-center gap-3 font-mono text-white">
-            <div className="p-2 bg-primary/20 rounded">
+            <div className="p-2 bg-primary/20 rounded border border-primary/30">
               <Bot className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <span className="text-base font-bold">New Agent Audit</span>
+              <span className="text-base font-bold uppercase tracking-wider">New Agent Audit</span>
               <p className="text-xs text-gray-500 font-normal mt-0.5">
                 AI-Powered Security Analysis
               </p>
@@ -259,7 +255,7 @@ export default function CreateAgentTaskDialog({
               <span className="text-xs font-mono font-bold uppercase text-gray-400">
                 Select Project
               </span>
-              <Badge variant="outline" className="border-gray-700 text-gray-500 font-mono text-[10px]">
+              <Badge className="cyber-badge-muted font-mono text-[10px]">
                 {filteredProjects.length} available
               </Badge>
             </div>
@@ -271,12 +267,12 @@ export default function CreateAgentTaskDialog({
                 placeholder="Search projects..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9 h-10 bg-gray-900/50 border-gray-800 text-white font-mono placeholder:text-gray-600 focus:border-primary focus:ring-0"
+                className="pl-9 h-10 cyber-input"
               />
             </div>
 
             {/* 项目列表 */}
-            <ScrollArea className="h-[200px] border border-gray-800 rounded-lg bg-gray-900/30">
+            <ScrollArea className="h-[200px] border border-gray-800 rounded bg-gray-900/30">
               {loadingProjects ? (
                 <div className="flex items-center justify-center h-full">
                   <Loader2 className="w-5 h-5 animate-spin text-primary" />
@@ -306,7 +302,7 @@ export default function CreateAgentTaskDialog({
             <div className="space-y-4">
               {/* 仓库项目：分支选择 */}
               {isRepositoryProject(selectedProject) && (
-                <div className="flex items-center gap-3 p-3 border border-gray-800 rounded-lg bg-blue-950/20">
+                <div className="flex items-center gap-3 p-3 border border-gray-800 rounded bg-blue-950/20">
                   <GitBranch className="w-5 h-5 text-blue-400" />
                   <span className="font-mono text-sm text-gray-400 w-16">Branch</span>
                   {loadingBranches ? (
@@ -316,10 +312,10 @@ export default function CreateAgentTaskDialog({
                     </div>
                   ) : (
                     <Select value={branch} onValueChange={setBranch}>
-                      <SelectTrigger className="flex-1 h-9 bg-gray-900/50 border-gray-700 text-white font-mono focus:ring-0">
+                      <SelectTrigger className="flex-1 h-9 cyber-input">
                         <SelectValue placeholder="Select branch" />
                       </SelectTrigger>
-                      <SelectContent className="bg-gray-900 border-gray-700">
+                      <SelectContent className="bg-[#0c0c12] border-gray-700">
                         {branches.map((b) => (
                           <SelectItem key={b} value={b} className="font-mono text-white">
                             {b}
@@ -333,40 +329,40 @@ export default function CreateAgentTaskDialog({
 
               {/* ZIP 项目：文件选择 */}
               {isZipProject(selectedProject) && (
-                <div className="p-3 border border-gray-800 rounded-lg bg-amber-950/20 space-y-3">
+                <div className="p-3 border border-gray-800 rounded bg-amber-950/20 space-y-3">
                   <div className="flex items-center gap-3">
                     <Package className="w-5 h-5 text-amber-400" />
-                    <span className="font-mono text-sm text-gray-400">ZIP File</span>
+                    <span className="font-mono text-sm text-gray-400 uppercase font-bold">ZIP File</span>
                   </div>
-                  
+
                   {storedZipInfo?.has_file && (
-                    <div 
+                    <div
                       className={`p-2 rounded border cursor-pointer transition-colors ${
-                        useStoredZip 
-                          ? 'border-green-500 bg-green-950/30' 
-                          : 'border-gray-700 hover:border-gray-600'
+                        useStoredZip
+                          ? 'border-emerald-500/50 bg-emerald-950/30'
+                          : 'border-gray-700 hover:border-gray-600 bg-gray-900/30'
                       }`}
                       onClick={() => setUseStoredZip(true)}
                     >
                       <div className="flex items-center gap-2">
                         <div className={`w-3 h-3 rounded-full border-2 ${
-                          useStoredZip ? 'border-green-500 bg-green-500' : 'border-gray-600'
+                          useStoredZip ? 'border-emerald-500 bg-emerald-500' : 'border-gray-600'
                         }`} />
                         <span className="text-sm text-white font-mono">
                           {storedZipInfo.original_filename}
                         </span>
-                        <Badge className="bg-green-500/20 text-green-400 border-0 text-[10px]">
+                        <Badge className="cyber-badge-success text-[10px]">
                           Stored
                         </Badge>
                       </div>
                     </div>
                   )}
-                  
-                  <div 
+
+                  <div
                     className={`p-2 rounded border cursor-pointer transition-colors ${
                       !useStoredZip && zipFile
-                        ? 'border-amber-500 bg-amber-950/30' 
-                        : 'border-gray-700 hover:border-gray-600'
+                        ? 'border-amber-500/50 bg-amber-950/30'
+                        : 'border-gray-700 hover:border-gray-600 bg-gray-900/30'
                     }`}
                   >
                     <label className="flex items-center gap-2 cursor-pointer">
@@ -401,16 +397,15 @@ export default function CreateAgentTaskDialog({
                     const isRepo = isRepositoryProject(selectedProject);
                     const isZip = isZipProject(selectedProject);
                     const hasStoredZip = storedZipInfo?.has_file;
-                    // 可以选择文件的条件：仓库项目 或 ZIP项目使用已存储文件
                     const canSelectFiles = isRepo || (isZip && useStoredZip && hasStoredZip);
-                    
+
                     return (
-                      <div className="flex items-center justify-between p-3 border border-dashed border-gray-700 rounded-lg bg-gray-900/30">
+                      <div className="flex items-center justify-between p-3 border border-dashed border-gray-700 rounded bg-gray-900/30">
                         <div>
                           <p className="font-mono text-xs uppercase font-bold text-gray-500">
                             Scan Scope
                           </p>
-                          <p className="text-sm text-white font-mono mt-1">
+                          <p className="text-sm text-white font-mono font-bold mt-1">
                             {selectedFiles
                               ? `${selectedFiles.length} files selected`
                               : "All files"}
@@ -422,7 +417,7 @@ export default function CreateAgentTaskDialog({
                               size="sm"
                               variant="ghost"
                               onClick={() => setSelectedFiles(undefined)}
-                              className="h-8 text-xs text-red-400 hover:bg-red-900/30 hover:text-red-300"
+                              className="h-8 text-xs text-rose-400 hover:bg-rose-900/30 hover:text-rose-300"
                             >
                               Reset
                             </Button>
@@ -432,7 +427,7 @@ export default function CreateAgentTaskDialog({
                             variant="outline"
                             onClick={() => setShowFileSelection(true)}
                             disabled={!canSelectFiles}
-                            className="h-8 text-xs border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white font-mono disabled:opacity-50"
+                            className="h-8 text-xs cyber-btn-outline font-mono font-bold disabled:opacity-50"
                           >
                             <FolderOpen className="w-3 h-3 mr-1" />
                             Select Files
@@ -443,7 +438,7 @@ export default function CreateAgentTaskDialog({
                   })()}
 
                   {/* 排除模式 */}
-                  <div className="p-3 border border-dashed border-gray-700 rounded-lg bg-gray-900/30 space-y-3">
+                  <div className="p-3 border border-dashed border-gray-700 rounded bg-gray-900/30 space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="font-mono text-xs uppercase font-bold text-gray-500">
                         Exclude Patterns
@@ -456,23 +451,22 @@ export default function CreateAgentTaskDialog({
                         Reset
                       </button>
                     </div>
-                    
+
                     <div className="flex flex-wrap gap-1.5">
                       {excludePatterns.map((p) => (
                         <Badge
                           key={p}
-                          variant="secondary"
-                          className="bg-gray-800 text-gray-300 border-0 font-mono text-xs cursor-pointer hover:bg-red-900/50 hover:text-red-400"
+                          className="bg-gray-800 text-gray-300 border-0 font-mono text-xs cursor-pointer hover:bg-rose-900/50 hover:text-rose-400"
                           onClick={() => setExcludePatterns((prev) => prev.filter((x) => x !== p))}
                         >
                           {p} ×
                         </Badge>
                       ))}
                     </div>
-                    
+
                     <Input
                       placeholder="Add pattern, press Enter..."
-                      className="h-8 bg-gray-900/50 border-gray-700 text-white font-mono text-sm placeholder:text-gray-600 focus:ring-0"
+                      className="h-8 cyber-input text-sm"
                       onKeyDown={(e) => {
                         if (e.key === "Enter" && e.currentTarget.value) {
                           const val = e.currentTarget.value.trim();
@@ -503,7 +497,7 @@ export default function CreateAgentTaskDialog({
           <Button
             onClick={handleCreate}
             disabled={!canStart || creating}
-            className="px-5 h-10 bg-primary hover:bg-primary/90 text-white font-mono font-bold"
+            className="px-5 h-10 cyber-btn-primary font-mono font-bold uppercase"
           >
             {creating ? (
               <>
@@ -547,7 +541,7 @@ function ProjectItem({
 
   return (
     <div
-      className={`flex items-center gap-3 p-3 cursor-pointer rounded-lg transition-all ${
+      className={`flex items-center gap-3 p-3 cursor-pointer rounded transition-all ${
         selected
           ? "bg-primary/10 border border-primary/50"
           : "hover:bg-gray-800/50 border border-transparent"
@@ -568,11 +562,10 @@ function ProjectItem({
             {project.name}
           </span>
           <Badge
-            variant="outline"
             className={`text-[10px] px-1 py-0 font-mono ${
               isRepo
-                ? "border-blue-500/50 text-blue-400"
-                : "border-amber-500/50 text-amber-400"
+                ? "bg-blue-500/20 text-blue-400 border-blue-500/30"
+                : "bg-amber-500/20 text-amber-400 border-amber-500/30"
             }`}
           >
             {isRepo ? "REPO" : "ZIP"}
@@ -586,7 +579,7 @@ function ProjectItem({
       </div>
 
       {selected && (
-        <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+        <div className="w-2 h-2 rounded-full bg-primary animate-pulse shadow-[0_0_8px_rgba(255,107,44,0.6)]" />
       )}
     </div>
   );

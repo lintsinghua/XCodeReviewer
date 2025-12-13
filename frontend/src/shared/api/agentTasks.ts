@@ -16,7 +16,7 @@ export interface AgentTask {
   status: string;
   current_phase: string | null;
   current_step: string | null;
-  
+
   // 统计
   total_files: number;
   indexed_files: number;
@@ -25,37 +25,37 @@ export interface AgentTask {
   findings_count: number;
   verified_count: number;
   false_positive_count: number;
-  
+
   // Agent 统计
   total_iterations: number;
   tool_calls_count: number;
   tokens_used: number;
-  
+
   // 严重程度统计
   critical_count: number;
   high_count: number;
   medium_count: number;
   low_count: number;
-  
+
   // 评分
   quality_score: number;
   security_score: number | null;
-  
+
   // 时间
   created_at: string;
   started_at: string | null;
   completed_at: string | null;
-  
+
   // 进度
   progress_percentage: number;
-  
+
   // 配置
   audit_scope: Record<string, unknown> | null;
   target_vulnerabilities: string[] | null;
   verification_level: string | null;
   exclude_patterns: string[] | null;
   target_files: string[] | null;
-  
+
   // 错误信息
   error_message: string | null;
 }
@@ -67,22 +67,22 @@ export interface AgentFinding {
   severity: string;
   title: string;
   description: string | null;
-  
+
   file_path: string | null;
   line_start: number | null;
   line_end: number | null;
   code_snippet: string | null;
-  
+
   status: string;
   is_verified: boolean;
   has_poc: boolean;
   poc_code: string | null;
-  
+
   suggestion: string | null;
   fix_code: string | null;
   ai_explanation: string | null;
   ai_confidence: number | null;
-  
+
   created_at: string;
 }
 
@@ -250,7 +250,7 @@ export async function getAgentTaskSummary(taskId: string): Promise<AgentTaskSumm
 export function createAgentEventSource(taskId: string, afterSequence = 0): EventSource {
   const baseUrl = import.meta.env.VITE_API_URL || "";
   const url = `${baseUrl}/api/v1/agent-tasks/${taskId}/events?after_sequence=${afterSequence}`;
-  
+
   // 注意：EventSource 不支持自定义 headers，需要通过 URL 参数或 cookie 传递认证
   // 如果需要认证，可以考虑使用 fetch + ReadableStream 替代
   return new EventSource(url, { withCredentials: true });
@@ -267,7 +267,7 @@ export async function* streamAgentEvents(
   const token = localStorage.getItem("access_token");
   const baseUrl = import.meta.env.VITE_API_URL || "";
   const url = `${baseUrl}/api/v1/agent-tasks/${taskId}/events?after_sequence=${afterSequence}`;
-  
+
   const response = await fetch(url, {
     headers: {
       Authorization: `Bearer ${token}`,
@@ -275,33 +275,33 @@ export async function* streamAgentEvents(
     },
     signal,
   });
-  
+
   if (!response.ok) {
     throw new Error(`Failed to connect to event stream: ${response.statusText}`);
   }
-  
+
   const reader = response.body?.getReader();
   if (!reader) {
     throw new Error("No response body");
   }
-  
+
   const decoder = new TextDecoder();
   let buffer = "";
-  
+
   try {
     while (true) {
       const { done, value } = await reader.read();
-      
+
       if (done) {
         break;
       }
-      
+
       buffer += decoder.decode(value, { stream: true });
-      
+
       // 解析 SSE 格式
       const lines = buffer.split("\n");
       buffer = lines.pop() || "";
-      
+
       for (const line of lines) {
         if (line.startsWith("data: ")) {
           const data = line.slice(6);
@@ -403,5 +403,40 @@ export async function getCheckpointDetail(
 ): Promise<CheckpointDetail> {
   const response = await apiClient.get(`/agent-tasks/${taskId}/checkpoints/${checkpointId}`);
   return response.data;
+}
+
+
+/**
+ * 下载 Agent 任务报告
+ */
+export async function downloadAgentReport(taskId: string, format: "markdown" | "json" = "markdown"): Promise<void> {
+  const response = await apiClient.get(`/agent-tasks/${taskId}/report`, {
+    params: { format },
+    responseType: 'blob',
+  });
+
+  // Create download link
+  const url = window.URL.createObjectURL(new Blob([response.data]));
+  const link = document.createElement('a');
+  link.href = url;
+
+  // Calculate filename
+  let filename = `audit-report-${taskId.slice(0, 8)}.md`;
+  if (format === 'json') {
+    filename = `audit-report-${taskId.slice(0, 8)}.json`;
+  }
+
+  // Try to get filename from header
+  const contentDisposition = response.headers['content-disposition'];
+  if (contentDisposition) {
+    const match = contentDisposition.match(/filename=(.+)/);
+    if (match && match[1]) filename = match[1].replace(/['"]/g, ''); // Remove quotes if present
+  }
+
+  link.setAttribute('download', filename);
+  document.body.appendChild(link);
+  link.click();
+  link.parentNode?.removeChild(link);
+  window.URL.revokeObjectURL(url);
 }
 

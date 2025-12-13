@@ -219,7 +219,13 @@ class DataFlowAnalysisTool(AgentTool):
         file_path: str = "unknown",
         **kwargs
     ) -> ToolResult:
-        """执行数据流分析"""
+        """执行数据流分析 - 增强版，带超时保护和回退逻辑"""
+        import asyncio
+        import re
+        
+        # 🔥 首先尝试基于规则的快速分析（不依赖 LLM）
+        quick_analysis = self._quick_pattern_analysis(source_code, variable_name, sink_code)
+        
         try:
             # 构建分析 prompt
             analysis_prompt = f"""分析以下代码中变量 '{variable_name}' 的数据流。
@@ -254,13 +260,24 @@ class DataFlowAnalysisTool(AgentTool):
 - recommendation: 建议
 """
             
-            # 调用 LLM 分析
-            # 这里使用 analyze_code_with_custom_prompt
-            result = await self.llm_service.analyze_code_with_custom_prompt(
-                code=source_code,
-                language="text",
-                custom_prompt=analysis_prompt,
-            )
+            # 🔥 添加超时保护（2分钟）
+            try:
+                result = await asyncio.wait_for(
+                    self.llm_service.analyze_code_with_custom_prompt(
+                        code=source_code,
+                        language="text",
+                        custom_prompt=analysis_prompt,
+                    ),
+                    timeout=120.0  # 2分钟超时
+                )
+            except asyncio.TimeoutError:
+                logger.warning(f"数据流分析 LLM 调用超时，使用快速分析结果")
+                return self._format_quick_analysis_result(quick_analysis, variable_name, file_path, "LLM调用超时，使用规则分析")
+            
+            # 🔥 检查结果是否有效
+            if not result or (isinstance(result, dict) and not result.get("source_type") and not result.get("risk_level")):
+                logger.warning(f"数据流分析 LLM 返回无效结果，使用快速分析结果")
+                return self._format_quick_analysis_result(quick_analysis, variable_name, file_path, "LLM返回无效，使用规则分析")
             
             # 格式化输出
             output_parts = [f"📊 数据流分析结果 - 变量: {variable_name}\n"]
@@ -272,9 +289,17 @@ class DataFlowAnalysisTool(AgentTool):
                     sanitized = "✅ 是" if result.get("sanitized") else "❌ 否"
                     output_parts.append(f"是否净化: {sanitized}")
                 if result.get("sanitization_methods"):
-                    output_parts.append(f"净化方法: {', '.join(result.get('sanitization_methods', []))}")
+                    methods = result.get('sanitization_methods', [])
+                    if isinstance(methods, list):
+                        output_parts.append(f"净化方法: {', '.join(methods)}")
+                    else:
+                        output_parts.append(f"净化方法: {methods}")
                 if result.get("dangerous_sinks"):
-                    output_parts.append(f"危险函数: {', '.join(result.get('dangerous_sinks', []))}")
+                    sinks = result.get('dangerous_sinks', [])
+                    if isinstance(sinks, list):
+                        output_parts.append(f"危险函数: {', '.join(sinks)}")
+                    else:
+                        output_parts.append(f"危险函数: {sinks}")
                 if result.get("risk_level"):
                     risk_icons = {"high": "🔴", "medium": "🟠", "low": "🟡", "none": "🟢"}
                     icon = risk_icons.get(result.get("risk_level", ""), "⚪")
@@ -297,10 +322,131 @@ class DataFlowAnalysisTool(AgentTool):
             )
             
         except Exception as e:
-            return ToolResult(
-                success=False,
-                error=f"数据流分析失败: {str(e)}",
+            logger.error(f"数据流分析失败: {e}")
+            # 🔥 回退到快速分析
+            return self._format_quick_analysis_result(
+                quick_analysis, 
+                variable_name, 
+                file_path, 
+                f"LLM调用失败({str(e)[:50]}...)，使用规则分析"
             )
+    
+    def _quick_pattern_analysis(
+        self, 
+        source_code: str, 
+        variable_name: str,
+        sink_code: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """基于规则的快速数据流分析（不依赖 LLM）"""
+        import re
+        
+        result = {
+            "source_type": "unknown",
+            "sanitized": False,
+            "sanitization_methods": [],
+            "dangerous_sinks": [],
+            "risk_level": "low",
+        }
+        
+        code_to_analyze = source_code + (sink_code or "")
+        
+        # 检测数据源类型
+        source_patterns = {
+            "user_input_get": r'\$_GET\[',
+            "user_input_post": r'\$_POST\[',
+            "user_input_request": r'\$_REQUEST\[',
+            "user_input_cookie": r'\$_COOKIE\[',
+            "request_param": r'request\.(GET|POST|args|form|data)',
+            "input_func": r'\binput\s*\(',
+        }
+        
+        for source_name, pattern in source_patterns.items():
+            if re.search(pattern, source_code, re.IGNORECASE):
+                result["source_type"] = source_name
+                break
+        
+        # 检测净化方法
+        sanitize_patterns = [
+            (r'htmlspecialchars\s*\(', "htmlspecialchars"),
+            (r'mysqli_real_escape_string\s*\(', "mysqli_escape"),
+            (r'addslashes\s*\(', "addslashes"),
+            (r'strip_tags\s*\(', "strip_tags"),
+            (r'filter_var\s*\(', "filter_var"),
+            (r'escape\s*\(', "escape"),
+            (r'sanitize', "sanitize"),
+            (r'validate', "validate"),
+        ]
+        
+        for pattern, name in sanitize_patterns:
+            if re.search(pattern, code_to_analyze, re.IGNORECASE):
+                result["sanitized"] = True
+                result["sanitization_methods"].append(name)
+        
+        # 检测危险 sink
+        sink_patterns = [
+            (r'mysql_query\s*\(', "mysql_query"),
+            (r'mysqli_query\s*\(', "mysqli_query"),
+            (r'execute\s*\(', "execute"),
+            (r'shell_exec\s*\(', "shell_exec"),
+            (r'system\s*\(', "system"),
+            (r'exec\s*\(', "exec"),
+            (r'eval\s*\(', "eval"),
+            (r'include\s*\(', "include"),
+            (r'require\s*\(', "require"),
+            (r'file_get_contents\s*\(', "file_get_contents"),
+            (r'echo\s+', "echo"),
+            (r'print\s*\(', "print"),
+        ]
+        
+        for pattern, name in sink_patterns:
+            if re.search(pattern, code_to_analyze, re.IGNORECASE):
+                result["dangerous_sinks"].append(name)
+        
+        # 计算风险等级
+        if result["source_type"].startswith("user_input") and result["dangerous_sinks"]:
+            if not result["sanitized"]:
+                result["risk_level"] = "high"
+            else:
+                result["risk_level"] = "medium"
+        elif result["dangerous_sinks"]:
+            result["risk_level"] = "medium"
+        
+        return result
+    
+    def _format_quick_analysis_result(
+        self, 
+        analysis: Dict[str, Any], 
+        variable_name: str,
+        file_path: str,
+        note: str
+    ) -> ToolResult:
+        """格式化快速分析结果"""
+        output_parts = [f"📊 数据流分析结果 - 变量: {variable_name}"]
+        output_parts.append(f"⚠️ 注意: {note}\n")
+        
+        output_parts.append(f"数据源: {analysis.get('source_type', 'unknown')}")
+        output_parts.append(f"是否净化: {'✅ 是' if analysis.get('sanitized') else '❌ 否'}")
+        
+        if analysis.get("sanitization_methods"):
+            output_parts.append(f"净化方法: {', '.join(analysis['sanitization_methods'])}")
+        
+        if analysis.get("dangerous_sinks"):
+            output_parts.append(f"危险函数: {', '.join(analysis['dangerous_sinks'])}")
+        
+        risk_icons = {"high": "🔴", "medium": "🟠", "low": "🟡", "none": "🟢"}
+        risk = analysis.get("risk_level", "low")
+        output_parts.append(f"风险等级: {risk_icons.get(risk, '⚪')} {risk.upper()}")
+        
+        return ToolResult(
+            success=True,
+            data="\n".join(output_parts),
+            metadata={
+                "variable": variable_name,
+                "file_path": file_path,
+                "analysis": analysis,
+                "fallback_used": True,
+            }
+        )
 
 
 class VulnerabilityValidationInput(BaseModel):

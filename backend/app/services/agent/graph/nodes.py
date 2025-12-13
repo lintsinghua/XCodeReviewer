@@ -181,6 +181,7 @@ class AnalysisNode(BaseNode):
             
             if result.success and result.data:
                 new_findings = result.data.get("findings", [])
+                logger.info(f"[AnalysisNode] Agent returned {len(new_findings)} findings")
                 
                 # 判断是否需要继续分析
                 should_continue = (
@@ -277,6 +278,7 @@ class VerificationNode(BaseNode):
     async def __call__(self, state: Dict[str, Any]) -> Dict[str, Any]:
         """执行漏洞验证"""
         findings = state.get("findings", [])
+        logger.info(f"[VerificationNode] Received {len(findings)} findings to verify")
         
         if not findings:
             return {
@@ -320,9 +322,49 @@ class VerificationNode(BaseNode):
             if result.success and result.data:
                 all_verified_findings = result.data.get("findings", [])
                 verified = [f for f in all_verified_findings if f.get("is_verified")]
-                false_pos = [f.get("id", f.get("title", "unknown")) for f in all_verified_findings 
+                false_pos = [f.get("id", f.get("title", "unknown")) for f in all_verified_findings
                            if f.get("verdict") == "false_positive"]
-                
+
+                # 🔥 CRITICAL FIX: 用验证结果更新原始 findings
+                # 创建 findings 的更新映射，基于 (file_path, line_start, vulnerability_type)
+                verified_map = {}
+                for vf in all_verified_findings:
+                    key = (
+                        vf.get("file_path", ""),
+                        vf.get("line_start", 0),
+                        vf.get("vulnerability_type", ""),
+                    )
+                    verified_map[key] = vf
+
+                # 合并验证结果到原始 findings
+                updated_findings = []
+                seen_keys = set()
+
+                # 首先处理原始 findings，用验证结果更新
+                for f in findings:
+                    if not isinstance(f, dict):
+                        continue
+                    key = (
+                        f.get("file_path", ""),
+                        f.get("line_start", 0),
+                        f.get("vulnerability_type", ""),
+                    )
+                    if key in verified_map:
+                        # 使用验证后的版本
+                        updated_findings.append(verified_map[key])
+                        seen_keys.add(key)
+                    else:
+                        # 保留原始（未验证）
+                        updated_findings.append(f)
+                        seen_keys.add(key)
+
+                # 添加验证结果中的新发现（如果有）
+                for key, vf in verified_map.items():
+                    if key not in seen_keys:
+                        updated_findings.append(vf)
+
+                logger.info(f"[VerificationNode] Updated findings: {len(updated_findings)} total, {len(verified)} verified")
+
                 # 🔥 创建交接信息给 Report 节点
                 handoff = self.agent.create_handoff(
                     to_agent="Report",
@@ -352,13 +394,17 @@ class VerificationNode(BaseNode):
                         "verification_rate": len(verified) / len(findings) if findings else 0,
                     },
                 )
-                
+
                 await self.emit_event(
                     "phase_complete",
                     f"✅ 验证完成: {len(verified)} 已确认, {len(false_pos)} 误报"
                 )
-                
+
                 return {
+                    # 🔥 CRITICAL: 返回更新后的 findings，这会替换状态中的 findings
+                    # 注意：由于 LangGraph 使用 operator.add，我们需要在 runner 中处理合并
+                    # 这里我们返回 _verified_findings_update 作为特殊字段
+                    "_verified_findings_update": updated_findings,
                     "verified_findings": verified,
                     "false_positives": false_pos,
                     "current_phase": "verification_complete",
@@ -369,6 +415,7 @@ class VerificationNode(BaseNode):
                         "data": {
                             "verified_count": len(verified),
                             "false_positive_count": len(false_pos),
+                            "total_findings": len(updated_findings),
                             "handoff_summary": handoff.summary,
                         }
                     }],
@@ -399,11 +446,14 @@ class ReportNode(BaseNode):
     async def __call__(self, state: Dict[str, Any]) -> Dict[str, Any]:
         """生成审计报告"""
         await self.emit_event("phase_start", "📊 生成审计报告")
-        
+
         try:
-            findings = state.get("findings", [])
+            # 🔥 CRITICAL FIX: 优先使用验证后的 findings 更新
+            findings = state.get("_verified_findings_update") or state.get("findings", [])
             verified = state.get("verified_findings", [])
             false_positives = state.get("false_positives", [])
+
+            logger.info(f"[ReportNode] State contains {len(findings)} findings, {len(verified)} verified")
             
             # 统计漏洞分布
             severity_counts = {"critical": 0, "high": 0, "medium": 0, "low": 0}

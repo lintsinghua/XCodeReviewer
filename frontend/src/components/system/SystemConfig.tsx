@@ -1,3 +1,8 @@
+/**
+ * System Config Component
+ * Cyberpunk Terminal Aesthetic
+ */
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,13 +11,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Settings, Save, RotateCcw, Eye, EyeOff, CheckCircle2, AlertCircle,
-  Info, Zap, Globe, PlayCircle, Loader2, Brain
+  Info, Zap, Globe, PlayCircle, Brain
 } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/shared/api/database";
 import EmbeddingConfig from "@/components/agent/EmbeddingConfig";
 
-// LLM 提供商配置 - 2025年最新
+// LLM Providers - 2025
 const LLM_PROVIDERS = [
   { value: 'openai', label: 'OpenAI GPT', icon: '🟢', category: 'litellm', hint: 'gpt-5, gpt-5-mini, o3 等' },
   { value: 'claude', label: 'Anthropic Claude', icon: '🟣', category: 'litellm', hint: 'claude-sonnet-4.5, claude-opus-4 等' },
@@ -54,17 +59,15 @@ export function SystemConfig() {
     try {
       setLoading(true);
       console.log('[SystemConfig] 开始加载配置...');
-      
-      // 后端 /config/me 已经返回合并后的配置（用户配置优先，然后是系统默认配置）
+
       const backendConfig = await api.getUserConfig();
-      
+
       console.log('[SystemConfig] 后端返回的原始数据:', JSON.stringify(backendConfig, null, 2));
-      
+
       if (backendConfig) {
-        // 直接使用后端返回的合并配置
         const llmConfig = backendConfig.llmConfig || {};
         const otherConfig = backendConfig.otherConfig || {};
-        
+
         const newConfig = {
           llmProvider: llmConfig.llmProvider || 'openai',
           llmApiKey: llmConfig.llmApiKey || '',
@@ -80,10 +83,10 @@ export function SystemConfig() {
           llmGapMs: otherConfig.llmGapMs || 2000,
           outputLanguage: otherConfig.outputLanguage || 'zh-CN',
         };
-        
+
         console.log('[SystemConfig] 解析后的配置:', newConfig);
         setConfig(newConfig);
-        
+
         console.log('✓ 配置已加载:', {
           provider: llmConfig.llmProvider,
           hasApiKey: !!llmConfig.llmApiKey,
@@ -91,7 +94,6 @@ export function SystemConfig() {
         });
       } else {
         console.warn('[SystemConfig] 后端返回空数据，使用默认配置');
-        // 如果获取失败，使用默认值
         setConfig({
           llmProvider: 'openai', llmApiKey: '', llmModel: '', llmBaseUrl: '',
           llmTimeout: 150000, llmTemperature: 0.1, llmMaxTokens: 4096,
@@ -128,8 +130,7 @@ export function SystemConfig() {
           llmGapMs: config.llmGapMs, outputLanguage: config.outputLanguage,
         },
       });
-      
-      // 使用后端返回的数据更新本地状态，确保数据同步
+
       if (savedConfig) {
         const llmConfig = savedConfig.llmConfig || {};
         const otherConfig = savedConfig.otherConfig || {};
@@ -149,7 +150,7 @@ export function SystemConfig() {
           outputLanguage: otherConfig.outputLanguage || 'zh-CN',
         });
       }
-      
+
       setHasChanges(false);
       toast.success("配置已保存！");
     } catch (error) {
@@ -205,9 +206,9 @@ export function SystemConfig() {
   if (loading || !config) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <div className="animate-spin rounded-none h-12 w-12 border-4 border-black border-t-transparent mx-auto mb-4"></div>
-          <p className="text-black font-mono font-bold uppercase">加载配置中...</p>
+        <div className="text-center space-y-4">
+          <div className="loading-spinner mx-auto" />
+          <p className="text-gray-500 font-mono text-sm uppercase tracking-wider">加载配置中...</p>
         </div>
       </div>
     );
@@ -218,68 +219,70 @@ export function SystemConfig() {
 
   return (
     <div className="space-y-6">
-      {/* 状态栏 */}
-      <div className="bg-blue-50 border-2 border-blue-500 p-4 flex items-center justify-between shadow-[4px_4px_0px_0px_rgba(59,130,246,1)]">
-        <div className="flex items-center gap-4 font-mono text-sm">
-          <Info className="h-5 w-5 text-blue-600" />
-          <span className="font-bold">
-            {isConfigured ? (
-              <span className="text-green-600 flex items-center gap-1">
-                <CheckCircle2 className="h-4 w-4" /> LLM 已配置 ({currentProvider?.label})
-              </span>
-            ) : (
-              <span className="text-orange-600 flex items-center gap-1">
-                <AlertCircle className="h-4 w-4" /> 请配置 LLM API Key
-              </span>
+      {/* Status Bar */}
+      <div className={`cyber-card p-4 ${isConfigured ? 'border-emerald-500/30' : 'border-amber-500/30'}`}>
+        <div className="flex items-center justify-between flex-wrap gap-4">
+          <div className="flex items-center gap-4">
+            <Info className="h-5 w-5 text-sky-400" />
+            <span className="font-mono text-sm">
+              {isConfigured ? (
+                <span className="text-emerald-400 flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4" /> LLM 已配置 ({currentProvider?.label})
+                </span>
+              ) : (
+                <span className="text-amber-400 flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4" /> 请配置 LLM API Key
+                </span>
+              )}
+            </span>
+          </div>
+          <div className="flex gap-2">
+            {hasChanges && (
+              <Button onClick={saveConfig} size="sm" className="cyber-btn-primary h-8">
+                <Save className="w-3 h-3 mr-2" /> 保存
+              </Button>
             )}
-          </span>
-        </div>
-        <div className="flex gap-2">
-          {hasChanges && (
-            <Button onClick={saveConfig} size="sm" className="retro-btn bg-black text-white border-2 border-black hover:bg-gray-800 rounded-none h-8 font-bold uppercase">
-              <Save className="w-3 h-3 mr-2" /> 保存
+            <Button onClick={resetConfig} variant="outline" size="sm" className="cyber-btn-ghost h-8">
+              <RotateCcw className="w-3 h-3 mr-2" /> 重置
             </Button>
-          )}
-          <Button onClick={resetConfig} variant="outline" size="sm" className="retro-btn bg-white text-black border-2 border-black hover:bg-gray-100 rounded-none h-8 font-bold uppercase">
-            <RotateCcw className="w-3 h-3 mr-2" /> 重置
-          </Button>
+          </div>
         </div>
       </div>
 
       <Tabs defaultValue="llm" className="w-full">
-        <TabsList className="grid w-full grid-cols-4 bg-transparent border-2 border-black p-0 h-auto gap-0 mb-6">
-          <TabsTrigger value="llm" className="rounded-none border-r-2 border-black data-[state=active]:bg-black data-[state=active]:text-white font-mono font-bold uppercase h-10 text-xs">
-            <Zap className="w-3 h-3 mr-2" /> LLM 配置
+        <TabsList className="grid w-full grid-cols-4 bg-gray-900/50 border border-gray-800 p-1 h-auto gap-1 rounded-lg mb-6">
+          <TabsTrigger value="llm" className="data-[state=active]:bg-primary data-[state=active]:text-white font-mono font-bold uppercase py-2.5 text-gray-400 transition-all rounded text-xs flex items-center gap-2">
+            <Zap className="w-3 h-3" /> LLM 配置
           </TabsTrigger>
-          <TabsTrigger value="embedding" className="rounded-none border-r-2 border-black data-[state=active]:bg-black data-[state=active]:text-white font-mono font-bold uppercase h-10 text-xs">
-            <Brain className="w-3 h-3 mr-2" /> 嵌入模型
+          <TabsTrigger value="embedding" className="data-[state=active]:bg-primary data-[state=active]:text-white font-mono font-bold uppercase py-2.5 text-gray-400 transition-all rounded text-xs flex items-center gap-2">
+            <Brain className="w-3 h-3" /> 嵌入模型
           </TabsTrigger>
-          <TabsTrigger value="analysis" className="rounded-none border-r-2 border-black data-[state=active]:bg-black data-[state=active]:text-white font-mono font-bold uppercase h-10 text-xs">
-            <Settings className="w-3 h-3 mr-2" /> 分析参数
+          <TabsTrigger value="analysis" className="data-[state=active]:bg-primary data-[state=active]:text-white font-mono font-bold uppercase py-2.5 text-gray-400 transition-all rounded text-xs flex items-center gap-2">
+            <Settings className="w-3 h-3" /> 分析参数
           </TabsTrigger>
-          <TabsTrigger value="git" className="rounded-none data-[state=active]:bg-black data-[state=active]:text-white font-mono font-bold uppercase h-10 text-xs">
-            <Globe className="w-3 h-3 mr-2" /> Git 集成
+          <TabsTrigger value="git" className="data-[state=active]:bg-primary data-[state=active]:text-white font-mono font-bold uppercase py-2.5 text-gray-400 transition-all rounded text-xs flex items-center gap-2">
+            <Globe className="w-3 h-3" /> Git 集成
           </TabsTrigger>
         </TabsList>
 
-        {/* LLM 配置 - 简化版 */}
+        {/* LLM Config */}
         <TabsContent value="llm" className="space-y-6">
-          <div className="retro-card bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-6 space-y-6">
-            {/* 提供商选择 */}
+          <div className="cyber-card p-6 space-y-6">
+            {/* Provider Selection */}
             <div className="space-y-2">
-              <Label className="font-mono font-bold uppercase">选择 LLM 提供商</Label>
+              <Label className="text-xs font-bold text-gray-500 uppercase">选择 LLM 提供商</Label>
               <Select value={config.llmProvider} onValueChange={(v) => updateConfig('llmProvider', v)}>
-                <SelectTrigger className="h-12 bg-gray-50 border-2 border-black rounded-none font-mono">
+                <SelectTrigger className="h-12 cyber-input">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="border-2 border-black rounded-none">
+                <SelectContent className="bg-[#0c0c12] border-gray-700">
                   <div className="px-2 py-1.5 text-xs font-bold text-gray-500 uppercase">LiteLLM 统一适配 (推荐)</div>
                   {LLM_PROVIDERS.filter(p => p.category === 'litellm').map(p => (
                     <SelectItem key={p.value} value={p.value} className="font-mono">
                       <span className="flex items-center gap-2">
                         <span>{p.icon}</span>
                         <span>{p.label}</span>
-                        <span className="text-xs text-gray-400">- {p.hint}</span>
+                        <span className="text-xs text-gray-500">- {p.hint}</span>
                       </span>
                     </SelectItem>
                   ))}
@@ -289,7 +292,7 @@ export function SystemConfig() {
                       <span className="flex items-center gap-2">
                         <span>{p.icon}</span>
                         <span>{p.label}</span>
-                        <span className="text-xs text-gray-400">- {p.hint}</span>
+                        <span className="text-xs text-gray-500">- {p.hint}</span>
                       </span>
                     </SelectItem>
                   ))}
@@ -300,187 +303,245 @@ export function SystemConfig() {
             {/* API Key */}
             {config.llmProvider !== 'ollama' && (
               <div className="space-y-2">
-                <Label className="font-mono font-bold uppercase">API Key</Label>
+                <Label className="text-xs font-bold text-gray-500 uppercase">API Key</Label>
                 <div className="flex gap-2">
                   <Input
                     type={showApiKey ? 'text' : 'password'}
                     value={config.llmApiKey}
                     onChange={(e) => updateConfig('llmApiKey', e.target.value)}
                     placeholder={config.llmProvider === 'baidu' ? 'API_KEY:SECRET_KEY 格式' : '输入你的 API Key'}
-                    className="h-12 bg-gray-50 border-2 border-black rounded-none font-mono"
+                    className="h-12 cyber-input"
                   />
-                  <Button variant="outline" size="icon" onClick={() => setShowApiKey(!showApiKey)}
-                    className="h-12 w-12 border-2 border-black rounded-none">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setShowApiKey(!showApiKey)}
+                    className="h-12 w-12 cyber-btn-ghost"
+                  >
                     {showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </Button>
                 </div>
               </div>
             )}
 
-            {/* 模型和 Base URL */}
+            {/* Model and Base URL */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="font-mono font-bold uppercase">模型名称 (可选)</Label>
+                <Label className="text-xs font-bold text-gray-500 uppercase">模型名称 (可选)</Label>
                 <Input
                   value={config.llmModel}
                   onChange={(e) => updateConfig('llmModel', e.target.value)}
                   placeholder={`默认: ${DEFAULT_MODELS[config.llmProvider] || 'auto'}`}
-                  className="h-10 bg-gray-50 border-2 border-black rounded-none font-mono"
+                  className="h-10 cyber-input"
                 />
               </div>
               <div className="space-y-2">
-                <Label className="font-mono font-bold uppercase">API Base URL (可选)</Label>
+                <Label className="text-xs font-bold text-gray-500 uppercase">API Base URL (可选)</Label>
                 <Input
                   value={config.llmBaseUrl}
                   onChange={(e) => updateConfig('llmBaseUrl', e.target.value)}
                   placeholder="留空使用官方地址，或填入中转站地址"
-                  className="h-10 bg-gray-50 border-2 border-black rounded-none font-mono"
+                  className="h-10 cyber-input"
                 />
               </div>
             </div>
 
-            {/* 测试连接 */}
-            <div className="pt-4 border-t-2 border-black border-dashed flex items-center justify-between">
-              <div className="text-sm font-mono">
-                <span className="font-bold">测试连接</span>
+            {/* Test Connection */}
+            <div className="pt-4 border-t border-gray-800 border-dashed flex items-center justify-between flex-wrap gap-4">
+              <div className="text-sm">
+                <span className="font-bold text-gray-300">测试连接</span>
                 <span className="text-gray-500 ml-2">验证配置是否正确</span>
               </div>
-              <Button onClick={testLLMConnection} disabled={testingLLM || (!isConfigured && config.llmProvider !== 'ollama')}
-                className="retro-btn bg-black text-white border-2 border-black hover:bg-gray-800 rounded-none h-10 font-bold uppercase">
-                {testingLLM ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> 测试中...</> : <><PlayCircle className="w-4 h-4 mr-2" /> 测试</>}
+              <Button
+                onClick={testLLMConnection}
+                disabled={testingLLM || (!isConfigured && config.llmProvider !== 'ollama')}
+                className="cyber-btn-primary h-10"
+              >
+                {testingLLM ? (
+                  <>
+                    <div className="loading-spinner w-4 h-4 mr-2" />
+                    测试中...
+                  </>
+                ) : (
+                  <>
+                    <PlayCircle className="w-4 h-4 mr-2" />
+                    测试
+                  </>
+                )}
               </Button>
             </div>
             {llmTestResult && (
-              <div className={`p-3 border-2 ${llmTestResult.success ? 'border-green-500 bg-green-50' : 'border-red-500 bg-red-50'}`}>
-                <div className="flex items-center gap-2 font-mono text-sm">
-                  {llmTestResult.success ? <CheckCircle2 className="h-4 w-4 text-green-600" /> : <AlertCircle className="h-4 w-4 text-red-600" />}
-                  <span className={llmTestResult.success ? 'text-green-800' : 'text-red-800'}>{llmTestResult.message}</span>
+              <div className={`p-3 rounded-lg ${llmTestResult.success ? 'bg-emerald-500/10 border border-emerald-500/30' : 'bg-rose-500/10 border border-rose-500/30'}`}>
+                <div className="flex items-center gap-2 text-sm">
+                  {llmTestResult.success ? (
+                    <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+                  ) : (
+                    <AlertCircle className="h-4 w-4 text-rose-400" />
+                  )}
+                  <span className={llmTestResult.success ? 'text-emerald-300/80' : 'text-rose-300/80'}>
+                    {llmTestResult.message}
+                  </span>
                 </div>
               </div>
             )}
 
-            {/* 高级参数 - 折叠 */}
-            <details className="pt-4 border-t-2 border-black border-dashed">
-              <summary className="font-mono font-bold uppercase cursor-pointer hover:text-blue-600">高级参数</summary>
+            {/* Advanced Parameters */}
+            <details className="pt-4 border-t border-gray-800 border-dashed">
+              <summary className="font-bold uppercase cursor-pointer hover:text-primary text-gray-400 text-sm">高级参数</summary>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
                 <div className="space-y-2">
-                  <Label className="font-mono text-xs uppercase">超时 (毫秒)</Label>
-                  <Input type="number" value={config.llmTimeout} onChange={(e) => updateConfig('llmTimeout', Number(e.target.value))}
-                    className="h-10 bg-gray-50 border-2 border-black rounded-none font-mono" />
+                  <Label className="text-xs text-gray-500 uppercase">超时 (毫秒)</Label>
+                  <Input
+                    type="number"
+                    value={config.llmTimeout}
+                    onChange={(e) => updateConfig('llmTimeout', Number(e.target.value))}
+                    className="h-10 cyber-input"
+                  />
                 </div>
                 <div className="space-y-2">
-                  <Label className="font-mono text-xs uppercase">温度 (0-2)</Label>
-                  <Input type="number" step="0.1" min="0" max="2" value={config.llmTemperature}
+                  <Label className="text-xs text-gray-500 uppercase">温度 (0-2)</Label>
+                  <Input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="2"
+                    value={config.llmTemperature}
                     onChange={(e) => updateConfig('llmTemperature', Number(e.target.value))}
-                    className="h-10 bg-gray-50 border-2 border-black rounded-none font-mono" />
+                    className="h-10 cyber-input"
+                  />
                 </div>
                 <div className="space-y-2">
-                  <Label className="font-mono text-xs uppercase">最大 Tokens</Label>
-                  <Input type="number" value={config.llmMaxTokens} onChange={(e) => updateConfig('llmMaxTokens', Number(e.target.value))}
-                    className="h-10 bg-gray-50 border-2 border-black rounded-none font-mono" />
+                  <Label className="text-xs text-gray-500 uppercase">最大 Tokens</Label>
+                  <Input
+                    type="number"
+                    value={config.llmMaxTokens}
+                    onChange={(e) => updateConfig('llmMaxTokens', Number(e.target.value))}
+                    className="h-10 cyber-input"
+                  />
                 </div>
               </div>
             </details>
           </div>
 
-          {/* 使用说明 */}
-          <div className="bg-gray-50 border-2 border-black p-4 font-mono text-xs space-y-2">
-            <p className="font-bold uppercase">💡 配置说明</p>
-            <p>• <strong>LiteLLM 统一适配</strong>: 大多数提供商通过 LiteLLM 统一处理，支持自动重试和负载均衡</p>
-            <p>• <strong>原生适配器</strong>: 百度、MiniMax、豆包因 API 格式特殊，使用专用适配器</p>
-            <p>• <strong>API 中转站</strong>: 在 Base URL 填入中转站地址即可，API Key 填中转站提供的 Key</p>
+          {/* Usage Notes */}
+          <div className="bg-gray-900/50 border border-gray-800 p-4 rounded-lg text-xs space-y-2">
+            <p className="font-bold uppercase text-gray-400 flex items-center gap-2">
+              <Info className="w-4 h-4 text-sky-400" />
+              配置说明
+            </p>
+            <p className="text-gray-500">• <strong className="text-gray-400">LiteLLM 统一适配</strong>: 大多数提供商通过 LiteLLM 统一处理，支持自动重试和负载均衡</p>
+            <p className="text-gray-500">• <strong className="text-gray-400">原生适配器</strong>: 百度、MiniMax、豆包因 API 格式特殊，使用专用适配器</p>
+            <p className="text-gray-500">• <strong className="text-gray-400">API 中转站</strong>: 在 Base URL 填入中转站地址即可，API Key 填中转站提供的 Key</p>
           </div>
         </TabsContent>
 
-        {/* 嵌入模型配置 */}
+        {/* Embedding Config */}
         <TabsContent value="embedding" className="space-y-6">
           <EmbeddingConfig />
         </TabsContent>
 
-        {/* 分析参数 */}
+        {/* Analysis Parameters */}
         <TabsContent value="analysis" className="space-y-6">
-          <div className="retro-card bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-6 space-y-6">
+          <div className="cyber-card p-6 space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label className="font-mono font-bold uppercase">最大分析文件数</Label>
-                <Input type="number" value={config.maxAnalyzeFiles}
+                <Label className="text-xs font-bold text-gray-500 uppercase">最大分析文件数</Label>
+                <Input
+                  type="number"
+                  value={config.maxAnalyzeFiles}
                   onChange={(e) => updateConfig('maxAnalyzeFiles', Number(e.target.value))}
-                  className="h-10 bg-gray-50 border-2 border-black rounded-none font-mono" />
-                <p className="text-xs text-gray-500 font-mono">单次任务最多处理的文件数量</p>
+                  className="h-10 cyber-input"
+                />
+                <p className="text-xs text-gray-600">单次任务最多处理的文件数量</p>
               </div>
               <div className="space-y-2">
-                <Label className="font-mono font-bold uppercase">LLM 并发数</Label>
-                <Input type="number" value={config.llmConcurrency}
+                <Label className="text-xs font-bold text-gray-500 uppercase">LLM 并发数</Label>
+                <Input
+                  type="number"
+                  value={config.llmConcurrency}
                   onChange={(e) => updateConfig('llmConcurrency', Number(e.target.value))}
-                  className="h-10 bg-gray-50 border-2 border-black rounded-none font-mono" />
-                <p className="text-xs text-gray-500 font-mono">同时发送的 LLM 请求数量</p>
+                  className="h-10 cyber-input"
+                />
+                <p className="text-xs text-gray-600">同时发送的 LLM 请求数量</p>
               </div>
               <div className="space-y-2">
-                <Label className="font-mono font-bold uppercase">请求间隔 (毫秒)</Label>
-                <Input type="number" value={config.llmGapMs}
+                <Label className="text-xs font-bold text-gray-500 uppercase">请求间隔 (毫秒)</Label>
+                <Input
+                  type="number"
+                  value={config.llmGapMs}
                   onChange={(e) => updateConfig('llmGapMs', Number(e.target.value))}
-                  className="h-10 bg-gray-50 border-2 border-black rounded-none font-mono" />
-                <p className="text-xs text-gray-500 font-mono">每个请求之间的延迟时间</p>
+                  className="h-10 cyber-input"
+                />
+                <p className="text-xs text-gray-600">每个请求之间的延迟时间</p>
               </div>
               <div className="space-y-2">
-                <Label className="font-mono font-bold uppercase">输出语言</Label>
+                <Label className="text-xs font-bold text-gray-500 uppercase">输出语言</Label>
                 <Select value={config.outputLanguage} onValueChange={(v) => updateConfig('outputLanguage', v)}>
-                  <SelectTrigger className="h-10 bg-gray-50 border-2 border-black rounded-none font-mono">
+                  <SelectTrigger className="h-10 cyber-input">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="border-2 border-black rounded-none">
+                  <SelectContent className="bg-[#0c0c12] border-gray-700">
                     <SelectItem value="zh-CN" className="font-mono">🇨🇳 中文</SelectItem>
                     <SelectItem value="en-US" className="font-mono">🇺🇸 English</SelectItem>
                   </SelectContent>
                 </Select>
-                <p className="text-xs text-gray-500 font-mono">代码审查结果的输出语言</p>
+                <p className="text-xs text-gray-600">代码审查结果的输出语言</p>
               </div>
             </div>
           </div>
         </TabsContent>
 
-        {/* Git 集成 */}
+        {/* Git Integration */}
         <TabsContent value="git" className="space-y-6">
-          <div className="retro-card bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-6 space-y-6">
+          <div className="cyber-card p-6 space-y-6">
             <div className="space-y-2">
-              <Label className="font-mono font-bold uppercase">GitHub Token (可选)</Label>
+              <Label className="text-xs font-bold text-gray-500 uppercase">GitHub Token (可选)</Label>
               <Input
                 type="password"
                 value={config.githubToken}
                 onChange={(e) => updateConfig('githubToken', e.target.value)}
                 placeholder="ghp_xxxxxxxxxxxx"
-                className="h-10 bg-gray-50 border-2 border-black rounded-none font-mono"
+                className="h-10 cyber-input"
               />
-              <p className="text-xs text-gray-500 font-mono">
-                用于访问私有仓库。获取: <a href="https://github.com/settings/tokens" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">github.com/settings/tokens</a>
+              <p className="text-xs text-gray-600">
+                用于访问私有仓库。获取:{' '}
+                <a href="https://github.com/settings/tokens" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                  github.com/settings/tokens
+                </a>
               </p>
             </div>
             <div className="space-y-2">
-              <Label className="font-mono font-bold uppercase">GitLab Token (可选)</Label>
+              <Label className="text-xs font-bold text-gray-500 uppercase">GitLab Token (可选)</Label>
               <Input
                 type="password"
                 value={config.gitlabToken}
                 onChange={(e) => updateConfig('gitlabToken', e.target.value)}
                 placeholder="glpat-xxxxxxxxxxxx"
-                className="h-10 bg-gray-50 border-2 border-black rounded-none font-mono"
+                className="h-10 cyber-input"
               />
-              <p className="text-xs text-gray-500 font-mono">
-                用于访问私有仓库。获取: <a href="https://gitlab.com/-/profile/personal_access_tokens" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">gitlab.com/-/profile/personal_access_tokens</a>
+              <p className="text-xs text-gray-600">
+                用于访问私有仓库。获取:{' '}
+                <a href="https://gitlab.com/-/profile/personal_access_tokens" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                  gitlab.com/-/profile/personal_access_tokens
+                </a>
               </p>
             </div>
-            <div className="bg-gray-50 border-2 border-black p-4 font-mono text-xs">
-              <p className="font-bold">💡 提示</p>
-              <p>• 公开仓库无需配置 Token</p>
-              <p>• 私有仓库需要配置对应平台的 Token</p>
+            <div className="bg-gray-900/50 border border-gray-800 p-4 rounded-lg text-xs">
+              <p className="font-bold text-gray-400 flex items-center gap-2 mb-2">
+                <Info className="w-4 h-4 text-sky-400" />
+                提示
+              </p>
+              <p className="text-gray-500">• 公开仓库无需配置 Token</p>
+              <p className="text-gray-500">• 私有仓库需要配置对应平台的 Token</p>
             </div>
           </div>
         </TabsContent>
       </Tabs>
 
-      {/* 底部保存按钮 */}
+      {/* Floating Save Button */}
       {hasChanges && (
-        <div className="fixed bottom-6 right-6 bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-4 z-50">
-          <Button onClick={saveConfig} className="retro-btn bg-black text-white border-2 border-black hover:bg-gray-800 rounded-none h-12 font-bold uppercase">
+        <div className="fixed bottom-6 right-6 cyber-card p-4 z-50">
+          <Button onClick={saveConfig} className="cyber-btn-primary h-12">
             <Save className="w-4 h-4 mr-2" /> 保存所有更改
           </Button>
         </div>

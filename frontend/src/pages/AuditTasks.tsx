@@ -1,8 +1,15 @@
+/**
+ * Audit Tasks Page
+ * Cyberpunk Terminal Aesthetic
+ * 支持普通审计任务和Agent审计任务
+ */
+
 import { useState, useEffect, useRef } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Progress } from "@/components/ui/progress";
 import {
   Activity,
   AlertTriangle,
@@ -12,67 +19,98 @@ import {
   FileText,
   Calendar,
   Plus,
-  XCircle
+  XCircle,
+  ArrowUpRight,
+  Shield,
+  Terminal,
+  Bot,
+  Zap
 } from "lucide-react";
 import { api } from "@/shared/config/database";
 import type { AuditTask } from "@/shared/types";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import CreateTaskDialog from "@/components/audit/CreateTaskDialog";
+import TerminalProgressDialog from "@/components/audit/TerminalProgressDialog";
 import { calculateTaskProgress } from "@/shared/utils/utils";
+import { getAgentTasks, cancelAgentTask, type AgentTask } from "@/shared/api/agentTasks";
 
-// 僵尸任务检测配置
-const ZOMBIE_TIMEOUT = 180000; // 3分钟无进度变化视为可能的僵尸任务
+// Zombie task detection config
+const ZOMBIE_TIMEOUT = 180000; // 3 minutes without progress is potentially stuck
+
+// 任务类型标签
+type TaskTab = "regular" | "agent";
 
 export default function AuditTasks() {
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState<TaskTab>("agent"); // 默认显示Agent任务
+
+  // 普通任务状态
   const [tasks, setTasks] = useState<AuditTask[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [cancellingTaskId, setCancellingTaskId] = useState<string | null>(null);
-  
-  // 僵尸任务检测：记录每个任务的上次进度和时间
+  const [showTerminal, setShowTerminal] = useState(false);
+  const [currentTaskId, setCurrentTaskId] = useState<string | null>(null);
+
+  // Agent任务状态
+  const [agentTasks, setAgentTasks] = useState<AgentTask[]>([]);
+  const [agentLoading, setAgentLoading] = useState(true);
+  const [cancellingAgentTaskId, setCancellingAgentTaskId] = useState<string | null>(null);
+
+  // Zombie task detection: track progress and time for each task
   const taskProgressRef = useRef<Map<string, { progress: number; time: number }>>(new Map());
 
   useEffect(() => {
     loadTasks();
+    loadAgentTasks();
   }, []);
 
-  // 静默更新活动任务的进度（不触发loading状态）
+  // 加载Agent任务
+  const loadAgentTasks = async () => {
+    try {
+      setAgentLoading(true);
+      const data = await getAgentTasks();
+      setAgentTasks(data);
+    } catch (error) {
+      console.error('Failed to load agent tasks:', error);
+      toast.error("加载Agent任务失败");
+    } finally {
+      setAgentLoading(false);
+    }
+  };
+
+  // Silently update active tasks progress (no loading state trigger)
   useEffect(() => {
     const activeTasks = tasks.filter(
       task => task.status === 'running' || task.status === 'pending'
     );
 
     if (activeTasks.length === 0) {
-      // 清空进度记录
       taskProgressRef.current.clear();
       return;
     }
 
     const intervalId = setInterval(async () => {
       try {
-        // 只获取活动任务的最新数据
         const updatedData = await api.getAuditTasks();
 
-        // 使用函数式更新，确保基于最新状态
         setTasks(prevTasks => {
           return prevTasks.map(prevTask => {
             const updated = updatedData.find(t => t.id === prevTask.id);
             if (!updated) return prevTask;
-            
-            // 僵尸任务检测
+
+            // Zombie task detection
             if (updated.status === 'running') {
               const currentProgress = updated.scanned_files || 0;
               const lastRecord = taskProgressRef.current.get(updated.id);
-              
+
               if (lastRecord) {
                 if (currentProgress !== lastRecord.progress) {
-                  // 进度有变化，更新记录
                   taskProgressRef.current.set(updated.id, { progress: currentProgress, time: Date.now() });
                 } else if (Date.now() - lastRecord.time > ZOMBIE_TIMEOUT) {
-                  // 超时无进度变化，提示用户
                   toast.warning(`任务 "${updated.project?.name || '未知'}" 可能已停止响应`, {
                     id: `zombie-${updated.id}`,
                     duration: 10000,
@@ -81,19 +119,15 @@ export default function AuditTasks() {
                       onClick: () => handleCancelTask(updated.id),
                     },
                   });
-                  // 重置时间避免重复提示
                   taskProgressRef.current.set(updated.id, { progress: currentProgress, time: Date.now() });
                 }
               } else {
-                // 首次记录
                 taskProgressRef.current.set(updated.id, { progress: currentProgress, time: Date.now() });
               }
             } else {
-              // 任务不再运行，清除记录
               taskProgressRef.current.delete(updated.id);
             }
-            
-            // 只有在进度、状态或问题数真正变化时才更新
+
             if (
               updated.status !== prevTask.status ||
               updated.scanned_files !== prevTask.scanned_files ||
@@ -111,26 +145,52 @@ export default function AuditTasks() {
           duration: 5000,
         });
       }
-    }, 3000); // 每3秒静默更新一次
+    }, 3000);
 
     return () => clearInterval(intervalId);
   }, [tasks.map(t => t.id + t.status).join(',')]);
-  
-  // 取消任务
+
+  // 自动刷新Agent任务
+  useEffect(() => {
+    const activeAgentTasks = agentTasks.filter(
+      task => task.status === 'running' || task.status === 'pending'
+    );
+
+    if (activeAgentTasks.length === 0) return;
+
+    const intervalId = setInterval(loadAgentTasks, 5000);
+    return () => clearInterval(intervalId);
+  }, [agentTasks.map(t => t.id + t.status).join(',')]);
+
   const handleCancelTask = async (taskId: string) => {
     if (cancellingTaskId) return;
-    
+
     try {
       setCancellingTaskId(taskId);
       await api.cancelAuditTask(taskId);
       toast.success("任务已取消");
-      // 刷新任务列表
       await loadTasks();
     } catch (error: any) {
       console.error('取消任务失败:', error);
       toast.error(error?.response?.data?.detail || "取消任务失败");
     } finally {
       setCancellingTaskId(null);
+    }
+  };
+
+  const handleCancelAgentTask = async (taskId: string) => {
+    if (cancellingAgentTaskId) return;
+
+    try {
+      setCancellingAgentTaskId(taskId);
+      await cancelAgentTask(taskId);
+      toast.success("Agent任务已取消");
+      await loadAgentTasks();
+    } catch (error: any) {
+      console.error('取消Agent任务失败:', error);
+      toast.error(error?.response?.data?.detail || "取消Agent任务失败");
+    } finally {
+      setCancellingAgentTaskId(null);
     }
   };
 
@@ -147,23 +207,33 @@ export default function AuditTasks() {
     }
   };
 
-  const getStatusColor = (status: string) => {
+  const handleFastScanStarted = (taskId: string) => {
+    setCurrentTaskId(taskId);
+    setShowTerminal(true);
+  };
+
+  const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'completed': return 'bg-green-100 text-green-800';
-      case 'running': return 'bg-red-50 text-red-800';
-      case 'failed': return 'bg-red-100 text-red-900';
-      case 'cancelled': return 'bg-gray-100 text-gray-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'completed':
+        return <Badge className="cyber-badge-success">完成</Badge>;
+      case 'running':
+        return <Badge className="cyber-badge-info">运行中</Badge>;
+      case 'failed':
+        return <Badge className="cyber-badge-danger">失败</Badge>;
+      case 'cancelled':
+        return <Badge className="cyber-badge-muted">已取消</Badge>;
+      default:
+        return <Badge className="cyber-badge-muted">等待中</Badge>;
     }
   };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'completed': return <CheckCircle className="w-4 h-4" />;
-      case 'running': return <Activity className="w-4 h-4" />;
-      case 'failed': return <AlertTriangle className="w-4 h-4" />;
-      case 'cancelled': return <Clock className="w-4 h-4" />;
-      default: return <Clock className="w-4 h-4" />;
+      case 'completed': return <CheckCircle className="w-4 h-4 text-emerald-400" />;
+      case 'running': return <Activity className="w-4 h-4 text-sky-400" />;
+      case 'failed': return <AlertTriangle className="w-4 h-4 text-rose-400" />;
+      case 'cancelled': return <XCircle className="w-4 h-4 text-gray-400" />;
+      default: return <Clock className="w-4 h-4 text-gray-400" />;
     }
   };
 
@@ -184,116 +254,189 @@ export default function AuditTasks() {
     return matchesSearch && matchesStatus;
   });
 
-  if (loading) {
+  const filteredAgentTasks = agentTasks.filter(task => {
+    const matchesSearch = (task.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      task.task_type.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === "all" || task.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
+
+  // 统计数据
+  const regularStats = {
+    total: tasks.length,
+    completed: tasks.filter(t => t.status === 'completed').length,
+    running: tasks.filter(t => t.status === 'running').length,
+    failed: tasks.filter(t => t.status === 'failed').length,
+  };
+
+  const agentStats = {
+    total: agentTasks.length,
+    completed: agentTasks.filter(t => t.status === 'completed').length,
+    running: agentTasks.filter(t => t.status === 'running').length,
+    failed: agentTasks.filter(t => t.status === 'failed').length,
+  };
+
+  const currentStats = activeTab === "agent" ? agentStats : regularStats;
+
+  if ((activeTab === "regular" && loading) || (activeTab === "agent" && agentLoading)) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-background">
-        <div className="animate-spin rounded-none h-32 w-32 border-8 border-primary border-t-transparent"></div>
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center space-y-4">
+          <div className="loading-spinner mx-auto" />
+          <p className="text-gray-500 font-mono text-sm uppercase tracking-wider">加载任务数据...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-6 px-6 py-4 bg-background min-h-screen font-mono relative overflow-hidden">
-      {/* Decorative Background */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
+    <div className="space-y-6 p-6 bg-[#0a0a0f] min-h-screen font-mono relative">
+      {/* Grid background */}
+      <div className="absolute inset-0 cyber-grid-subtle pointer-events-none" />
 
-      {/* 统计卡片 */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="retro-card bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-5 hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all">
+      {/* Tab 切换 */}
+      <div className="flex items-center gap-4 relative z-10">
+        <button
+          onClick={() => setActiveTab("agent")}
+          className={`
+            flex items-center gap-2 px-4 py-2 rounded-lg font-mono text-sm uppercase tracking-wider
+            transition-all duration-200 border
+            ${activeTab === "agent"
+              ? "bg-primary/20 text-primary border-primary/50"
+              : "bg-gray-900/50 text-gray-400 border-gray-800 hover:border-gray-700 hover:text-gray-300"
+            }
+          `}
+        >
+          <Bot className="w-4 h-4" />
+          Agent任务
+          {agentStats.running > 0 && (
+            <Badge className="ml-1 bg-primary/30 text-primary border-primary/50">
+              {agentStats.running}
+            </Badge>
+          )}
+        </button>
+        <button
+          onClick={() => setActiveTab("regular")}
+          className={`
+            flex items-center gap-2 px-4 py-2 rounded-lg font-mono text-sm uppercase tracking-wider
+            transition-all duration-200 border
+            ${activeTab === "regular"
+              ? "bg-primary/20 text-primary border-primary/50"
+              : "bg-gray-900/50 text-gray-400 border-gray-800 hover:border-gray-700 hover:text-gray-300"
+            }
+          `}
+        >
+          <Zap className="w-4 h-4" />
+          普通任务
+          {regularStats.running > 0 && (
+            <Badge className="ml-1 bg-sky-500/30 text-sky-400 border-sky-500/50">
+              {regularStats.running}
+            </Badge>
+          )}
+        </button>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 relative z-10">
+        <div className="cyber-card p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs font-bold text-gray-600 uppercase mb-1">总任务数</p>
-              <p className="text-3xl font-bold text-black font-mono">{tasks.length}</p>
+              <p className="stat-label">总任务数</p>
+              <p className="stat-value">{currentStats.total}</p>
             </div>
-            <div className="w-10 h-10 bg-primary border-2 border-black flex items-center justify-center text-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-              <Activity className="w-5 h-5" />
+            <div className="stat-icon text-primary">
+              <Activity className="w-6 h-6" />
             </div>
           </div>
         </div>
 
-        <div className="retro-card bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-5 hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all">
+        <div className="cyber-card p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs font-bold text-gray-600 uppercase mb-1">已完成</p>
-              <p className="text-3xl font-bold text-green-600 font-mono">{tasks.filter(t => t.status === 'completed').length}</p>
+              <p className="stat-label">已完成</p>
+              <p className="stat-value">{currentStats.completed}</p>
             </div>
-            <div className="w-10 h-10 bg-green-600 border-2 border-black flex items-center justify-center text-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-              <CheckCircle className="w-5 h-5" />
+            <div className="stat-icon text-emerald-400">
+              <CheckCircle className="w-6 h-6" />
             </div>
           </div>
         </div>
 
-        <div className="retro-card bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-5 hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all">
+        <div className="cyber-card p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs font-bold text-gray-600 uppercase mb-1">运行中</p>
-              <p className="text-3xl font-bold text-orange-600 font-mono">{tasks.filter(t => t.status === 'running').length}</p>
+              <p className="stat-label">运行中</p>
+              <p className="stat-value">{currentStats.running}</p>
             </div>
-            <div className="w-10 h-10 bg-orange-500 border-2 border-black flex items-center justify-center text-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-              <Clock className="w-5 h-5" />
+            <div className="stat-icon text-sky-400">
+              <Clock className="w-6 h-6" />
             </div>
           </div>
         </div>
 
-        <div className="retro-card bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-5 hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all">
+        <div className="cyber-card p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs font-bold text-gray-600 uppercase mb-1">失败</p>
-              <p className="text-3xl font-bold text-red-600 font-mono">{tasks.filter(t => t.status === 'failed').length}</p>
+              <p className="stat-label">失败</p>
+              <p className="stat-value">{currentStats.failed}</p>
             </div>
-            <div className="w-10 h-10 bg-red-600 border-2 border-black flex items-center justify-center text-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-              <AlertTriangle className="w-5 h-5" />
+            <div className="stat-icon text-rose-400">
+              <AlertTriangle className="w-6 h-6" />
             </div>
           </div>
         </div>
       </div>
 
-      {/* 搜索和筛选 */}
-      <div className="retro-card bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-4">
-        <div className="flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-4">
+      {/* Search and Filter */}
+      <div className="cyber-card p-4 relative z-10">
+        <div className="flex flex-col md:flex-row items-center gap-4">
           <div className="flex-1 relative w-full">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-black w-4 h-4" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-4 h-4 z-10" />
             <Input
-              placeholder="搜索项目名称或任务类型..."
+              placeholder={activeTab === "agent" ? "搜索Agent任务名称..." : "搜索项目名称或任务类型..."}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 retro-input h-10"
+              className="cyber-input pl-10"
             />
           </div>
-          <Button className="retro-btn bg-primary text-white hover:bg-primary/90 h-10 px-4 font-bold uppercase shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all" onClick={() => setShowCreateDialog(true)}>
-            <Plus className="w-4 h-4 mr-2" />
-            新建任务
-          </Button>
-          <div className="flex space-x-2 w-full md:w-auto overflow-x-auto pb-2 md:pb-0">
+          {activeTab === "regular" && (
+            <Button className="cyber-btn-primary h-10" onClick={() => setShowCreateDialog(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              新建任务
+            </Button>
+          )}
+          {activeTab === "agent" && (
+            <Button className="cyber-btn-primary h-10" onClick={() => navigate("/")}>
+              <Bot className="w-4 h-4 mr-2" />
+              新建Agent审计
+            </Button>
+          )}
+          <div className="flex gap-2 w-full md:w-auto overflow-x-auto pb-2 md:pb-0">
             <Button
-              variant={statusFilter === "all" ? "default" : "outline"}
               size="sm"
               onClick={() => setStatusFilter("all")}
-              className={`retro-btn h-10 ${statusFilter === "all" ? "bg-black text-white" : "bg-white text-black hover:bg-gray-100"}`}
+              className={`h-10 ${statusFilter === "all" ? "cyber-btn-primary" : "cyber-btn-outline"}`}
             >
               全部
             </Button>
             <Button
-              variant={statusFilter === "running" ? "default" : "outline"}
               size="sm"
               onClick={() => setStatusFilter("running")}
-              className={`retro-btn h-10 ${statusFilter === "running" ? "bg-orange-500 text-white" : "bg-white text-black hover:bg-orange-100"}`}
+              className={`h-10 ${statusFilter === "running" ? "bg-sky-500/90 border-sky-500/50 text-white hover:bg-sky-500" : "cyber-btn-outline"}`}
             >
               运行中
             </Button>
             <Button
-              variant={statusFilter === "completed" ? "default" : "outline"}
               size="sm"
               onClick={() => setStatusFilter("completed")}
-              className={`retro-btn h-10 ${statusFilter === "completed" ? "bg-green-600 text-white" : "bg-white text-black hover:bg-green-100"}`}
+              className={`h-10 ${statusFilter === "completed" ? "bg-emerald-500/90 border-emerald-500/50 text-white hover:bg-emerald-500" : "cyber-btn-outline"}`}
             >
               已完成
             </Button>
             <Button
-              variant={statusFilter === "failed" ? "default" : "outline"}
               size="sm"
               onClick={() => setStatusFilter("failed")}
-              className={`retro-btn h-10 ${statusFilter === "failed" ? "bg-red-600 text-white" : "bg-white text-black hover:bg-red-100"}`}
+              className={`h-10 ${statusFilter === "failed" ? "bg-rose-500/90 border-rose-500/50 text-white hover:bg-rose-500" : "cyber-btn-outline"}`}
             >
               失败
             </Button>
@@ -301,147 +444,334 @@ export default function AuditTasks() {
         </div>
       </div>
 
-      {/* 任务列表 */}
-      {filteredTasks.length > 0 ? (
-        <div className="space-y-4">
-          {filteredTasks.map((task) => (
-            <div key={task.id} className="retro-card bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-6 hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all">
-              <div className="flex items-center justify-between mb-6 border-b-2 border-dashed border-gray-300 pb-4">
-                <div className="flex items-center space-x-4">
-                  <div className={`w-12 h-12 border-2 border-black flex items-center justify-center shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ${task.status === 'completed' ? 'bg-green-100 text-green-600' :
-                    task.status === 'running' ? 'bg-orange-100 text-orange-600' :
-                      task.status === 'failed' ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-600'
-                    }`}>
-                    {getStatusIcon(task.status)}
+      {/* Agent Task List */}
+      {activeTab === "agent" && (
+        <>
+          {filteredAgentTasks.length > 0 ? (
+            <div className="space-y-4 relative z-10">
+              {filteredAgentTasks.map((task) => (
+                <div key={task.id} className="cyber-card p-6">
+                  {/* Task Header */}
+                  <div className="flex items-center justify-between mb-4 pb-4 border-b border-gray-800">
+                    <div className="flex items-center space-x-4">
+                      <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
+                        task.status === 'completed' ? 'bg-emerald-500/20' :
+                        task.status === 'running' ? 'bg-sky-500/20' :
+                        task.status === 'failed' ? 'bg-rose-500/20' :
+                        'bg-gray-800/50'
+                      }`}>
+                        <Bot className={`w-6 h-6 ${
+                          task.status === 'completed' ? 'text-emerald-400' :
+                          task.status === 'running' ? 'text-sky-400' :
+                          task.status === 'failed' ? 'text-rose-400' :
+                          'text-gray-400'
+                        }`} />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-xl text-white uppercase tracking-wide">
+                          {task.name || 'Agent审计任务'}
+                        </h3>
+                        <p className="text-sm text-gray-500 font-mono">
+                          {task.current_phase || task.task_type}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      {getStatusBadge(task.status)}
+                      {task.status === 'running' && (
+                        <div className="flex items-center gap-1.5 text-green-400">
+                          <span className="relative flex h-2 w-2">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-green-400"></span>
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-bold text-xl text-black font-display uppercase">
-                      {task.project?.name || '未知项目'}
-                    </h3>
-                    <p className="text-sm text-gray-600 font-mono font-bold">
-                      {task.task_type === 'repository' ? '仓库审计任务' : '即时分析任务'}
-                    </p>
+
+                  {/* Stats Grid */}
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4 font-mono">
+                    <div className="text-center p-3 bg-gray-900/50 rounded-lg border border-gray-800">
+                      <p className="text-2xl font-bold text-white">{task.total_files}</p>
+                      <p className="text-xs text-gray-500 uppercase">文件数</p>
+                    </div>
+                    <div className="text-center p-3 bg-gray-900/50 rounded-lg border border-gray-800">
+                      <p className="text-2xl font-bold text-white">{task.analyzed_files}</p>
+                      <p className="text-xs text-gray-500 uppercase">已分析</p>
+                    </div>
+                    <div className="text-center p-3 bg-gray-900/50 rounded-lg border border-gray-800">
+                      <p className="text-2xl font-bold text-amber-400">{task.findings_count}</p>
+                      <p className="text-xs text-gray-500 uppercase">发现问题</p>
+                    </div>
+                    <div className="text-center p-3 bg-gray-900/50 rounded-lg border border-gray-800">
+                      <p className="text-2xl font-bold text-sky-400">{task.tool_calls_count || 0}</p>
+                      <p className="text-xs text-gray-500 uppercase">工具调用</p>
+                    </div>
+                    <div className="text-center p-3 bg-gray-900/50 rounded-lg border border-gray-800">
+                      <p className="text-2xl font-bold text-primary">{task.security_score?.toFixed(1) || '-'}</p>
+                      <p className="text-xs text-gray-500 uppercase">安全评分</p>
+                    </div>
                   </div>
-                </div>
-                <Badge className={`rounded-none border-2 border-black font-bold uppercase ${getStatusColor(task.status)}`}>
-                  {task.status === 'completed' ? '已完成' :
-                    task.status === 'running' ? '运行中' :
-                      task.status === 'failed' ? '失败' :
-                        task.status === 'cancelled' ? '已取消' : '等待中'}
-                </Badge>
-              </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 font-mono">
-                <div className="text-center p-3 bg-blue-50 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                  <div className="text-2xl font-bold text-blue-600 mb-1">{task.total_files}</div>
-                  <p className="text-xs text-blue-800 font-bold uppercase">文件数</p>
-                </div>
-                <div className="text-center p-3 bg-purple-50 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                  <div className="text-2xl font-bold text-purple-600 mb-1">{task.total_lines.toLocaleString()}</div>
-                  <p className="text-xs text-purple-800 font-bold uppercase">代码行数</p>
-                </div>
-                <div className="text-center p-3 bg-orange-50 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                  <div className="text-2xl font-bold text-orange-600 mb-1">{task.issues_count}</div>
-                  <p className="text-xs text-orange-800 font-bold uppercase">发现问题</p>
-                </div>
-                <div className="text-center p-3 bg-green-50 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                  <div className="text-2xl font-bold text-green-600 mb-1">{task.quality_score.toFixed(1)}</div>
-                  <p className="text-xs text-green-800 font-bold uppercase">质量评分</p>
-                </div>
-              </div>
-
-              {/* 扫描进度 */}
-              <div className="mb-6 font-mono">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-bold text-black uppercase">扫描进度</span>
-                  <span className="text-sm font-bold text-gray-600">
-                    {task.scanned_files || 0} / {task.total_files || 0} 文件
-                  </span>
-                </div>
-                <div className="w-full bg-gray-200 h-4 border-2 border-black">
-                  <div
-                    className="bg-primary h-full transition-all duration-300 border-r-2 border-black"
-                    style={{ width: `${calculateTaskProgress(task.scanned_files, task.total_files)}%` }}
-                  ></div>
-                </div>
-                <div className="text-right mt-1">
-                  <span className="text-xs font-bold text-gray-600">
-                    {calculateTaskProgress(task.scanned_files, task.total_files)}% 完成
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between pt-4 border-t-2 border-black bg-gray-50 -mx-6 -mb-6 p-6 mt-6">
-                <div className="flex items-center space-x-6 text-sm text-gray-600 font-mono font-bold">
-                  <div className="flex items-center">
-                    <Calendar className="w-4 h-4 mr-2" />
-                    {formatDate(task.created_at)}
-                  </div>
-                  {task.completed_at && (
-                    <div className="flex items-center">
-                      <CheckCircle className="w-4 h-4 mr-2" />
-                      {formatDate(task.completed_at)}
+                  {/* Severity Distribution */}
+                  {task.findings_count > 0 && (
+                    <div className="flex gap-4 mb-4 font-mono text-xs">
+                      {task.critical_count > 0 && (
+                        <span className="text-rose-500">Critical: {task.critical_count}</span>
+                      )}
+                      {task.high_count > 0 && (
+                        <span className="text-orange-500">High: {task.high_count}</span>
+                      )}
+                      {task.medium_count > 0 && (
+                        <span className="text-yellow-500">Medium: {task.medium_count}</span>
+                      )}
+                      {task.low_count > 0 && (
+                        <span className="text-green-500">Low: {task.low_count}</span>
+                      )}
                     </div>
                   )}
-                </div>
 
-                <div className="flex gap-3">
-                  {/* 运行中或等待中的任务显示取消按钮 */}
-                  {(task.status === 'running' || task.status === 'pending') && (
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      className="retro-btn bg-red-600 text-white hover:bg-red-700 h-9"
-                      onClick={() => handleCancelTask(task.id)}
-                      disabled={cancellingTaskId === task.id}
-                    >
-                      <XCircle className="w-4 h-4 mr-2" />
-                      {cancellingTaskId === task.id ? '取消中...' : '取消'}
-                    </Button>
-                  )}
-                  <Link to={`/tasks/${task.id}`}>
-                    <Button variant="outline" size="sm" className="retro-btn bg-white text-black hover:bg-gray-100 h-9">
-                      <FileText className="w-4 h-4 mr-2" />
-                      查看详情
-                    </Button>
-                  </Link>
-                  {task.project && (
-                    <Link to={`/projects/${task.project.id}`}>
-                      <Button size="sm" className="retro-btn bg-black text-white hover:bg-gray-800 h-9">
-                        查看项目
-                      </Button>
-                    </Link>
-                  )}
+                  {/* Progress Bar */}
+                  <div className="mb-4 font-mono">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-bold text-gray-400 uppercase">审计进度</span>
+                      <span className="text-sm text-gray-500">
+                        {task.analyzed_files || 0} / {task.total_files || 0} 文件
+                      </span>
+                    </div>
+                    <Progress
+                      value={task.progress_percentage || 0}
+                      className="h-2 bg-gray-800 [&>div]:bg-primary"
+                    />
+                    <div className="text-right mt-1">
+                      <span className="text-xs text-gray-500">
+                        {(task.progress_percentage || 0).toFixed(0)}% 完成
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Task Footer */}
+                  <div className="flex items-center justify-between pt-4 border-t border-gray-800">
+                    <div className="flex items-center space-x-6 text-sm text-gray-500 font-mono">
+                      <div className="flex items-center">
+                        <Calendar className="w-4 h-4 mr-2" />
+                        {formatDate(task.created_at)}
+                      </div>
+                      {task.completed_at && (
+                        <div className="flex items-center">
+                          <CheckCircle className="w-4 h-4 mr-2" />
+                          {formatDate(task.completed_at)}
+                        </div>
+                      )}
+                      {task.tokens_used > 0 && (
+                        <div className="flex items-center text-gray-600">
+                          <span>{task.tokens_used.toLocaleString()} tokens</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex gap-3">
+                      {(task.status === 'running' || task.status === 'pending') && (
+                        <>
+                          {/* 🔥 查看终端实时流按钮 */}
+                          <Link to={`/agent-audit/${task.id}`}>
+                            <Button size="sm" className="cyber-btn bg-sky-500/90 border-sky-500/50 text-white hover:bg-sky-500 h-9">
+                              <Terminal className="w-4 h-4 mr-2" />
+                              查看实时流
+                            </Button>
+                          </Link>
+                          <Button
+                            size="sm"
+                            className="cyber-btn bg-rose-500/90 border-rose-500/50 text-white hover:bg-rose-500 h-9"
+                            onClick={() => handleCancelAgentTask(task.id)}
+                            disabled={cancellingAgentTaskId === task.id}
+                          >
+                            <XCircle className="w-4 h-4 mr-2" />
+                            {cancellingAgentTaskId === task.id ? '取消中...' : '取消'}
+                          </Button>
+                        </>
+                      )}
+                      {/* 任务详情按钮 */}
+                      <Link to={`/agent-audit/${task.id}`}>
+                        <Button size="sm" className="cyber-btn-outline h-9">
+                          <FileText className="w-4 h-4 mr-2" />
+                          查看详情
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              ))}
             </div>
-          ))}
-        </div>
-      ) : (
-        <div className="retro-card bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-16 flex flex-col items-center justify-center text-center">
-          <div className="w-20 h-20 bg-gray-100 border-2 border-black flex items-center justify-center mb-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-            <Activity className="w-10 h-10 text-gray-400" />
-          </div>
-          <h3 className="text-xl font-bold text-black uppercase mb-2 font-display">
-            {searchTerm || statusFilter !== "all" ? '未找到匹配的任务' : '暂无审计任务'}
-          </h3>
-          <p className="text-gray-500 mb-8 max-w-md font-mono">
-            {searchTerm || statusFilter !== "all" ? '尝试调整搜索条件或筛选器' : '创建第一个审计任务开始代码质量分析'}
-          </p>
-          {!searchTerm && statusFilter === "all" && (
-            <Button className="retro-btn bg-primary text-white hover:bg-primary/90 h-12 px-8 text-lg font-bold uppercase" onClick={() => setShowCreateDialog(true)}>
-              <Plus className="w-5 h-5 mr-2" />
-              创建任务
-            </Button>
+          ) : (
+            <div className="cyber-card p-16 text-center relative z-10 border-dashed">
+              <Bot className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+              <h3 className="text-xl font-bold text-gray-300 mb-2 uppercase">
+                {searchTerm || statusFilter !== "all" ? '未找到匹配的Agent任务' : '暂无Agent审计任务'}
+              </h3>
+              <p className="text-gray-500 mb-6 font-mono">
+                {searchTerm || statusFilter !== "all" ? '尝试调整搜索条件或筛选器' : '创建第一个Agent审计任务开始智能安全审计'}
+              </p>
+              {!searchTerm && statusFilter === "all" && (
+                <Button className="cyber-btn-primary" onClick={() => navigate("/")}>
+                  <Bot className="w-4 h-4 mr-2" />
+                  创建Agent审计
+                </Button>
+              )}
+            </div>
           )}
-        </div>
+        </>
       )}
 
-      {/* 新建任务对话框 */}
+      {/* Regular Task List */}
+      {activeTab === "regular" && (
+        <>
+          {filteredTasks.length > 0 ? (
+            <div className="space-y-4 relative z-10">
+              {filteredTasks.map((task) => (
+                <div key={task.id} className="cyber-card p-6">
+                  {/* Task Header */}
+                  <div className="flex items-center justify-between mb-4 pb-4 border-b border-gray-800">
+                    <div className="flex items-center space-x-4">
+                      <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
+                        task.status === 'completed' ? 'bg-emerald-500/20' :
+                        task.status === 'running' ? 'bg-sky-500/20' :
+                        task.status === 'failed' ? 'bg-rose-500/20' :
+                        'bg-gray-800/50'
+                      }`}>
+                        {getStatusIcon(task.status)}
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-xl text-white uppercase tracking-wide">
+                          {task.project?.name || '未知项目'}
+                        </h3>
+                        <p className="text-sm text-gray-500 font-mono">
+                          {task.task_type === 'repository' ? '仓库审计任务' : '即时分析任务'}
+                        </p>
+                      </div>
+                    </div>
+                    {getStatusBadge(task.status)}
+                  </div>
+
+                  {/* Stats Grid */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4 font-mono">
+                    <div className="text-center p-3 bg-gray-900/50 rounded-lg border border-gray-800">
+                      <p className="text-2xl font-bold text-white">{task.total_files}</p>
+                      <p className="text-xs text-gray-500 uppercase">文件数</p>
+                    </div>
+                    <div className="text-center p-3 bg-gray-900/50 rounded-lg border border-gray-800">
+                      <p className="text-2xl font-bold text-white">{task.total_lines.toLocaleString()}</p>
+                      <p className="text-xs text-gray-500 uppercase">代码行数</p>
+                    </div>
+                    <div className="text-center p-3 bg-gray-900/50 rounded-lg border border-gray-800">
+                      <p className="text-2xl font-bold text-amber-400">{task.issues_count}</p>
+                      <p className="text-xs text-gray-500 uppercase">发现问题</p>
+                    </div>
+                    <div className="text-center p-3 bg-gray-900/50 rounded-lg border border-gray-800">
+                      <p className="text-2xl font-bold text-primary">{task.quality_score.toFixed(1)}</p>
+                      <p className="text-xs text-gray-500 uppercase">质量评分</p>
+                    </div>
+                  </div>
+
+                  {/* Progress Bar */}
+                  <div className="mb-4 font-mono">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-bold text-gray-400 uppercase">扫描进度</span>
+                      <span className="text-sm text-gray-500">
+                        {task.scanned_files || 0} / {task.total_files || 0} 文件
+                      </span>
+                    </div>
+                    <Progress
+                      value={calculateTaskProgress(task.scanned_files, task.total_files)}
+                      className="h-2 bg-gray-800 [&>div]:bg-primary"
+                    />
+                    <div className="text-right mt-1">
+                      <span className="text-xs text-gray-500">
+                        {calculateTaskProgress(task.scanned_files, task.total_files)}% 完成
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Task Footer */}
+                  <div className="flex items-center justify-between pt-4 border-t border-gray-800">
+                    <div className="flex items-center space-x-6 text-sm text-gray-500 font-mono">
+                      <div className="flex items-center">
+                        <Calendar className="w-4 h-4 mr-2" />
+                        {formatDate(task.created_at)}
+                      </div>
+                      {task.completed_at && (
+                        <div className="flex items-center">
+                          <CheckCircle className="w-4 h-4 mr-2" />
+                          {formatDate(task.completed_at)}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex gap-3">
+                      {(task.status === 'running' || task.status === 'pending') && (
+                        <Button
+                          size="sm"
+                          className="cyber-btn bg-rose-500/90 border-rose-500/50 text-white hover:bg-rose-500 h-9"
+                          onClick={() => handleCancelTask(task.id)}
+                          disabled={cancellingTaskId === task.id}
+                        >
+                          <XCircle className="w-4 h-4 mr-2" />
+                          {cancellingTaskId === task.id ? '取消中...' : '取消'}
+                        </Button>
+                      )}
+                      <Link to={`/tasks/${task.id}`}>
+                        <Button size="sm" className="cyber-btn-outline h-9">
+                          <FileText className="w-4 h-4 mr-2" />
+                          查看详情
+                        </Button>
+                      </Link>
+                      {task.project && (
+                        <Link to={`/projects/${task.project.id}`}>
+                          <Button size="sm" className="cyber-btn-primary h-9">
+                            查看项目
+                            <ArrowUpRight className="w-3 h-3 ml-2" />
+                          </Button>
+                        </Link>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="cyber-card p-16 text-center relative z-10 border-dashed">
+              <Activity className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+              <h3 className="text-xl font-bold text-gray-300 mb-2 uppercase">
+                {searchTerm || statusFilter !== "all" ? '未找到匹配的任务' : '暂无审计任务'}
+              </h3>
+              <p className="text-gray-500 mb-6 font-mono">
+                {searchTerm || statusFilter !== "all" ? '尝试调整搜索条件或筛选器' : '创建第一个审计任务开始代码质量分析'}
+              </p>
+              {!searchTerm && statusFilter === "all" && (
+                <Button className="cyber-btn-primary" onClick={() => setShowCreateDialog(true)}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  创建任务
+                </Button>
+              )}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Create Task Dialog */}
       <CreateTaskDialog
         open={showCreateDialog}
         onOpenChange={setShowCreateDialog}
         onTaskCreated={loadTasks}
+        onFastScanStarted={handleFastScanStarted}
+      />
+
+      {/* Terminal Progress Dialog for Fast Scan */}
+      <TerminalProgressDialog
+        open={showTerminal}
+        onOpenChange={setShowTerminal}
+        taskId={currentTaskId}
+        taskType="repository"
       />
     </div>
   );

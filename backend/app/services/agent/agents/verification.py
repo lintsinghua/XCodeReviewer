@@ -20,8 +20,10 @@ from datetime import datetime, timezone
 
 from .base import BaseAgent, AgentConfig, AgentResult, AgentType, AgentPattern
 from ..json_parser import AgentJsonParser
+from ..prompts import CORE_SECURITY_PRINCIPLES, VULNERABILITY_PRIORITIES
 
 logger = logging.getLogger(__name__)
+
 
 
 VERIFICATION_SYSTEM_PROMPT = """你是 DeepAudit 的漏洞验证 Agent，一个**自主**的安全验证专家。
@@ -149,17 +151,23 @@ class VerificationAgent(BaseAgent):
         tools: Dict[str, Any],
         event_emitter=None,
     ):
+        # 组合增强的系统提示词
+        full_system_prompt = f"{VERIFICATION_SYSTEM_PROMPT}\n\n{CORE_SECURITY_PRINCIPLES}\n\n{VULNERABILITY_PRIORITIES}"
+        
         config = AgentConfig(
             name="Verification",
             agent_type=AgentType.VERIFICATION,
             pattern=AgentPattern.REACT,
             max_iterations=25,
-            system_prompt=VERIFICATION_SYSTEM_PROMPT,
+            system_prompt=full_system_prompt,
         )
         super().__init__(config, llm_service, tools, event_emitter)
         
         self._conversation_history: List[Dict[str, str]] = []
         self._steps: List[VerificationStep] = []
+
+
+
     
     def _parse_llm_response(self, response: str) -> VerificationStep:
         """解析 LLM 响应"""
@@ -239,27 +247,65 @@ class VerificationAgent(BaseAgent):
         # 🔥 优先从交接信息获取发现
         if self._incoming_handoff and self._incoming_handoff.key_findings:
             findings_to_verify = self._incoming_handoff.key_findings.copy()
+            logger.info(f"[Verification] 从交接信息获取 {len(findings_to_verify)} 个发现")
         else:
-            for phase_name, result in previous_results.items():
-                if isinstance(result, dict):
-                    data = result.get("data", {})
-                else:
-                    data = result.data if hasattr(result, 'data') else {}
+            # 🔥 修复：处理 Orchestrator 传递的多种数据格式
+            
+            # 格式1: Orchestrator 直接传递 {"findings": [...]}
+            if isinstance(previous_results, dict) and "findings" in previous_results:
+                direct_findings = previous_results.get("findings", [])
+                if isinstance(direct_findings, list):
+                    for f in direct_findings:
+                        if isinstance(f, dict):
+                            # 🔥 Always verify Critical/High findings to generate PoC, even if Analysis sets needs_verification=False
+                            severity = str(f.get("severity", "")).lower()
+                            needs_verify = f.get("needs_verification", True)
+                            
+                            if needs_verify or severity in ["critical", "high"]:
+                                findings_to_verify.append(f)
+                    logger.info(f"[Verification] 从 previous_results.findings 获取 {len(findings_to_verify)} 个发现")
+            
+            # 格式2: 传统格式 {"phase_name": {"data": {"findings": [...]}}}
+            if not findings_to_verify:
+                for phase_name, result in previous_results.items():
+                    if phase_name == "findings":
+                        continue  # 已处理
+                    
+                    if isinstance(result, dict):
+                        data = result.get("data", {})
+                    else:
+                        data = result.data if hasattr(result, 'data') else {}
+                    
+                    if isinstance(data, dict):
+                        phase_findings = data.get("findings", [])
+                        for f in phase_findings:
+                            if isinstance(f, dict):
+                                severity = str(f.get("severity", "")).lower()
+                                needs_verify = f.get("needs_verification", True)
+                                
+                                if needs_verify or severity in ["critical", "high"]:
+                                    findings_to_verify.append(f)
                 
-                if isinstance(data, dict):
-                    phase_findings = data.get("findings", [])
-                    for f in phase_findings:
-                        if f.get("needs_verification", True):
-                            findings_to_verify.append(f)
+                if findings_to_verify:
+                    logger.info(f"[Verification] 从传统格式获取 {len(findings_to_verify)} 个发现")
+        
+        # 🔥 如果仍然没有发现，尝试从 input_data 的其他字段提取
+        if not findings_to_verify:
+            # 尝试从 task 或 task_context 中提取描述的漏洞
+            if task and ("发现" in task or "漏洞" in task or "findings" in task.lower()):
+                logger.warning(f"[Verification] 无法从结构化数据获取发现，任务描述: {task[:200]}")
+                # 创建一个提示 LLM 从任务描述中理解漏洞的特殊处理
+                await self.emit_event("warning", f"无法从结构化数据获取发现列表，将基于任务描述进行验证")
         
         # 去重
         findings_to_verify = self._deduplicate(findings_to_verify)
         
         if not findings_to_verify:
-            await self.emit_event("info", "没有需要验证的发现")
+            logger.warning(f"[Verification] 没有需要验证的发现! previous_results keys: {list(previous_results.keys()) if isinstance(previous_results, dict) else 'not dict'}")
+            await self.emit_event("warning", "没有需要验证的发现 - 可能是数据格式问题")
             return AgentResult(
                 success=True,
-                data={"findings": [], "verified_count": 0},
+                data={"findings": [], "verified_count": 0, "note": "未收到待验证的发现"},
             )
         
         # 限制数量
@@ -433,6 +479,17 @@ class VerificationAgent(BaseAgent):
             
             # 处理最终结果
             verified_findings = []
+            
+            # 🔥 Robustness: If LLM returns empty findings but we had input, fallback to original
+            llm_findings = []
+            if final_result and "findings" in final_result:
+                llm_findings = final_result["findings"]
+            
+            if not llm_findings and findings_to_verify:
+                logger.warning(f"[{self.name}] LLM returned empty findings despite {len(findings_to_verify)} inputs. Falling back to originals.")
+                # Fallback to logic below (else branch)
+                final_result = None 
+
             if final_result and "findings" in final_result:
                 for f in final_result["findings"]:
                     verified = {
@@ -467,7 +524,10 @@ class VerificationAgent(BaseAgent):
                 "info",
                 f"Verification Agent 完成: {confirmed_count} 确认, {likely_count} 可能, {false_positive_count} 误报"
             )
-            
+
+            # 🔥 CRITICAL: Log final findings count before returning
+            logger.info(f"[{self.name}] Returning {len(verified_findings)} verified findings")
+
             return AgentResult(
                 success=True,
                 data={

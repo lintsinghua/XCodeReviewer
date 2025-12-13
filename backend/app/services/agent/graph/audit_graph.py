@@ -45,39 +45,41 @@ class AuditState(TypedDict):
     project_info: Dict[str, Any]
     config: Dict[str, Any]
     task_id: str
-    
+
     # Recon 阶段输出
     tech_stack: Dict[str, Any]
     entry_points: List[Dict[str, Any]]
     high_risk_areas: List[str]
     dependencies: Dict[str, Any]
-    
+
     # Analysis 阶段输出
     findings: Annotated[List[Finding], operator.add]  # 使用 add 合并多轮发现
-    
+
     # Verification 阶段输出
     verified_findings: List[Finding]
     false_positives: List[str]
-    
+    # 🔥 NEW: 验证后的完整 findings（用于替换原始 findings）
+    _verified_findings_update: Optional[List[Finding]]
+
     # 控制流 - 🔥 关键：LLM 可以设置这些来影响路由
     current_phase: str
     iteration: int
     max_iterations: int
     should_continue_analysis: bool
-    
+
     # 🔥 新增：LLM 的路由决策
     llm_next_action: Optional[str]  # LLM 建议的下一步: "continue_analysis", "verify", "report", "end"
     llm_routing_reason: Optional[str]  # LLM 的决策理由
-    
+
     # 🔥 新增：Agent 间协作的任务交接信息
     recon_handoff: Optional[Dict[str, Any]]        # Recon -> Analysis 的交接
     analysis_handoff: Optional[Dict[str, Any]]     # Analysis -> Verification 的交接
     verification_handoff: Optional[Dict[str, Any]] # Verification -> Report 的交接
-    
+
     # 消息和事件
     messages: Annotated[List[Dict], operator.add]
     events: Annotated[List[Dict], operator.add]
-    
+
     # 最终输出
     summary: Optional[Dict[str, Any]]
     security_score: Optional[int]
@@ -600,6 +602,7 @@ class AuditGraphRunner:
             "findings": [],
             "verified_findings": [],
             "false_positives": [],
+            "_verified_findings_update": None,  # 🔥 NEW: 验证后的 findings 更新
             "current_phase": "start",
             "iteration": 0,
             "max_iterations": config.get("max_iterations", 3),

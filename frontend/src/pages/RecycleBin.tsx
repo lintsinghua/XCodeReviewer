@@ -1,5 +1,9 @@
-import { useState, useEffect } from "react";
+/**
+ * Recycle Bin Page
+ * Cyberpunk Terminal Aesthetic
+ */
 
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -13,7 +17,8 @@ import {
   Trash2,
   RotateCcw,
   AlertTriangle,
-  Inbox
+  Inbox,
+  Terminal,
 } from "lucide-react";
 import { api } from "@/shared/config/database";
 import type { Project } from "@/shared/types";
@@ -74,7 +79,6 @@ export default function RecycleBin() {
     if (!selectedProject) return;
 
     try {
-      // 删除项目数据（后端会同时删除关联的ZIP文件）
       await api.permanentlyDeleteProject(selectedProject.id);
 
       toast.success(`项目 "${selectedProject.name}" 已永久删除`);
@@ -106,77 +110,83 @@ export default function RecycleBin() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-background">
-        <div className="text-center">
-          <div className="animate-spin rounded-none h-12 w-12 border-4 border-border border-t-transparent mx-auto mb-4"></div>
-          <p className="text-foreground font-mono font-bold uppercase">加载中...</p>
+      <div className="flex items-center justify-center min-h-screen bg-[#0a0a0f]">
+        <div className="text-center space-y-4">
+          <div className="loading-spinner mx-auto" />
+          <p className="text-gray-500 font-mono text-sm uppercase tracking-wider">加载中...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-6 px-6 py-4 bg-background min-h-screen font-mono relative overflow-hidden">
-      {/* Decorative Background */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
+    <div className="space-y-6 p-6 bg-[#0a0a0f] min-h-screen font-mono relative">
+      {/* Grid background */}
+      <div className="absolute inset-0 cyber-grid-subtle pointer-events-none" />
 
-      {/* 搜索 */}
-      <div className="retro-card bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-4">
-        <div className="flex items-center space-x-4">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-black w-4 h-4" />
+      {/* Search Bar */}
+      <div className="cyber-card p-0 relative z-10">
+        <div className="cyber-card-header">
+          <Trash2 className="w-5 h-5 text-rose-400" />
+          <h3 className="text-lg font-bold uppercase tracking-wider text-white">回收站</h3>
+          <Badge className="ml-2 cyber-badge-muted">{deletedProjects.length} 个项目</Badge>
+        </div>
+        <div className="p-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-4 h-4" />
             <Input
               placeholder="搜索已删除的项目..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 retro-input h-10 bg-gray-50 border-2 border-black text-black placeholder:text-gray-500 focus:ring-0 focus:border-primary rounded-none font-mono"
+              className="pl-10 cyber-input h-10"
             />
           </div>
         </div>
       </div>
 
-      {/* 项目列表 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* Projects Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 relative z-10">
         {filteredProjects.length > 0 ? (
           filteredProjects.map((project) => (
-            <div key={project.id} className="retro-card bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-0 hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all group">
-              <div className="p-4 border-b-2 border-black bg-gray-50 flex items-start justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 border-2 border-black bg-white flex items-center justify-center text-black text-lg shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                    {getRepositoryIcon(project.repository_type)}
+            <div key={project.id} className="cyber-card p-0 hover:border-gray-700 transition-all group">
+              {/* Project Header */}
+              <div className="p-4 border-b border-gray-800 bg-gray-900/30">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-gray-800 border border-gray-700 flex items-center justify-center text-lg rounded">
+                      {getRepositoryIcon(project.repository_type)}
+                    </div>
+                    <div>
+                      <h3 className="text-base font-bold uppercase text-gray-200 truncate max-w-[150px] group-hover:text-primary transition-colors">
+                        {project.name}
+                      </h3>
+                      {project.description && (
+                        <p className="text-xs text-gray-500 mt-1 line-clamp-1">
+                          {project.description}
+                        </p>
+                      )}
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="text-lg font-bold font-display uppercase truncate max-w-[150px]">
-                      {project.name}
-                    </h3>
-                    {project.description && (
-                      <p className="text-xs text-gray-500 mt-1 line-clamp-1 font-mono">
-                        {project.description}
-                      </p>
-                    )}
+                  <div className="flex flex-col items-end gap-1">
+                    <Badge className="cyber-badge-danger">已删除</Badge>
+                    <Badge className={`${isRepositoryProject(project) ? 'cyber-badge-info' : 'cyber-badge-warning'}`}>
+                      {getSourceTypeBadge(project.source_type)}
+                    </Badge>
                   </div>
-                </div>
-                <div className="flex flex-col items-end gap-1">
-                  <Badge variant="secondary" className="flex-shrink-0 bg-red-100 text-red-700 border-2 border-black rounded-none font-bold uppercase text-xs">
-                    已删除
-                  </Badge>
-                  <Badge variant="outline" className={`text-[10px] font-mono border-black ${isRepositoryProject(project) ? 'bg-blue-100 text-blue-800' : 'bg-amber-100 text-amber-800'}`}>
-                    {getSourceTypeBadge(project.source_type)}
-                  </Badge>
                 </div>
               </div>
 
-              <div className="p-4 space-y-4 font-mono">
-                {/* 项目信息 */}
+              <div className="p-4 space-y-4">
+                {/* Project Info */}
                 <div className="space-y-3">
                   {isRepositoryProject(project) && project.repository_url && (
-                    <div className="flex items-center text-xs text-gray-600 font-bold">
-                      <GitBranch className="w-4 h-4 mr-2 flex-shrink-0" />
+                    <div className="flex items-center text-xs text-gray-500">
+                      <GitBranch className="w-4 h-4 mr-2 flex-shrink-0 text-gray-600" />
                       <a
                         href={project.repository_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="hover:text-primary transition-colors flex items-center truncate hover:underline"
+                        className="hover:text-primary transition-colors flex items-center truncate"
                       >
                         <span className="truncate">{project.repository_url.replace('https://', '')}</span>
                         <ExternalLink className="w-3 h-3 ml-1 flex-shrink-0" />
@@ -184,40 +194,40 @@ export default function RecycleBin() {
                     </div>
                   )}
 
-                  <div className="flex items-center justify-between text-xs text-gray-500 font-medium">
+                  <div className="flex items-center justify-between text-xs text-gray-500">
                     <div className="flex items-center">
-                      <Calendar className="w-4 h-4 mr-2" />
+                      <Calendar className="w-4 h-4 mr-2 text-gray-600" />
                       删除于 {formatDate(project.updated_at)}
                     </div>
                     <div className="flex items-center">
-                      <Users className="w-4 h-4 mr-2" />
+                      <Users className="w-4 h-4 mr-2 text-gray-600" />
                       {project.owner?.full_name || '未知'}
                     </div>
                   </div>
                 </div>
 
-                {/* 编程语言 */}
+                {/* Programming Languages */}
                 {project.programming_languages && (
                   <div className="flex flex-wrap gap-2">
                     {JSON.parse(project.programming_languages).slice(0, 4).map((lang: string) => (
-                      <Badge key={lang} variant="outline" className="text-xs rounded-none border-black bg-gray-100 font-mono">
+                      <Badge key={lang} className="cyber-badge-muted text-xs">
                         {lang}
                       </Badge>
                     ))}
                     {JSON.parse(project.programming_languages).length > 4 && (
-                      <Badge variant="outline" className="text-xs rounded-none border-black bg-gray-100 font-mono">
+                      <Badge className="cyber-badge-muted text-xs">
                         +{JSON.parse(project.programming_languages).length - 4}
                       </Badge>
                     )}
                   </div>
                 )}
 
-                {/* 操作按钮 */}
-                <div className="flex gap-2 pt-2 border-t-2 border-black mt-2">
+                {/* Action Buttons */}
+                <div className="flex gap-2 pt-3 border-t border-gray-800">
                   <Button
                     size="sm"
                     variant="outline"
-                    className="flex-1 text-green-700 hover:text-white hover:bg-green-600 border-2 border-black rounded-none h-9 font-bold uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[1px] hover:translate-y-[1px] transition-all"
+                    className="flex-1 h-9 cyber-btn-outline text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10 hover:border-emerald-500/50"
                     onClick={() => handleRestoreClick(project)}
                   >
                     <RotateCcw className="w-4 h-4 mr-2" />
@@ -226,7 +236,7 @@ export default function RecycleBin() {
                   <Button
                     size="sm"
                     variant="outline"
-                    className="flex-1 text-red-700 hover:text-white hover:bg-red-600 border-2 border-black rounded-none h-9 font-bold uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[1px] hover:translate-y-[1px] transition-all"
+                    className="flex-1 h-9 cyber-btn-outline text-rose-400 border-rose-500/30 hover:bg-rose-500/10 hover:border-rose-500/50"
                     onClick={() => handlePermanentDeleteClick(project)}
                   >
                     <Trash2 className="w-4 h-4 mr-2" />
@@ -237,44 +247,39 @@ export default function RecycleBin() {
             </div>
           ))
         ) : (
-          <div className="col-span-full">
-            <div className="retro-card bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-0">
-              <div className="py-16 flex flex-col items-center justify-center text-center">
-                <div className="w-20 h-20 bg-gray-100 border-2 border-black flex items-center justify-center mb-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                  <Inbox className="w-10 h-10 text-gray-400" />
-                </div>
-                <h3 className="text-xl font-bold text-black uppercase mb-2 font-display">
-                  {searchTerm ? '未找到匹配的项目' : '回收站为空'}
-                </h3>
-                <p className="text-gray-500 font-mono max-w-md">
-                  {searchTerm ? '尝试调整搜索条件' : '回收站中没有已删除的项目'}
-                </p>
-              </div>
+          <div className="col-span-full cyber-card p-16">
+            <div className="empty-state">
+              <Inbox className="empty-state-icon" />
+              <p className="empty-state-title">
+                {searchTerm ? '未找到匹配的项目' : '回收站为空'}
+              </p>
+              <p className="empty-state-description">
+                {searchTerm ? '尝试调整搜索条件' : '回收站中没有已删除的项目'}
+              </p>
             </div>
           </div>
         )}
       </div>
 
-      {/* 恢复项目确认对话框 */}
+      {/* Restore Dialog */}
       <AlertDialog open={showRestoreDialog} onOpenChange={setShowRestoreDialog}>
-        <AlertDialogContent className="retro-card border-2 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-0 bg-white max-w-md">
-          <AlertDialogHeader className="p-6 border-b-2 border-black bg-gray-50">
-            <AlertDialogTitle className="text-xl font-display font-bold uppercase flex items-center gap-2">
-              <RotateCcw className="w-6 h-6 text-green-600" />
+        <AlertDialogContent className="cyber-card p-0 bg-[#0c0c12] max-w-md">
+          <AlertDialogHeader className="cyber-card-header">
+            <RotateCcw className="w-5 h-5 text-emerald-400" />
+            <AlertDialogTitle className="text-lg font-bold uppercase tracking-wider text-white">
               确认恢复项目
             </AlertDialogTitle>
-            <AlertDialogDescription className="mt-4 font-mono text-gray-600">
-              您确定要恢复项目 <span className="font-bold text-black">"{selectedProject?.name}"</span> 吗？
-              <br />
-              <br />
-              恢复后，该项目将重新出现在项目列表中，您可以继续使用该项目的所有功能。
-            </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="p-6 bg-white flex gap-3">
-            <AlertDialogCancel className="retro-btn bg-white text-black border-2 border-black hover:bg-gray-100 rounded-none h-10 font-bold uppercase">取消</AlertDialogCancel>
+          <AlertDialogDescription className="p-6 text-gray-400">
+            您确定要恢复项目 <span className="font-bold text-white">"{selectedProject?.name}"</span> 吗？
+            <br /><br />
+            恢复后，该项目将重新出现在项目列表中，您可以继续使用该项目的所有功能。
+          </AlertDialogDescription>
+          <AlertDialogFooter className="p-4 border-t border-gray-800 flex gap-3">
+            <AlertDialogCancel className="cyber-btn-outline">取消</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleConfirmRestore}
-              className="retro-btn bg-green-600 text-white border-2 border-black hover:bg-green-700 rounded-none h-10 font-bold uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
+              className="cyber-btn-primary bg-emerald-600 hover:bg-emerald-500 border-emerald-500"
             >
               确认恢复
             </AlertDialogAction>
@@ -282,36 +287,35 @@ export default function RecycleBin() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* 永久删除确认对话框 */}
+      {/* Permanent Delete Dialog */}
       <AlertDialog open={showPermanentDeleteDialog} onOpenChange={setShowPermanentDeleteDialog}>
-        <AlertDialogContent className="retro-card border-2 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-0 bg-white max-w-md">
-          <AlertDialogHeader className="p-6 border-b-2 border-black bg-red-50">
-            <AlertDialogTitle className="text-xl font-display font-bold uppercase flex items-center gap-2 text-red-600">
-              <AlertTriangle className="w-6 h-6" />
+        <AlertDialogContent className="cyber-card p-0 bg-[#0c0c12] max-w-md">
+          <AlertDialogHeader className="p-4 border-b border-rose-500/30 bg-rose-500/10 flex flex-row items-center gap-2">
+            <AlertTriangle className="w-5 h-5 text-rose-400" />
+            <AlertDialogTitle className="text-lg font-bold uppercase tracking-wider text-rose-400">
               警告：永久删除项目
             </AlertDialogTitle>
-            <AlertDialogDescription className="mt-4 font-mono text-gray-600">
-              您确定要<span className="font-bold text-red-600 uppercase">永久删除</span>项目 <span className="font-bold text-black">"{selectedProject?.name}"</span> 吗？
-              <br />
-              <br />
-              <div className="bg-red-100 border-2 border-red-500 p-4 my-3 shadow-[4px_4px_0px_0px_rgba(239,68,68,1)]">
-                <p className="text-red-800 font-bold mb-2 uppercase flex items-center">
-                  <AlertTriangle className="w-4 h-4 mr-2" />
-                  此操作不可撤销！
-                </p>
-                <ul className="list-disc list-inside text-red-700 space-y-1 text-xs font-bold">
-                  <li>项目数据将被永久删除</li>
-                  <li>相关的审计任务可能会受影响</li>
-                  <li>无法通过任何方式恢复</li>
-                </ul>
-              </div>
-            </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="p-6 bg-white flex gap-3">
-            <AlertDialogCancel className="retro-btn bg-white text-black border-2 border-black hover:bg-gray-100 rounded-none h-10 font-bold uppercase">取消</AlertDialogCancel>
+          <AlertDialogDescription className="p-6 text-gray-400">
+            您确定要<span className="font-bold text-rose-400 uppercase">永久删除</span>项目 <span className="font-bold text-white">"{selectedProject?.name}"</span> 吗？
+            <br /><br />
+            <div className="bg-rose-500/10 border border-rose-500/30 p-4 rounded">
+              <p className="text-rose-400 font-bold mb-2 uppercase flex items-center">
+                <AlertTriangle className="w-4 h-4 mr-2" />
+                此操作不可撤销！
+              </p>
+              <ul className="list-disc list-inside text-rose-300/80 space-y-1 text-xs">
+                <li>项目数据将被永久删除</li>
+                <li>相关的审计任务可能会受影响</li>
+                <li>无法通过任何方式恢复</li>
+              </ul>
+            </div>
+          </AlertDialogDescription>
+          <AlertDialogFooter className="p-4 border-t border-gray-800 flex gap-3">
+            <AlertDialogCancel className="cyber-btn-outline">取消</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleConfirmPermanentDelete}
-              className="retro-btn bg-red-600 text-white border-2 border-black hover:bg-red-700 rounded-none h-10 font-bold uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
+              className="cyber-btn-primary bg-rose-600 hover:bg-rose-500 border-rose-500"
             >
               确认永久删除
             </AlertDialogAction>
@@ -321,4 +325,3 @@ export default function RecycleBin() {
     </div>
   );
 }
-

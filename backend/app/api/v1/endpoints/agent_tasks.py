@@ -15,6 +15,7 @@ from uuid import uuid4
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Query
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import case
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 from pydantic import BaseModel, Field
@@ -145,18 +146,29 @@ class AgentEventResponse(BaseModel):
     task_id: str
     event_type: str
     phase: Optional[str]
-    message: str
+    message: Optional[str] = None
     sequence: int
-    created_at: datetime
-    
-    # 可选字段
+    # 🔥 ORM 字段名是 created_at，序列化为 timestamp
+    created_at: datetime = Field(serialization_alias="timestamp")
+
+    # 工具相关字段
     tool_name: Optional[str] = None
+    tool_input: Optional[Dict[str, Any]] = None
+    tool_output: Optional[Dict[str, Any]] = None
     tool_duration_ms: Optional[int] = None
+
+    # 其他字段
     progress_percent: Optional[float] = None
     finding_id: Optional[str] = None
-    
-    class Config:
-        from_attributes = True
+    tokens_used: Optional[int] = None
+    # 🔥 ORM 字段名是 event_metadata，序列化为 metadata
+    event_metadata: Optional[Dict[str, Any]] = Field(default=None, serialization_alias="metadata")
+
+    model_config = {
+        "from_attributes": True,
+        "populate_by_name": True,
+        "by_alias": True,  # 🔥 关键：确保序列化时使用别名
+    }
 
 
 class AgentFindingResponse(BaseModel):
@@ -361,8 +373,15 @@ async def _execute_agent_task(task_id: str):
             await db.refresh(task)
             
             if result.success:
-                # 保存发现
+                # 🔥 CRITICAL FIX: Log and save findings with detailed debugging
                 findings = result.data.get("findings", [])
+                logger.info(f"[AgentTask] Task {task_id} completed with {len(findings)} findings from Orchestrator")
+
+                # 🔥 Debug: Log each finding for verification
+                for i, f in enumerate(findings[:5]):  # Log first 5
+                    if isinstance(f, dict):
+                        logger.debug(f"[AgentTask] Finding {i+1}: {f.get('title', 'N/A')[:50]} - {f.get('severity', 'N/A')}")
+
                 await _save_findings(db, task_id, findings)
                 
                 # 更新任务统计
@@ -533,15 +552,23 @@ async def _initialize_tools(
     }
     
     # Analysis 工具
+    # 🔥 导入智能扫描工具
+    from app.services.agent.tools import SmartScanTool, QuickAuditTool
+    
     analysis_tools = {
         **base_tools,
+        # 🔥 智能扫描工具（推荐首先使用）
+        "smart_scan": SmartScanTool(project_root),
+        "quick_audit": QuickAuditTool(project_root),
+        # 模式匹配工具（增强版）
         "pattern_match": PatternMatchTool(project_root),
-        # TODO: code_analysis 工具暂时禁用，因为 LLM 调用经常失败
-        # "code_analysis": CodeAnalysisTool(llm_service),
+        # 数据流分析
         "dataflow_analysis": DataFlowAnalysisTool(llm_service),
+        # 外部安全工具
         "semgrep_scan": SemgrepTool(project_root),
         "bandit_scan": BanditTool(project_root),
         "gitleaks_scan": GitleaksTool(project_root),
+        # 安全知识查询
         "query_security_knowledge": SecurityKnowledgeQueryTool(),
         "get_vulnerability_knowledge": GetVulnerabilityKnowledgeTool(),
     }
@@ -688,7 +715,14 @@ async def _collect_project_info(
 async def _save_findings(db: AsyncSession, task_id: str, findings: List[Dict]) -> None:
     """保存发现到数据库"""
     from app.models.agent_task import VulnerabilityType
-    
+
+    logger.info(f"[SaveFindings] Starting to save {len(findings)} findings for task {task_id}")
+
+    if not findings:
+        logger.warning(f"[SaveFindings] No findings to save for task {task_id}")
+        return
+
+    # 🔥 Case-insensitive mapping preparation
     severity_map = {
         "critical": VulnerabilitySeverity.CRITICAL,
         "high": VulnerabilitySeverity.HIGH,
@@ -710,24 +744,36 @@ async def _save_findings(db: AsyncSession, task_id: str, findings: List[Dict]) -
         "idor": VulnerabilityType.IDOR,
         "sensitive_data_exposure": VulnerabilityType.SENSITIVE_DATA_EXPOSURE,
         "hardcoded_secret": VulnerabilityType.HARDCODED_SECRET,
+        "deserialization": VulnerabilityType.DESERIALIZATION,  # Added common type
+        "weak_crypto": VulnerabilityType.WEAK_CRYPTO,          # Added common type
     }
     
+    saved_count = 0
+    logger.info(f"Saving {len(findings)} findings for task {task_id}")
+
     for finding in findings:
         if not isinstance(finding, dict):
             continue
         
         try:
+            # Handle severity (case-insensitive)
+            raw_severity = str(finding.get("severity", "medium")).lower().strip()
+            severity_enum = severity_map.get(raw_severity, VulnerabilitySeverity.MEDIUM)
+            
+            # Handle vulnerability type (case-insensitive & snake_case normalization)
+            raw_type = str(finding.get("vulnerability_type", "other")).lower().strip().replace(" ", "_")
+            type_enum = type_map.get(raw_type, VulnerabilityType.OTHER)
+            
+            # Additional fallback for known Agent output variations
+            if "sqli" in raw_type: type_enum = VulnerabilityType.SQL_INJECTION
+            if "xss" in raw_type: type_enum = VulnerabilityType.XSS
+            if "rce" in raw_type or "command" in raw_type: type_enum = VulnerabilityType.COMMAND_INJECTION
+
             db_finding = AgentFinding(
                 id=str(uuid4()),
                 task_id=task_id,
-                vulnerability_type=type_map.get(
-                    finding.get("vulnerability_type", "other"),
-                    VulnerabilityType.OTHER
-                ),
-                severity=severity_map.get(
-                    finding.get("severity", "medium"),
-                    VulnerabilitySeverity.MEDIUM
-                ),
+                vulnerability_type=type_enum,
+                severity=severity_enum,
                 title=finding.get("title", "Unknown"),
                 description=finding.get("description", ""),
                 file_path=finding.get("file_path"),
@@ -740,8 +786,11 @@ async def _save_findings(db: AsyncSession, task_id: str, findings: List[Dict]) -
                 status=FindingStatus.VERIFIED if finding.get("is_verified") else FindingStatus.NEW,
             )
             db.add(db_finding)
+            saved_count += 1
         except Exception as e:
-            logger.warning(f"Failed to save finding: {e}")
+            logger.warning(f"Failed to save finding: {e}, data: {finding}")
+    
+    logger.info(f"Successfully prepared {saved_count} findings for commit")
     
     try:
         await db.commit()
@@ -1298,11 +1347,11 @@ async def list_agent_events(
     task = await db.get(AgentTask, task_id)
     if not task:
         raise HTTPException(status_code=404, detail="任务不存在")
-    
+
     project = await db.get(Project, task.project_id)
     if not project or project.owner_id != current_user.id:
         raise HTTPException(status_code=403, detail="无权访问此任务")
-    
+
     result = await db.execute(
         select(AgentEvent)
         .where(AgentEvent.task_id == task_id)
@@ -1311,7 +1360,14 @@ async def list_agent_events(
         .limit(limit)
     )
     events = result.scalars().all()
-    
+
+    # 🔥 Debug logging
+    logger.debug(f"[EventsList] Task {task_id}: returning {len(events)} events (after_sequence={after_sequence})")
+    if events:
+        logger.debug(f"[EventsList] First event: type={events[0].event_type}, seq={events[0].sequence}")
+        if len(events) > 1:
+            logger.debug(f"[EventsList] Last event: type={events[-1].event_type}, seq={events[-1].sequence}")
+
     return events
 
 
@@ -1854,3 +1910,298 @@ async def get_checkpoint_detail(
         "metadata": checkpoint.checkpoint_metadata,
         "created_at": checkpoint.created_at.isoformat() if checkpoint.created_at else None,
     }
+
+
+# ============ Report Generation API ============
+
+@router.get("/{task_id}/report")
+async def generate_audit_report(
+    task_id: str,
+    format: str = Query("markdown", regex="^(markdown|json)$"),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(deps.get_current_user),
+):
+    """
+    生成审计报告
+    
+    支持 Markdown 和 JSON 格式
+    """
+    task = await db.get(AgentTask, task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail="任务不存在")
+    
+    project = await db.get(Project, task.project_id)
+    if not project or project.owner_id != current_user.id:
+        raise HTTPException(status_code=403, detail="无权访问此任务")
+    
+    # 获取此任务的所有发现
+    findings = await db.execute(
+        select(AgentFinding)
+        .where(AgentFinding.task_id == task_id)
+        .order_by(
+            case(
+                (AgentFinding.severity == 'critical', 1),
+                (AgentFinding.severity == 'high', 2),
+                (AgentFinding.severity == 'medium', 3),
+                (AgentFinding.severity == 'low', 4),
+                else_=5
+            ),
+            AgentFinding.created_at.desc()
+        )
+    )
+    findings = findings.scalars().all()
+    
+    if format == "json":
+        # Enhanced JSON report with full metadata
+        return {
+            "report_metadata": {
+                "task_id": task.id,
+                "project_id": task.project_id,
+                "project_name": project.name,
+                "generated_at": datetime.now(timezone.utc).isoformat(),
+                "task_status": task.status,
+                "duration_seconds": int((task.completed_at - task.started_at).total_seconds()) if task.completed_at and task.started_at else None,
+            },
+            "summary": {
+                "security_score": task.security_score,
+                "total_files_analyzed": task.analyzed_files,
+                "total_findings": len(findings),
+                "verified_findings": sum(1 for f in findings if f.is_verified),
+                "severity_distribution": {
+                    "critical": sum(1 for f in findings if f.severity == 'critical'),
+                    "high": sum(1 for f in findings if f.severity == 'high'),
+                    "medium": sum(1 for f in findings if f.severity == 'medium'),
+                    "low": sum(1 for f in findings if f.severity == 'low'),
+                },
+                "agent_metrics": {
+                    "total_iterations": task.total_iterations,
+                    "tool_calls": task.tool_calls_count,
+                    "tokens_used": task.tokens_used,
+                }
+            },
+            "findings": [
+                {
+                    "id": f.id,
+                    "title": f.title,
+                    "severity": f.severity,
+                    "vulnerability_type": f.vulnerability_type,
+                    "description": f.description,
+                    "file_path": f.file_path,
+                    "line_start": f.line_start,
+                    "line_end": f.line_end,
+                    "code_snippet": f.code_snippet,
+                    "is_verified": f.is_verified,
+                    "has_poc": f.has_poc,
+                    "confidence": f.ai_confidence,
+                    "suggestion": f.suggestion,
+                    "fix_code": f.fix_code,
+                    "created_at": f.created_at.isoformat() if f.created_at else None,
+                } for f in findings
+            ]
+        }
+
+    # Generate Enhanced Markdown Report
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    # Calculate statistics
+    total = len(findings)
+    critical = sum(1 for f in findings if f.severity == 'critical')
+    high = sum(1 for f in findings if f.severity == 'high')
+    medium = sum(1 for f in findings if f.severity == 'medium')
+    low = sum(1 for f in findings if f.severity == 'low')
+    verified = sum(1 for f in findings if f.is_verified)
+    with_poc = sum(1 for f in findings if f.has_poc)
+
+    # Calculate duration
+    duration_str = "N/A"
+    if task.completed_at and task.started_at:
+        duration = (task.completed_at - task.started_at).total_seconds()
+        if duration >= 3600:
+            duration_str = f"{duration / 3600:.1f} hours"
+        elif duration >= 60:
+            duration_str = f"{duration / 60:.1f} minutes"
+        else:
+            duration_str = f"{int(duration)} seconds"
+
+    md_lines = []
+
+    # Header
+    md_lines.append("# DeepAudit Security Audit Report")
+    md_lines.append("")
+    md_lines.append("---")
+    md_lines.append("")
+
+    # Report Info
+    md_lines.append("## Report Information")
+    md_lines.append("")
+    md_lines.append(f"| Property | Value |")
+    md_lines.append(f"|----------|-------|")
+    md_lines.append(f"| **Project** | {project.name} |")
+    md_lines.append(f"| **Task ID** | `{task.id[:8]}...` |")
+    md_lines.append(f"| **Generated** | {timestamp} |")
+    md_lines.append(f"| **Status** | {task.status.upper()} |")
+    md_lines.append(f"| **Duration** | {duration_str} |")
+    md_lines.append("")
+
+    # Executive Summary
+    md_lines.append("## Executive Summary")
+    md_lines.append("")
+
+    score = task.security_score
+    if score is not None:
+        if score >= 80:
+            score_assessment = "Good - Minor improvements recommended"
+            score_icon = "PASS"
+        elif score >= 60:
+            score_assessment = "Moderate - Several issues require attention"
+            score_icon = "WARN"
+        else:
+            score_assessment = "Critical - Immediate remediation required"
+            score_icon = "FAIL"
+        md_lines.append(f"**Security Score: {int(score)}/100** [{score_icon}]")
+        md_lines.append(f"*{score_assessment}*")
+    else:
+        md_lines.append("**Security Score:** Not calculated")
+    md_lines.append("")
+
+    # Findings Summary
+    md_lines.append("### Findings Overview")
+    md_lines.append("")
+    md_lines.append(f"| Severity | Count | Verified |")
+    md_lines.append(f"|----------|-------|----------|")
+    if critical > 0:
+        md_lines.append(f"| **CRITICAL** | {critical} | {sum(1 for f in findings if f.severity == 'critical' and f.is_verified)} |")
+    if high > 0:
+        md_lines.append(f"| **HIGH** | {high} | {sum(1 for f in findings if f.severity == 'high' and f.is_verified)} |")
+    if medium > 0:
+        md_lines.append(f"| **MEDIUM** | {medium} | {sum(1 for f in findings if f.severity == 'medium' and f.is_verified)} |")
+    if low > 0:
+        md_lines.append(f"| **LOW** | {low} | {sum(1 for f in findings if f.severity == 'low' and f.is_verified)} |")
+    md_lines.append(f"| **Total** | {total} | {verified} |")
+    md_lines.append("")
+
+    # Audit Metrics
+    md_lines.append("### Audit Metrics")
+    md_lines.append("")
+    md_lines.append(f"- **Files Analyzed:** {task.analyzed_files} / {task.total_files}")
+    md_lines.append(f"- **Agent Iterations:** {task.total_iterations}")
+    md_lines.append(f"- **Tool Invocations:** {task.tool_calls_count}")
+    md_lines.append(f"- **Tokens Used:** {task.tokens_used:,}")
+    if with_poc > 0:
+        md_lines.append(f"- **PoC Generated:** {with_poc}")
+    md_lines.append("")
+
+    # Detailed Findings
+    if not findings:
+        md_lines.append("## Findings")
+        md_lines.append("")
+        md_lines.append("*No security vulnerabilities were detected during this audit.*")
+        md_lines.append("")
+    else:
+        # Group findings by severity
+        for severity_level, severity_name in [('critical', 'Critical'), ('high', 'High'), ('medium', 'Medium'), ('low', 'Low')]:
+            severity_findings = [f for f in findings if f.severity == severity_level]
+            if not severity_findings:
+                continue
+
+            md_lines.append(f"## {severity_name} Severity Findings")
+            md_lines.append("")
+
+            for i, f in enumerate(severity_findings, 1):
+                verified_badge = "[Verified]" if f.is_verified else "[Unverified]"
+                poc_badge = " [PoC]" if f.has_poc else ""
+
+                md_lines.append(f"### {severity_level.upper()}-{i}: {f.title}")
+                md_lines.append("")
+                md_lines.append(f"**{verified_badge}**{poc_badge} | Type: `{f.vulnerability_type}`")
+                md_lines.append("")
+
+                if f.file_path:
+                    location = f"`{f.file_path}"
+                    if f.line_start:
+                        location += f":{f.line_start}"
+                        if f.line_end and f.line_end != f.line_start:
+                            location += f"-{f.line_end}"
+                    location += "`"
+                    md_lines.append(f"**Location:** {location}")
+                    md_lines.append("")
+
+                if f.ai_confidence:
+                    md_lines.append(f"**AI Confidence:** {int(f.ai_confidence * 100)}%")
+                    md_lines.append("")
+
+                if f.description:
+                    md_lines.append("**Description:**")
+                    md_lines.append("")
+                    md_lines.append(f.description)
+                    md_lines.append("")
+
+                if f.code_snippet:
+                    # Detect language from file extension
+                    lang = "python"
+                    if f.file_path:
+                        ext = f.file_path.split('.')[-1].lower()
+                        lang_map = {
+                            'py': 'python', 'js': 'javascript', 'ts': 'typescript',
+                            'jsx': 'jsx', 'tsx': 'tsx', 'java': 'java', 'go': 'go',
+                            'rs': 'rust', 'rb': 'ruby', 'php': 'php', 'c': 'c',
+                            'cpp': 'cpp', 'cs': 'csharp', 'sol': 'solidity'
+                        }
+                        lang = lang_map.get(ext, 'text')
+                    md_lines.append("**Vulnerable Code:**")
+                    md_lines.append("")
+                    md_lines.append(f"```{lang}")
+                    md_lines.append(f.code_snippet.strip())
+                    md_lines.append("```")
+                    md_lines.append("")
+
+                if f.suggestion:
+                    md_lines.append("**Recommendation:**")
+                    md_lines.append("")
+                    md_lines.append(f.suggestion)
+                    md_lines.append("")
+
+                if f.fix_code:
+                    md_lines.append("**Suggested Fix:**")
+                    md_lines.append("")
+                    md_lines.append(f"```{lang if f.file_path else 'text'}")
+                    md_lines.append(f.fix_code.strip())
+                    md_lines.append("```")
+                    md_lines.append("")
+
+                md_lines.append("---")
+                md_lines.append("")
+
+    # Remediation Priority
+    if critical > 0 or high > 0:
+        md_lines.append("## Remediation Priority")
+        md_lines.append("")
+        md_lines.append("Based on the findings, we recommend the following remediation priority:")
+        md_lines.append("")
+        if critical > 0:
+            md_lines.append(f"1. **IMMEDIATE:** Address {critical} critical finding(s) - potential for severe impact")
+        if high > 0:
+            md_lines.append(f"2. **HIGH PRIORITY:** Resolve {high} high severity finding(s) within 1 week")
+        if medium > 0:
+            md_lines.append(f"3. **MEDIUM PRIORITY:** Fix {medium} medium severity finding(s) within 2-4 weeks")
+        if low > 0:
+            md_lines.append(f"4. **LOW PRIORITY:** Address {low} low severity finding(s) in regular maintenance")
+        md_lines.append("")
+
+    # Footer
+    md_lines.append("---")
+    md_lines.append("")
+    md_lines.append("*This report was generated by DeepAudit - AI-Powered Security Analysis*")
+    md_lines.append("")
+    content = "\n".join(md_lines)
+    
+    filename = f"audit_report_{task.id[:8]}_{datetime.now().strftime('%Y%m%d')}.md"
+    
+    from fastapi.responses import Response
+    return Response(
+        content=content,
+        media_type="text/markdown",
+        headers={
+            "Content-Disposition": f"attachment; filename={filename}"
+        }
+    )

@@ -284,7 +284,10 @@ class LiteLLMAdapter(BaseLLMAdapter):
                         "content": content,
                         "accumulated": accumulated_content,
                     }
-                
+                else:
+                    # Log when we get a chunk without content
+                    logger.debug(f"Chunk with no content: {chunk}")
+
                 if finish_reason:
                     # 流式完成
                     # 🔥 如果没有从 chunk 获取到 usage，进行估算
@@ -332,6 +335,14 @@ class LiteLLMAdapter(BaseLLMAdapter):
             raise LLMError(
                 f"API Key未配置 ({self.config.provider.value})",
                 self.config.provider,
+            )
+
+        # check for placeholder keys
+        if "sk-your-" in self.config.api_key or "***" in self.config.api_key:
+             raise LLMError(
+                f"无效的 API Key (使用了占位符): {self.config.api_key[:10]}...",
+                self.config.provider,
+                401
             )
 
         if not self.config.model:

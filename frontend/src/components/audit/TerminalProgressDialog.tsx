@@ -1,3 +1,8 @@
+/**
+ * Terminal Progress Dialog
+ * Cyberpunk Terminal Aesthetic
+ */
+
 import { useEffect, useRef, useState, useCallback } from "react";
 import { Dialog, DialogOverlay, DialogPortal } from "@/components/ui/dialog";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
@@ -6,6 +11,7 @@ import { cn, calculateTaskProgress } from "@/shared/utils/utils";
 import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
 import { taskControl } from "@/shared/services/taskControl";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 
 interface TerminalProgressDialogProps {
@@ -409,17 +415,17 @@ export default function TerminalProgressDialog({
         };
     }, [open, taskId, taskType, addLog]);
 
-    // 获取日志颜色 - 简化配色，减少颜色数量
+    // 获取日志颜色
     const getLogColor = (type: LogEntry["type"]) => {
         switch (type) {
             case "success":
-                return "text-[#00ff41]"; // 纯绿色
+                return "text-emerald-400";
             case "error":
-                return "text-[#ff3333]"; // 纯红色
+                return "text-rose-400";
             case "warning":
-                return "text-[#ffb900]"; // 琥珀色
+                return "text-amber-400";
             default:
-                return "text-[#cccccc]"; // 浅灰色 (原为青色)
+                return "text-gray-400";
         }
     };
 
@@ -431,13 +437,11 @@ export default function TerminalProgressDialog({
                     className={cn(
                         "fixed left-[50%] top-[50%] z-50 translate-x-[-50%] translate-y-[-50%]",
                         "w-[95vw] max-w-[1000px] h-[85vh] max-h-[700px]",
-                        "p-0 gap-0 rounded-sm overflow-hidden",
-                        "bg-[#e0e0e0] border-4 border-[#4a4a4a]", // 机械外壳颜色
-                        "shadow-[15px_15px_0px_0px_rgba(0,0,0,0.5)]", // 硬阴影
+                        "cyber-card p-0 gap-0 overflow-hidden",
                         "data-[state=open]:animate-in data-[state=closed]:animate-out",
                         "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
                         "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
-                        "duration-300 font-mono tracking-tight" // 增加 tracking-tight 模拟像素感
+                        "duration-300 font-mono"
                     )}
                     onPointerDownOutside={(e) => e.preventDefault()}
                     onInteractOutside={(e) => e.preventDefault()}
@@ -449,162 +453,115 @@ export default function TerminalProgressDialog({
                         </DialogPrimitive.Description>
                     </VisuallyHidden.Root>
 
-                    {/* 机械外壳装饰 - 螺丝 */}
-                    <div className="absolute top-2 left-2 w-3 h-3 rounded-full bg-[#b0b0b0] border border-[#808080] shadow-inner flex items-center justify-center z-50">
-                        <div className="w-2 h-0.5 bg-[#606060] rotate-45"></div>
-                    </div>
-                    <div className="absolute top-2 right-2 w-3 h-3 rounded-full bg-[#b0b0b0] border border-[#808080] shadow-inner flex items-center justify-center z-50">
-                        <div className="w-2 h-0.5 bg-[#606060] rotate-45"></div>
-                    </div>
-                    <div className="absolute bottom-2 left-2 w-3 h-3 rounded-full bg-[#b0b0b0] border border-[#808080] shadow-inner flex items-center justify-center z-50">
-                        <div className="w-2 h-0.5 bg-[#606060] rotate-45"></div>
-                    </div>
-                    <div className="absolute bottom-2 right-2 w-3 h-3 rounded-full bg-[#b0b0b0] border border-[#808080] shadow-inner flex items-center justify-center z-50">
-                        <div className="w-2 h-0.5 bg-[#606060] rotate-45"></div>
-                    </div>
-
-                    {/* 顶部控制面板 */}
-                    <div className="h-14 bg-[#d0d0d0] border-b-4 border-[#4a4a4a] flex items-center justify-between px-8 relative">
-                        {/* 装饰条纹 */}
-                        <div className="absolute top-0 left-16 right-16 h-1 bg-[repeating-linear-gradient(90deg,transparent,transparent_2px,#000_2px,#000_4px)] opacity-20"></div>
-
-                        <div className="flex items-center space-x-4">
-                            <div className="bg-[#333] p-1.5 rounded-sm border border-white/20 shadow-md">
-                                <Terminal className="w-5 h-5 text-[#00ff41]" />
-                            </div>
-                            <div className="flex flex-col">
-                                <span className="text-xs font-bold text-[#666] uppercase tracking-widest leading-none mb-0.5">System Monitor</span>
-                                <span className="text-lg font-black text-[#333] uppercase tracking-tighter leading-none font-display">AUDIT_TERMINAL_V2.0</span>
+                    {/* Header */}
+                    <div className="cyber-card-header justify-between">
+                        <div className="flex items-center gap-3">
+                            <Terminal className="w-5 h-5 text-primary" />
+                            <div>
+                                <span className="text-lg font-bold uppercase tracking-wider text-white">AUDIT_TERMINAL</span>
+                                <span className="text-xs text-gray-500 ml-2">v2.0</span>
                             </div>
                         </div>
 
-                        <div className="flex items-center space-x-4">
-                            {/* 状态指示灯组 */}
-                            <div className="flex space-x-1 bg-[#222] p-1 rounded-sm border-b border-white/20">
-                                <div className={`w-3 h-3 rounded-full ${!isCompleted && !isFailed ? 'bg-[#00ff41] shadow-[0_0_5px_#00ff41] animate-pulse' : 'bg-[#1a4d26]'}`} title="Processing"></div>
-                                <div className={`w-3 h-3 rounded-full ${isFailed ? 'bg-[#ff0033] shadow-[0_0_5px_#ff0033]' : 'bg-[#4d000f]'}`} title="Error"></div>
-                                <div className={`w-3 h-3 rounded-full ${isCompleted ? 'bg-[#00ccff] shadow-[0_0_5px_#00ccff]' : 'bg-[#00334d]'}`} title="Ready"></div>
+                        <div className="flex items-center gap-4">
+                            {/* 状态指示灯 */}
+                            <div className="flex items-center gap-2 px-3 py-1 bg-gray-900 rounded border border-gray-800">
+                                <div className={`w-2 h-2 rounded-full ${!isCompleted && !isFailed && !isCancelled ? 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.6)] animate-pulse' : 'bg-gray-600'}`} />
+                                <div className={`w-2 h-2 rounded-full ${isFailed ? 'bg-rose-400 shadow-[0_0_6px_rgba(251,113,133,0.6)]' : 'bg-gray-600'}`} />
+                                <div className={`w-2 h-2 rounded-full ${isCompleted ? 'bg-sky-400 shadow-[0_0_6px_rgba(56,189,248,0.6)]' : 'bg-gray-600'}`} />
                             </div>
 
                             <button
                                 type="button"
-                                className="w-8 h-8 bg-[#ff4444] border-b-4 border-r-4 border-[#990000] active:border-0 active:translate-y-1 active:translate-x-1 transition-all flex items-center justify-center hover:bg-[#ff6666]"
+                                className="w-8 h-8 flex items-center justify-center hover:bg-rose-500/20 rounded transition-colors"
                                 onClick={() => onOpenChange(false)}
-                                title="关闭电源"
                             >
-                                <XIcon className="w-5 h-5 text-white stroke-[3]" />
+                                <XIcon className="w-5 h-5 text-gray-400 hover:text-rose-400" />
                             </button>
                         </div>
                     </div>
 
-                    {/* 主体内容区 - 包含侧边栏和屏幕 */}
-                    <div className="flex h-[calc(100%-56px)] bg-[#c0c0c0]">
-                        {/* 左侧数据面板 */}
-                        <div className="w-48 bg-[#d4d4d4] border-r-4 border-[#4a4a4a] p-4 flex flex-col gap-4 relative overflow-hidden">
-                            {/* 装饰背景 */}
-                            <div className="absolute inset-0 opacity-5 pointer-events-none bg-[radial-gradient(circle_at_center,#000_1px,transparent_1px)] bg-[length:4px_4px]"></div>
-
-                            <div className="space-y-1 z-10">
-                                <div className="text-[10px] font-bold text-[#666] uppercase">Task ID</div>
-                                <div className="text-xs font-mono font-bold text-[#333] break-all bg-white/50 p-1 border border-[#999]">{taskId?.slice(0, 8)}...</div>
-                            </div>
-
-                            <div className="space-y-1 z-10">
-                                <div className="text-[10px] font-bold text-[#666] uppercase">Type</div>
-                                <div className="flex items-center space-x-2 bg-white/50 p-1 border border-[#999]">
-                                    {taskType === 'repository' ? <Cpu className="w-3 h-3" /> : <HardDrive className="w-3 h-3" />}
-                                    <span className="text-xs font-bold text-[#333] uppercase">{taskType}</span>
+                    {/* Main Content */}
+                    <div className="flex h-[calc(100%-56px)]">
+                        {/* Left Sidebar - Task Info */}
+                        <div className="w-48 p-4 border-r border-gray-800 bg-gray-900/30 flex flex-col gap-4">
+                            <div className="space-y-1">
+                                <div className="text-[10px] font-bold text-gray-600 uppercase tracking-wider">Task ID</div>
+                                <div className="text-xs font-mono text-primary truncate bg-gray-900 p-2 rounded border border-gray-800">
+                                    {taskId?.slice(0, 8)}...
                                 </div>
                             </div>
 
-                            <div className="flex-1"></div>
+                            <div className="space-y-1">
+                                <div className="text-[10px] font-bold text-gray-600 uppercase tracking-wider">Type</div>
+                                <div className="flex items-center gap-2 bg-gray-900 p-2 rounded border border-gray-800">
+                                    {taskType === 'repository' ? <Cpu className="w-3 h-3 text-sky-400" /> : <HardDrive className="w-3 h-3 text-amber-400" />}
+                                    <span className="text-xs font-bold text-gray-300 uppercase">{taskType}</span>
+                                </div>
+                            </div>
 
-                            {/* 装饰性条形码/数据块 */}
-                            <div className="h-24 w-full bg-[#333] p-2 flex flex-col justify-between opacity-80">
-                                <div className="flex justify-between">
-                                    <div className="w-1 h-8 bg-[#ffb900]"></div>
-                                    <div className="w-1 h-6 bg-[#ffb900]"></div>
-                                    <div className="w-1 h-10 bg-[#ffb900]"></div>
-                                    <div className="w-1 h-4 bg-[#ffb900]"></div>
-                                    <div className="w-1 h-7 bg-[#ffb900]"></div>
-                                </div>
-                                <div className="text-[8px] text-[#00ff41] font-mono leading-none">
-                                    MEM: 64K OK<br />
-                                    CPU: ACTIVE<br />
-                                    NET: LINKED
-                                </div>
+                            <div className="flex-1" />
+
+                            {/* Status Badge */}
+                            <div className="space-y-2">
+                                <div className="text-[10px] font-bold text-gray-600 uppercase tracking-wider">Status</div>
+                                {isCancelled ? (
+                                    <Badge className="w-full justify-center cyber-badge-warning">CANCELLED</Badge>
+                                ) : isCompleted ? (
+                                    <Badge className="w-full justify-center cyber-badge-success">COMPLETED</Badge>
+                                ) : isFailed ? (
+                                    <Badge className="w-full justify-center cyber-badge-danger">FAILED</Badge>
+                                ) : (
+                                    <Badge className="w-full justify-center cyber-badge-info animate-pulse">RUNNING</Badge>
+                                )}
                             </div>
                         </div>
 
-                        {/* 中央屏幕区域 */}
-                        <div className="flex-1 p-6 flex flex-col relative">
-                            {/* 屏幕边框 */}
-                            <div className="flex-1 bg-[#1a1a1a] rounded-lg p-1 shadow-[inset_0_0_20px_rgba(0,0,0,0.8)] border-b-2 border-white/10 relative overflow-hidden">
-                                {/* 屏幕内边框 */}
-                                <div className="absolute inset-0 border-[16px] border-[#2a2a2a] rounded-lg pointer-events-none z-20 shadow-[inset_0_0_10px_rgba(0,0,0,1)]"></div>
+                        {/* Terminal Screen */}
+                        <div className="flex-1 flex flex-col">
+                            {/* Terminal Output */}
+                            <div className="flex-1 bg-[#0a0a0f] p-4 overflow-y-auto font-mono text-sm custom-scrollbar relative">
+                                {/* Grid background */}
+                                <div className="absolute inset-0 cyber-grid-subtle pointer-events-none opacity-30" />
 
-                                {/* 屏幕内容 */}
-                                <div className="w-full h-full bg-black p-6 overflow-y-auto font-mono text-sm relative z-10 custom-scrollbar">
-                                    {/* CRT 效果层 */}
-                                    <div className="absolute inset-0 pointer-events-none z-30 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_2px,3px_100%] opacity-20"></div>
-                                    <div className="absolute inset-0 pointer-events-none z-30 bg-[radial-gradient(circle_at_center,transparent_50%,rgba(0,0,0,0.4)_100%)]"></div>
+                                <div className="relative z-10 space-y-0.5 pb-10">
+                                    {logs.map((log) => (
+                                        <div key={log.id} className="flex items-start gap-3 hover:bg-white/5 px-2 py-0.5 transition-colors group rounded">
+                                            <span className="text-gray-600 text-xs flex-shrink-0 w-20 font-mono">
+                                                {log.timestamp}
+                                            </span>
+                                            <span className={`${getLogColor(log.type)} flex-1 font-mono text-sm`}>
+                                                {log.message}
+                                            </span>
+                                        </div>
+                                    ))}
 
-                                    {/* 像素网格 */}
-                                    <div className="absolute inset-0 pointer-events-none z-0 opacity-10" style={{
-                                        backgroundImage: 'linear-gradient(#333 1px, transparent 1px), linear-gradient(90deg, #333 1px, transparent 1px)',
-                                        backgroundSize: '20px 20px'
-                                    }}></div>
-
-                                    <div className="relative z-10 space-y-1 pb-10">
-                                        {logs.map((log) => (
-                                            <div key={log.id} className="flex items-start space-x-3 hover:bg-white/5 px-2 py-0.5 transition-colors group">
-                                                <span className="text-[#666] text-xs flex-shrink-0 w-24 font-bold group-hover:text-[#888]">
-                                                    {log.timestamp}
-                                                </span>
-                                                <span className={`${getLogColor(log.type)} flex-1 font-bold tracking-wide font-mono`}>
-                                                    {log.message}
-                                                </span>
-                                            </div>
-                                        ))}
-
-                                        {!isCompleted && !isFailed && (
-                                            <div className="flex items-center space-x-2 mt-4 px-2">
-                                                <span className="text-[#666] text-xs w-24 font-bold">{currentTime}</span>
-                                                <span className="inline-block text-[#00ff41] animate-pulse font-bold text-base">_</span>
-                                            </div>
-                                        )}
-                                        <div ref={logsEndRef} />
-                                    </div>
+                                    {!isCompleted && !isFailed && !isCancelled && (
+                                        <div className="flex items-center gap-3 mt-4 px-2">
+                                            <span className="text-gray-600 text-xs w-20 font-mono">{currentTime}</span>
+                                            <span className="text-primary animate-pulse font-bold">_</span>
+                                        </div>
+                                    )}
+                                    <div ref={logsEndRef} />
                                 </div>
                             </div>
 
-                            {/* 屏幕下方控制区 */}
-                            <div className="mt-4 h-12 bg-[#d0d0d0] border-t-2 border-white/50 flex items-center justify-between px-2">
-                                <div className="flex items-center space-x-4">
-                                    <div className="flex flex-col">
-                                        <span className="text-[10px] font-bold text-[#666] uppercase">Status</span>
-                                        <div className="flex items-center space-x-2">
-                                            {isCancelled ? (
-                                                <span className="text-xs font-black text-[#ffb900] bg-[#333] px-2 py-0.5 rounded-sm">CANCELLED</span>
-                                            ) : isCompleted ? (
-                                                <span className="text-xs font-black text-[#00ccff] bg-[#333] px-2 py-0.5 rounded-sm">COMPLETED</span>
-                                            ) : isFailed ? (
-                                                <span className="text-xs font-black text-[#ff0033] bg-[#333] px-2 py-0.5 rounded-sm">FAILED</span>
-                                            ) : (
-                                                <span className="text-xs font-black text-[#00ff41] bg-[#333] px-2 py-0.5 rounded-sm animate-pulse">RUNNING...</span>
-                                            )}
-                                        </div>
-                                    </div>
+                            {/* Bottom Controls */}
+                            <div className="h-14 px-4 border-t border-gray-800 bg-gray-900/50 flex items-center justify-between">
+                                <div className="flex items-center gap-2 text-xs text-gray-500 font-mono">
+                                    <Activity className="w-3 h-3" />
+                                    <span>
+                                        {isCompleted ? "任务已完成" : isFailed ? "任务失败" : isCancelled ? "任务已取消" : "正在执行..."}
+                                    </span>
                                 </div>
 
-                                <div className="flex items-center space-x-3">
+                                <div className="flex items-center gap-3">
                                     {!isCompleted && !isFailed && !isCancelled && (
                                         <Button
-                                            type="button"
                                             size="sm"
                                             variant="outline"
                                             onClick={handleCancel}
-                                            className="h-8 bg-[#e0e0e0] border-2 border-[#4a4a4a] text-[#333] hover:bg-[#ffcccc] hover:border-[#990000] hover:text-[#990000] font-bold uppercase rounded-none shadow-[2px_2px_0px_0px_rgba(0,0,0,0.5)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all"
+                                            className="h-8 cyber-btn-outline text-amber-400 border-amber-500/30 hover:bg-amber-500/10 hover:border-amber-500/50"
                                         >
                                             <AlertTriangle className="w-3 h-3 mr-1" />
                                             取消任务
@@ -612,25 +569,26 @@ export default function TerminalProgressDialog({
                                     )}
 
                                     {isFailed && (
-                                        <button
-                                            type="button"
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
                                             onClick={() => window.open('/logs', '_blank')}
-                                            className="px-4 py-1.5 bg-[#ffb900] border-2 border-black text-black hover:bg-[#ffcc33] text-xs font-bold uppercase rounded-none shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all flex items-center"
+                                            className="h-8 cyber-btn-outline"
                                         >
                                             <Activity className="w-3 h-3 mr-1" />
                                             查看日志
-                                        </button>
+                                        </Button>
                                     )}
 
                                     {(isCompleted || isFailed || isCancelled) && (
-                                        <button
-                                            type="button"
+                                        <Button
+                                            size="sm"
                                             onClick={() => onOpenChange(false)}
-                                            className="px-4 py-1.5 bg-[#333] border-2 border-black text-white hover:bg-[#000] text-xs font-bold uppercase rounded-none shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all flex items-center"
+                                            className="h-8 cyber-btn-primary"
                                         >
                                             <CheckCircle2 className="w-3 h-3 mr-1" />
                                             确认
-                                        </button>
+                                        </Button>
                                     )}
                                 </div>
                             </div>

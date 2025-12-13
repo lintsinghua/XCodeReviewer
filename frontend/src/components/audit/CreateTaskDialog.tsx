@@ -1,3 +1,8 @@
+/**
+ * Create Task Dialog
+ * Cyberpunk Terminal Aesthetic
+ */
+
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -45,7 +50,6 @@ import { createAgentTask } from "@/shared/api/agentTasks";
 
 import { useProjects } from "./hooks/useTaskForm";
 import { useZipFile, formatFileSize } from "./hooks/useZipFile";
-import TerminalProgressDialog from "./TerminalProgressDialog";
 import FileSelectionDialog from "./FileSelectionDialog";
 import AgentModeSelector, { type AuditMode } from "@/components/agent/AgentModeSelector";
 
@@ -62,6 +66,7 @@ interface CreateTaskDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onTaskCreated: () => void;
+  onFastScanStarted?: (taskId: string) => void;
   preselectedProjectId?: string;
 }
 
@@ -77,6 +82,7 @@ export default function CreateTaskDialog({
   open,
   onOpenChange,
   onTaskCreated,
+  onFastScanStarted,
   preselectedProjectId,
 }: CreateTaskDialogProps) {
   const navigate = useNavigate();
@@ -91,13 +97,9 @@ export default function CreateTaskDialog({
   const [showFileSelection, setShowFileSelection] = useState(false);
   const [creating, setCreating] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [showTerminal, setShowTerminal] = useState(false);
-  const [currentTaskId, setCurrentTaskId] = useState<string | null>(null);
-  
-  // 审计模式
+
   const [auditMode, setAuditMode] = useState<AuditMode>("agent");
-  
-  // 规则集和提示词模板
+
   const [ruleSets, setRuleSets] = useState<AuditRuleSet[]>([]);
   const [promptTemplates, setPromptTemplates] = useState<PromptTemplate[]>([]);
   const [selectedRuleSetId, setSelectedRuleSetId] = useState<string>("");
@@ -107,10 +109,8 @@ export default function CreateTaskDialog({
   const selectedProject = projects.find((p) => p.id === selectedProjectId);
   const zipState = useZipFile(selectedProject, projects);
 
-  // 加载分支列表
   useEffect(() => {
     const loadBranches = async () => {
-      // 使用 selectedProjectId 从 projects 中获取最新的 project 对象
       const project = projects.find((p) => p.id === selectedProjectId);
       if (!project || !isRepositoryProject(project)) {
         setBranches([]);
@@ -120,20 +120,15 @@ export default function CreateTaskDialog({
       setLoadingBranches(true);
       try {
         const result = await api.getProjectBranches(project.id);
-        console.log("[Branch] 加载分支结果:", result);
-        
         if (result.error) {
-          console.warn("[Branch] 加载分支警告:", result.error);
           toast.error(`加载分支失败: ${result.error}`);
         }
-        
         setBranches(result.branches);
         if (result.default_branch) {
           setBranch(result.default_branch);
         }
       } catch (error) {
         const msg = error instanceof Error ? error.message : "未知错误";
-        console.error("[Branch] 加载分支失败:", msg);
         toast.error(`加载分支失败: ${msg}`);
         setBranches([project.default_branch || "main"]);
       } finally {
@@ -154,7 +149,6 @@ export default function CreateTaskDialog({
     );
   }, [projects, searchTerm]);
 
-  // 加载规则集和提示词模板
   useEffect(() => {
     const loadRulesAndPrompts = async () => {
       try {
@@ -164,14 +158,12 @@ export default function CreateTaskDialog({
         ]);
         setRuleSets(rulesRes.items);
         setPromptTemplates(promptsRes.items);
-        // 自动选中默认规则集
         const defaultRuleSet = rulesRes.items.find((r: AuditRuleSet) => r.is_default);
         if (defaultRuleSet) {
           setSelectedRuleSetId(defaultRuleSet.id);
         } else if (rulesRes.items.length > 0) {
           setSelectedRuleSetId(rulesRes.items[0].id);
         }
-        // 自动选中默认提示词模板
         const defaultPrompt = promptsRes.items.find((p: PromptTemplate) => p.is_default);
         if (defaultPrompt) {
           setSelectedPromptTemplateId(defaultPrompt.id);
@@ -193,7 +185,6 @@ export default function CreateTaskDialog({
       }
       setSearchTerm("");
       setShowAdvanced(false);
-      // 重新加载时保持默认选中
       const defaultRuleSet = ruleSets.find(r => r.is_default);
       setSelectedRuleSetId(defaultRuleSet?.id || ruleSets[0]?.id || "");
       const defaultPrompt = promptTemplates.find(p => p.is_default);
@@ -202,10 +193,8 @@ export default function CreateTaskDialog({
     }
   }, [open, preselectedProjectId, ruleSets, promptTemplates]);
 
-  // 当排除模式变化时，清空已选文件（因为文件列表会变化）
   const excludePatternsRef = useRef(excludePatterns);
   useEffect(() => {
-    // 只在排除模式真正变化时才清空（不是初始化）
     if (excludePatternsRef.current !== excludePatterns && selectedFiles) {
       setSelectedFiles(undefined);
       toast.info("排除模式已更改，请重新选择文件");
@@ -223,7 +212,6 @@ export default function CreateTaskDialog({
       setCreating(true);
       let taskId: string;
 
-      // Agent 审计模式
       if (auditMode === "agent") {
         const agentTask = await createAgentTask({
           project_id: selectedProject.id,
@@ -233,21 +221,18 @@ export default function CreateTaskDialog({
           target_files: selectedFiles,
           verification_level: "sandbox",
         });
-        
+
         onOpenChange(false);
         onTaskCreated();
         toast.success("Agent 审计任务已创建");
-        
-        // 导航到 Agent 审计页面
         navigate(`/agent-audit/${agentTask.id}`);
-        
+
         setSelectedProjectId("");
         setSelectedFiles(undefined);
         setExcludePatterns(DEFAULT_EXCLUDES);
         return;
       }
 
-      // 快速审计模式（原有逻辑）
       if (isZipProject(selectedProject)) {
         if (zipState.useStoredZip && zipState.storedZipInfo?.has_file) {
           taskId = await scanStoredZipFile({
@@ -290,8 +275,9 @@ export default function CreateTaskDialog({
 
       onOpenChange(false);
       onTaskCreated();
-      setCurrentTaskId(taskId);
-      setShowTerminal(true);
+      if (onFastScanStarted) {
+        onFastScanStarted(taskId);
+      }
       toast.success("扫描任务已启动");
 
       setSelectedProjectId("");
@@ -319,12 +305,19 @@ export default function CreateTaskDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="!w-[min(90vw,520px)] !max-w-none max-h-[85vh] flex flex-col p-0 gap-0 bg-white border-2 border-black rounded-none shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
-          {/* Header - 机械风 */}
-          <DialogHeader className="px-5 py-4 border-b-2 border-black bg-gray-100 flex-shrink-0">
-            <DialogTitle className="flex items-center gap-3 font-mono font-bold uppercase text-base tracking-wide">
-              <Shield className="w-5 h-5" />
-              开始代码审计
+        <DialogContent className="!w-[min(90vw,520px)] !max-w-none max-h-[85vh] flex flex-col p-0 gap-0 bg-[#0c0c12] border border-gray-800 rounded-lg">
+          {/* Header */}
+          <DialogHeader className="px-5 py-4 border-b border-gray-800 flex-shrink-0 bg-gray-900/50">
+            <DialogTitle className="flex items-center gap-3 font-mono text-white">
+              <div className="p-2 bg-primary/20 rounded border border-primary/30">
+                <Shield className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <span className="text-base font-bold uppercase tracking-wider">开始代码审计</span>
+                <p className="text-xs text-gray-500 font-normal mt-0.5">
+                  Code Security Analysis
+                </p>
+              </div>
             </DialogTitle>
           </DialogHeader>
 
@@ -332,36 +325,33 @@ export default function CreateTaskDialog({
             {/* 项目选择 */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-mono font-bold uppercase">
+                <span className="text-xs font-mono font-bold uppercase text-gray-400">
                   选择项目
                 </span>
-                <Badge
-                  variant="outline"
-                  className="rounded-none border-black font-mono text-xs"
-                >
+                <Badge className="cyber-badge-muted font-mono text-[10px]">
                   {filteredProjects.length} 个
                 </Badge>
               </div>
 
               {/* 搜索框 */}
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600" />
                 <Input
                   placeholder="搜索项目..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-9 h-10 rounded-none border-2 border-black font-mono focus:ring-0 focus:border-black"
+                  className="pl-9 h-10 cyber-input"
                 />
               </div>
 
               {/* 项目列表 */}
-              <ScrollArea className="h-[180px] border-2 border-black bg-gray-50">
+              <ScrollArea className="h-[180px] border border-gray-800 rounded bg-gray-900/30">
                 {loading ? (
                   <div className="flex items-center justify-center h-full">
-                    <div className="animate-spin h-6 w-6 border-2 border-black border-t-transparent" />
+                    <Loader2 className="w-5 h-5 animate-spin text-primary" />
                   </div>
                 ) : filteredProjects.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center h-full text-gray-500 font-mono">
+                  <div className="flex flex-col items-center justify-center h-full text-gray-600 font-mono">
                     <Package className="w-8 h-8 mb-2 opacity-50" />
                     <span className="text-sm">
                       {searchTerm ? "未找到" : "暂无项目"}
@@ -394,27 +384,27 @@ export default function CreateTaskDialog({
             {/* 配置区域 */}
             {selectedProject && (
               <div className="space-y-4">
-                <span className="text-sm font-mono font-bold uppercase">
+                <span className="text-xs font-mono font-bold uppercase text-gray-400">
                   配置
                 </span>
 
                 {isRepositoryProject(selectedProject) ? (
-                  <div className="flex items-center gap-3 p-3 border-2 border-black bg-blue-50">
-                    <GitBranch className="w-5 h-5 text-blue-700" />
-                    <span className="font-mono text-sm font-bold w-12">
+                  <div className="flex items-center gap-3 p-3 border border-gray-800 rounded bg-blue-950/20">
+                    <GitBranch className="w-5 h-5 text-blue-400" />
+                    <span className="font-mono text-sm text-gray-400 w-12">
                       分支
                     </span>
                     {loadingBranches ? (
                       <div className="flex items-center gap-2 flex-1">
-                        <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
-                        <span className="text-sm text-blue-600 font-mono">加载中...</span>
+                        <Loader2 className="w-4 h-4 animate-spin text-blue-400" />
+                        <span className="text-sm text-blue-400 font-mono">加载中...</span>
                       </div>
                     ) : (
                       <Select value={branch} onValueChange={setBranch}>
-                        <SelectTrigger className="h-9 flex-1 rounded-none border-2 border-black font-mono focus:ring-0">
+                        <SelectTrigger className="h-9 flex-1 cyber-input">
                           <SelectValue placeholder="选择分支" />
                         </SelectTrigger>
-                        <SelectContent className="rounded-none border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                        <SelectContent className="bg-[#0c0c12] border-gray-700">
                           {branches.map((b) => (
                             <SelectItem key={b} value={b} className="font-mono">
                               {b}
@@ -425,8 +415,8 @@ export default function CreateTaskDialog({
                     )}
                   </div>
                 ) : (
-                  <ZipUploadCard 
-                    zipState={zipState} 
+                  <ZipUploadCard
+                    zipState={zipState}
                     onUpload={async () => {
                       if (!zipState.zipFile || !selectedProject) return;
                       setUploading(true);
@@ -446,22 +436,21 @@ export default function CreateTaskDialog({
                   />
                 )}
 
-                {/* 高级选项 */}
                 {/* 规则集和提示词选择 - 仅快速扫描模式显示 */}
                 {auditMode !== "agent" && (
-                  <div className="p-3 border-2 border-black bg-purple-50 space-y-3">
+                  <div className="p-3 border border-gray-800 rounded bg-violet-950/20 space-y-3">
                     <div className="flex items-center gap-2 mb-2">
-                      <Zap className="w-4 h-4 text-purple-700" />
-                      <span className="font-mono text-sm font-bold text-purple-900 uppercase">审计配置</span>
+                      <Zap className="w-4 h-4 text-violet-400" />
+                      <span className="font-mono text-sm font-bold text-violet-300 uppercase">审计配置</span>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-xs font-mono font-bold text-gray-600 mb-1 uppercase">规则集</label>
+                        <label className="block text-xs font-mono font-bold text-gray-500 mb-1 uppercase">规则集</label>
                         <Select value={selectedRuleSetId} onValueChange={setSelectedRuleSetId}>
-                          <SelectTrigger className="h-9 rounded-none border-2 border-black font-mono text-xs focus:ring-0">
+                          <SelectTrigger className="h-9 cyber-input text-xs">
                             <SelectValue placeholder="选择规则集" />
                           </SelectTrigger>
-                          <SelectContent className="rounded-none border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                          <SelectContent className="bg-[#0c0c12] border-gray-700">
                             {ruleSets.map((rs) => (
                               <SelectItem key={rs.id} value={rs.id} className="font-mono text-xs">
                                 {rs.name} {rs.is_default && '(默认)'} ({rs.enabled_rules_count})
@@ -471,12 +460,12 @@ export default function CreateTaskDialog({
                         </Select>
                       </div>
                       <div>
-                        <label className="block text-xs font-mono font-bold text-gray-600 mb-1 uppercase">提示词模板</label>
+                        <label className="block text-xs font-mono font-bold text-gray-500 mb-1 uppercase">提示词模板</label>
                         <Select value={selectedPromptTemplateId} onValueChange={setSelectedPromptTemplateId}>
-                          <SelectTrigger className="h-9 rounded-none border-2 border-black font-mono text-xs focus:ring-0">
+                          <SelectTrigger className="h-9 cyber-input text-xs">
                             <SelectValue placeholder="选择提示词模板" />
                           </SelectTrigger>
-                          <SelectContent className="rounded-none border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                          <SelectContent className="bg-[#0c0c12] border-gray-700">
                             {promptTemplates.map((pt) => (
                               <SelectItem key={pt.id} value={pt.id} className="font-mono text-xs">
                                 {pt.name} {pt.is_default && '(默认)'}
@@ -489,8 +478,9 @@ export default function CreateTaskDialog({
                   </div>
                 )}
 
+                {/* 高级选项 */}
                 <Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>
-                  <CollapsibleTrigger className="flex items-center gap-2 text-sm font-mono text-gray-600 hover:text-black transition-colors">
+                  <CollapsibleTrigger className="flex items-center gap-2 text-xs font-mono text-gray-500 hover:text-gray-300 transition-colors">
                     <ChevronRight
                       className={`w-4 h-4 transition-transform ${showAdvanced ? "rotate-90" : ""}`}
                     />
@@ -499,27 +489,25 @@ export default function CreateTaskDialog({
                   </CollapsibleTrigger>
                   <CollapsibleContent className="mt-3 space-y-3">
                     {/* 排除模式 */}
-                    <div className="p-3 border-2 border-dashed border-gray-400 bg-gray-50 space-y-3">
+                    <div className="p-3 border border-dashed border-gray-700 rounded bg-gray-900/30 space-y-3">
                       <div className="flex items-center justify-between">
-                        <span className="font-mono text-xs uppercase font-bold text-gray-600">
+                        <span className="font-mono text-xs uppercase font-bold text-gray-500">
                           排除模式
                         </span>
                         <button
                           type="button"
                           onClick={() => setExcludePatterns(DEFAULT_EXCLUDES)}
-                          className="text-xs font-mono text-blue-600 hover:text-blue-800 hover:underline"
+                          className="text-xs font-mono text-primary hover:text-primary/80"
                         >
                           重置为默认
                         </button>
                       </div>
-                      
-                      {/* 已选择的排除模式 */}
+
                       <div className="flex flex-wrap gap-1.5">
                         {excludePatterns.map((p) => (
                           <Badge
                             key={p}
-                            variant="secondary"
-                            className="rounded-none border border-black bg-white text-gray-800 font-mono text-xs cursor-pointer hover:bg-red-100 hover:text-red-700"
+                            className="bg-gray-800 text-gray-300 border-0 font-mono text-xs cursor-pointer hover:bg-rose-900/50 hover:text-rose-400"
                             onClick={() =>
                               setExcludePatterns((prev) =>
                                 prev.filter((x) => x !== p)
@@ -530,13 +518,12 @@ export default function CreateTaskDialog({
                           </Badge>
                         ))}
                         {excludePatterns.length === 0 && (
-                          <span className="text-xs text-gray-400 font-mono">无排除模式</span>
+                          <span className="text-xs text-gray-600 font-mono">无排除模式</span>
                         )}
                       </div>
-                      
-                      {/* 快捷添加常用模式 */}
+
                       <div className="flex flex-wrap gap-1">
-                        <span className="text-xs text-gray-500 font-mono mr-1">快捷添加:</span>
+                        <span className="text-xs text-gray-600 font-mono mr-1">快捷添加:</span>
                         {[".test.", ".spec.", ".min.", "coverage/", "docs/", ".md"].map((pattern) => (
                           <button
                             key={pattern}
@@ -547,17 +534,16 @@ export default function CreateTaskDialog({
                                 setExcludePatterns((prev) => [...prev, pattern]);
                               }
                             }}
-                            className="text-xs font-mono px-1.5 py-0.5 border border-gray-300 bg-white hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
+                            className="text-xs font-mono px-1.5 py-0.5 border border-gray-700 bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed rounded"
                           >
                             +{pattern}
                           </button>
                         ))}
                       </div>
-                      
-                      {/* 自定义输入 */}
+
                       <Input
-                        placeholder="添加自定义排除模式，回车确认（如: .log, temp/, secret）"
-                        className="h-8 rounded-none border-2 border-black font-mono text-sm focus:ring-0"
+                        placeholder="添加自定义排除模式，回车确认"
+                        className="h-8 cyber-input text-sm"
                         onKeyDown={(e) => {
                           if (e.key === "Enter" && e.currentTarget.value) {
                             const val = e.currentTarget.value.trim();
@@ -576,17 +562,15 @@ export default function CreateTaskDialog({
                       const isZip = isZipProject(selectedProject);
                       const hasStoredZip = zipState.storedZipInfo?.has_file;
                       const useStored = zipState.useStoredZip;
-                      
-                      // 可以选择文件的条件：仓库项目 或 ZIP项目使用已存储文件
                       const canSelectFiles = isRepo || (isZip && useStored && hasStoredZip);
-                      
+
                       return (
-                        <div className="flex items-center justify-between p-3 border-2 border-dashed border-gray-400 bg-gray-50">
+                        <div className="flex items-center justify-between p-3 border border-dashed border-gray-700 rounded bg-gray-900/30">
                           <div>
-                            <p className="font-mono text-xs uppercase font-bold text-gray-600">
+                            <p className="font-mono text-xs uppercase font-bold text-gray-500">
                               扫描范围
                             </p>
-                            <p className="text-sm font-bold mt-1">
+                            <p className="text-sm font-bold text-white mt-1">
                               {selectedFiles
                                 ? `已选 ${selectedFiles.length} 个文件`
                                 : "全部文件"}
@@ -598,7 +582,7 @@ export default function CreateTaskDialog({
                                 size="sm"
                                 variant="ghost"
                                 onClick={() => setSelectedFiles(undefined)}
-                                className="h-8 text-xs text-red-600 hover:bg-red-50 rounded-none"
+                                className="h-8 text-xs text-rose-400 hover:bg-rose-900/30 hover:text-rose-300"
                               >
                                 重置
                               </Button>
@@ -608,7 +592,7 @@ export default function CreateTaskDialog({
                               variant="outline"
                               onClick={() => setShowFileSelection(true)}
                               disabled={!canSelectFiles}
-                              className="h-8 text-xs rounded-none border-2 border-black font-mono font-bold disabled:opacity-50"
+                              className="h-8 text-xs cyber-btn-outline font-mono font-bold disabled:opacity-50"
                             >
                               <FolderOpen className="w-3 h-3 mr-1" />
                               选择文件
@@ -623,24 +607,24 @@ export default function CreateTaskDialog({
             )}
           </div>
 
-          {/* Footer - 机械风 */}
-          <div className="flex-shrink-0 flex justify-end gap-3 px-5 py-4 bg-gray-100 border-t-2 border-black">
+          {/* Footer */}
+          <div className="flex-shrink-0 flex justify-end gap-3 px-5 py-4 bg-gray-900/50 border-t border-gray-800">
             <Button
-              variant="outline"
+              variant="ghost"
               onClick={() => onOpenChange(false)}
               disabled={creating}
-              className="px-5 h-10 rounded-none border-2 border-black font-mono font-bold uppercase hover:bg-gray-200"
+              className="px-4 h-10 font-mono text-gray-400 hover:text-white hover:bg-gray-800"
             >
               取消
             </Button>
             <Button
               onClick={handleStartScan}
               disabled={!canStart || creating}
-              className="px-5 h-10 rounded-none border-2 border-black bg-primary text-white font-mono font-bold uppercase shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all disabled:opacity-50 disabled:shadow-none disabled:translate-x-0 disabled:translate-y-0"
+              className="px-5 h-10 cyber-btn-primary font-mono font-bold uppercase"
             >
               {creating ? (
                 <>
-                  <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent mr-2" />
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
                   启动中...
                 </>
               ) : auditMode === "agent" ? (
@@ -658,13 +642,6 @@ export default function CreateTaskDialog({
           </div>
         </DialogContent>
       </Dialog>
-
-      <TerminalProgressDialog
-        open={showTerminal}
-        onOpenChange={setShowTerminal}
-        taskId={currentTaskId}
-        taskType="repository"
-      />
 
       <FileSelectionDialog
         open={showFileSelection}
@@ -691,46 +668,43 @@ function ProjectCard({
 
   return (
     <div
-      className={`flex items-center gap-3 p-3 cursor-pointer border-b border-gray-200 last:border-b-0 transition-all ${
+      className={`flex items-center gap-3 p-3 cursor-pointer rounded transition-all ${
         selected
-          ? "bg-primary/10 border-l-4 border-l-primary"
-          : "hover:bg-white"
+          ? "bg-primary/10 border border-primary/50"
+          : "hover:bg-gray-800/50 border border-transparent"
       }`}
       onClick={onSelect}
     >
       <Checkbox
         checked={selected}
-        className="rounded-none border-2 border-black data-[state=checked]:bg-primary"
+        className="border-gray-600 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
       />
 
-      <div
-        className={`p-1.5 border-2 border-black ${
-          isRepo ? "bg-blue-100" : "bg-amber-100"
-        }`}
-      >
+      <div className={`p-1.5 rounded ${isRepo ? "bg-blue-500/20" : "bg-amber-500/20"}`}>
         {isRepo ? (
-          <Globe className="w-4 h-4 text-blue-700" />
+          <Globe className="w-4 h-4 text-blue-400" />
         ) : (
-          <Package className="w-4 h-4 text-amber-700" />
+          <Package className="w-4 h-4 text-amber-400" />
         )}
       </div>
 
       <div className="flex-1 min-w-0 overflow-hidden">
         <div className="flex items-center gap-2">
-          <span className="font-bold text-sm truncate">{project.name}</span>
+          <span className={`font-mono text-sm truncate ${selected ? 'text-white font-bold' : 'text-gray-300'}`}>
+            {project.name}
+          </span>
           <Badge
-            variant="outline"
-            className={`text-[10px] px-1 py-0 rounded-none border font-mono font-bold flex-shrink-0 ${
+            className={`text-[10px] px-1 py-0 font-mono ${
               isRepo
-                ? "bg-blue-50 text-blue-700 border-blue-300"
-                : "bg-amber-50 text-amber-700 border-amber-300"
+                ? "bg-blue-500/20 text-blue-400 border-blue-500/30"
+                : "bg-amber-500/20 text-amber-400 border-amber-500/30"
             }`}
           >
             {isRepo ? "REPO" : "ZIP"}
           </Badge>
         </div>
         {project.description && (
-          <p className="text-xs text-gray-500 mt-0.5 font-mono line-clamp-2" title={project.description}>
+          <p className="text-xs text-gray-600 mt-0.5 font-mono line-clamp-2" title={project.description}>
             {project.description}
           </p>
         )}
@@ -750,9 +724,9 @@ function ZipUploadCard({
 }) {
   if (zipState.loading) {
     return (
-      <div className="flex items-center gap-3 p-3 border-2 border-black bg-blue-50">
-        <div className="animate-spin h-5 w-5 border-2 border-blue-700 border-t-transparent" />
-        <span className="text-sm font-mono font-bold text-blue-800">
+      <div className="flex items-center gap-3 p-3 border border-gray-800 rounded bg-blue-950/20">
+        <Loader2 className="w-5 h-5 animate-spin text-blue-400" />
+        <span className="text-sm font-mono text-blue-400">
           检查文件中...
         </span>
       </div>
@@ -761,16 +735,16 @@ function ZipUploadCard({
 
   if (zipState.storedZipInfo?.has_file) {
     return (
-      <div className="p-3 border-2 border-black bg-green-50 space-y-3">
+      <div className="p-3 border border-gray-800 rounded bg-emerald-950/20 space-y-3">
         <div className="flex items-center gap-3">
-          <div className="p-1.5 border-2 border-black bg-green-100">
-            <Package className="w-4 h-4 text-green-700" />
+          <div className="p-1.5 bg-emerald-500/20 rounded">
+            <Package className="w-4 h-4 text-emerald-400" />
           </div>
           <div className="flex-1">
-            <p className="text-sm font-bold text-green-900 font-mono">
+            <p className="text-sm font-bold text-emerald-300 font-mono">
               {zipState.storedZipInfo.original_filename}
             </p>
-            <p className="text-xs text-green-700 font-mono">
+            <p className="text-xs text-emerald-500 font-mono">
               {zipState.storedZipInfo.file_size &&
                 formatFileSize(zipState.storedZipInfo.file_size)}
               {zipState.storedZipInfo.uploaded_at &&
@@ -779,24 +753,24 @@ function ZipUploadCard({
           </div>
         </div>
 
-        <div className="flex gap-4 pt-2 border-t border-green-300">
+        <div className="flex gap-4 pt-2 border-t border-emerald-500/20">
           <label className="flex items-center gap-2 cursor-pointer font-mono text-sm">
             <input
               type="radio"
               checked={zipState.useStoredZip}
               onChange={() => zipState.switchToStored()}
-              className="w-4 h-4"
+              className="w-4 h-4 accent-emerald-500"
             />
-            <span className="font-bold text-green-800">使用此文件</span>
+            <span className="text-emerald-300">使用此文件</span>
           </label>
           <label className="flex items-center gap-2 cursor-pointer font-mono text-sm">
             <input
               type="radio"
               checked={!zipState.useStoredZip}
               onChange={() => zipState.switchToUpload()}
-              className="w-4 h-4"
+              className="w-4 h-4 accent-emerald-500"
             />
-            <span className="font-bold text-green-800">上传新文件</span>
+            <span className="text-emerald-300">上传新文件</span>
           </label>
         </div>
 
@@ -817,14 +791,14 @@ function ZipUploadCard({
                   zipState.handleFileSelect(file, e.target);
                 }
               }}
-              className="h-9 flex-1 rounded-none border-2 border-black font-mono"
+              className="h-9 flex-1 cyber-input"
             />
             {zipState.zipFile && (
               <Button
                 size="sm"
                 onClick={onUpload}
                 disabled={uploading}
-                className="h-9 px-3 rounded-none border-2 border-black bg-amber-500 hover:bg-amber-600 text-black font-mono font-bold shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                className="h-9 px-3 cyber-btn-primary"
               >
                 {uploading ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -840,13 +814,13 @@ function ZipUploadCard({
   }
 
   return (
-    <div className="p-3 border-2 border-dashed border-amber-500 bg-amber-50">
+    <div className="p-3 border border-dashed border-amber-500/50 rounded bg-amber-950/20">
       <div className="flex items-start gap-3">
-        <div className="p-1.5 border-2 border-black bg-amber-100">
-          <Upload className="w-4 h-4 text-amber-700" />
+        <div className="p-1.5 bg-amber-500/20 rounded">
+          <Upload className="w-4 h-4 text-amber-400" />
         </div>
         <div className="flex-1">
-          <p className="text-sm font-bold text-amber-900 font-mono uppercase">
+          <p className="text-sm font-bold text-amber-300 font-mono uppercase">
             上传 ZIP 文件
           </p>
           <div className="flex gap-2 items-center mt-2">
@@ -865,14 +839,14 @@ function ZipUploadCard({
                   zipState.handleFileSelect(file, e.target);
                 }
               }}
-              className="h-9 flex-1 rounded-none border-2 border-black font-mono"
+              className="h-9 flex-1 cyber-input"
             />
             {zipState.zipFile && (
               <Button
                 size="sm"
                 onClick={onUpload}
                 disabled={uploading}
-                className="h-9 px-3 rounded-none border-2 border-black bg-amber-500 hover:bg-amber-600 text-black font-mono font-bold shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                className="h-9 px-3 cyber-btn-primary"
               >
                 {uploading ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -883,7 +857,7 @@ function ZipUploadCard({
             )}
           </div>
           {zipState.zipFile && (
-            <p className="text-xs text-amber-800 mt-2 font-mono font-bold">
+            <p className="text-xs text-amber-400 mt-2 font-mono">
               已选: {zipState.zipFile.name} (
               {formatFileSize(zipState.zipFile.size)})
             </p>

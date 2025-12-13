@@ -1,3 +1,8 @@
+/**
+ * Instant Export Dialog
+ * Cyberpunk Terminal Aesthetic
+ */
+
 import { useState } from "react";
 import {
     Dialog,
@@ -10,7 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { FileJson, FileText, Download, Loader2 } from "lucide-react";
+import { FileJson, FileText, Download, Loader2, Terminal, AlertTriangle } from "lucide-react";
 import type { CodeAnalysisResult } from "@/shared/types";
 import { exportInstantToPDF, exportInstantToJSON } from "@/features/reports/services/reportExport";
 import { toast } from "sonner";
@@ -69,6 +74,9 @@ export default function InstantExportDialog({
             label: "JSON 格式",
             description: "结构化数据，适合程序处理和集成",
             icon: FileJson,
+            color: "text-amber-400",
+            bgColor: "bg-amber-500/20",
+            borderColor: "border-amber-500/30",
             disabled: false
         },
         {
@@ -76,22 +84,27 @@ export default function InstantExportDialog({
             label: "PDF 格式",
             description: analysisId ? "专业报告，适合打印和分享" : "需要先保存到历史记录",
             icon: FileText,
+            color: "text-rose-400",
+            bgColor: "bg-rose-500/20",
+            borderColor: "border-rose-500/30",
             disabled: !analysisId
         }
     ];
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[600px] bg-white border-2 border-black p-0 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] rounded-none">
-                <DialogHeader className="p-6 border-b-2 border-black bg-gray-50">
-                    <DialogTitle className="flex items-center space-x-2 font-display font-bold uppercase text-xl">
-                        <Download className="w-6 h-6 text-black" />
-                        <span>导出分析报告</span>
-                    </DialogTitle>
-                    <DialogDescription className="font-mono text-xs text-gray-500 mt-2">
-                        选择报告格式并导出代码分析结果
-                    </DialogDescription>
+            <DialogContent className="sm:max-w-[600px] cyber-card p-0 bg-[#0c0c12]">
+                <DialogHeader className="cyber-card-header">
+                    <div className="flex items-center gap-3">
+                        <Download className="w-5 h-5 text-primary" />
+                        <DialogTitle className="text-lg font-bold uppercase tracking-wider text-white">
+                            导出分析报告
+                        </DialogTitle>
+                    </div>
                 </DialogHeader>
+                <DialogDescription className="px-6 pt-4 text-gray-400 font-mono text-xs">
+                    选择报告格式并导出代码分析结果
+                </DialogDescription>
 
                 <div className="p-6">
                     <RadioGroup
@@ -113,35 +126,38 @@ export default function InstantExportDialog({
                                     />
                                     <Label
                                         htmlFor={format.value}
-                                        className={`flex items-start space-x-4 p-4 border-2 cursor-pointer transition-all rounded-none font-mono ${
-                                            format.disabled 
-                                                ? "border-gray-300 bg-gray-100 cursor-not-allowed opacity-60"
+                                        className={`flex items-start space-x-4 p-4 border cursor-pointer transition-all rounded font-mono ${
+                                            format.disabled
+                                                ? "border-gray-800 bg-gray-900/20 cursor-not-allowed opacity-50"
                                                 : isSelected
-                                                    ? "border-black bg-gray-100 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] translate-x-[-2px] translate-y-[-2px]"
-                                                    : "border-black bg-white hover:bg-gray-50 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                                                    ? "border-primary bg-primary/10"
+                                                    : "border-gray-700 bg-gray-900/30 hover:bg-gray-800/50 hover:border-gray-600"
                                         }`}
                                     >
                                         <div
-                                            className={`w-12 h-12 border-2 border-black flex items-center justify-center rounded-none ${
+                                            className={`w-12 h-12 flex items-center justify-center rounded ${
                                                 format.disabled
-                                                    ? "bg-gray-200 text-gray-400"
-                                                    : isSelected 
-                                                        ? "bg-black text-white" 
-                                                        : "bg-white text-black"
+                                                    ? "bg-gray-800 border border-gray-700"
+                                                    : isSelected
+                                                        ? "bg-primary/20 border border-primary/50"
+                                                        : format.bgColor + " border " + format.borderColor
                                             }`}
                                         >
-                                            <Icon className="w-6 h-6" />
+                                            <Icon className={`w-6 h-6 ${format.disabled ? "text-gray-600" : isSelected ? "text-primary" : format.color}`} />
                                         </div>
                                         <div className="flex-1">
                                             <div className="flex items-center justify-between mb-1">
-                                                <h4 className="font-bold uppercase text-black">
+                                                <h4 className={`font-bold uppercase ${format.disabled ? "text-gray-600" : isSelected ? "text-primary" : "text-gray-200"}`}>
                                                     {format.label}
                                                 </h4>
                                                 {isSelected && !format.disabled && (
-                                                    <div className="w-4 h-4 bg-black border-2 border-black" />
+                                                    <div className="w-3 h-3 bg-primary rounded-full shadow-[0_0_10px_rgba(255,107,44,0.5)]" />
                                                 )}
                                             </div>
-                                            <p className="text-xs text-gray-600 font-bold">{format.description}</p>
+                                            <p className={`text-xs ${format.disabled ? "text-gray-600" : "text-gray-500"}`}>
+                                                {format.disabled && <AlertTriangle className="w-3 h-3 inline mr-1 text-amber-500" />}
+                                                {format.description}
+                                            </p>
                                         </div>
                                     </Label>
                                 </div>
@@ -150,42 +166,45 @@ export default function InstantExportDialog({
                     </RadioGroup>
 
                     {/* 报告预览信息 */}
-                    <div className="mt-6 p-4 bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                        <h4 className="font-bold text-black uppercase mb-3 font-display border-b-2 border-black pb-2 w-fit">报告内容预览</h4>
-                        <div className="grid grid-cols-2 gap-3 text-xs font-mono">
-                            <div className="flex items-center justify-between border-b border-gray-200 pb-1">
-                                <span className="text-gray-600 font-bold">编程语言:</span>
-                                <span className="font-bold text-black">{language.toUpperCase()}</span>
+                    <div className="mt-6 cyber-card p-0">
+                        <div className="px-4 py-2 border-b border-gray-800 bg-gray-900/50 flex items-center gap-2">
+                            <Terminal className="w-3 h-3 text-primary" />
+                            <h4 className="font-bold text-gray-300 uppercase text-xs">报告内容预览</h4>
+                        </div>
+                        <div className="p-4 grid grid-cols-2 gap-3 text-xs font-mono">
+                            <div className="flex items-center justify-between border-b border-gray-800 pb-2">
+                                <span className="text-gray-600">编程语言:</span>
+                                <span className="font-bold text-sky-400">{language.toUpperCase()}</span>
                             </div>
-                            <div className="flex items-center justify-between border-b border-gray-200 pb-1">
-                                <span className="text-gray-600 font-bold">质量评分:</span>
-                                <span className="font-bold text-black">{(analysisResult.quality_score ?? 0).toFixed(1)}/100</span>
+                            <div className="flex items-center justify-between border-b border-gray-800 pb-2">
+                                <span className="text-gray-600">质量评分:</span>
+                                <span className="font-bold text-emerald-400">{(analysisResult.quality_score ?? 0).toFixed(1)}/100</span>
                             </div>
-                            <div className="flex items-center justify-between border-b border-gray-200 pb-1">
-                                <span className="text-gray-600 font-bold">发现问题:</span>
-                                <span className="font-bold text-orange-600">{analysisResult.issues?.length ?? 0}</span>
+                            <div className="flex items-center justify-between border-b border-gray-800 pb-2">
+                                <span className="text-gray-600">发现问题:</span>
+                                <span className="font-bold text-amber-400">{analysisResult.issues?.length ?? 0}</span>
                             </div>
-                            <div className="flex items-center justify-between border-b border-gray-200 pb-1">
-                                <span className="text-gray-600 font-bold">分析耗时:</span>
-                                <span className="font-bold text-black">{(analysisTime ?? 0).toFixed(2)}s</span>
+                            <div className="flex items-center justify-between border-b border-gray-800 pb-2">
+                                <span className="text-gray-600">分析耗时:</span>
+                                <span className="font-bold text-white">{(analysisTime ?? 0).toFixed(2)}s</span>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <DialogFooter className="p-6 border-t-2 border-black bg-gray-50 flex justify-end gap-3">
+                <DialogFooter className="p-4 border-t border-gray-800 bg-gray-900/50 flex justify-end gap-3">
                     <Button
                         variant="outline"
                         onClick={() => onOpenChange(false)}
                         disabled={isExporting}
-                        className="retro-btn bg-white text-black border-2 border-black hover:bg-gray-100 rounded-none h-10 font-bold uppercase"
+                        className="cyber-btn-outline h-10"
                     >
                         取消
                     </Button>
                     <Button
                         onClick={handleExport}
                         disabled={isExporting || (selectedFormat === "pdf" && !analysisId)}
-                        className="retro-btn bg-primary text-white border-2 border-black hover:bg-primary/90 rounded-none h-10 font-bold uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                        className="cyber-btn-primary h-10 font-bold uppercase"
                     >
                         {isExporting ? (
                             <>

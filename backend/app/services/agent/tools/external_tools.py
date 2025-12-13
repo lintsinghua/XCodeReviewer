@@ -204,9 +204,22 @@ Semgrep 是业界领先的静态分析工具，支持 30+ 种编程语言。
             )
             
         except asyncio.TimeoutError:
-            return ToolResult(success=False, error="Semgrep 扫描超时")
+            # 🔥 超时时提供更有用的信息
+            return ToolResult(
+                success=False, 
+                error=f"Semgrep 扫描超时（超过300秒）。可能原因：\n"
+                      f"1. 规则集 '{rules}' 需要从网络下载，网络较慢\n"
+                      f"2. 扫描目标过大\n"
+                      f"建议：尝试使用 pattern_match 或 smart_scan 工具进行快速扫描"
+            )
         except Exception as e:
-            return ToolResult(success=False, error=f"Semgrep 执行错误: {str(e)}")
+            error_msg = str(e)
+            # 🔥 提供更详细的错误诊断
+            return ToolResult(
+                success=False, 
+                error=f"Semgrep 执行错误: {error_msg[:300]}\n"
+                      f"建议：使用 pattern_match 或 smart_scan 工具作为替代"
+            )
     
     async def _check_semgrep(self) -> bool:
         """检查 Semgrep 是否可用"""

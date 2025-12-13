@@ -1,5 +1,6 @@
 /**
- * 审计规则管理页面 - Retro Terminal 风格
+ * Audit Rules Management Page
+ * Cyberpunk Terminal Aesthetic
  */
 
 import { useState, useEffect } from 'react';
@@ -49,18 +50,18 @@ import {
 } from '@/shared/api/rules';
 
 const CATEGORIES = [
-  { value: 'security', label: '安全', icon: Shield, color: 'text-red-600', bg: 'bg-red-100' },
-  { value: 'bug', label: 'Bug', icon: Bug, color: 'text-orange-600', bg: 'bg-orange-100' },
-  { value: 'performance', label: '性能', icon: Zap, color: 'text-yellow-600', bg: 'bg-yellow-100' },
-  { value: 'style', label: '代码风格', icon: Code, color: 'text-blue-600', bg: 'bg-blue-100' },
-  { value: 'maintainability', label: '可维护性', icon: Settings, color: 'text-purple-600', bg: 'bg-purple-100' },
+  { value: 'security', label: '安全', icon: Shield, color: 'text-rose-400', bg: 'bg-rose-500/20' },
+  { value: 'bug', label: 'Bug', icon: Bug, color: 'text-orange-400', bg: 'bg-orange-500/20' },
+  { value: 'performance', label: '性能', icon: Zap, color: 'text-amber-400', bg: 'bg-amber-500/20' },
+  { value: 'style', label: '代码风格', icon: Code, color: 'text-sky-400', bg: 'bg-sky-500/20' },
+  { value: 'maintainability', label: '可维护性', icon: Settings, color: 'text-violet-400', bg: 'bg-violet-500/20' },
 ];
 
 const SEVERITIES = [
-  { value: 'critical', label: '严重', color: 'bg-red-600 text-white' },
-  { value: 'high', label: '高', color: 'bg-orange-500 text-white' },
-  { value: 'medium', label: '中', color: 'bg-yellow-500 text-black' },
-  { value: 'low', label: '低', color: 'bg-blue-500 text-white' },
+  { value: 'critical', label: '严重', color: 'severity-critical' },
+  { value: 'high', label: '高', color: 'severity-high' },
+  { value: 'medium', label: '中', color: 'severity-medium' },
+  { value: 'low', label: '低', color: 'severity-low' },
 ];
 
 const LANGUAGES = [
@@ -234,80 +235,82 @@ export default function AuditRules() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-background">
-        <div className="animate-spin rounded-none h-32 w-32 border-8 border-primary border-t-transparent"></div>
+      <div className="flex items-center justify-center min-h-screen bg-[#0a0a0f]">
+        <div className="text-center space-y-4">
+          <div className="loading-spinner mx-auto" />
+          <p className="text-gray-500 font-mono text-sm uppercase tracking-wider">加载中...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-6 px-6 py-4 bg-background min-h-screen font-mono relative overflow-hidden">
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
+    <div className="space-y-6 p-6 bg-[#0a0a0f] min-h-screen font-mono relative">
+      {/* Grid background */}
+      <div className="absolute inset-0 cyber-grid-subtle pointer-events-none" />
 
-      {/* 统计卡片 */}
+      {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 relative z-10">
-        <div className="retro-card bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-5 hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all">
+        <div className="cyber-card p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs font-bold text-gray-600 uppercase mb-1">规则集总数</p>
-              <p className="text-3xl font-bold text-black">{ruleSets.length}</p>
+              <p className="stat-label">规则集总数</p>
+              <p className="stat-value text-primary">{ruleSets.length}</p>
             </div>
-            <div className="w-10 h-10 bg-primary border-2 border-black flex items-center justify-center text-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-              <Shield className="w-5 h-5" />
+            <div className="stat-icon text-primary">
+              <Shield className="w-6 h-6" />
             </div>
           </div>
         </div>
 
-        <div className="retro-card bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-5 hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all">
+        <div className="cyber-card p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs font-bold text-gray-600 uppercase mb-1">系统规则集</p>
-              <p className="text-3xl font-bold text-blue-600">{ruleSets.filter(r => r.is_system).length}</p>
+              <p className="stat-label">系统规则集</p>
+              <p className="stat-value text-sky-400">{ruleSets.filter(r => r.is_system).length}</p>
             </div>
-            <div className="w-10 h-10 bg-blue-600 border-2 border-black flex items-center justify-center text-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-              <Settings className="w-5 h-5" />
+            <div className="stat-icon text-sky-400">
+              <Settings className="w-6 h-6" />
             </div>
           </div>
         </div>
 
-        <div className="retro-card bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-5 hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all">
+        <div className="cyber-card p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs font-bold text-gray-600 uppercase mb-1">总规则数</p>
-              <p className="text-3xl font-bold text-green-600">{ruleSets.reduce((acc, r) => acc + r.rules_count, 0)}</p>
+              <p className="stat-label">总规则数</p>
+              <p className="stat-value text-emerald-400">{ruleSets.reduce((acc, r) => acc + r.rules_count, 0)}</p>
             </div>
-            <div className="w-10 h-10 bg-green-600 border-2 border-black flex items-center justify-center text-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-              <CheckCircle className="w-5 h-5" />
+            <div className="stat-icon text-emerald-400">
+              <CheckCircle className="w-6 h-6" />
             </div>
           </div>
         </div>
 
-        <div className="retro-card bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-5 hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all">
+        <div className="cyber-card p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs font-bold text-gray-600 uppercase mb-1">已启用规则</p>
-              <p className="text-3xl font-bold text-orange-600">{ruleSets.reduce((acc, r) => acc + r.enabled_rules_count, 0)}</p>
+              <p className="stat-label">已启用规则</p>
+              <p className="stat-value text-amber-400">{ruleSets.reduce((acc, r) => acc + r.enabled_rules_count, 0)}</p>
             </div>
-            <div className="w-10 h-10 bg-orange-500 border-2 border-black flex items-center justify-center text-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-              <Activity className="w-5 h-5" />
+            <div className="stat-icon text-amber-400">
+              <Activity className="w-6 h-6" />
             </div>
           </div>
         </div>
       </div>
 
-      {/* 操作栏 */}
-      <div className="retro-card bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-4 relative z-10">
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <Terminal className="w-5 h-5" />
-            <span className="font-bold uppercase">审计规则管理</span>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setShowImportDialog(true)} className="retro-btn bg-white text-black hover:bg-gray-100 h-10">
+      {/* Action Bar */}
+      <div className="cyber-card p-0 relative z-10">
+        <div className="cyber-card-header">
+          <Terminal className="w-5 h-5 text-primary" />
+          <h3 className="text-lg font-bold uppercase tracking-wider text-white">审计规则管理</h3>
+          <div className="ml-auto flex gap-2">
+            <Button variant="outline" onClick={() => setShowImportDialog(true)} className="cyber-btn-outline h-9">
               <Upload className="w-4 h-4 mr-2" />
               导入规则集
             </Button>
-            <Button onClick={() => setShowCreateDialog(true)} className="retro-btn bg-primary text-white hover:bg-primary/90 h-10 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+            <Button onClick={() => setShowCreateDialog(true)} className="cyber-btn-primary h-9">
               <Plus className="w-4 h-4 mr-2" />
               新建规则集
             </Button>
@@ -315,55 +318,55 @@ export default function AuditRules() {
         </div>
       </div>
 
-      {/* 规则集列表 */}
+      {/* Rule Sets List */}
       <div className="space-y-4 relative z-10">
         {ruleSets.length === 0 ? (
-          <div className="retro-card bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-16 flex flex-col items-center justify-center text-center">
-            <div className="w-20 h-20 bg-gray-100 border-2 border-black flex items-center justify-center mb-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-              <Shield className="w-10 h-10 text-gray-400" />
+          <div className="cyber-card p-16">
+            <div className="empty-state">
+              <Shield className="empty-state-icon" />
+              <p className="empty-state-title">暂无规则集</p>
+              <p className="empty-state-description">点击"新建规则集"创建自定义审计规则</p>
+              <Button className="cyber-btn-primary h-12 px-8 mt-6" onClick={() => setShowCreateDialog(true)}>
+                <Plus className="w-5 h-5 mr-2" />
+                创建规则集
+              </Button>
             </div>
-            <h3 className="text-xl font-bold text-black uppercase mb-2">暂无规则集</h3>
-            <p className="text-gray-500 mb-8 max-w-md">点击"新建规则集"创建自定义审计规则</p>
-            <Button className="retro-btn bg-primary text-white h-12 px-8 text-lg font-bold uppercase" onClick={() => setShowCreateDialog(true)}>
-              <Plus className="w-5 h-5 mr-2" />
-              创建规则集
-            </Button>
           </div>
         ) : (
           ruleSets.map(ruleSet => (
-            <div key={ruleSet.id} className={`retro-card bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ${!ruleSet.is_active ? 'opacity-60' : ''}`}>
-              {/* 规则集头部 */}
-              <div className="p-6 border-b-2 border-dashed border-gray-300">
+            <div key={ruleSet.id} className={`cyber-card p-0 ${!ruleSet.is_active ? 'opacity-60' : ''}`}>
+              {/* Rule Set Header */}
+              <div className="p-6 border-b border-gray-800">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4 cursor-pointer" onClick={() => toggleExpand(ruleSet.id)}>
-                    <div className="w-10 h-10 bg-gray-100 border-2 border-black flex items-center justify-center shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                      {expandedSets.has(ruleSet.id) ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
+                    <div className="w-10 h-10 bg-gray-800 border border-gray-700 flex items-center justify-center rounded">
+                      {expandedSets.has(ruleSet.id) ? <ChevronDown className="w-5 h-5 text-gray-400" /> : <ChevronRight className="w-5 h-5 text-gray-400" />}
                     </div>
                     <div>
-                      <h3 className="font-bold text-xl text-black uppercase flex items-center gap-2">
+                      <h3 className="font-bold text-lg text-white uppercase flex items-center gap-2">
                         {ruleSet.name}
-                        {ruleSet.is_system && <Badge className="rounded-none border-2 border-black bg-blue-100 text-blue-800">系统</Badge>}
-                        {ruleSet.is_default && <Badge className="rounded-none border-2 border-black bg-green-100 text-green-800">默认</Badge>}
+                        {ruleSet.is_system && <Badge className="cyber-badge-info">系统</Badge>}
+                        {ruleSet.is_default && <Badge className="cyber-badge-success">默认</Badge>}
                       </h3>
-                      <p className="text-sm text-gray-600">{ruleSet.description}</p>
+                      <p className="text-sm text-gray-500">{ruleSet.description}</p>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-3">
-                    <Badge variant="outline" className="rounded-none border-2 border-black">{LANGUAGES.find(l => l.value === ruleSet.language)?.label}</Badge>
-                    <Badge variant="outline" className="rounded-none border-2 border-black">{RULE_TYPES.find(t => t.value === ruleSet.rule_type)?.label}</Badge>
-                    <span className="text-sm font-bold px-3 py-1 bg-gray-100 border-2 border-black">
+                    <Badge className="cyber-badge-muted">{LANGUAGES.find(l => l.value === ruleSet.language)?.label}</Badge>
+                    <Badge className="cyber-badge-muted">{RULE_TYPES.find(t => t.value === ruleSet.rule_type)?.label}</Badge>
+                    <span className="text-sm font-mono text-gray-400 px-3 py-1 bg-gray-800 border border-gray-700 rounded">
                       {ruleSet.enabled_rules_count}/{ruleSet.rules_count} 启用
                     </span>
-                    <Button variant="ghost" size="icon" onClick={() => handleExport(ruleSet)} className="hover:bg-gray-100">
+                    <Button variant="ghost" size="icon" onClick={() => handleExport(ruleSet)} className="cyber-btn-ghost h-9 w-9">
                       <Download className="w-4 h-4" />
                     </Button>
                     {!ruleSet.is_system && (
                       <>
-                        <Button variant="ghost" size="icon" onClick={() => openEditRuleSetDialog(ruleSet)} className="hover:bg-gray-100">
+                        <Button variant="ghost" size="icon" onClick={() => openEditRuleSetDialog(ruleSet)} className="cyber-btn-ghost h-9 w-9">
                           <Edit className="w-4 h-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleDeleteRuleSet(ruleSet.id)} className="hover:bg-red-100 hover:text-red-600">
+                        <Button variant="ghost" size="icon" onClick={() => handleDeleteRuleSet(ruleSet.id)} className="h-9 w-9 hover:bg-rose-500/20 hover:text-rose-400">
                           <Trash2 className="w-4 h-4" />
                         </Button>
                       </>
@@ -372,11 +375,11 @@ export default function AuditRules() {
                 </div>
               </div>
 
-              {/* 规则列表 */}
+              {/* Rules List */}
               {expandedSets.has(ruleSet.id) && (
                 <div className="p-6">
                   {!ruleSet.is_system && (
-                    <Button variant="outline" size="sm" onClick={() => openAddRuleDialog(ruleSet)} className="mb-4 retro-btn bg-white text-black hover:bg-gray-100">
+                    <Button variant="outline" size="sm" onClick={() => openAddRuleDialog(ruleSet)} className="mb-4 cyber-btn-outline h-8">
                       <Plus className="w-4 h-4 mr-2" />
                       添加规则
                     </Button>
@@ -388,21 +391,21 @@ export default function AuditRules() {
                         const severityInfo = getSeverityInfo(rule.severity);
                         const CategoryIcon = categoryInfo.icon;
                         return (
-                          <div key={rule.id} className={`p-4 border-2 border-black bg-gray-50 hover:bg-white transition-all ${!rule.enabled ? 'opacity-50' : ''}`}>
+                          <div key={rule.id} className={`cyber-card p-4 hover:border-gray-700 transition-all ${!rule.enabled ? 'opacity-50' : ''}`}>
                             <div className="flex items-start justify-between">
                               <div className="flex items-start gap-4">
-                                <div className={`w-10 h-10 ${categoryInfo.bg} border-2 border-black flex items-center justify-center shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]`}>
+                                <div className={`w-10 h-10 ${categoryInfo.bg} border border-gray-700 flex items-center justify-center rounded`}>
                                   <CategoryIcon className={`w-5 h-5 ${categoryInfo.color}`} />
                                 </div>
                                 <div>
                                   <div className="flex items-center gap-2 mb-1">
-                                    <span className="font-mono text-xs bg-black text-white px-2 py-0.5">{rule.rule_code}</span>
-                                    <span className="font-bold uppercase">{rule.name}</span>
-                                    <Badge className={`rounded-none border-2 border-black ${severityInfo.color}`}>{severityInfo.label}</Badge>
+                                    <span className="font-mono text-xs bg-gray-800 text-primary px-2 py-0.5 rounded">{rule.rule_code}</span>
+                                    <span className="font-bold uppercase text-gray-200">{rule.name}</span>
+                                    <Badge className={severityInfo.color}>{severityInfo.label}</Badge>
                                   </div>
-                                  {rule.description && <p className="text-sm text-gray-600 mb-2">{rule.description}</p>}
+                                  {rule.description && <p className="text-sm text-gray-500 mb-2">{rule.description}</p>}
                                   {rule.reference_url && (
-                                    <a href={rule.reference_url} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline flex items-center gap-1">
+                                    <a href={rule.reference_url} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline flex items-center gap-1">
                                       参考链接 <ExternalLink className="w-3 h-3" />
                                     </a>
                                   )}
@@ -412,8 +415,8 @@ export default function AuditRules() {
                                 <Switch checked={rule.enabled} onCheckedChange={() => handleToggleRule(ruleSet.id, rule.id)} />
                                 {!ruleSet.is_system && (
                                   <>
-                                    <Button variant="ghost" size="icon" onClick={() => openEditRuleDialog(ruleSet, rule)}><Edit className="w-4 h-4" /></Button>
-                                    <Button variant="ghost" size="icon" onClick={() => handleDeleteRule(ruleSet.id, rule.id)} className="hover:bg-red-100 hover:text-red-600"><Trash2 className="w-4 h-4" /></Button>
+                                    <Button variant="ghost" size="icon" onClick={() => openEditRuleDialog(ruleSet, rule)} className="cyber-btn-ghost h-8 w-8"><Edit className="w-4 h-4" /></Button>
+                                    <Button variant="ghost" size="icon" onClick={() => handleDeleteRule(ruleSet.id, rule.id)} className="h-8 w-8 hover:bg-rose-500/20 hover:text-rose-400"><Trash2 className="w-4 h-4" /></Button>
                                   </>
                                 )}
                               </div>
@@ -430,164 +433,162 @@ export default function AuditRules() {
         )}
       </div>
 
-      {/* 创建规则集对话框 */}
+      {/* Create Rule Set Dialog */}
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-        <DialogContent className="max-w-lg retro-card border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] bg-white p-0">
-          <DialogHeader className="bg-black text-white p-4 border-b-4 border-black">
-            <DialogTitle className="font-mono text-xl uppercase tracking-widest flex items-center gap-2">
-              <Terminal className="w-5 h-5" />
-              新建规则集
-            </DialogTitle>
+        <DialogContent className="max-w-lg cyber-card p-0 bg-[#0c0c12]">
+          <DialogHeader className="cyber-card-header">
+            <Terminal className="w-5 h-5 text-primary" />
+            <DialogTitle className="text-lg font-bold uppercase tracking-wider text-white">新建规则集</DialogTitle>
           </DialogHeader>
           <div className="p-6 space-y-4">
-            <div className="space-y-1.5">
-              <Label className="font-mono font-bold uppercase text-xs">名称 *</Label>
-              <Input value={ruleSetForm.name} onChange={e => setRuleSetForm({ ...ruleSetForm, name: e.target.value })} placeholder="规则集名称" className="terminal-input" />
+            <div className="space-y-2">
+              <Label className="text-xs font-bold text-gray-500 uppercase">名称 *</Label>
+              <Input value={ruleSetForm.name} onChange={e => setRuleSetForm({ ...ruleSetForm, name: e.target.value })} placeholder="规则集名称" className="cyber-input" />
             </div>
-            <div className="space-y-1.5">
-              <Label className="font-mono font-bold uppercase text-xs">描述</Label>
-              <Textarea value={ruleSetForm.description} onChange={e => setRuleSetForm({ ...ruleSetForm, description: e.target.value })} placeholder="规则集描述" className="terminal-input" />
+            <div className="space-y-2">
+              <Label className="text-xs font-bold text-gray-500 uppercase">描述</Label>
+              <Textarea value={ruleSetForm.description} onChange={e => setRuleSetForm({ ...ruleSetForm, description: e.target.value })} placeholder="规则集描述" className="cyber-input" />
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label className="font-mono font-bold uppercase text-xs">适用语言</Label>
+              <div className="space-y-2">
+                <Label className="text-xs font-bold text-gray-500 uppercase">适用语言</Label>
                 <Select value={ruleSetForm.language} onValueChange={v => setRuleSetForm({ ...ruleSetForm, language: v })}>
-                  <SelectTrigger className="terminal-input"><SelectValue /></SelectTrigger>
-                  <SelectContent className="retro-card border border-border">
+                  <SelectTrigger className="cyber-input"><SelectValue /></SelectTrigger>
+                  <SelectContent className="bg-[#0c0c12] border-gray-700">
                     {LANGUAGES.map(l => <SelectItem key={l.value} value={l.value}>{l.label}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1.5">
-                <Label className="font-mono font-bold uppercase text-xs">规则类型</Label>
+              <div className="space-y-2">
+                <Label className="text-xs font-bold text-gray-500 uppercase">规则类型</Label>
                 <Select value={ruleSetForm.rule_type} onValueChange={v => setRuleSetForm({ ...ruleSetForm, rule_type: v })}>
-                  <SelectTrigger className="terminal-input"><SelectValue /></SelectTrigger>
-                  <SelectContent className="retro-card border border-border">
+                  <SelectTrigger className="cyber-input"><SelectValue /></SelectTrigger>
+                  <SelectContent className="bg-[#0c0c12] border-gray-700">
                     {RULE_TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
             </div>
           </div>
-          <DialogFooter className="p-4 border-t-2 border-dashed border-gray-200">
-            <Button variant="outline" onClick={() => setShowCreateDialog(false)} className="retro-btn bg-white text-black">取消</Button>
-            <Button onClick={handleCreateRuleSet} className="retro-btn bg-primary text-white">创建</Button>
+          <DialogFooter className="p-4 border-t border-gray-800">
+            <Button variant="outline" onClick={() => setShowCreateDialog(false)} className="cyber-btn-outline">取消</Button>
+            <Button onClick={handleCreateRuleSet} className="cyber-btn-primary">创建</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* 编辑规则集对话框 */}
+      {/* Edit Rule Set Dialog */}
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent className="max-w-lg retro-card border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] bg-white p-0">
-          <DialogHeader className="bg-black text-white p-4 border-b-4 border-black">
-            <DialogTitle className="font-mono text-xl uppercase tracking-widest">编辑规则集</DialogTitle>
+        <DialogContent className="max-w-lg cyber-card p-0 bg-[#0c0c12]">
+          <DialogHeader className="cyber-card-header">
+            <Edit className="w-5 h-5 text-primary" />
+            <DialogTitle className="text-lg font-bold uppercase tracking-wider text-white">编辑规则集</DialogTitle>
           </DialogHeader>
           <div className="p-6 space-y-4">
-            <div className="space-y-1.5">
-              <Label className="font-mono font-bold uppercase text-xs">名称</Label>
-              <Input value={ruleSetForm.name} onChange={e => setRuleSetForm({ ...ruleSetForm, name: e.target.value })} className="terminal-input" />
+            <div className="space-y-2">
+              <Label className="text-xs font-bold text-gray-500 uppercase">名称</Label>
+              <Input value={ruleSetForm.name} onChange={e => setRuleSetForm({ ...ruleSetForm, name: e.target.value })} className="cyber-input" />
             </div>
-            <div className="space-y-1.5">
-              <Label className="font-mono font-bold uppercase text-xs">描述</Label>
-              <Textarea value={ruleSetForm.description} onChange={e => setRuleSetForm({ ...ruleSetForm, description: e.target.value })} className="terminal-input" />
+            <div className="space-y-2">
+              <Label className="text-xs font-bold text-gray-500 uppercase">描述</Label>
+              <Textarea value={ruleSetForm.description} onChange={e => setRuleSetForm({ ...ruleSetForm, description: e.target.value })} className="cyber-input" />
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label className="font-mono font-bold uppercase text-xs">适用语言</Label>
+              <div className="space-y-2">
+                <Label className="text-xs font-bold text-gray-500 uppercase">适用语言</Label>
                 <Select value={ruleSetForm.language} onValueChange={v => setRuleSetForm({ ...ruleSetForm, language: v })}>
-                  <SelectTrigger className="terminal-input"><SelectValue /></SelectTrigger>
-                  <SelectContent>{LANGUAGES.map(l => <SelectItem key={l.value} value={l.value}>{l.label}</SelectItem>)}</SelectContent>
+                  <SelectTrigger className="cyber-input"><SelectValue /></SelectTrigger>
+                  <SelectContent className="bg-[#0c0c12] border-gray-700">{LANGUAGES.map(l => <SelectItem key={l.value} value={l.value}>{l.label}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1.5">
-                <Label className="font-mono font-bold uppercase text-xs">规则类型</Label>
+              <div className="space-y-2">
+                <Label className="text-xs font-bold text-gray-500 uppercase">规则类型</Label>
                 <Select value={ruleSetForm.rule_type} onValueChange={v => setRuleSetForm({ ...ruleSetForm, rule_type: v })}>
-                  <SelectTrigger className="terminal-input"><SelectValue /></SelectTrigger>
-                  <SelectContent>{RULE_TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}</SelectContent>
+                  <SelectTrigger className="cyber-input"><SelectValue /></SelectTrigger>
+                  <SelectContent className="bg-[#0c0c12] border-gray-700">{RULE_TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
             </div>
           </div>
-          <DialogFooter className="p-4 border-t-2 border-dashed border-gray-200">
-            <Button variant="outline" onClick={() => setShowEditDialog(false)} className="retro-btn bg-white text-black">取消</Button>
-            <Button onClick={handleUpdateRuleSet} className="retro-btn bg-primary text-white">保存</Button>
+          <DialogFooter className="p-4 border-t border-gray-800">
+            <Button variant="outline" onClick={() => setShowEditDialog(false)} className="cyber-btn-outline">取消</Button>
+            <Button onClick={handleUpdateRuleSet} className="cyber-btn-primary">保存</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* 规则编辑对话框 */}
+      {/* Rule Edit Dialog */}
       <Dialog open={showRuleDialog} onOpenChange={setShowRuleDialog}>
-        <DialogContent className="max-w-2xl retro-card border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] bg-white p-0 max-h-[90vh] overflow-y-auto">
-          <DialogHeader className="bg-black text-white p-4 border-b-4 border-black">
-            <DialogTitle className="font-mono text-xl uppercase tracking-widest">{selectedRule ? '编辑规则' : '添加规则'}</DialogTitle>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto cyber-card p-0 bg-[#0c0c12]">
+          <DialogHeader className="cyber-card-header">
+            <Code className="w-5 h-5 text-primary" />
+            <DialogTitle className="text-lg font-bold uppercase tracking-wider text-white">{selectedRule ? '编辑规则' : '添加规则'}</DialogTitle>
           </DialogHeader>
           <div className="p-6 space-y-4">
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label className="font-mono font-bold uppercase text-xs">规则代码 *</Label>
-                <Input value={ruleForm.rule_code} onChange={e => setRuleForm({ ...ruleForm, rule_code: e.target.value })} placeholder="如 SEC001" className="terminal-input" />
+              <div className="space-y-2">
+                <Label className="text-xs font-bold text-gray-500 uppercase">规则代码 *</Label>
+                <Input value={ruleForm.rule_code} onChange={e => setRuleForm({ ...ruleForm, rule_code: e.target.value })} placeholder="如 SEC001" className="cyber-input" />
               </div>
-              <div className="space-y-1.5">
-                <Label className="font-mono font-bold uppercase text-xs">规则名称 *</Label>
-                <Input value={ruleForm.name} onChange={e => setRuleForm({ ...ruleForm, name: e.target.value })} placeholder="规则名称" className="terminal-input" />
+              <div className="space-y-2">
+                <Label className="text-xs font-bold text-gray-500 uppercase">规则名称 *</Label>
+                <Input value={ruleForm.name} onChange={e => setRuleForm({ ...ruleForm, name: e.target.value })} placeholder="规则名称" className="cyber-input" />
               </div>
             </div>
-            <div className="space-y-1.5">
-              <Label className="font-mono font-bold uppercase text-xs">描述</Label>
-              <Textarea value={ruleForm.description} onChange={e => setRuleForm({ ...ruleForm, description: e.target.value })} placeholder="规则描述" className="terminal-input" />
+            <div className="space-y-2">
+              <Label className="text-xs font-bold text-gray-500 uppercase">描述</Label>
+              <Textarea value={ruleForm.description} onChange={e => setRuleForm({ ...ruleForm, description: e.target.value })} placeholder="规则描述" className="cyber-input" />
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label className="font-mono font-bold uppercase text-xs">类别</Label>
+              <div className="space-y-2">
+                <Label className="text-xs font-bold text-gray-500 uppercase">类别</Label>
                 <Select value={ruleForm.category} onValueChange={v => setRuleForm({ ...ruleForm, category: v })}>
-                  <SelectTrigger className="terminal-input"><SelectValue /></SelectTrigger>
-                  <SelectContent>{CATEGORIES.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}</SelectContent>
+                  <SelectTrigger className="cyber-input"><SelectValue /></SelectTrigger>
+                  <SelectContent className="bg-[#0c0c12] border-gray-700">{CATEGORIES.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1.5">
-                <Label className="font-mono font-bold uppercase text-xs">严重程度</Label>
+              <div className="space-y-2">
+                <Label className="text-xs font-bold text-gray-500 uppercase">严重程度</Label>
                 <Select value={ruleForm.severity} onValueChange={v => setRuleForm({ ...ruleForm, severity: v })}>
-                  <SelectTrigger className="terminal-input"><SelectValue /></SelectTrigger>
-                  <SelectContent>{SEVERITIES.map(s => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}</SelectContent>
+                  <SelectTrigger className="cyber-input"><SelectValue /></SelectTrigger>
+                  <SelectContent className="bg-[#0c0c12] border-gray-700">{SEVERITIES.map(s => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
             </div>
-            <div className="space-y-1.5">
-              <Label className="font-mono font-bold uppercase text-xs">自定义检测提示词</Label>
-              <Textarea value={ruleForm.custom_prompt} onChange={e => setRuleForm({ ...ruleForm, custom_prompt: e.target.value })} placeholder="用于增强LLM检测的自定义提示词" rows={3} className="terminal-input" />
+            <div className="space-y-2">
+              <Label className="text-xs font-bold text-gray-500 uppercase">自定义检测提示词</Label>
+              <Textarea value={ruleForm.custom_prompt} onChange={e => setRuleForm({ ...ruleForm, custom_prompt: e.target.value })} placeholder="用于增强LLM检测的自定义提示词" rows={3} className="cyber-input" />
             </div>
-            <div className="space-y-1.5">
-              <Label className="font-mono font-bold uppercase text-xs">修复建议</Label>
-              <Textarea value={ruleForm.fix_suggestion} onChange={e => setRuleForm({ ...ruleForm, fix_suggestion: e.target.value })} placeholder="修复建议模板" rows={2} className="terminal-input" />
+            <div className="space-y-2">
+              <Label className="text-xs font-bold text-gray-500 uppercase">修复建议</Label>
+              <Textarea value={ruleForm.fix_suggestion} onChange={e => setRuleForm({ ...ruleForm, fix_suggestion: e.target.value })} placeholder="修复建议模板" rows={2} className="cyber-input" />
             </div>
-            <div className="space-y-1.5">
-              <Label className="font-mono font-bold uppercase text-xs">参考链接</Label>
-              <Input value={ruleForm.reference_url} onChange={e => setRuleForm({ ...ruleForm, reference_url: e.target.value })} placeholder="如 https://owasp.org/..." className="terminal-input" />
+            <div className="space-y-2">
+              <Label className="text-xs font-bold text-gray-500 uppercase">参考链接</Label>
+              <Input value={ruleForm.reference_url} onChange={e => setRuleForm({ ...ruleForm, reference_url: e.target.value })} placeholder="如 https://owasp.org/..." className="cyber-input" />
             </div>
           </div>
-          <DialogFooter className="p-4 border-t-2 border-dashed border-gray-200">
-            <Button variant="outline" onClick={() => setShowRuleDialog(false)} className="retro-btn bg-white text-black">取消</Button>
-            <Button onClick={selectedRule ? handleUpdateRule : handleAddRule} className="retro-btn bg-primary text-white">{selectedRule ? '保存' : '添加'}</Button>
+          <DialogFooter className="p-4 border-t border-gray-800">
+            <Button variant="outline" onClick={() => setShowRuleDialog(false)} className="cyber-btn-outline">取消</Button>
+            <Button onClick={selectedRule ? handleUpdateRule : handleAddRule} className="cyber-btn-primary">{selectedRule ? '保存' : '添加'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* 导入对话框 */}
+      {/* Import Dialog */}
       <Dialog open={showImportDialog} onOpenChange={setShowImportDialog}>
-        <DialogContent className="max-w-2xl retro-card border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] bg-white p-0">
-          <DialogHeader className="bg-black text-white p-4 border-b-4 border-black">
-            <DialogTitle className="font-mono text-xl uppercase tracking-widest flex items-center gap-2">
-              <Upload className="w-5 h-5" />
-              导入规则集
-            </DialogTitle>
-            <DialogDescription className="text-gray-300">粘贴导出的 JSON 内容</DialogDescription>
+        <DialogContent className="max-w-2xl cyber-card p-0 bg-[#0c0c12]">
+          <DialogHeader className="cyber-card-header">
+            <Upload className="w-5 h-5 text-primary" />
+            <DialogTitle className="text-lg font-bold uppercase tracking-wider text-white">导入规则集</DialogTitle>
           </DialogHeader>
+          <DialogDescription className="px-6 pt-4 text-gray-400">粘贴导出的 JSON 内容</DialogDescription>
           <div className="p-6">
-            <Textarea value={importJson} onChange={e => setImportJson(e.target.value)} placeholder='{"name": "...", "rules": [...]}' rows={15} className="terminal-input font-mono text-sm" />
+            <Textarea value={importJson} onChange={e => setImportJson(e.target.value)} placeholder='{"name": "...", "rules": [...]}' rows={15} className="cyber-input font-mono text-sm text-emerald-400" />
           </div>
-          <DialogFooter className="p-4 border-t-2 border-dashed border-gray-200">
-            <Button variant="outline" onClick={() => setShowImportDialog(false)} className="retro-btn bg-white text-black">取消</Button>
-            <Button onClick={handleImport} className="retro-btn bg-primary text-white">导入</Button>
+          <DialogFooter className="p-4 border-t border-gray-800">
+            <Button variant="outline" onClick={() => setShowImportDialog(false)} className="cyber-btn-outline">取消</Button>
+            <Button onClick={handleImport} className="cyber-btn-primary">导入</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

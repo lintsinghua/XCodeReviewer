@@ -21,8 +21,20 @@ export interface RouteConfig {
 
 const routes: RouteConfig[] = [
   {
-    name: "仪表盘",
+    name: "Agent审计",
     path: "/",
+    element: <AgentAudit />,
+    visible: true,
+  },
+  {
+    name: "Agent审计任务",
+    path: "/agent-audit/:taskId",
+    element: <AgentAudit />,
+    visible: false,
+  },
+  {
+    name: "仪表盘",
+    path: "/dashboard",
     element: <Dashboard />,
     visible: true,
   },
@@ -54,18 +66,6 @@ const routes: RouteConfig[] = [
     name: "任务详情",
     path: "/tasks/:id",
     element: <TaskDetail />,
-    visible: false,
-  },
-  {
-    name: "Agent审计",
-    path: "/agent-audit",
-    element: <AgentAudit />,
-    visible: true,
-  },
-  {
-    name: "Agent审计任务",
-    path: "/agent-audit/:taskId",
-    element: <AgentAudit />,
     visible: false,
   },
   {

@@ -19,6 +19,7 @@ from dataclasses import dataclass
 
 from .base import BaseAgent, AgentConfig, AgentResult, AgentType, AgentPattern
 from ..json_parser import AgentJsonParser
+from ..prompts import MULTI_AGENT_RULES, CORE_SECURITY_PRINCIPLES
 
 logger = logging.getLogger(__name__)
 
@@ -131,13 +132,17 @@ class OrchestratorAgent(BaseAgent):
         tools: Dict[str, Any],
         event_emitter=None,
         sub_agents: Optional[Dict[str, BaseAgent]] = None,
+        tracer=None,
     ):
+        # 组合增强的系统提示词，注入多Agent协作规则和核心安全原则
+        full_system_prompt = f"{ORCHESTRATOR_SYSTEM_PROMPT}\n\n{CORE_SECURITY_PRINCIPLES}\n\n{MULTI_AGENT_RULES}"
+        
         config = AgentConfig(
             name="Orchestrator",
             agent_type=AgentType.ORCHESTRATOR,
             pattern=AgentPattern.REACT,  # 改为 ReAct 模式！
             max_iterations=20,
-            system_prompt=ORCHESTRATOR_SYSTEM_PROMPT,
+            system_prompt=full_system_prompt,
         )
         super().__init__(config, llm_service, tools, event_emitter)
         
@@ -145,6 +150,9 @@ class OrchestratorAgent(BaseAgent):
         self._conversation_history: List[Dict[str, str]] = []
         self._steps: List[AgentStep] = []
         self._all_findings: List[Dict] = []
+        
+        # 🔥 Tracer 遥测支持
+        self.tracer = tracer
         
         # 🔥 存储运行时上下文，用于传递给子 Agent
         self._runtime_context: Dict[str, Any] = {}
@@ -243,14 +251,30 @@ class OrchestratorAgent(BaseAgent):
                     logger.warning(f"[{self.name}] Empty LLM response")
                     empty_retry_count = getattr(self, '_empty_retry_count', 0) + 1
                     self._empty_retry_count = empty_retry_count
-                    if empty_retry_count >= 3:
+                    if empty_retry_count >= 5:  # 🔥 增加重试次数到5次
                         logger.error(f"[{self.name}] Too many empty responses, stopping")
                         error_message = "连续收到空响应，停止编排"
                         await self.emit_event("error", error_message)
                         break
+
+                    # 🔥 添加短暂延迟，避免快速重试
+                    await asyncio.sleep(1.0)
+
+                    # 🔥 更详细的重试提示
+                    retry_prompt = f"""收到空响应（第 {empty_retry_count} 次）。请严格按照以下格式输出你的决策：
+
+Thought: [你对当前审计状态的思考]
+Action: [dispatch_agent|summarize|finish]
+Action Input: {{"参数": "值"}}
+
+当前可调度的子 Agent: {list(self.sub_agents.keys())}
+当前已收集发现: {len(self._all_findings)} 个
+
+请立即输出你的下一步决策。"""
+
                     self._conversation_history.append({
                         "role": "user",
-                        "content": "Received empty response. Please output Thought + Action + Action Input.",
+                        "content": retry_prompt,
                     })
                     continue
                 
@@ -405,7 +429,12 @@ class OrchestratorAgent(BaseAgent):
                 "info",
                 f"🎯 Orchestrator 完成: {len(self._all_findings)} 个发现, {self._iteration} 轮决策"
             )
-            
+
+            # 🔥 CRITICAL: Log final findings count before returning
+            logger.info(f"[Orchestrator] Final result: {len(self._all_findings)} findings collected")
+            for i, f in enumerate(self._all_findings[:5]):  # Log first 5 for debugging
+                logger.debug(f"[Orchestrator] Finding {i+1}: {f.get('title', 'N/A')} - {f.get('vulnerability_type', 'N/A')}")
+
             return AgentResult(
                 success=True,
                 data={
@@ -620,21 +649,67 @@ class OrchestratorAgent(BaseAgent):
             # 🔥 处理子 Agent 结果 - 不同 Agent 返回不同的数据结构
             if result.success and result.data:
                 data = result.data
-                
-                # 🔥 收集发现 - 只收集格式正确的漏洞对象
-                # findings 字段通常来自 Analysis/Verification Agent，是漏洞对象数组
-                # initial_findings 来自 Recon Agent，可能是字符串数组（观察）或对象数组
-                findings = data.get("findings", [])
-                if findings:
+
+                # 🔥 CRITICAL FIX: 收集发现 - 支持多种字段名
+                # findings 字段通常来自 Analysis/Verification Agent
+                # initial_findings 来自 Recon Agent
+                raw_findings = data.get("findings", [])
+
+                # 🔥 Also check for initial_findings (from Recon)
+                if not raw_findings and "initial_findings" in data:
+                    initial = data.get("initial_findings", [])
+                    # Convert string findings to dict format
+                    raw_findings = []
+                    for f in initial:
+                        if isinstance(f, dict):
+                            raw_findings.append(f)
+                        elif isinstance(f, str):
+                            # String finding from Recon - skip, it's just an observation
+                            pass
+
+                if raw_findings:
                     # 只添加字典格式的发现
-                    valid_findings = [f for f in findings if isinstance(f, dict)]
-                    self._all_findings.extend(valid_findings)
+                    valid_findings = [f for f in raw_findings if isinstance(f, dict)]
+
+                    logger.info(f"[Orchestrator] {agent_name} returned {len(valid_findings)} valid findings")
+
+                    # 🔥 Merge findings to update existing ones and avoid duplicates
+                    for new_f in valid_findings:
+                        # Create key for identification (file + line + type)
+                        new_key = (
+                            new_f.get("file_path", "") or new_f.get("file", ""),
+                            new_f.get("line_start") or new_f.get("line", 0),
+                            new_f.get("vulnerability_type", "") or new_f.get("type", ""),
+                        )
+
+                        # Check if exists
+                        found = False
+                        for i, existing_f in enumerate(self._all_findings):
+                            existing_key = (
+                                existing_f.get("file_path", "") or existing_f.get("file", ""),
+                                existing_f.get("line_start") or existing_f.get("line", 0),
+                                existing_f.get("vulnerability_type", "") or existing_f.get("type", ""),
+                            )
+                            if new_key == existing_key:
+                                # Update existing with new info (e.g. verification results)
+                                self._all_findings[i] = {**existing_f, **new_f}
+                                found = True
+                                logger.debug(f"[Orchestrator] Updated existing finding: {new_key}")
+                                break
+
+                        if not found:
+                            self._all_findings.append(new_f)
+                            logger.debug(f"[Orchestrator] Added new finding: {new_key}")
+
+                    logger.info(f"[Orchestrator] Total findings now: {len(self._all_findings)}")
+                else:
+                    logger.info(f"[Orchestrator] {agent_name} returned no findings")
                 
                 await self.emit_event(
                     "dispatch_complete",
                     f"✅ {agent_name} Agent 完成",
                     agent=agent_name,
-                    findings_count=len(findings),
+                    findings_count=len(self._all_findings),  # 🔥 Use total findings count
                 )
                 
                 # 🔥 根据 Agent 类型构建不同的观察结果

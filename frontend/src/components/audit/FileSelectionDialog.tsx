@@ -1,3 +1,8 @@
+/**
+ * File Selection Dialog
+ * Cyberpunk Terminal Aesthetic
+ */
+
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
     Dialog,
@@ -25,6 +30,7 @@ import {
     Filter,
     RotateCcw,
     RefreshCw,
+    Terminal,
 } from "lucide-react";
 import { api } from "@/shared/config/database";
 import { toast } from "sonner";
@@ -61,10 +67,10 @@ const getFileIcon = (path: string) => {
     const configExts = ["json", "yml", "yaml", "toml", "xml", "ini"];
 
     if (codeExts.includes(ext)) {
-        return <FileCode className="w-4 h-4 text-blue-600" />;
+        return <FileCode className="w-4 h-4 text-sky-400" />;
     }
     if (configExts.includes(ext)) {
-        return <FileJson className="w-4 h-4 text-yellow-600" />;
+        return <FileJson className="w-4 h-4 text-amber-400" />;
     }
     return <File className="w-4 h-4 text-gray-500" />;
 };
@@ -320,7 +326,7 @@ export default function FileSelectionDialog({
                 items.push(
                     <div key={`folder-${folder.path}`}>
                         <div
-                            className="flex items-center space-x-2 p-2 hover:bg-white border border-transparent hover:border-gray-200 cursor-pointer transition-colors"
+                            className="flex items-center space-x-2 p-2 hover:bg-gray-800/50 border border-transparent hover:border-gray-700 cursor-pointer transition-colors rounded"
                             style={{ paddingLeft: `${depth * 16 + 8}px` }}
                         >
                             <button
@@ -328,7 +334,7 @@ export default function FileSelectionDialog({
                                     e.stopPropagation();
                                     handleExpandFolder(folder.path);
                                 }}
-                                className="p-0.5 hover:bg-gray-200 rounded"
+                                className="p-0.5 hover:bg-gray-700 rounded"
                             >
                                 {isExpanded ? (
                                     <ChevronDown className="w-4 h-4 text-gray-500" />
@@ -346,24 +352,21 @@ export default function FileSelectionDialog({
                                         }
                                     }}
                                     onCheckedChange={() => handleToggleFolder(folder.path)}
-                                    className="rounded-none border-2 border-black data-[state=checked]:bg-primary data-[state=indeterminate]:bg-gray-400"
+                                    className="border-gray-600 data-[state=checked]:bg-primary data-[state=checked]:border-primary data-[state=indeterminate]:bg-gray-500"
                                 />
                             </div>
                             {isExpanded ? (
-                                <FolderOpen className="w-4 h-4 text-amber-500" />
+                                <FolderOpen className="w-4 h-4 text-amber-400" />
                             ) : (
-                                <Folder className="w-4 h-4 text-amber-500" />
+                                <Folder className="w-4 h-4 text-amber-400" />
                             )}
                             <span
-                                className="text-sm font-mono font-medium flex-1"
+                                className="text-sm font-mono font-medium flex-1 text-gray-300"
                                 onClick={() => handleExpandFolder(folder.path)}
                             >
                                 {folder.name}
                             </span>
-                            <Badge
-                                variant="outline"
-                                className="text-xs font-mono rounded-none border-gray-300 text-gray-500"
-                            >
+                            <Badge className="cyber-badge-muted font-mono text-[10px]">
                                 {
                                     filteredFiles.filter((f) =>
                                         f.path.startsWith(folder.path + "/")
@@ -384,7 +387,7 @@ export default function FileSelectionDialog({
                 items.push(
                     <div
                         key={`file-${file.path}`}
-                        className="flex items-center space-x-3 p-2 hover:bg-white border border-transparent hover:border-gray-200 cursor-pointer transition-colors"
+                        className="flex items-center space-x-3 p-2 hover:bg-gray-800/50 border border-transparent hover:border-gray-700 cursor-pointer transition-colors rounded"
                         style={{ paddingLeft: `${depth * 16 + 32}px` }}
                         onClick={() => handleToggleFile(file.path)}
                     >
@@ -392,21 +395,18 @@ export default function FileSelectionDialog({
                             <Checkbox
                                 checked={selectedFiles.has(file.path)}
                                 onCheckedChange={() => handleToggleFile(file.path)}
-                                className="rounded-none border-2 border-black data-[state=checked]:bg-primary data-[state=checked]:text-white"
+                                className="border-gray-600 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                             />
                         </div>
                         {getFileIcon(file.path)}
                         <span
-                            className="text-sm font-mono flex-1 min-w-0 truncate"
+                            className="text-sm font-mono flex-1 min-w-0 truncate text-gray-300"
                             title={file.path}
                         >
                             {fileName}
                         </span>
                         {file.size > 0 && (
-                            <Badge
-                                variant="outline"
-                                className="text-xs font-mono rounded-none border-gray-400 text-gray-500 flex-shrink-0"
-                            >
+                            <Badge className="cyber-badge-muted font-mono text-[10px] flex-shrink-0">
                                 {formatSize(file.size)}
                             </Badge>
                         )}
@@ -422,27 +422,24 @@ export default function FileSelectionDialog({
         return filteredFiles.map((file) => (
             <div
                 key={file.path}
-                className="flex items-center space-x-3 p-2 hover:bg-white border border-transparent hover:border-gray-200 cursor-pointer transition-colors"
+                className="flex items-center space-x-3 p-2 hover:bg-gray-800/50 border border-transparent hover:border-gray-700 cursor-pointer transition-colors rounded"
                 onClick={() => handleToggleFile(file.path)}
             >
                 <div onClick={(e) => e.stopPropagation()}>
                     <Checkbox
                         checked={selectedFiles.has(file.path)}
                         onCheckedChange={() => handleToggleFile(file.path)}
-                        className="rounded-none border-2 border-black data-[state=checked]:bg-primary data-[state=checked]:text-white"
+                        className="border-gray-600 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                     />
                 </div>
                 {getFileIcon(file.path)}
                 <div className="flex-1 min-w-0">
-                    <p className="text-sm font-mono truncate" title={file.path}>
+                    <p className="text-sm font-mono truncate text-gray-300" title={file.path}>
                         {file.path}
                     </p>
                 </div>
                 {file.size > 0 && (
-                    <Badge
-                        variant="outline"
-                        className="text-xs font-mono rounded-none border-gray-400 text-gray-500 flex-shrink-0"
-                    >
+                    <Badge className="cyber-badge-muted font-mono text-[10px] flex-shrink-0">
                         {formatSize(file.size)}
                     </Badge>
                 )}
@@ -452,20 +449,19 @@ export default function FileSelectionDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="!max-w-[1000px] !w-[95vw] max-h-[85vh] flex flex-col bg-white border-2 border-black p-0 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] rounded-none">
-                <DialogHeader className="p-5 border-b-2 border-black bg-gray-50 flex-shrink-0">
-                    <DialogTitle className="flex items-center gap-3 font-display font-bold uppercase text-lg pr-8">
-                        <FolderOpen className="w-5 h-5 text-black flex-shrink-0" />
-                        <span>选择要审计的文件</span>
-                        {excludePatterns && excludePatterns.length > 0 && (
-                            <Badge
-                                variant="outline"
-                                className="rounded-none border-gray-400 text-gray-600 font-mono text-xs ml-auto"
-                            >
-                                已排除 {excludePatterns.length} 种模式
-                            </Badge>
-                        )}
-                    </DialogTitle>
+            <DialogContent className="!max-w-[1000px] !w-[95vw] max-h-[85vh] flex flex-col cyber-card p-0 bg-[#0c0c12]">
+                <DialogHeader className="cyber-card-header flex-shrink-0">
+                    <div className="flex items-center gap-3">
+                        <FolderOpen className="w-5 h-5 text-primary" />
+                        <DialogTitle className="text-lg font-bold uppercase tracking-wider text-white">
+                            选择要审计的文件
+                        </DialogTitle>
+                    </div>
+                    {excludePatterns && excludePatterns.length > 0 && (
+                        <Badge className="cyber-badge-muted font-mono text-xs ml-auto">
+                            已排除 {excludePatterns.length} 种模式
+                        </Badge>
+                    )}
                 </DialogHeader>
 
                 <div className="p-5 flex-1 flex flex-col min-h-0 space-y-3">
@@ -478,7 +474,7 @@ export default function FileSelectionDialog({
                                 placeholder="搜索文件..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="pl-10 h-9 rounded-none border-2 border-black font-mono text-sm"
+                                className="pl-10 h-9 cyber-input"
                             />
                         </div>
 
@@ -489,7 +485,7 @@ export default function FileSelectionDialog({
                                 <select
                                     value={filterType}
                                     onChange={(e) => setFilterType(e.target.value)}
-                                    className="h-9 px-2 rounded-none border-2 border-black font-mono text-sm bg-white"
+                                    className="h-9 px-2 cyber-input font-mono text-sm bg-[#0a0a0f]"
                                 >
                                     <option value="">全部类型</option>
                                     {fileTypes.slice(0, 10).map(([ext, count]) => (
@@ -502,16 +498,16 @@ export default function FileSelectionDialog({
                         )}
 
                         {/* 视图切换 */}
-                        <div className="flex border-2 border-black">
+                        <div className="flex border border-gray-700 rounded overflow-hidden">
                             <button
                                 onClick={() => setViewMode("tree")}
-                                className={`px-2 py-1 text-xs font-mono ${viewMode === "tree" ? "bg-black text-white" : "bg-white text-black hover:bg-gray-100"}`}
+                                className={`px-3 py-1.5 text-xs font-mono uppercase ${viewMode === "tree" ? "bg-primary text-white" : "bg-gray-800 text-gray-400 hover:bg-gray-700"}`}
                             >
                                 树形
                             </button>
                             <button
                                 onClick={() => setViewMode("flat")}
-                                className={`px-2 py-1 text-xs font-mono border-l-2 border-black ${viewMode === "flat" ? "bg-black text-white" : "bg-white text-black hover:bg-gray-100"}`}
+                                className={`px-3 py-1.5 text-xs font-mono uppercase border-l border-gray-700 ${viewMode === "flat" ? "bg-primary text-white" : "bg-gray-800 text-gray-400 hover:bg-gray-700"}`}
                             >
                                 列表
                             </button>
@@ -525,7 +521,7 @@ export default function FileSelectionDialog({
                                 variant="outline"
                                 size="sm"
                                 onClick={handleSelectAll}
-                                className="h-8 px-3 rounded-none border-2 border-black font-mono text-xs"
+                                className="h-8 px-3 cyber-btn-outline font-mono text-xs"
                             >
                                 <CheckSquare className="w-3 h-3 mr-1" />
                                 全选
@@ -534,7 +530,7 @@ export default function FileSelectionDialog({
                                 variant="outline"
                                 size="sm"
                                 onClick={handleDeselectAll}
-                                className="h-8 px-3 rounded-none border-2 border-black font-mono text-xs"
+                                className="h-8 px-3 cyber-btn-outline font-mono text-xs"
                             >
                                 <Square className="w-3 h-3 mr-1" />
                                 清空
@@ -543,7 +539,7 @@ export default function FileSelectionDialog({
                                 variant="outline"
                                 size="sm"
                                 onClick={handleInvertSelection}
-                                className="h-8 px-3 rounded-none border-2 border-black font-mono text-xs"
+                                className="h-8 px-3 cyber-btn-outline font-mono text-xs"
                             >
                                 <RefreshCw className="w-3 h-3 mr-1" />
                                 反选
@@ -556,35 +552,35 @@ export default function FileSelectionDialog({
                                         setSearchTerm("");
                                         setFilterType("");
                                     }}
-                                    className="h-8 px-3 rounded-none border-2 border-gray-400 font-mono text-xs text-gray-600"
+                                    className="h-8 px-3 cyber-btn-outline font-mono text-xs text-gray-400"
                                 >
                                     <RotateCcw className="w-3 h-3 mr-1" />
                                     重置筛选
                                 </Button>
                             )}
                         </div>
-                        <div className="text-sm font-mono text-gray-600">
+                        <div className="text-sm font-mono text-gray-500">
                             {searchTerm || filterType ? (
                                 <span>
                                     筛选: {filteredFiles.length}/{files.length} 个文件，
-                                    已选 {selectedFiles.size} 个
+                                    已选 <span className="text-primary font-bold">{selectedFiles.size}</span> 个
                                 </span>
                             ) : (
                                 <span>
-                                    共 {files.length} 个文件，已选 {selectedFiles.size} 个
+                                    共 {files.length} 个文件，已选 <span className="text-primary font-bold">{selectedFiles.size}</span> 个
                                 </span>
                             )}
                         </div>
                     </div>
 
-                    {/* 文件列表 - 使用固定高度确保滚动正常工作 */}
-                    <div className="border-2 border-black bg-gray-50 relative h-[450px] overflow-hidden">
+                    {/* 文件列表 */}
+                    <div className="border border-gray-800 bg-[#0a0a0f] relative h-[450px] overflow-hidden rounded">
                         {loading ? (
                             <div className="absolute inset-0 flex items-center justify-center">
-                                <div className="animate-spin rounded-none h-8 w-8 border-4 border-primary border-t-transparent"></div>
+                                <div className="loading-spinner" />
                             </div>
                         ) : filteredFiles.length > 0 ? (
-                            <div className="h-full overflow-auto">
+                            <div className="h-full overflow-auto custom-scrollbar">
                                 <div className="p-2">
                                     {viewMode === "tree"
                                         ? renderFolderTree(folderTree)
@@ -604,22 +600,23 @@ export default function FileSelectionDialog({
                     </div>
                 </div>
 
-                <DialogFooter className="p-5 border-t-2 border-black bg-gray-50 flex-shrink-0 flex justify-between">
-                    <div className="text-xs font-mono text-gray-500">
+                <DialogFooter className="p-5 border-t border-gray-800 bg-gray-900/50 flex-shrink-0 flex justify-between">
+                    <div className="text-xs font-mono text-gray-600 flex items-center gap-2">
+                        <Terminal className="w-3 h-3" />
                         提示：点击文件夹可展开/折叠，点击文件夹复选框可批量选择
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-3">
                         <Button
                             variant="outline"
                             onClick={() => onOpenChange(false)}
-                            className="px-4 h-9 rounded-none border-2 border-black font-mono"
+                            className="px-4 h-10 cyber-btn-outline font-mono"
                         >
                             取消
                         </Button>
                         <Button
                             onClick={handleConfirm}
                             disabled={selectedFiles.size === 0}
-                            className="px-4 h-9 rounded-none border-2 border-black bg-primary text-white font-mono shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all disabled:opacity-50"
+                            className="px-5 h-10 cyber-btn-primary font-mono font-bold uppercase"
                         >
                             <FileText className="w-4 h-4 mr-2" />
                             确认选择 ({selectedFiles.size})

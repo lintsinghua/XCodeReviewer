@@ -1,16 +1,10 @@
 /**
  * 嵌入模型配置组件
+ * Cyberpunk Terminal Aesthetic
  * 独立于 LLM 配置，专门用于 Agent 审计的 RAG 系统
  */
 
 import { useState, useEffect } from "react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,7 +16,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import {
   Brain,
   Cpu,
@@ -34,6 +27,9 @@ import {
   Key,
   Zap,
   Info,
+  CheckCircle2,
+  AlertCircle,
+  PlayCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { apiClient } from "@/shared/api/serverClient";
@@ -188,77 +184,65 @@ export default function EmbeddingConfigPanel() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center p-8">
-        <Loader2 className="w-6 h-6 animate-spin" />
+      <div className="flex items-center justify-center min-h-[300px]">
+        <div className="text-center space-y-4">
+          <div className="loading-spinner mx-auto" />
+          <p className="text-gray-500 font-mono text-sm uppercase tracking-wider">加载配置中...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <Card className="border-2 border-black rounded-none shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-      <CardHeader className="border-b-2 border-black bg-purple-50">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-purple-100 border-2 border-purple-300">
-            <Brain className="w-5 h-5 text-purple-600" />
+    <div className="space-y-6">
+      {/* 当前配置状态 */}
+      {currentConfig && (
+        <div className="cyber-card p-4 border-primary/30">
+          <div className="flex items-center gap-2 mb-3">
+            <Server className="w-4 h-4 text-primary" />
+            <span className="font-mono font-bold text-sm uppercase text-gray-300">当前配置</span>
           </div>
-          <div>
-            <CardTitle className="font-mono text-lg">嵌入模型配置</CardTitle>
-            <CardDescription>
-              用于 Agent 审计的 RAG 代码检索，独立于分析 LLM
-            </CardDescription>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="bg-gray-900/50 p-3 rounded-lg border border-gray-800">
+              <p className="text-xs text-gray-500 uppercase mb-1">提供商</p>
+              <Badge className="bg-primary/20 text-primary border-primary/50 font-mono">
+                {currentConfig.provider}
+              </Badge>
+            </div>
+            <div className="bg-gray-900/50 p-3 rounded-lg border border-gray-800">
+              <p className="text-xs text-gray-500 uppercase mb-1">模型</p>
+              <p className="font-mono text-sm text-gray-300 truncate">{currentConfig.model}</p>
+            </div>
+            <div className="bg-gray-900/50 p-3 rounded-lg border border-gray-800">
+              <p className="text-xs text-gray-500 uppercase mb-1">向量维度</p>
+              <p className="font-mono text-sm text-gray-300">{currentConfig.dimensions}</p>
+            </div>
+            <div className="bg-gray-900/50 p-3 rounded-lg border border-gray-800">
+              <p className="text-xs text-gray-500 uppercase mb-1">批处理大小</p>
+              <p className="font-mono text-sm text-gray-300">{currentConfig.batch_size}</p>
+            </div>
           </div>
         </div>
-      </CardHeader>
+      )}
 
-      <CardContent className="p-6 space-y-6">
-        {/* 当前配置状态 */}
-        {currentConfig && (
-          <div className="p-4 bg-gray-50 border-2 border-gray-200 space-y-2">
-            <div className="flex items-center gap-2 text-sm font-mono font-bold">
-              <Server className="w-4 h-4" />
-              当前配置
-            </div>
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <span className="text-gray-500">提供商:</span>{" "}
-                <Badge variant="outline" className="ml-1">
-                  {currentConfig.provider}
-                </Badge>
-              </div>
-              <div>
-                <span className="text-gray-500">模型:</span>{" "}
-                <span className="font-mono">{currentConfig.model}</span>
-              </div>
-              <div>
-                <span className="text-gray-500">向量维度:</span>{" "}
-                <span className="font-mono">{currentConfig.dimensions}</span>
-              </div>
-              <div>
-                <span className="text-gray-500">批处理大小:</span>{" "}
-                <span className="font-mono">{currentConfig.batch_size}</span>
-              </div>
-            </div>
-          </div>
-        )}
-
-        <Separator />
-
+      {/* 配置表单 */}
+      <div className="cyber-card p-6 space-y-6">
         {/* 提供商选择 */}
         <div className="space-y-2">
-          <Label className="font-mono font-bold">嵌入模型提供商</Label>
+          <Label className="text-xs font-bold text-gray-500 uppercase">嵌入模型提供商</Label>
           <Select value={selectedProvider} onValueChange={setSelectedProvider}>
-            <SelectTrigger className="border-2 border-black rounded-none">
+            <SelectTrigger className="h-12 cyber-input">
               <SelectValue placeholder="选择提供商" />
             </SelectTrigger>
-            <SelectContent className="border-2 border-black rounded-none">
+            <SelectContent className="bg-[#0c0c12] border-gray-700">
               {providers.map((provider) => (
-                <SelectItem key={provider.id} value={provider.id}>
+                <SelectItem key={provider.id} value={provider.id} className="font-mono">
                   <div className="flex items-center gap-2">
                     <span>{provider.name}</span>
                     {provider.requires_api_key ? (
-                      <Key className="w-3 h-3 text-amber-500" />
+                      <Key className="w-3 h-3 text-amber-400" />
                     ) : (
-                      <Cpu className="w-3 h-3 text-green-500" />
+                      <Cpu className="w-3 h-3 text-emerald-400" />
                     )}
                   </div>
                 </SelectItem>
@@ -268,7 +252,7 @@ export default function EmbeddingConfigPanel() {
 
           {selectedProviderInfo && (
             <p className="text-xs text-gray-500 flex items-center gap-1">
-              <Info className="w-3 h-3" />
+              <Info className="w-3 h-3 text-sky-400" />
               {selectedProviderInfo.description}
             </p>
           )}
@@ -277,15 +261,15 @@ export default function EmbeddingConfigPanel() {
         {/* 模型选择 */}
         {selectedProviderInfo && (
           <div className="space-y-2">
-            <Label className="font-mono font-bold">模型</Label>
+            <Label className="text-xs font-bold text-gray-500 uppercase">模型</Label>
             <Select value={selectedModel} onValueChange={setSelectedModel}>
-              <SelectTrigger className="border-2 border-black rounded-none">
+              <SelectTrigger className="h-10 cyber-input">
                 <SelectValue placeholder="选择模型" />
               </SelectTrigger>
-              <SelectContent className="border-2 border-black rounded-none">
+              <SelectContent className="bg-[#0c0c12] border-gray-700">
                 {selectedProviderInfo.models.map((model) => (
-                  <SelectItem key={model} value={model}>
-                    <span className="font-mono text-sm">{model}</span>
+                  <SelectItem key={model} value={model} className="font-mono">
+                    <span className="text-sm">{model}</span>
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -296,18 +280,18 @@ export default function EmbeddingConfigPanel() {
         {/* API Key */}
         {selectedProviderInfo?.requires_api_key && (
           <div className="space-y-2">
-            <Label className="font-mono font-bold">
+            <Label className="text-xs font-bold text-gray-500 uppercase">
               API Key
-              <span className="text-red-500 ml-1">*</span>
+              <span className="text-rose-400 ml-1">*</span>
             </Label>
             <Input
               type="password"
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
               placeholder="输入 API Key"
-              className="border-2 border-black rounded-none font-mono"
+              className="h-10 cyber-input"
             />
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-gray-600">
               API Key 将安全存储，不会显示在页面上
             </p>
           </div>
@@ -315,8 +299,8 @@ export default function EmbeddingConfigPanel() {
 
         {/* 自定义端点 */}
         <div className="space-y-2">
-          <Label className="font-mono font-bold">
-            自定义 API 端点 <span className="text-gray-400">(可选)</span>
+          <Label className="text-xs font-bold text-gray-500 uppercase">
+            自定义 API 端点 <span className="text-gray-600">(可选)</span>
           </Label>
           <Input
             type="url"
@@ -333,25 +317,25 @@ export default function EmbeddingConfigPanel() {
                 ? "https://api.jina.ai/v1"
                 : "https://api.openai.com/v1"
             }
-            className="border-2 border-black rounded-none font-mono"
+            className="h-10 cyber-input"
           />
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-gray-600">
             用于 API 代理或自托管服务
           </p>
         </div>
 
         {/* 批处理大小 */}
         <div className="space-y-2">
-          <Label className="font-mono font-bold">批处理大小</Label>
+          <Label className="text-xs font-bold text-gray-500 uppercase">批处理大小</Label>
           <Input
             type="number"
             value={batchSize}
             onChange={(e) => setBatchSize(parseInt(e.target.value) || 100)}
             min={1}
             max={500}
-            className="border-2 border-black rounded-none font-mono w-32"
+            className="h-10 cyber-input w-32"
           />
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-gray-600">
             每批嵌入的文本数量，建议 50-100
           </p>
         </div>
@@ -359,34 +343,34 @@ export default function EmbeddingConfigPanel() {
         {/* 测试结果 */}
         {testResult && (
           <div
-            className={`p-4 border-2 ${
+            className={`p-4 rounded-lg ${
               testResult.success
-                ? "border-green-500 bg-green-50"
-                : "border-red-500 bg-red-50"
+                ? "bg-emerald-500/10 border border-emerald-500/30"
+                : "bg-rose-500/10 border border-rose-500/30"
             }`}
           >
             <div className="flex items-center gap-2 mb-2">
               {testResult.success ? (
-                <Check className="w-5 h-5 text-green-600" />
+                <CheckCircle2 className="w-5 h-5 text-emerald-400" />
               ) : (
-                <X className="w-5 h-5 text-red-600" />
+                <AlertCircle className="w-5 h-5 text-rose-400" />
               )}
               <span
                 className={`font-bold ${
-                  testResult.success ? "text-green-700" : "text-red-700"
+                  testResult.success ? "text-emerald-400" : "text-rose-400"
                 }`}
               >
                 {testResult.success ? "测试成功" : "测试失败"}
               </span>
             </div>
-            <p className="text-sm">{testResult.message}</p>
+            <p className="text-sm text-gray-400">{testResult.message}</p>
             {testResult.success && (
-              <div className="mt-2 text-xs text-gray-600 space-y-1">
-                <div>向量维度: {testResult.dimensions}</div>
-                <div>延迟: {testResult.latency_ms}ms</div>
+              <div className="mt-3 pt-3 border-t border-gray-800 text-xs text-gray-500 space-y-1 font-mono">
+                <div>向量维度: <span className="text-gray-300">{testResult.dimensions}</span></div>
+                <div>延迟: <span className="text-gray-300">{testResult.latency_ms}ms</span></div>
                 {testResult.sample_embedding && (
-                  <div>
-                    示例向量: [{testResult.sample_embedding.map((v) => v.toFixed(4)).join(", ")}...]
+                  <div className="truncate">
+                    示例向量: <span className="text-gray-400">[{testResult.sample_embedding.slice(0, 5).map((v) => v.toFixed(4)).join(", ")}...]</span>
                   </div>
                 )}
               </div>
@@ -395,17 +379,17 @@ export default function EmbeddingConfigPanel() {
         )}
 
         {/* 操作按钮 */}
-        <div className="flex items-center gap-3 pt-4">
+        <div className="flex items-center gap-3 pt-4 border-t border-gray-800 border-dashed">
           <Button
             onClick={handleTest}
             disabled={testing || !selectedProvider || !selectedModel}
             variant="outline"
-            className="border-2 border-black rounded-none hover:bg-gray-100"
+            className="cyber-btn-outline h-10"
           >
             {testing ? (
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
             ) : (
-              <Zap className="w-4 h-4 mr-2" />
+              <PlayCircle className="w-4 h-4 mr-2" />
             )}
             测试连接
           </Button>
@@ -413,7 +397,7 @@ export default function EmbeddingConfigPanel() {
           <Button
             onClick={handleSave}
             disabled={saving || !selectedProvider || !selectedModel}
-            className="bg-purple-600 hover:bg-purple-700 border-2 border-black rounded-none"
+            className="cyber-btn-primary h-10"
           >
             {saving ? (
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -426,24 +410,26 @@ export default function EmbeddingConfigPanel() {
           <Button
             onClick={loadData}
             variant="ghost"
-            className="ml-auto"
+            className="cyber-btn-ghost ml-auto h-10"
           >
             <RefreshCw className="w-4 h-4" />
           </Button>
         </div>
+      </div>
 
-        {/* 说明 */}
-        <div className="p-4 bg-blue-50 border-l-4 border-blue-500 text-sm">
-          <p className="font-bold mb-1">💡 关于嵌入模型</p>
-          <ul className="list-disc list-inside text-gray-600 space-y-1">
-            <li>嵌入模型用于 Agent 审计的代码语义搜索 (RAG)</li>
-            <li>与分析使用的 LLM 独立配置，互不影响</li>
-            <li>推荐使用 OpenAI text-embedding-3-small 或本地 Ollama</li>
-            <li>向量维度影响存储空间和检索精度</li>
-          </ul>
-        </div>
-      </CardContent>
-    </Card>
+      {/* 说明 */}
+      <div className="bg-gray-900/50 border border-gray-800 p-4 rounded-lg text-xs space-y-2">
+        <p className="font-bold uppercase text-gray-400 flex items-center gap-2">
+          <Info className="w-4 h-4 text-sky-400" />
+          关于嵌入模型
+        </p>
+        <ul className="text-gray-500 space-y-1 ml-6">
+          <li>• 嵌入模型用于 Agent 审计的代码语义搜索 (RAG)</li>
+          <li>• 与分析使用的 LLM 独立配置，互不影响</li>
+          <li>• 推荐使用 <span className="text-gray-300">OpenAI text-embedding-3-small</span> 或本地 <span className="text-gray-300">Ollama</span></li>
+          <li>• 向量维度影响存储空间和检索精度</li>
+        </ul>
+      </div>
+    </div>
   );
 }
-

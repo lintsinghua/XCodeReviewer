@@ -730,10 +730,13 @@ class BaseAgent(ABC):
     
     async def emit_tool_result(self, tool_name: str, result: str, duration_ms: int):
         """发射工具结果事件"""
+        # 🔥 将结果转换为字典格式，因为 AgentEventData.tool_output 期望 Dict 类型
+        tool_output_dict = {"result": result[:2000] if result else ""}  # 截断长输出
         await self.emit_event(
             "tool_result",
             f"[{self.name}] 工具 {tool_name} 完成 ({duration_ms}ms)",
             tool_name=tool_name,
+            tool_output=tool_output_dict,
             tool_duration_ms=duration_ms,
         )
     

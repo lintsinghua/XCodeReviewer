@@ -1,8 +1,15 @@
 """
 模式匹配工具
 快速扫描代码中的危险模式
+
+优化版本：
+- 支持直接扫描文件（无需先读取）
+- 支持传入代码内容扫描
+- 增强的漏洞模式库（OWASP Top 10 2025）
+- 更好的输出格式化
 """
 
+import os
 import re
 from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, Field
@@ -22,12 +29,22 @@ class PatternMatch:
     context: str
     severity: str
     description: str
+    cwe_id: str = ""  # 🔥 添加 CWE ID 引用
 
 
 class PatternMatchInput(BaseModel):
-    """模式匹配输入"""
-    code: str = Field(description="要扫描的代码内容")
-    file_path: str = Field(default="unknown", description="文件路径")
+    """模式匹配输入 - 支持两种模式"""
+    # 🔥 模式1: 传入代码内容
+    code: Optional[str] = Field(
+        default=None, 
+        description="要扫描的代码内容（与 scan_file 二选一）"
+    )
+    # 🔥 模式2: 直接扫描文件
+    scan_file: Optional[str] = Field(
+        default=None,
+        description="要扫描的文件路径（相对于项目根目录，与 code 二选一）"
+    )
+    file_path: str = Field(default="unknown", description="文件路径（用于上下文）")
     pattern_types: Optional[List[str]] = Field(
         default=None,
         description="要检测的漏洞类型列表，如 ['sql_injection', 'xss']。为空则检测所有类型"
@@ -278,6 +295,7 @@ class PatternMatchTool(AgentTool):
             },
             "severity": "low",
             "description": "弱加密算法：使用了不安全的加密或哈希算法",
+            "cwe_id": "CWE-327",
         },
     }
     
@@ -288,24 +306,26 @@ class PatternMatchTool(AgentTool):
     @property
     def description(self) -> str:
         vuln_types = ", ".join(self.PATTERNS.keys())
-        return f"""快速扫描代码中的危险模式和常见漏洞。
-使用正则表达式检测已知的不安全代码模式。
+        return f"""🔍 快速扫描代码中的危险模式和常见漏洞。
 
-⚠️ 重要：此工具需要代码内容作为输入，不是目录路径！
-使用步骤：
-1. 先用 read_file 工具读取文件内容
-2. 然后将读取的代码内容传递给此工具的 code 参数
+支持两种使用方式：
+1. ⭐ 推荐：直接扫描文件 - 使用 scan_file 参数指定文件路径
+2. 传入代码内容 - 使用 code 参数传入已读取的代码
 
 支持的漏洞类型: {vuln_types}
 
-输入参数:
-- code (必需): 要扫描的代码内容（字符串）
-- file_path (可选): 文件路径，用于上下文
-- pattern_types (可选): 要检测的漏洞类型列表，如 ['sql_injection', 'xss']
-- language (可选): 编程语言，如 'python', 'php', 'javascript'
+使用示例:
+- 方式1（推荐）: {{"scan_file": "app/views.py", "pattern_types": ["sql_injection", "xss"]}}
+- 方式2: {{"code": "...", "file_path": "app/views.py"}}
 
-这是一个快速扫描工具，可以在分析开始时使用来快速发现潜在问题。
-发现的问题需要进一步分析确认。"""
+输入参数:
+- scan_file (推荐): 要扫描的文件路径（相对于项目根目录）
+- code: 要扫描的代码内容（与 scan_file 二选一）
+- file_path: 文件路径（用于上下文，如果使用 code 模式）
+- pattern_types: 要检测的漏洞类型列表
+- language: 指定编程语言（通常自动检测）
+
+这是一个快速扫描工具，发现的问题需要进一步分析确认。"""
     
     @property
     def args_schema(self):
@@ -313,13 +333,55 @@ class PatternMatchTool(AgentTool):
     
     async def _execute(
         self,
-        code: str,
+        code: Optional[str] = None,
+        scan_file: Optional[str] = None,
         file_path: str = "unknown",
         pattern_types: Optional[List[str]] = None,
         language: Optional[str] = None,
         **kwargs
     ) -> ToolResult:
-        """执行模式匹配"""
+        """执行模式匹配 - 支持直接文件扫描或代码内容扫描"""
+        
+        # 🔥 模式1: 直接扫描文件
+        if scan_file:
+            if not self.project_root:
+                return ToolResult(
+                    success=False,
+                    error="无法扫描文件：未配置项目根目录"
+                )
+            
+            full_path = os.path.normpath(os.path.join(self.project_root, scan_file))
+            
+            # 安全检查：防止路径遍历
+            if not full_path.startswith(os.path.normpath(self.project_root)):
+                return ToolResult(
+                    success=False,
+                    error="安全错误：不允许访问项目目录外的文件"
+                )
+            
+            if not os.path.exists(full_path):
+                return ToolResult(
+                    success=False,
+                    error=f"文件不存在: {scan_file}"
+                )
+            
+            try:
+                with open(full_path, 'r', encoding='utf-8', errors='ignore') as f:
+                    code = f.read()
+                file_path = scan_file
+            except Exception as e:
+                return ToolResult(
+                    success=False,
+                    error=f"读取文件失败: {str(e)}"
+                )
+        
+        # 🔥 检查是否有代码可以扫描
+        if not code:
+            return ToolResult(
+                success=False,
+                error="必须提供 scan_file（文件路径）或 code（代码内容）其中之一"
+            )
+        
         matches: List[PatternMatch] = []
         lines = code.split('\n')
         

@@ -19,6 +19,7 @@ from dataclasses import dataclass
 
 from .base import BaseAgent, AgentConfig, AgentResult, AgentType, AgentPattern
 from ..json_parser import AgentJsonParser
+from ..prompts import CORE_SECURITY_PRINCIPLES, VULNERABILITY_PRIORITIES
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +36,15 @@ ANALYSIS_SYSTEM_PROMPT = """你是 DeepAudit 的漏洞分析 Agent，一个**自
 
 ## 你可以使用的工具
 
+### 🚀 智能扫描工具（推荐优先使用）
+- **smart_scan**: 智能批量安全扫描 ⭐ 首选工具！
+  参数: target (str), quick_mode (bool), focus_vulnerabilities (list)
+  示例: {"target": ".", "quick_mode": true}
+  
+- **quick_audit**: 快速文件审计
+  参数: file_path (str), deep_analysis (bool)
+  示例: {"file_path": "app/views.py", "deep_analysis": true}
+
 ### 文件操作
 - **read_file**: 读取文件内容
   参数: file_path (str), start_line (int), end_line (int)
@@ -44,32 +54,23 @@ ANALYSIS_SYSTEM_PROMPT = """你是 DeepAudit 的漏洞分析 Agent，一个**自
   参数: keyword (str), max_results (int)
 
 ### 深度分析
-- **pattern_match**: 危险模式匹配
-  参数: pattern (str), file_types (list)
+- **pattern_match**: 危险模式匹配（支持直接扫描文件）
+  参数: scan_file (str) 或 code (str), pattern_types (list)
+  示例: {"scan_file": "app/models.py", "pattern_types": ["sql_injection"]}
 - **dataflow_analysis**: 数据流追踪
-  参数: source (str), sink (str)
+  参数: source_code (str), variable_name (str)
 
 ### 外部静态分析工具
-- **semgrep_scan**: Semgrep 静态分析（推荐首先使用）
-  参数: rules (str), max_results (int)
+- **semgrep_scan**: Semgrep 静态分析
+  参数: target_path (str), rules (str)
 - **bandit_scan**: Python 安全扫描
-  参数: target (str)
+  参数: target_path (str)
 - **gitleaks_scan**: Git 密钥泄露扫描
-  参数: target (str)
-- **trufflehog_scan**: 敏感信息扫描
-  参数: target (str)
-- **npm_audit**: NPM 依赖漏洞扫描
-  参数: target (str)
-- **safety_scan**: Python 依赖安全扫描
-  参数: target (str)
-- **osv_scan**: OSV 漏洞数据库扫描
-  参数: target (str)
+  参数: target_path (str)
 
-### RAG 语义搜索
-- **security_search**: 安全相关代码搜索
-  参数: vulnerability_type (str), top_k (int)
-- **function_context**: 函数上下文分析
-  参数: function_name (str)
+### 安全知识查询
+- **query_security_knowledge**: 查询安全知识库
+- **get_vulnerability_knowledge**: 获取漏洞知识
 
 ## 工作方式
 每一步，你需要输出：
@@ -110,12 +111,20 @@ Final Answer: [JSON 格式的漏洞报告]
 }
 ```
 
-## 分析策略建议
-1. **快速扫描**: 先用 semgrep_scan 获得概览
-2. **重点深入**: 对可疑文件使用 read_file + pattern_match
-3. **模式搜索**: 用 search_code 找危险模式 (eval, exec, query 等)
-4. **语义搜索**: 用 RAG 找相似的漏洞模式
-5. **数据流**: 用 dataflow_analysis 追踪用户输入
+## ⭐ 推荐分析策略
+1. **第一步：智能扫描**
+   使用 smart_scan 快速获取项目安全概览
+   示例: {"target": ".", "quick_mode": true}
+
+2. **第二步：重点审计**
+   对 smart_scan 发现的高风险文件使用 quick_audit 深入分析
+   示例: {"file_path": "发现的高风险文件", "deep_analysis": true}
+
+3. **第三步：验证分析**
+   使用 read_file 查看完整上下文，用 dataflow_analysis 追踪数据流
+
+4. **第四步：汇总报告**
+   整理所有发现，输出 Final Answer
 
 ## 重点关注的漏洞类型
 - SQL 注入 (query, execute, raw SQL)
@@ -163,12 +172,15 @@ class AnalysisAgent(BaseAgent):
         tools: Dict[str, Any],
         event_emitter=None,
     ):
+        # 组合增强的系统提示词，注入核心安全原则和漏洞优先级
+        full_system_prompt = f"{ANALYSIS_SYSTEM_PROMPT}\n\n{CORE_SECURITY_PRINCIPLES}\n\n{VULNERABILITY_PRIORITIES}"
+        
         config = AgentConfig(
             name="Analysis",
             agent_type=AgentType.ANALYSIS,
             pattern=AgentPattern.REACT,
             max_iterations=30,
-            system_prompt=ANALYSIS_SYSTEM_PROMPT,
+            system_prompt=full_system_prompt,
         )
         super().__init__(config, llm_service, tools, event_emitter)
         
@@ -412,6 +424,7 @@ Final Answer: {{"findings": [...], "summary": "..."}}"""
                     await self.emit_llm_decision("完成安全分析", "LLM 判断分析已充分")
                     if step.final_answer and "findings" in step.final_answer:
                         all_findings = step.final_answer["findings"]
+                        logger.info(f"[{self.name}] Final Answer contains {len(all_findings)} findings")
                         # 🔥 发射每个发现的事件
                         for finding in all_findings[:5]:  # 限制数量
                             await self.emit_finding(
@@ -424,6 +437,8 @@ Final Answer: {{"findings": [...], "summary": "..."}}"""
                             self.add_insight(
                                 f"发现 {finding.get('severity', 'medium')} 级别漏洞: {finding.get('title', 'Unknown')}"
                             )
+                    else:
+                        logger.warning(f"[{self.name}] Final Answer has no 'findings' key: {step.final_answer}")
                     
                     # 🔥 记录工作完成
                     self.record_work(f"完成安全分析，发现 {len(all_findings)} 个潜在漏洞")
@@ -558,6 +573,7 @@ Final Answer:""",
                 )
             
             # 标准化发现
+            logger.info(f"[{self.name}] Standardizing {len(all_findings)} findings")
             standardized_findings = []
             for finding in all_findings:
                 # 确保 finding 是字典
@@ -585,7 +601,10 @@ Final Answer:""",
                 "info",
                 f"Analysis Agent 完成: {len(standardized_findings)} 个发现, {self._iteration} 轮迭代, {self._tool_calls} 次工具调用"
             )
-            
+
+            # 🔥 CRITICAL: Log final findings count before returning
+            logger.info(f"[{self.name}] Returning {len(standardized_findings)} standardized findings")
+
             return AgentResult(
                 success=True,
                 data={
