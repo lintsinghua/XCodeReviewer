@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class SandboxConfig:
     """沙箱配置"""
-    image: str = "python:3.11-slim"
+    image: str = "deepaudit/sandbox:latest"
     memory_limit: str = "512m"
     cpu_limit: float = 1.0
     timeout: int = 60
@@ -109,6 +109,9 @@ class SandboxManager:
                     "volumes": {
                         temp_dir: {"bind": "/workspace", "mode": "rw"},
                     },
+                    "tmpfs": {
+                        "/home/sandbox": "rw,size=100m,mode=1777"
+                    },
                     "working_dir": working_dir or "/workspace",
                     "environment": env or {},
                     # 安全配置
@@ -169,6 +172,114 @@ class SandboxManager:
                 "exit_code": -1,
             }
     
+    async def execute_tool_command(
+        self,
+        command: str,
+        host_workdir: str,
+        timeout: Optional[int] = None,
+        env: Optional[Dict[str, str]] = None,
+        network_mode: str = "none",
+    ) -> Dict[str, Any]:
+        """
+        在沙箱中对指定目录执行工具命令
+        
+        Args:
+            command: 要执行的命令
+            host_workdir: 宿主机上的工作目录（将被挂载到 /workspace）
+            timeout: 超时时间
+            env: 环境变量
+            network_mode: 网络模式 (none, bridge, host)
+            
+        Returns:
+            执行结果
+        """
+        if not self.is_available:
+            return {
+                "success": False,
+                "error": "Docker 不可用",
+                "stdout": "",
+                "stderr": "",
+                "exit_code": -1,
+            }
+        
+        timeout = timeout or self.config.timeout
+        
+        try:
+            # 准备容器配置
+            container_config = {
+                "image": self.config.image,
+                "command": ["sh", "-c", command],
+                "detach": True,
+                "mem_limit": self.config.memory_limit,
+                "cpu_period": 100000,
+                "cpu_quota": int(100000 * self.config.cpu_limit),
+                "network_mode": network_mode,
+                "user": self.config.user,
+                "read_only": self.config.read_only,
+                "volumes": {
+                    host_workdir: {"bind": "/workspace", "mode": "ro"}, # 只读挂载项目代码
+                },
+                "tmpfs": {
+                    "/home/sandbox": "rw,size=100m,mode=1777"
+                },
+                "working_dir": "/workspace",
+                "environment": env or {},
+                "cap_drop": ["ALL"],
+                "security_opt": ["no-new-privileges:true"],
+            }
+            
+            # 创建并启动容器
+            container = await asyncio.to_thread(
+                self._docker_client.containers.run,
+                **container_config
+            )
+            
+            try:
+                # 等待执行完成
+                result = await asyncio.wait_for(
+                    asyncio.to_thread(container.wait),
+                    timeout=timeout
+                )
+                
+                # 获取日志
+                stdout = await asyncio.to_thread(
+                    container.logs, stdout=True, stderr=False
+                )
+                stderr = await asyncio.to_thread(
+                    container.logs, stdout=False, stderr=True
+                )
+                
+                return {
+                    "success": result["StatusCode"] == 0,
+                    "stdout": stdout.decode('utf-8', errors='ignore')[:50000], # 增大日志限制
+                    "stderr": stderr.decode('utf-8', errors='ignore')[:5000],
+                    "exit_code": result["StatusCode"],
+                    "error": None,
+                }
+                
+            except asyncio.TimeoutError:
+                await asyncio.to_thread(container.kill)
+                return {
+                    "success": False,
+                    "error": f"执行超时 ({timeout}秒)",
+                    "stdout": "",
+                    "stderr": "",
+                    "exit_code": -1,
+                }
+                
+            finally:
+                # 清理容器
+                await asyncio.to_thread(container.remove, force=True)
+                
+        except Exception as e:
+            logger.error(f"Tool execution error: {e}")
+            return {
+                "success": False,
+                "error": str(e),
+                "stdout": "",
+                "stderr": "",
+                "exit_code": -1,
+            }
     async def execute_python(
         self,
         code: str,
