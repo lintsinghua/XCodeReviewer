@@ -942,7 +942,9 @@ class BaseAgent(ABC):
             logger.info(f"[{self.name}] Cancelled before LLM call")
             return "", 0
         
+        logger.info(f"[{self.name}] 🚀 Starting stream_llm_call, emitting thinking_start...")
         await self.emit_thinking_start()
+        logger.info(f"[{self.name}] ✅ thinking_start emitted, starting LLM stream...")
         
         try:
             async for chunk in self.llm_service.chat_completion_stream(

@@ -312,6 +312,13 @@ class EventManager:
         if task_id in self._event_queues:
             try:
                 self._event_queues[task_id].put_nowait(event_data)
+                # 🔥 DEBUG: 记录重要事件被添加到队列
+                if event_type in ["thinking_start", "thinking_end", "dispatch", "task_complete", "task_error"]:
+                    logger.info(f"[EventQueue] Added {event_type} to queue for task {task_id}, queue size: {self._event_queues[task_id].qsize()}")
+                elif event_type == "thinking_token":
+                    # 每10个token记录一次
+                    if sequence % 10 == 0:
+                        logger.debug(f"[EventQueue] Added thinking_token #{sequence} to queue, size: {self._event_queues[task_id].qsize()}")
             except asyncio.QueueFull:
                 logger.warning(f"Event queue full for task {task_id}, dropping event: {event_type}")
         
@@ -438,16 +445,22 @@ class EventManager:
 
         # 获取现有队列（由 AgentRunner 在初始化时创建）
         queue = self._event_queues.get(task_id)
-
         if not queue:
             # 如果队列不存在，创建一个新的（回退逻辑）
             queue = self.create_queue(task_id)
             logger.warning(f"Queue not found for task {task_id}, created new one")
 
-        # 🔥 先排空队列中已缓存的事件（这些是在 SSE 连接前产生的）
+        # 🔥 CRITICAL FIX: 记录当前队列大小，只消耗这些已存在的事件
+        # 之前的 bug: while not queue.empty() 会永远循环，因为 LLM 持续添加事件
+        initial_queue_size = queue.qsize()
+        logger.info(f"[StreamEvents] Task {task_id}: Draining {initial_queue_size} buffered events...")
+
+        # 🔥 先排空队列中已缓存的事件（只消耗连接时已存在的事件数量）
         buffered_count = 0
         skipped_count = 0
-        while not queue.empty():
+        max_drain = initial_queue_size  # 只消耗这么多事件，避免无限循环
+        
+        for _ in range(max_drain):
             try:
                 buffered_event = queue.get_nowait()
 
@@ -460,38 +473,48 @@ class EventManager:
                 buffered_count += 1
                 yield buffered_event
 
-                # 🔥 为所有缓存事件添加延迟，确保不会一起输出
+                # 🔥 为缓存事件添加小延迟，但比之前少很多（避免拖慢）
                 event_type = buffered_event.get("event_type")
                 if event_type == "thinking_token":
-                    await asyncio.sleep(0.015)  # 15ms for tokens
-                else:
-                    await asyncio.sleep(0.005)  # 5ms for other events
+                    await asyncio.sleep(0.005)  # 5ms for tokens (reduced from 15ms)
+                # 其他事件不加延迟，快速发送
 
                 # 检查是否是结束事件
                 if event_type in ["task_complete", "task_error", "task_cancel"]:
-                    logger.debug(f"Task {task_id} already completed, sent {buffered_count} buffered events (skipped {skipped_count})")
+                    logger.info(f"[StreamEvents] Task {task_id} already completed, sent {buffered_count} buffered events (skipped {skipped_count})")
                     return
             except asyncio.QueueEmpty:
                 break
 
         if buffered_count > 0 or skipped_count > 0:
-            logger.debug(f"Drained queue for task {task_id}: sent {buffered_count}, skipped {skipped_count} (after_sequence={after_sequence})")
+            logger.info(f"[StreamEvents] Task {task_id}: Drained {buffered_count} buffered events, skipped {skipped_count}")
+
+        # 🔥 DEBUG: 记录进入实时循环
+        logger.info(f"[StreamEvents] Task {task_id}: Entering real-time loop, queue size: {queue.qsize()}")
 
         # 然后实时推送新事件
         try:
             while True:
                 try:
+                    logger.debug(f"[StreamEvents] Task {task_id}: Waiting for next event from queue...")
                     event = await asyncio.wait_for(queue.get(), timeout=30)
+                    logger.debug(f"[StreamEvents] Task {task_id}: Got event from queue: {event.get('event_type')}")
 
                     # 🔥 过滤掉序列号 <= after_sequence 的事件
                     event_sequence = event.get("sequence", 0)
                     if event_sequence <= after_sequence:
+                        logger.debug(f"[StreamEvents] Task {task_id}: Skipping event seq={event_sequence} (after_sequence={after_sequence})")
                         continue
+
+                    # 🔥 DEBUG: 记录重要事件被发送
+                    event_type = event.get("event_type")
+                    if event_type in ["thinking_start", "thinking_end", "dispatch", "task_complete", "task_error"]:
+                        logger.info(f"[StreamEvents] Yielding {event_type} (seq={event_sequence}) for task {task_id}")
 
                     yield event
 
                     # 🔥 为 thinking_token 添加微延迟确保流式效果
-                    if event.get("event_type") == "thinking_token":
+                    if event_type == "thinking_token":
                         await asyncio.sleep(0.01)  # 10ms
 
                     # 检查是否是结束事件

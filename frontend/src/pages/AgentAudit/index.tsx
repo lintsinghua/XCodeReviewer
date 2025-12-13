@@ -179,8 +179,8 @@ function AgentAuditPageContent() {
 
         // 提取 agent_name
         const agentName = (event.metadata?.agent_name as string) ||
-                          (event.metadata?.agent as string) ||
-                          undefined;
+          (event.metadata?.agent as string) ||
+          undefined;
 
         // 根据事件类型创建日志项
         switch (event.event_type) {
@@ -423,14 +423,16 @@ function AgentAuditPageContent() {
       if (!currentId) {
         // 预生成 ID，这样我们可以跟踪这个日志
         const newLogId = `thinking-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-        dispatch({ type: 'ADD_LOG', payload: {
-          id: newLogId,
-          type: 'thinking',
-          title: 'Thinking...',
-          content: cleanContent,
-          isStreaming: true,
-          agentName: getCurrentAgentName() || undefined,
-        }});
+        dispatch({
+          type: 'ADD_LOG', payload: {
+            id: newLogId,
+            type: 'thinking',
+            title: 'Thinking...',
+            content: cleanContent,
+            isStreaming: true,
+            agentName: getCurrentAgentName() || undefined,
+          }
+        });
         setCurrentThinkingId(newLogId);
       } else {
         updateLog(currentId, { content: cleanContent });
@@ -520,8 +522,8 @@ function AgentAuditPageContent() {
       dispatch({ type: 'ADD_LOG', payload: { type: 'error', title: `Error: ${err}` } });
     },
   }), [afterSequence, dispatch, loadTask, loadFindings, loadAgentTree, debouncedLoadAgentTree,
-      updateLog, removeLog, getCurrentAgentName, getCurrentThinkingId,
-      setCurrentAgentName, setCurrentThinkingId]);
+    updateLog, removeLog, getCurrentAgentName, getCurrentThinkingId,
+    setCurrentAgentName, setCurrentThinkingId]);
 
   const { connect: connectStream, disconnect: disconnectStream, isConnected } = useAgentStream(taskId || null, streamOptions);
 
@@ -589,14 +591,19 @@ function AgentAuditPageContent() {
     if (hasConnectedRef.current) return;
 
     hasConnectedRef.current = true;
-    console.log(`[AgentAudit] Connecting to stream with afterSequence=${afterSequence}`);
+    console.log(`[AgentAudit] Connecting to stream (afterSequence will be passed via streamOptions)`);
     connectStream();
     dispatch({ type: 'ADD_LOG', payload: { type: 'info', title: 'Connected to audit stream' } });
 
     return () => {
+      console.log('[AgentAudit] Cleanup: disconnecting stream');
       disconnectStream();
     };
-  }, [taskId, task?.status, historicalEventsLoaded, connectStream, disconnectStream, dispatch, afterSequence]);
+    // 🔥 CRITICAL FIX: 移除 afterSequence 依赖！
+    // afterSequence 通过 streamOptions 传递，不需要在这里触发重连
+    // 如果包含它，当 loadHistoricalEvents 更新 afterSequence 时会触发断开重连
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [taskId, task?.status, historicalEventsLoaded, connectStream, disconnectStream, dispatch]);
 
   // Polling
   useEffect(() => {

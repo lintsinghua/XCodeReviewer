@@ -30,6 +30,7 @@ export type StreamEventType =
   | 'phase_end'
   | 'phase_complete'
   // 发现相关
+  | 'finding'          // Backward compatibility
   | 'finding_new'
   | 'finding_verified'
   // 状态相关
@@ -133,8 +134,11 @@ export class AgentStreamHandler {
    * 开始监听事件流
    */
   connect(): void {
+    // 🔥 重置断开标志，允许新的连接
+    this.isDisconnecting = false;
+
     // 🔥 如果已经连接，不重复连接
-    if (this.isConnected || this.isDisconnecting) {
+    if (this.isConnected) {
       return;
     }
 
@@ -196,12 +200,14 @@ export class AgentStreamHandler {
       while (true) {
         // 🔥 检查是否正在断开
         if (this.isDisconnecting) {
+          console.log('[AgentStream] Disconnecting, breaking loop');
           break;
         }
 
         const { done, value } = await this.reader.read();
 
         if (done) {
+          console.log('[AgentStream] Reader done, stream ended');
           break;
         }
 
@@ -210,6 +216,12 @@ export class AgentStreamHandler {
         // 解析 SSE 事件
         const events = this.parseSSE(buffer);
         buffer = events.remaining;
+
+        // 🔥 DEBUG: 记录接收到的事件
+        if (events.parsed.length > 0) {
+          const eventTypes = events.parsed.map(e => e.type);
+          console.log(`[AgentStream] Received ${events.parsed.length} events:`, eventTypes);
+        }
 
         // 🔥 逐个处理事件，添加微延迟确保 React 能逐个渲染
         for (const event of events.parsed) {
@@ -448,21 +460,39 @@ export class AgentStreamHandler {
     this.isDisconnecting = true;
     this.isConnected = false;
 
-    // 🔥 取消 fetch 请求
+    // 🔥 取消 fetch 请求 (wrap in try-catch to handle AbortError)
     if (this.abortController) {
-      this.abortController.abort();
+      try {
+        this.abortController.abort();
+      } catch {
+        // 忽略 abort 错误
+      }
       this.abortController = null;
     }
 
-    // 🔥 清理 reader
+    // 🔥 清理 reader (handle promise rejection from cancel())
     if (this.reader) {
-      try {
-        this.reader.cancel();
-        this.reader.releaseLock();
-      } catch {
-        // 忽略清理错误
-      }
+      const reader = this.reader;
       this.reader = null;
+
+      // reader.cancel() returns a Promise that may reject with AbortError
+      // We need to catch this to prevent unhandled promise rejection
+      Promise.resolve().then(() => {
+        try {
+          // Cancel and release in a controlled way
+          reader.cancel().catch(() => {
+            // Silently ignore cancel errors (expected during abort)
+          }).finally(() => {
+            try {
+              reader.releaseLock();
+            } catch {
+              // Silently ignore releaseLock errors
+            }
+          });
+        } catch {
+          // Silently ignore any synchronous errors
+        }
+      });
     }
 
     // 清理 EventSource（如果使用）
