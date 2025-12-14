@@ -18,7 +18,6 @@ import {
   RotateCcw,
   AlertTriangle,
   Inbox,
-  Terminal,
 } from "lucide-react";
 import { api } from "@/shared/config/database";
 import type { Project } from "@/shared/types";
@@ -138,7 +137,7 @@ export default function RecycleBin() {
               placeholder="搜索已删除的项目..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 cyber-input h-10"
+              className="!pl-10 cyber-input h-10"
             />
           </div>
         </div>

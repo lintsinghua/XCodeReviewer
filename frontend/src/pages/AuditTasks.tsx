@@ -294,44 +294,159 @@ export default function AuditTasks() {
       {/* Grid background */}
       <div className="absolute inset-0 cyber-grid-subtle pointer-events-none" />
 
-      {/* Tab 切换 */}
-      <div className="flex items-center gap-4 relative z-10">
+      {/* Tab 切换 - 卡片式设计 */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 relative z-10">
+        {/* Agent任务卡片 */}
         <button
           onClick={() => setActiveTab("agent")}
           className={`
-            flex items-center gap-2 px-4 py-2 rounded-lg font-mono text-sm uppercase tracking-wider
-            transition-all duration-200 border
+            relative group text-left p-5 rounded-xl font-mono
+            transition-all duration-300 border-2 overflow-hidden
             ${activeTab === "agent"
-              ? "bg-primary/20 text-primary border-primary/50"
-              : "bg-gray-900/50 text-gray-400 border-gray-800 hover:border-gray-700 hover:text-gray-300"
+              ? "bg-gradient-to-br from-primary/20 via-primary/10 to-transparent border-primary shadow-lg shadow-primary/20"
+              : "bg-gray-900/50 border-gray-800 hover:border-primary/50 hover:bg-gray-900/80"
             }
           `}
         >
-          <Bot className="w-4 h-4" />
-          Agent任务
-          {agentStats.running > 0 && (
-            <Badge className="ml-1 bg-primary/30 text-primary border-primary/50">
-              {agentStats.running}
-            </Badge>
+          {/* 背景装饰 */}
+          <div className={`absolute top-0 right-0 w-32 h-32 rounded-full blur-3xl transition-opacity duration-300 ${activeTab === "agent" ? "bg-primary/20 opacity-100" : "bg-primary/5 opacity-0 group-hover:opacity-50"
+            }`} />
+
+          <div className="relative flex items-start gap-4">
+            {/* 图标区域 */}
+            <div className={`
+              flex-shrink-0 w-14 h-14 rounded-xl flex items-center justify-center
+              transition-all duration-300
+              ${activeTab === "agent"
+                ? "bg-primary/30 shadow-lg shadow-primary/30"
+                : "bg-gray-800/80 group-hover:bg-primary/20"
+              }
+            `}>
+              <Bot className={`w-7 h-7 transition-colors duration-300 ${activeTab === "agent" ? "text-primary" : "text-gray-400 group-hover:text-primary"
+                }`} />
+            </div>
+
+            {/* 内容区域 */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <h3 className={`text-lg font-mono font-bold uppercase tracking-[0.15em] transition-colors duration-300 ${activeTab === "agent" ? "text-primary text-glow-primary" : "text-gray-300 group-hover:text-primary"}`}>
+                  Agent 智能审计
+                </h3>
+                {agentStats.running > 0 && (
+                  <span className="px-2 py-0.5 text-xs font-bold rounded-full bg-primary/30 text-primary border border-primary/50 animate-pulse">
+                    {agentStats.running} 运行中
+                  </span>
+                )}
+                {activeTab === "agent" && (
+                  <span className="px-2 py-0.5 text-xs font-bold rounded-full bg-primary text-black">
+                    当前
+                  </span>
+                )}
+              </div>
+              <p className={`text-sm transition-colors duration-300 ${activeTab === "agent" ? "text-gray-300" : "text-gray-500 group-hover:text-gray-400"
+                }`}>
+                LLM 驱动的多 Agent 协同深度审计，支持智能漏洞挖掘与验证
+              </p>
+
+              {/* 统计数据 */}
+              <div className="flex items-center gap-4 mt-3 text-xs">
+                <span className={`transition-colors duration-300 ${activeTab === "agent" ? "text-gray-400" : "text-gray-600"}`}>
+                  共 <span className="font-bold text-white">{agentStats.total}</span> 个任务
+                </span>
+                <span className="text-emerald-400">
+                  <CheckCircle className="w-3 h-3 inline mr-1" />
+                  {agentStats.completed}
+                </span>
+                {agentStats.failed > 0 && (
+                  <span className="text-rose-400">
+                    <AlertTriangle className="w-3 h-3 inline mr-1" />
+                    {agentStats.failed}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* 选中指示条 */}
+          {activeTab === "agent" && (
+            <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-primary via-primary to-transparent" />
           )}
         </button>
+
+        {/* 快速扫描任务卡片 */}
         <button
           onClick={() => setActiveTab("regular")}
           className={`
-            flex items-center gap-2 px-4 py-2 rounded-lg font-mono text-sm uppercase tracking-wider
-            transition-all duration-200 border
+            relative group text-left p-5 rounded-xl font-mono
+            transition-all duration-300 border-2 overflow-hidden
             ${activeTab === "regular"
-              ? "bg-primary/20 text-primary border-primary/50"
-              : "bg-gray-900/50 text-gray-400 border-gray-800 hover:border-gray-700 hover:text-gray-300"
+              ? "bg-gradient-to-br from-cyan-500/20 via-cyan-500/10 to-transparent border-cyan-500 shadow-lg shadow-cyan-500/20"
+              : "bg-gray-900/50 border-gray-800 hover:border-cyan-500/50 hover:bg-gray-900/80"
             }
           `}
         >
-          <Zap className="w-4 h-4" />
-          普通任务
-          {regularStats.running > 0 && (
-            <Badge className="ml-1 bg-sky-500/30 text-sky-400 border-sky-500/50">
-              {regularStats.running}
-            </Badge>
+          {/* 背景装饰 */}
+          <div className={`absolute top-0 right-0 w-32 h-32 rounded-full blur-3xl transition-opacity duration-300 ${activeTab === "regular" ? "bg-cyan-500/20 opacity-100" : "bg-cyan-500/5 opacity-0 group-hover:opacity-50"
+            }`} />
+
+          <div className="relative flex items-start gap-4">
+            {/* 图标区域 */}
+            <div className={`
+              flex-shrink-0 w-14 h-14 rounded-xl flex items-center justify-center
+              transition-all duration-300
+              ${activeTab === "regular"
+                ? "bg-cyan-500/30 shadow-lg shadow-cyan-500/30"
+                : "bg-gray-800/80 group-hover:bg-cyan-500/20"
+              }
+            `}>
+              <Zap className={`w-7 h-7 transition-colors duration-300 ${activeTab === "regular" ? "text-cyan-400" : "text-gray-400 group-hover:text-cyan-400"
+                }`} />
+            </div>
+
+            {/* 内容区域 */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <h3 className={`text-lg font-mono font-bold uppercase tracking-[0.15em] transition-colors duration-300 ${activeTab === "regular" ? "text-cyan-400 text-glow-cyan" : "text-gray-300 group-hover:text-cyan-400"}`}>
+                  快速扫描任务
+                </h3>
+                {regularStats.running > 0 && (
+                  <span className="px-2 py-0.5 text-xs font-bold rounded-full bg-cyan-500/30 text-cyan-400 border border-cyan-500/50 animate-pulse">
+                    {regularStats.running} 运行中
+                  </span>
+                )}
+                {activeTab === "regular" && (
+                  <span className="px-2 py-0.5 text-xs font-bold rounded-full bg-cyan-500 text-black">
+                    当前
+                  </span>
+                )}
+              </div>
+              <p className={`text-sm transition-colors duration-300 ${activeTab === "regular" ? "text-gray-300" : "text-gray-500 group-hover:text-gray-400"
+                }`}>
+                传统规则引擎驱动的快速代码扫描，适合大规模批量检测
+              </p>
+
+              {/* 统计数据 */}
+              <div className="flex items-center gap-4 mt-3 text-xs">
+                <span className={`transition-colors duration-300 ${activeTab === "regular" ? "text-gray-400" : "text-gray-600"}`}>
+                  共 <span className="font-bold text-white">{regularStats.total}</span> 个任务
+                </span>
+                <span className="text-emerald-400">
+                  <CheckCircle className="w-3 h-3 inline mr-1" />
+                  {regularStats.completed}
+                </span>
+                {regularStats.failed > 0 && (
+                  <span className="text-rose-400">
+                    <AlertTriangle className="w-3 h-3 inline mr-1" />
+                    {regularStats.failed}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* 选中指示条 */}
+          {activeTab === "regular" && (
+            <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-cyan-500 via-cyan-500 to-transparent" />
           )}
         </button>
       </div>
@@ -396,7 +511,7 @@ export default function AuditTasks() {
               placeholder={activeTab === "agent" ? "搜索Agent任务名称..." : "搜索项目名称或任务类型..."}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="cyber-input pl-10"
+              className="cyber-input !pl-10"
             />
           </div>
           {activeTab === "regular" && (
@@ -454,18 +569,16 @@ export default function AuditTasks() {
                   {/* Task Header */}
                   <div className="flex items-center justify-between mb-4 pb-4 border-b border-gray-800">
                     <div className="flex items-center space-x-4">
-                      <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                        task.status === 'completed' ? 'bg-emerald-500/20' :
+                      <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${task.status === 'completed' ? 'bg-emerald-500/20' :
                         task.status === 'running' ? 'bg-sky-500/20' :
-                        task.status === 'failed' ? 'bg-rose-500/20' :
-                        'bg-gray-800/50'
-                      }`}>
-                        <Bot className={`w-6 h-6 ${
-                          task.status === 'completed' ? 'text-emerald-400' :
+                          task.status === 'failed' ? 'bg-rose-500/20' :
+                            'bg-gray-800/50'
+                        }`}>
+                        <Bot className={`w-6 h-6 ${task.status === 'completed' ? 'text-emerald-400' :
                           task.status === 'running' ? 'text-sky-400' :
-                          task.status === 'failed' ? 'text-rose-400' :
-                          'text-gray-400'
-                        }`} />
+                            task.status === 'failed' ? 'text-rose-400' :
+                              'text-gray-400'
+                          }`} />
                       </div>
                       <div>
                         <h3 className="font-bold text-xl text-white uppercase tracking-wide">
@@ -633,12 +746,11 @@ export default function AuditTasks() {
                   {/* Task Header */}
                   <div className="flex items-center justify-between mb-4 pb-4 border-b border-gray-800">
                     <div className="flex items-center space-x-4">
-                      <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                        task.status === 'completed' ? 'bg-emerald-500/20' :
+                      <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${task.status === 'completed' ? 'bg-emerald-500/20' :
                         task.status === 'running' ? 'bg-sky-500/20' :
-                        task.status === 'failed' ? 'bg-rose-500/20' :
-                        'bg-gray-800/50'
-                      }`}>
+                          task.status === 'failed' ? 'bg-rose-500/20' :
+                            'bg-gray-800/50'
+                        }`}>
                         {getStatusIcon(task.status)}
                       </div>
                       <div>

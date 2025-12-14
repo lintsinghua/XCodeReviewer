@@ -474,7 +474,7 @@ export default function FileSelectionDialog({
                                 placeholder="搜索文件..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="pl-10 h-9 cyber-input"
+                                className="!pl-10 h-9 cyber-input"
                             />
                         </div>
 

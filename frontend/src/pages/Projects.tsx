@@ -787,7 +787,7 @@ export default function Projects() {
             placeholder="搜索项目..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="cyber-input pl-10"
+            className="cyber-input !pl-10"
           />
         </div>
         <Button className="cyber-btn-primary h-10" onClick={() => setShowCreateDialog(true)}>

@@ -340,7 +340,7 @@ export default function CreateTaskDialog({
                   placeholder="搜索项目..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-9 h-10 cyber-input"
+                  className="!pl-9 h-10 cyber-input"
                 />
               </div>
 
@@ -668,11 +668,10 @@ function ProjectCard({
 
   return (
     <div
-      className={`flex items-center gap-3 p-3 cursor-pointer rounded transition-all ${
-        selected
+      className={`flex items-center gap-3 p-3 cursor-pointer rounded transition-all ${selected
           ? "bg-primary/10 border border-primary/50"
           : "hover:bg-gray-800/50 border border-transparent"
-      }`}
+        }`}
       onClick={onSelect}
     >
       <Checkbox
@@ -694,11 +693,10 @@ function ProjectCard({
             {project.name}
           </span>
           <Badge
-            className={`text-[10px] px-1 py-0 font-mono ${
-              isRepo
+            className={`text-[10px] px-1 py-0 font-mono ${isRepo
                 ? "bg-blue-500/20 text-blue-400 border-blue-500/30"
                 : "bg-amber-500/20 text-amber-400 border-amber-500/30"
-            }`}
+              }`}
           >
             {isRepo ? "REPO" : "ZIP"}
           </Badge>

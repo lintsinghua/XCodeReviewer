@@ -267,7 +267,7 @@ export default function CreateAgentTaskDialog({
                 placeholder="Search projects..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9 h-10 cyber-input"
+                className="!pl-9 h-10 cyber-input"
               />
             </div>
 
@@ -337,17 +337,15 @@ export default function CreateAgentTaskDialog({
 
                   {storedZipInfo?.has_file && (
                     <div
-                      className={`p-2 rounded border cursor-pointer transition-colors ${
-                        useStoredZip
+                      className={`p-2 rounded border cursor-pointer transition-colors ${useStoredZip
                           ? 'border-emerald-500/50 bg-emerald-950/30'
                           : 'border-gray-700 hover:border-gray-600 bg-gray-900/30'
-                      }`}
+                        }`}
                       onClick={() => setUseStoredZip(true)}
                     >
                       <div className="flex items-center gap-2">
-                        <div className={`w-3 h-3 rounded-full border-2 ${
-                          useStoredZip ? 'border-emerald-500 bg-emerald-500' : 'border-gray-600'
-                        }`} />
+                        <div className={`w-3 h-3 rounded-full border-2 ${useStoredZip ? 'border-emerald-500 bg-emerald-500' : 'border-gray-600'
+                          }`} />
                         <span className="text-sm text-white font-mono">
                           {storedZipInfo.original_filename}
                         </span>
@@ -359,16 +357,14 @@ export default function CreateAgentTaskDialog({
                   )}
 
                   <div
-                    className={`p-2 rounded border cursor-pointer transition-colors ${
-                      !useStoredZip && zipFile
+                    className={`p-2 rounded border cursor-pointer transition-colors ${!useStoredZip && zipFile
                         ? 'border-amber-500/50 bg-amber-950/30'
                         : 'border-gray-700 hover:border-gray-600 bg-gray-900/30'
-                    }`}
+                      }`}
                   >
                     <label className="flex items-center gap-2 cursor-pointer">
-                      <div className={`w-3 h-3 rounded-full border-2 ${
-                        !useStoredZip && zipFile ? 'border-amber-500 bg-amber-500' : 'border-gray-600'
-                      }`} />
+                      <div className={`w-3 h-3 rounded-full border-2 ${!useStoredZip && zipFile ? 'border-amber-500 bg-amber-500' : 'border-gray-600'
+                        }`} />
                       <Upload className="w-4 h-4 text-gray-500" />
                       <span className="text-sm text-gray-400 font-mono">
                         {zipFile ? zipFile.name : "Upload new file..."}
@@ -541,11 +537,10 @@ function ProjectItem({
 
   return (
     <div
-      className={`flex items-center gap-3 p-3 cursor-pointer rounded transition-all ${
-        selected
+      className={`flex items-center gap-3 p-3 cursor-pointer rounded transition-all ${selected
           ? "bg-primary/10 border border-primary/50"
           : "hover:bg-gray-800/50 border border-transparent"
-      }`}
+        }`}
       onClick={onSelect}
     >
       <div className={`p-1.5 rounded ${isRepo ? "bg-blue-500/20" : "bg-amber-500/20"}`}>
@@ -562,11 +557,10 @@ function ProjectItem({
             {project.name}
           </span>
           <Badge
-            className={`text-[10px] px-1 py-0 font-mono ${
-              isRepo
+            className={`text-[10px] px-1 py-0 font-mono ${isRepo
                 ? "bg-blue-500/20 text-blue-400 border-blue-500/30"
                 : "bg-amber-500/20 text-amber-400 border-amber-500/30"
-            }`}
+              }`}
           >
             {isRepo ? "REPO" : "ZIP"}
           </Badge>
