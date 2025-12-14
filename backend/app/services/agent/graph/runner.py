@@ -204,6 +204,8 @@ class AgentRunner:
             CommandInjectionTestTool, SqlInjectionTestTool, XssTestTool,
             PathTraversalTestTool, SstiTestTool, DeserializationTestTool,
             UniversalVulnTestTool,
+            # Kunlun-M 静态代码分析工具 (MIT License)
+            KunlunMTool, KunlunRuleListTool, KunlunPluginTool,
         )
         # 🔥 导入知识查询工具
         from app.services.agent.knowledge import (
@@ -214,7 +216,34 @@ class AgentRunner:
         # 🔥 获取排除模式和目标文件
         exclude_patterns = self.task.exclude_patterns or []
         target_files = self.task.target_files or None
-        
+
+        # ============ 🔥 提前初始化 SandboxManager（供所有外部工具共享）============
+        self.sandbox_manager = None
+        try:
+            from app.services.agent.tools.sandbox_tool import SandboxConfig
+            sandbox_config = SandboxConfig(
+                image=settings.SANDBOX_IMAGE,
+                memory_limit=settings.SANDBOX_MEMORY_LIMIT,
+                cpu_limit=settings.SANDBOX_CPU_LIMIT,
+                timeout=settings.SANDBOX_TIMEOUT,
+                network_mode=settings.SANDBOX_NETWORK_MODE,
+            )
+            self.sandbox_manager = SandboxManager(config=sandbox_config)
+            # 🔥 必须调用 initialize() 来连接 Docker
+            await self.sandbox_manager.initialize()
+            logger.info(f"✅ SandboxManager initialized early (Docker available: {self.sandbox_manager.is_available})")
+        except Exception as e:
+            logger.warning(f"❌ Early Sandbox Manager initialization failed: {e}")
+            import traceback
+            logger.warning(f"Traceback: {traceback.format_exc()}")
+            # 尝试创建默认管理器作为后备
+            try:
+                self.sandbox_manager = SandboxManager()
+                await self.sandbox_manager.initialize()
+                logger.info(f"⚠️ Created fallback SandboxManager (Docker available: {self.sandbox_manager.is_available})")
+            except Exception as e2:
+                logger.error(f"❌ Failed to create fallback SandboxManager: {e2}")
+
         # ============ 基础工具（所有 Agent 共享）============
         base_tools = {
             "read_file": FileReadTool(self.project_root, exclude_patterns, target_files),
@@ -225,11 +254,18 @@ class AgentRunner:
         
         # ============ Recon Agent 专属工具 ============
         # 职责：信息收集、项目结构分析、技术栈识别
+        # 🔥 新增：外部工具也可用于Recon阶段的快速扫描
         self.recon_tools = {
             **base_tools,
             "search_code": FileSearchTool(self.project_root, exclude_patterns, target_files),
             # 🔥 新增：反思工具
             "reflect": ReflectTool(),
+            # 🔥 外部安全工具（共享 SandboxManager 实例）
+            "semgrep_scan": SemgrepTool(self.project_root, self.sandbox_manager),
+            "bandit_scan": BanditTool(self.project_root, self.sandbox_manager),
+            "gitleaks_scan": GitleaksTool(self.project_root, self.sandbox_manager),
+            "safety_scan": SafetyTool(self.project_root, self.sandbox_manager),
+            "npm_audit": NpmAuditTool(self.project_root, self.sandbox_manager),
         }
         
         # RAG 工具（Recon 用于语义搜索）
@@ -246,14 +282,18 @@ class AgentRunner:
             # TODO: code_analysis 工具暂时禁用，因为 LLM 调用经常失败
             # "code_analysis": CodeAnalysisTool(self.llm_service),
             "dataflow_analysis": DataFlowAnalysisTool(self.llm_service),
-            # 外部静态分析工具
-            "semgrep_scan": SemgrepTool(self.project_root),
-            "bandit_scan": BanditTool(self.project_root),
-            "gitleaks_scan": GitleaksTool(self.project_root),
-            "trufflehog_scan": TruffleHogTool(self.project_root),
-            "npm_audit": NpmAuditTool(self.project_root),
-            "safety_scan": SafetyTool(self.project_root),
-            "osv_scan": OSVScannerTool(self.project_root),
+            # 🔥 外部静态分析工具（共享 SandboxManager 实例）
+            "semgrep_scan": SemgrepTool(self.project_root, self.sandbox_manager),
+            "bandit_scan": BanditTool(self.project_root, self.sandbox_manager),
+            "gitleaks_scan": GitleaksTool(self.project_root, self.sandbox_manager),
+            "trufflehog_scan": TruffleHogTool(self.project_root, self.sandbox_manager),
+            "npm_audit": NpmAuditTool(self.project_root, self.sandbox_manager),
+            "safety_scan": SafetyTool(self.project_root, self.sandbox_manager),
+            "osv_scan": OSVScannerTool(self.project_root, self.sandbox_manager),
+            # 🔥 Kunlun-M 静态代码分析工具 (MIT License - https://github.com/LoRexxar/Kunlun-M)
+            "kunlun_scan": KunlunMTool(self.project_root),
+            "kunlun_list_rules": KunlunRuleListTool(self.project_root),
+            "kunlun_plugin": KunlunPluginTool(self.project_root),
             # 🔥 新增：反思工具
             "reflect": ReflectTool(),
             # 🔥 新增：安全知识查询工具（基于RAG）
@@ -276,35 +316,8 @@ class AgentRunner:
             # 🔥 新增：反思工具
             "reflect": ReflectTool(),
         }
-        
-        # 沙箱工具（仅 Verification Agent 可用）
-        self.sandbox_manager = None
-        try:
-            from app.services.agent.tools.sandbox_tool import SandboxConfig
-            sandbox_config = SandboxConfig(
-                image=settings.SANDBOX_IMAGE,
-                memory_limit=settings.SANDBOX_MEMORY_LIMIT,
-                cpu_limit=settings.SANDBOX_CPU_LIMIT,
-                timeout=settings.SANDBOX_TIMEOUT,
-                network_mode=settings.SANDBOX_NETWORK_MODE,
-            )
-            self.sandbox_manager = SandboxManager(config=sandbox_config)
-            # 🔥 必须调用 initialize() 来连接 Docker
-            await self.sandbox_manager.initialize()
-        except Exception as e:
-            logger.warning(f"❌ Sandbox Manager initialization failed: {e}")
-            import traceback
-            logger.warning(f"Traceback: {traceback.format_exc()}")
-            # 尝试创建默认管理器作为后备
-            try:
-                self.sandbox_manager = SandboxManager()
-                # 🔥 同样需要调用 initialize()
-                await self.sandbox_manager.initialize()
-                logger.info("⚠️ Created fallback SandboxManager (Docker might be unavailable)")
-            except Exception as e2:
-                logger.error(f"❌ Failed to create fallback SandboxManager: {e2}")
 
-        # 始终注册沙箱工具，即使 Docker 不可用（工具内部会检查）
+        # 🔥 注册沙箱工具（使用提前初始化的 SandboxManager）
         if self.sandbox_manager:
             # 🔥 沙箱核心工具
             self.verification_tools["sandbox_exec"] = SandboxTool(self.sandbox_manager)

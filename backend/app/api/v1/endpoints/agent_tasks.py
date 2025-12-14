@@ -234,8 +234,16 @@ async def _execute_agent_task(task_id: str):
     from app.services.agent.event_manager import EventManager, AgentEventEmitter
     from app.services.llm.service import LLMService
     from app.services.agent.core import agent_registry
+    from app.services.agent.tools import SandboxManager
     from app.core.config import settings
     import time
+    
+    # 🔥 在任务最开始就初始化 Docker 沙箱管理器
+    # 这样可以确保整个任务生命周期内使用同一个管理器，并且尽早发现 Docker 问题
+    logger.info(f"🚀 Starting execution for task {task_id}")
+    sandbox_manager = SandboxManager()
+    await sandbox_manager.initialize()
+    logger.info(f"🐳 Global Sandbox Manager initialized (Available: {sandbox_manager.is_available})")
     
     async with async_session_factory() as db:
         orchestrator = None
@@ -275,11 +283,12 @@ async def _execute_agent_task(task_id: str):
             # 创建 LLM 服务
             llm_service = LLMService(user_config=user_config)
             
-            # 初始化工具集 - 传递排除模式和目标文件
+            # 初始化工具集 - 传递排除模式和目标文件以及预初始化的 sandbox_manager
             tools = await _initialize_tools(
                 project_root, 
                 llm_service, 
                 user_config,
+                sandbox_manager=sandbox_manager,
                 exclude_patterns=task.exclude_patterns,
                 target_files=task.target_files,
             )
@@ -535,6 +544,7 @@ async def _initialize_tools(
     project_root: str, 
     llm_service, 
     user_config: Optional[Dict[str, Any]],
+    sandbox_manager: Any, # 传递预初始化的 SandboxManager
     exclude_patterns: Optional[List[str]] = None,
     target_files: Optional[List[str]] = None,
 ) -> Dict[str, Dict[str, Any]]:
@@ -544,6 +554,7 @@ async def _initialize_tools(
         project_root: 项目根目录
         llm_service: LLM 服务
         user_config: 用户配置
+        sandbox_manager: 沙箱管理器
         exclude_patterns: 排除模式列表
         target_files: 目标文件列表
     """
@@ -551,6 +562,7 @@ async def _initialize_tools(
         FileReadTool, FileSearchTool, ListFilesTool,
         PatternMatchTool, CodeAnalysisTool, DataFlowAnalysisTool,
         SemgrepTool, BanditTool, GitleaksTool,
+        NpmAuditTool, SafetyTool, TruffleHogTool, OSVScannerTool,  # 🔥 Added missing tools
         ThinkTool, ReflectTool,
         CreateVulnerabilityReportTool,
         VulnerabilityValidationTool,
@@ -572,6 +584,14 @@ async def _initialize_tools(
     # Recon 工具
     recon_tools = {
         **base_tools,
+        # 🔥 外部侦察工具 (Recon 阶段也需要使用这些工具来收集初步信息)
+        "semgrep_scan": SemgrepTool(project_root, sandbox_manager),
+        "bandit_scan": BanditTool(project_root, sandbox_manager),
+        "gitleaks_scan": GitleaksTool(project_root, sandbox_manager),
+        "npm_audit": NpmAuditTool(project_root, sandbox_manager),
+        "safety_scan": SafetyTool(project_root, sandbox_manager),
+        "trufflehog_scan": TruffleHogTool(project_root, sandbox_manager),
+        "osv_scan": OSVScannerTool(project_root, sandbox_manager),
     }
     
     # Analysis 工具
@@ -587,10 +607,14 @@ async def _initialize_tools(
         "pattern_match": PatternMatchTool(project_root),
         # 数据流分析
         "dataflow_analysis": DataFlowAnalysisTool(llm_service),
-        # 外部安全工具
-        "semgrep_scan": SemgrepTool(project_root),
-        "bandit_scan": BanditTool(project_root),
-        "gitleaks_scan": GitleaksTool(project_root),
+        # 外部安全工具 (传入共享的 sandbox_manager)
+        "semgrep_scan": SemgrepTool(project_root, sandbox_manager),
+        "bandit_scan": BanditTool(project_root, sandbox_manager),
+        "gitleaks_scan": GitleaksTool(project_root, sandbox_manager),
+        "npm_audit": NpmAuditTool(project_root, sandbox_manager),
+        "safety_scan": SafetyTool(project_root, sandbox_manager),
+        "trufflehog_scan": TruffleHogTool(project_root, sandbox_manager),
+        "osv_scan": OSVScannerTool(project_root, sandbox_manager),
         # 安全知识查询
         "query_security_knowledge": SecurityKnowledgeQueryTool(),
         "get_vulnerability_knowledge": GetVulnerabilityKnowledgeTool(),
@@ -599,7 +623,7 @@ async def _initialize_tools(
     # Verification 工具
     # 🔥 导入沙箱工具
     from app.services.agent.tools import (
-        SandboxTool, SandboxHttpTool, VulnerabilityVerifyTool, SandboxManager,
+        SandboxTool, SandboxHttpTool, VulnerabilityVerifyTool,
         # 多语言代码测试工具
         PhpTestTool, PythonTestTool, JavaScriptTestTool, JavaTestTool,
         GoTestTool, RubyTestTool, ShellTestTool, UniversalCodeTestTool,
@@ -608,11 +632,6 @@ async def _initialize_tools(
         PathTraversalTestTool, SstiTestTool, DeserializationTestTool,
         UniversalVulnTestTool,
     )
-
-    # 🔥 初始化沙箱管理器
-    sandbox_manager = SandboxManager()
-    await sandbox_manager.initialize()
-    logger.info(f"✅ Sandbox initialized (available: {sandbox_manager.is_available})")
 
     verification_tools = {
         **base_tools,

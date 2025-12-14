@@ -449,7 +449,7 @@ export default function FileSelectionDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="!max-w-[1000px] !w-[95vw] max-h-[85vh] flex flex-col cyber-card p-0 bg-[#0c0c12]">
+            <DialogContent className="!max-w-[1000px] !w-[95vw] max-h-[85vh] flex flex-col cyber-card p-0 bg-[#0c0c12] !fixed">
                 <DialogHeader className="cyber-card-header flex-shrink-0">
                     <div className="flex items-center gap-3">
                         <FolderOpen className="w-5 h-5 text-primary" />
@@ -464,7 +464,7 @@ export default function FileSelectionDialog({
                     )}
                 </DialogHeader>
 
-                <div className="p-5 flex-1 flex flex-col min-h-0 space-y-3">
+                <div className="p-5 flex-1 flex flex-col min-h-0 space-y-3 overflow-y-auto">
                     {/* 工具栏 */}
                     <div className="flex items-center gap-2 flex-wrap">
                         {/* 搜索框 */}

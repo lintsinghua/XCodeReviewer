@@ -125,6 +125,11 @@ class AgentConfig(BaseSettings):
         default=True,
         description="Enable OSV scanner"
     )
+    # Kunlun-M (MIT License - https://github.com/LoRexxar/Kunlun-M)
+    kunlun_enabled: bool = Field(
+        default=True,
+        description="Enable Kunlun-M static code analyzer"
+    )
 
     # External Tool Timeouts
     semgrep_timeout_seconds: int = Field(
@@ -138,6 +143,10 @@ class AgentConfig(BaseSettings):
     gitleaks_timeout_seconds: int = Field(
         default=60,
         description="Timeout for Gitleaks scanner"
+    )
+    kunlun_timeout_seconds: int = Field(
+        default=600,
+        description="Timeout for Kunlun-M scanner (10 minutes for deep analysis)"
     )
 
     # ============ Rate Limiting ============

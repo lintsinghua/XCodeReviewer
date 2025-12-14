@@ -1,28 +1,211 @@
 [project]
 name = "deepaudit-backend"
-version = "2.0.0-beta.7"
-description = "DeepAudit Backend API"
-requires-python = ">=3.13"
+version = "3.0.0"
+description = "DeepAudit Backend API - AI-Powered Code Security Audit Platform"
+requires-python = ">=3.11,<3.13"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [
+    { name = "DeepAudit Team" }
+]
+keywords = ["security", "audit", "code-review", "vulnerability", "ai", "llm"]
+
 dependencies = [
+    # ============ Web Framework ============
     "fastapi>=0.100.0",
-    "uvicorn[standard]",
+    "uvicorn[standard]>=0.23.0",
+    "sse-starlette>=1.8.2",
+
+    # ============ Database ============
     "sqlalchemy>=2.0.0",
-    "asyncpg",
-    "alembic",
+    "asyncpg>=0.29.0",
+    "alembic>=1.13.0",
+    "greenlet>=3.0.0",
+
+    # ============ Data Validation ============
     "pydantic>=2.0.0",
-    "pydantic-settings",
-    "passlib[bcrypt]",
-    "python-jose[cryptography]",
-    "python-multipart",
-    "httpx",
-    "email-validator",
-    "greenlet",
-    "bcrypt<5.0.0",
+    "pydantic-settings>=2.0.0",
+    "email-validator>=2.1.0",
+
+    # ============ Authentication ============
+    "passlib[bcrypt]>=1.7.4",
+    "python-jose[cryptography]>=3.3.0",
+    "python-multipart>=0.0.6",
+    "bcrypt>=4.0.0,<5.0.0",
+
+    # ============ HTTP Client ============
+    "httpx>=0.25.0",
+
+    # ============ LLM Integration ============
     "litellm>=1.0.0",
+    "tiktoken>=0.5.2",
+
+    # ============ Report Generation ============
     "reportlab>=4.0.0",
-    "weasyprint>=66.0",
+    "weasyprint>=60.0",
     "jinja2>=3.1.6",
+
+    # ============ Utilities ============
     "json-repair>=0.30.0",
-    "bandit>=1.9.2",
-    "safety>=3.7.0",
+    "aiofiles>=23.2.1",
+
+    # ============ LangChain & LangGraph ============
+    "langchain>=0.1.0",
+    "langchain-community>=0.0.20",
+    "langchain-openai>=0.0.5",
+    "langgraph>=0.0.40",
+
+    # ============ Vector Database ============
+    "chromadb>=0.4.22",
+
+    # ============ Code Parsing ============
+    "tree-sitter>=0.21.0",
+    "tree-sitter-languages>=1.10.0",
+    "pygments>=2.17.0",
+
+    # ============ Docker Sandbox ============
+    "docker>=7.0.0",
+
+    # ============ Security Tools ============
+    "bandit>=1.7.0",
+    "safety>=2.3.0",
+    "pip-audit>=2.6.0",
+
+    # ============ Kunlun-M Dependencies (MIT License) ============
+    # https://github.com/LoRexxar/Kunlun-M
+    "pyjsparser>=2.7.1",
+    "phply>=1.2.6",
+    "esprima>=4.0.1",
+    "jsbeautifier>=1.14.0",
+    "colorlog>=6.0.0",
+    "portalocker>=2.0.0",
+    "prettytable>=3.0.0",
+    "rarfile>=4.0",
+    "beautifulsoup4>=4.12.0",
+    "django>=4.2.0",
+]
+
+[project.optional-dependencies]
+# MySQL support for Kunlun-M web mode
+mysql = ["mysqlclient>=2.2.0"]
+
+# Development tools
+dev = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.1.0",
+    "black>=23.0.0",
+    "ruff>=0.1.0",
+    "mypy>=1.5.0",
+    "pre-commit>=3.5.0",
+]
+
+# Documentation
+docs = [
+    "mkdocs>=1.5.0",
+    "mkdocs-material>=9.4.0",
+    "mkdocstrings[python]>=0.23.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/your-org/deepaudit"
+Documentation = "https://docs.deepaudit.io"
+Repository = "https://github.com/your-org/deepaudit"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
+# ============ Tool Configurations ============
+
+[tool.black]
+line-length = 100
+target-version = ["py311", "py312", "py313"]
+exclude = '''
+/(
+    \.git
+    | \.hg
+    | \.mypy_cache
+    | \.tox
+    | \.venv
+    | _build
+    | buck-out
+    | build
+    | dist
+    | migrations
+)/
+'''
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+exclude = [
+    ".git",
+    ".hg",
+    ".mypy_cache",
+    ".tox",
+    ".venv",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "migrations",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # Pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+]
+ignore = [
+    "E501",  # line too long (handled by black)
+    "B008",  # do not perform function calls in argument defaults
+    "C901",  # too complex
+]
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_ignores = true
+disallow_untyped_defs = true
+exclude = [
+    "migrations/",
+    ".venv/",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+addopts = "-v --tb=short"
+
+[tool.coverage.run]
+source = ["app"]
+omit = ["*/migrations/*", "*/tests/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+]
+
+# ============ UV Configuration ============
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.1.0",
+    "black>=23.0.0",
+    "ruff>=0.1.0",
+    "mypy>=1.5.0",
 ]

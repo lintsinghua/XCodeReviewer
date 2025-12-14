@@ -1,0 +1,102 @@
+代码阅读IDE  集成开发环境（IDE、Integrated Development Environment）主要用于提供应用程序开发的环境、通常包括编辑器、编译器、调试器等。Chocolat  C++、PHP、Ruby、Haskell  https://chocolatapp.com/  Mac OS X   Mac系统上一款强大的文本编辑器
+    Eclipse-aptana  PHP、Javascript、AJAX、Adobe AIR、Apple iPhone、Ruby on Rails  http://www.aptana.com/   Windows、Mac OS X   一个非常强大、开源、JavaScript-focused的AJAX开发IDE
+    netbeans  PHP、C、C++、JavaScript、Ruby、Groovy、Grails  https://netbeans.org/index_zh_CN.html   Windows、Mac OS X 、 Linux   开放源代码的Java IDE
+    Coda  HTML、PHP、JavaScript、CSS  https://www.panic.com/coda/  Mac OS X   界面漂亮、操作简单的网页开发工具
+    Editplus  HTML、、PHP、Java、 C、C++、CSS、ASP、Perl、JavaScript、 VBScript、Python、 Ruby on Rails  https://www.editplus.com/  Windows  小巧但是功能强大的可处理文本、HTML和程序语言的Windows编辑器
+    Anjuta  C、C++  http://anjuta.org/  Linux  一个建立在GNU/Linux下为C、C++提供编译的集成开发环境
+    kDevelop   C、 C++、 Python、 QML、JavaScript and PHP  https://www.kdevelop.org/   Windows、Mac OS X 、 Linux   一个自由、开放源代码 的 IDE（集成开发环境
+    Ultimate  C、C++  https://www.ultimatepp.org/   Windows、 Linux   一个C ++跨平台快速应用程序开发框架
+    C-Free  C、C++  http://www.programarts.com/cfree_en/download.htm  Windows  一款C/C++集成开发环境（IDE）
+    visual-mingw  C、C++  http://visual-mingw.sourceforge.net/  Windows  一个可自由使用和自由发布的Windows特定头文件和使用GNU工具集导入库的集合
+    Eclipse CDT  C、C++  http://www.eclipse.org/cdt/   Windows、Mac OS X   Eclipse的CDT搭建标准的C/C++开发环境
+    espresso  HTML、XML、 CSS、JavaScript  https://espresso.en.softonic.com/mac   Windows、Mac OS X   强大的HTML、XML、CSS和JavaScript的Web开发工具
+    visual-web-developer-express  C#、Visual Basic、F#、C++、HTML、JavaScript、TypeScript、Python 等  https://www.visualstudio.com/zh-hans/vs/visual-studio-express/?rr=http%3A%2F%2Fwww.csdn.net%2Farticle%2F2012-02-15%2F311835   Windows、Mac OS X   一款非常好用且功能强大的web应用程序开发工具
+    IntelliJ IDEA  Java  http://www.jetbrains.com/webstorm/   Windows、Mac OS X 、 Linux   业界被公认为最好的java开发工具之一
+    Codelite  C、C++、PHP 、Node.js  https://codelite.org/   Windows、 Linux   一个功能强大的开源、C/C++编程语言的跨平台ID
+    Zend Studio  PHP  http://www.zend.com/en/products/studio   Windows、Mac OS X 、 Linux   Zend Technologies公司开发的PHP语言集成开发环境(IDE)
+    GNU Emacs  All  http://www.gnu.org/software/emacs/download.html   Windows、Mac OS X   著名的集成开发环境和文本编辑器
+    E-TextEditor  All  https://e-texteditor.en.softonic.com/download  Windows  一款新概念的窗口本文编辑软件
+    Notepad++   All  https://notepad-plus-plus.org/  Windows  Windows操作系统下的一套文本编辑器
+    Bbedit  All  http://www.barebones.com/products/bbedit/  Mac OS X   一款适用于Mac操作系统的软件
+    TextMate  All  http://macromates.com/  Mac OS X   Mac下的著名的文本编辑器软件
+    textpad  All  https://www.textpad.com/  Windows  一个强大的替代 Windows 记事本 Notepad 的文本编辑器
+    SUBLIME TEXT  All  http://www.sublimetext.com/   Windows、Mac OS X 、 Linux   一个代码编辑器、也是HTML和散文先进的文本编辑器
+    skEdit   All  https://skedit.en.softonic.com/mac  Mac OS X   Mac HTML和文本编辑器
+    ATOM  All  https://atom.io/   Windows、Mac OS X 、 Linux   github专门为程序员推出的一个跨平台文本编辑器
+    GEANY  C、CPP、Java、Python、PHP、 HTML、 DocBook、 Perl、 LateX 和 Bash脚本  http://www.geany.org/   Windows、Mac OS X 、 Linux   一个小巧的使用GTK+2开发的跨平台的开源集成开发环境
+    JEDIT  All  http://www.jedit.org/   Windows、Mac OS X 、 Linux   一个用Java语言开发的文本编辑器
+    VIM  All  http://www.vim.org/   Windows、Mac OS X 、 Linux   一个类似于Vi的著名的功能强大、高度可定制的文本编辑器
+    PSPAD  All  http://www.pspad.com/en/  Windows  功能非常强大的代码浏览器
+    komodo-ide  Python、Perl、PHP 、Ruby  https://www.activestate.com/komodo-ide   Windows、Mac OS X 、 Linux   一个独特的特性是常规表达式调试器
+
+商业代码审计工具  在源代码的静态安全审计中、使用自动化工具代替人工漏洞挖掘、可以显著提高审计工作的效率。学会利用自动化代码审计工具、是每一个代码审计人员必备的能力。Fortify SCA  Java、JSP、ASP.NET、C#、VB.NET、C、C++、COBOL、ColdFusion  https://www.fortify.com   Windows、Mac OS X 、 Linux   是一个静态的、白盒的软件源代码安全测试工具
+    Checkmarx CxSuite  JAVA、ASP.NET（C#、VB.NET）、JavaScript、Jscript、C、C++、APEX等语言  http://www.dumasoftware.com/corporate01.asp   Windows、Mac OS X 、 Linux   一个独特的源代码分析解决方案
+    360代码卫士  C、C++、C#、Objective-C、Java、JSP、JavaScript、PHP、Python、Cobol等  http://b.360.cn/codesafe/intro.html   Windows、Mac OS X 、 Linux   360企业安全集团基于多年源代码安全实践经验开发的新一代源代码安全检测系统
+    RIPS  PHP  https://sourceforge.net/projects/rips-scanner/   Windows、Mac OS X 、 Linux   PHP代码审计系统
+    VCG（VisualCodeGrepper）  C、C++、C#、VB、PHP、Java、PL、SQL  http://downloads.informer.com/visualcodegrepper/   Windows、Mac OS X 、 Linux   免费代码安全审计工具
+    blackduck（protex、Codecenter、和Export）  All  https://www.blackducksoftware.com/   Windows、Mac OS X 、 Linux   是一款对源代码进行扫描、审计和代码管理的软件工具。
+
+代码扫描工具  静态源代码检查工具，能对源代码进行全面的分析  Coverity Prevent  C、C++、C#、JAVA  http://www.coverity.com/index.html   Windows、Mac OS X 、 Linux   开发测试领域的领导者
+    Rational Purify  C、C++、Java  http://www-01.ibm.com/software/awdtools/purify/  Windows  是一个面向VC, VB或者Java开发的测试Visual C/C++ 和Java 代码中与内存有关的错误，确保整个应用程序的质量和可靠性
+    pc-lint  C、C++  http://www.gimpel.com/html/pcl.htm   Windows  GIMPEL SOFTWARE公司开发的C/C++软件代码静态分析工具
+    Cppcheck  C、C++  http://cppcheck.sourceforge.net/   Windows、Mac OS X    一种C/C++代码缺陷静态检查工具
+    Klocwork Insight  C、C++ 、Java  http://www.klocwork.com/products/insight.asp   Windows、 Linux   使用高度的解析手法（Truepath™）让到现在为止的调试和测试方法很难检测出来的错误在早期可以检出，使软件的信赖性提高并提高测试的效率
+    PolySpace  Client/Server  C、C++  http://www.mathworks.cn/   Windows、Mac OS X    可以识别 C 和 C++ 代码中的运行时错误、并发问题、安全漏洞和其他缺陷
+    cqual  C、C++  http://www.cs.umd.edu/~jfoster/cqual/   Windows、Mac OS X 、 Linux   一种基于类型的分析工具，它为指定和检查C程序的属性提供了一种轻量级的实用机制
+    ITS4  C\C++  http://www.cigital.com/its4/   Windows  一个静态检测源代码的工具，它是基于词法分析的
+    flawfinder  C、C++  http://www.dwheeler.com/flawfinder/   Windows、Mac OS X 、 Linux   应用在代码是否有漏洞，是否存在被攻击的可能。
+    Splint  C  http://www.splint.org/   Windows  应用在分析代码是否符合编程规范
+    MOPS  C  http://www.cs.berkeley.edu/~daw/mops/  Unix  是在C程序中查找安全漏洞并验证是否符合防御性编程规则的工具
+    BLAST  C  http://mtc.epfl.ch/software-tools/blast/   Windows、 Linux   C程序的软件模型检查器
+    Frama-C  C  http://frama-c.cea.fr/   Windows、Mac OS X 、 Linux   一个用来分析 C 代码的工具，它收集了很多静态统计技术
+    FindBugs  Java  http://findbugs.sourceforge.net/   Windows、Mac OS X 、 Linux   一个静态分析工具，它检查类或者 JAR 文件
+    Checkstyle  Java  http://checkstyle.sourceforge.net/   Windows、Mac OS X 、 Linux   SourceForge下的一个项目，提供了一个帮助JAVA开发人员遵守某些编码规范的工具
+     Eclipse-Jtest  Java  http://www.parasoft.com/jsp/cn/support.jsp   Windows、Mac OS X 、 Linux   一款优秀的 Java 代码优化和测试工具
+    PMD  Java  http://pmd.sourceforge.net/   Windows、Mac OS X 、 Linux   一种开源分析Java代码错误的工具
+    QJ-Pro  Java  http://qjpro.sourceforge.net/   Windows、Mac OS X 、 Linux   一个全面的软件检测工具
+    Jint  Java  http://artho.com/jlint/   Windows  通过进行数据流分析和构建锁图来检查您的Java代码并发现错误
+    Hammurapi  Java  http://www.hammurapi.biz/hammurapi-biz/ef/xmenu/hammurapi-group/index.html   Windows、Mac OS X 、 Linux   一个开源的代码审查/评审(review)工具
+    Dependency Finder  Java  http://depfind.sourceforge.net/   Windows、Mac OS X 、 Linux   一个java依赖分析工具
+    Classycle  Java  http://classycle.sourceforge.net/   Windows  可以分析静态类和Java应用程序或库的包依赖性，生成XML报表
+    JDepend  Java  http://www.clarkware.com/software/JDepend.html   Windows、Mac OS X 、 Linux   一个开放源代码的可以用来评价Java程序质量的优秀工具
+    LAPSE  Java  http://www.owasp.org/index.php/Category:OWASP_LAPSE_Project   Windows、Mac OS X 、 Linux   向开发人员和审计人员提供一种用于检测Java EE应用程序中的漏洞的工具
+    JSLint  JavaScript  http://www.jslint.com/   Windows、Mac OS X 、 Linux   基于Web的验证JavaScript错误代码的工具
+    J3Unit  JavaScript  http://j3unit.sourceforge.net/   Windows、Mac OS X 、 Linux   一个面向对象的JavaScript单元测试框架
+    JSHint  JavaScript  http://jshint.com/   Windows、Mac OS X 、 Linux   JSLint的一个更加灵活，可配置的一个版本
+    JSCS  JavaScript  http://jscs.info/   Windows、Mac OS X 、 Linux   一个代码风格检查器
+    ESLint  JavaScript  http://eslint.org/   Windows、Mac OS X 、 Linux   易于拓展的，具有大量的自定义规则，并且很容易通过插件的形式来安装
+    Regular Expression Tool  JavaScript  http://erik.eae.net/playground/regexp/regexp.html   Windows、Mac OS X 、 Linux   一款在线工具，用来测试您的正则表达式代码是否正确
+    JSLitmus  JavaScript  http://broofa.com/Tools/JSLitmus/   Windows、Mac OS X 、 Linux   是款轻量级的工具，用来测试JavaScript执行性能情况，采用直观的API
+    JavaScript Regular Expression Tester  JavaScript  http://broofa.com/Tools/JSLitmus/   Windows、Mac OS X 、 Linux   是在浏览器中使用JavaScript来测试JavaScript正则表达式的
+    Exakat  PHP  https://www.exakat.io/  Mac OS X   提供从PHP 5.2到PHP 7.2-dev的实时PHP静态分析器
+    PHPSecurityScanner  PHP  https://sourceforge.net/projects/securityscanner/   Linux   扫描PHP代码中是否有存在漏洞
+    PHPMD  PHP  https://phpmd.org/   Windows、Mac OS X 、 Linux   探测PHP源代码中一些潜在的问题
+    PHPStan  PHP  https://packagist.org/packages/phpstan/phpstan   Windows、Mac OS X 、 Linux   一款 PHP 静态分析工具，它专注于在代码中发现错误而不实际运行它
+    PhpSecInfo  PHP  http://phpsec.org/projects/phpsecinfo/   Windows、Mac OS X 、 Linux   相当于phpinfo（）函数，它报告有关PHP环境的安全信息
+    StyleCop  C#  http://stylecop.codeplex.com/releases/view/79972   Windows  微软的一个开源的静态代码分析工具,检查c#代码一致性和编码风格
+    FxCop  C#  https://msdn.microsoft.com/library/bb429476   Windows  微软的代码分析工具，以微软内部使用的.NET编码规范为参照，找出源代码中潜在的设计和编写缺陷
+    PyChecker  Python  http://pychecker.sourceforge.net/  Linux  Python代码的静态分析工具
+    Pylint  Python  https://www.pylint.org/   Windows、Mac OS X 、 Linux   一个高阶的Python代码分析工具
+    Bandit  Python  https://wiki.openstack.org/wiki/Security/Projects/Bandit   Windows、Mac OS X 、 Linux   一款Python源码分析框架，可用于Python代码的安全性分析
+
+反编译工具  高级语言源程序经过编译变成可执行文件，反编译就是逆过程。jd-gui  Java  http://jd.benow.ca/   Windows、Mac OS X 、 Linux   一个用 C++ 开发的 Java 反编译工具
+    Eclips-Jadclipse  Java  http://sourceforge.net/projects/jadclipse/   Windows、Mac OS X 、 Linux   Jad的Eclipse插件，是一款非常实用而且方便地Java反编译插件
+    jad  Java  http://varaneckas.com/jad/   Windows、Mac OS X 、 Linux   一款使用非常广泛地Java反编译工具
+    jdec  Java  http://jdec.sourceforge.net/   Windows、Mac OS X 、 Linux   一个Java反编译器
+    uuDeJava  Java  http://www.uuware.com/uudejava_cn.htm   Windows、Mac OS X 、 Linux   Java Class文件的反编译工具
+    Minjava  Java  https://code.google.com/p/minjava/   Windows、Mac OS X 、 Linux   一个 Java 反向工程软件
+    Java Decompiler  Java  http://jd.benow.ca/   Windows、Mac OS X 、 Linux   一个Java反编译器
+    Reflector  C#  http://www.red-gate.com/products/dotnet-development/reflector/   Windows、Mac OS X  可将·NET程序集中的中间语言反编译成C#或者Visual Basic代码
+    ILSpy  C#  http://ilspy.NET/   Windows、Mac OS X  一个开源的.net反编译软件，使用十分方便
+    dnSpy  C#  https://github.com/0xd4d/dnSpy/blame/master/dnSpy.sln   Windows、Mac OS X  .net反编译工具
+    JetBrains dotPeek  C#  http://www.jetbrains.com/decompiler/  Windows  .NET反编译工具
+    Telerik JustDecompile   C#  http://www.telerik.com/products/decompiler.aspx  Windows  一款非常实用的.net反编译工具
+    Retargetable Decompiler  C、pyhton  https://retdec.com/  Windows  一个可重定位的反编译器
+    Easy Python Decompiler  pyhton  https://sourceforge.net/projects/easypythondecompiler/files/?source=navbar  Windows  python字节码反编译器，反编译pyc＆pyo文件
+    uncompyle2  pyhton2.7  https://github.com/Mysterie/uncompyle2  Windows  Python 2.7的反编译工具
+    exescope  C++  http://www.softpedia.com/get/Programming/File-Editors/eXeScope.shtml  Windows  能在没有资源文件的情况下分析，显示不同的信息，重写可执行文件的资源
+  
+  C、C++通过编译把文本形式源代码翻译为机器语言形式的目标文件的，再通过链接把目标文件、操作系统的启动代码和用到的库文件进行组织，形成最终生成可执行代码。OllyDBG  C、C++  http://www.ollydbg.de/  Windows  一个新的动态追踪工具
+    c32asm  C、C++  http://www.c32asm.com/  Windows  具有反汇编模式和十六进制编辑模式，能跟踪exe文件的断点，也可直接修改软件内部代码。
+    W32Dasm  C、C++  http://www.softpedia.com/get/Programming/Debuggers-Decompilers-Dissasemblers/WDASM.shtml  Windows  一个静态反汇编工具，也是破解人常用的工具之一
+    Hex Rays Ida  C、C++  https://www.hex-rays.com/   Windows、Mac OS X 、 Linux   一款调试工具的模拟器，可以更好的反汇编和更有深层分析

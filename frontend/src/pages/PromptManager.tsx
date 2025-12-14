@@ -401,7 +401,7 @@ export default function PromptManager() {
 
       {/* Test Dialog */}
       <Dialog open={showTestDialog} onOpenChange={setShowTestDialog}>
-        <DialogContent className="!max-w-6xl w-[90vw] max-h-[90vh] overflow-y-auto cyber-card p-0 bg-[#0c0c12]">
+        <DialogContent className="!max-w-6xl w-[90vw] max-h-[90vh] !overflow-y-auto cyber-card p-0 bg-[#0c0c12] !fixed">
           <DialogHeader className="cyber-card-header">
             <Sparkles className="w-5 h-5 text-violet-400" />
             <DialogTitle className="text-lg font-bold uppercase tracking-wider text-white">

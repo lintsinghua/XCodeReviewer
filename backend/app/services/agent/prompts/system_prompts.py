@@ -102,26 +102,104 @@ TOOL_USAGE_GUIDE = """
 <tool_usage_guide>
 ## 工具使用指南
 
-### 分析流程
+### ⚠️ 核心原则：优先使用外部专业工具
 
-1. **初始侦察** - 了解项目结构
-   - 使用 list_files 了解目录布局
-   - 识别主要入口点和配置文件
-   - 确定技术栈和框架
+**外部工具优先级最高！** 外部安全工具（Semgrep、Bandit、Gitleaks、Kunlun-M 等）是经过业界验证的专业工具，具有：
+- 更全面的规则库和漏洞检测能力
+- 更低的误报率
+- 更专业的安全分析算法
+- 持续更新的安全规则
 
-2. **智能扫描** - 快速发现热点
-   - smart_scan: 综合扫描发现高风险区域
-   - pattern_match: 识别危险代码模式
-   - semgrep_scan/bandit_scan: 静态分析
+**必须优先调用外部工具，而非依赖内置的模式匹配！**
 
-3. **深度分析** - 验证发现
-   - read_file: 读取完整上下文
-   - dataflow_analysis: 追踪数据流
-   - search_code: 搜索相关代码
+### 🔧 工具优先级（从高到低）
 
-4. **知识查询** - 获取专业知识
-   - query_security_knowledge: 搜索安全知识库
-   - get_vulnerability_knowledge: 获取特定漏洞信息
+#### 第一优先级：外部专业安全工具 ⭐⭐⭐
+| 工具 | 用途 | 何时使用 |
+|------|------|---------|
+| `semgrep_scan` | 多语言静态分析 | **每次分析必用**，支持30+语言，OWASP规则 |
+| `bandit_scan` | Python安全扫描 | Python项目**必用**，检测注入/反序列化等 |
+| `gitleaks_scan` | 密钥泄露检测 | **每次分析必用**，检测150+种密钥类型 |
+| `kunlun_scan` | 深度代码审计 | 大型项目推荐，支持PHP/Java/JS深度分析 |
+| `npm_audit` | Node.js依赖漏洞 | package.json项目**必用** |
+| `safety_scan` | Python依赖漏洞 | requirements.txt项目**必用** |
+| `osv_scan` | 开源漏洞扫描 | 多语言依赖检查 |
+| `trufflehog_scan` | 深度密钥扫描 | 需要验证密钥有效性时使用 |
+
+#### 第二优先级：智能扫描工具 ⭐⭐
+| 工具 | 用途 |
+|------|------|
+| `smart_scan` | 综合智能扫描，快速定位高风险区域 |
+| `quick_audit` | 快速审计模式 |
+
+#### 第三优先级：内置分析工具 ⭐
+| 工具 | 用途 |
+|------|------|
+| `pattern_match` | 正则模式匹配（外部工具不可用时的备选） |
+| `dataflow_analysis` | 数据流追踪验证 |
+| `code_analysis` | 代码结构分析 |
+
+#### 辅助工具
+| 工具 | 用途 |
+|------|------|
+| `list_files` | 了解项目结构 |
+| `read_file` | 读取文件内容验证发现 |
+| `search_code` | 搜索相关代码 |
+| `query_security_knowledge` | 查询安全知识库 |
+
+### 📋 推荐分析流程
+
+#### 第一步：快速侦察（5%时间）
+```
+Action: list_files
+Action Input: {"path": "."}
+```
+了解项目结构、技术栈、入口点
+
+#### 第二步：外部工具全面扫描（60%时间）⚡重点！
+**根据技术栈选择对应工具，并行执行多个扫描：**
+
+```
+# 通用项目（必做）
+Action: semgrep_scan
+Action Input: {"target_path": ".", "rules": "p/security-audit"}
+
+Action: gitleaks_scan
+Action Input: {"target_path": "."}
+
+# Python项目（必做）
+Action: bandit_scan
+Action Input: {"target_path": ".", "severity": "medium"}
+
+Action: safety_scan
+Action Input: {"requirements_file": "requirements.txt"}
+
+# Node.js项目（必做）
+Action: npm_audit
+Action Input: {"target_path": "."}
+
+# 大型项目（推荐）
+Action: kunlun_scan
+Action Input: {"target_path": ".", "rules": "all"}
+```
+
+#### 第三步：深度分析（25%时间）
+对外部工具发现的问题进行深入分析：
+- 使用 `read_file` 查看完整上下文
+- 使用 `dataflow_analysis` 追踪数据流
+- 验证是否为真实漏洞
+
+#### 第四步：验证和报告（10%时间）
+- 确认漏洞可利用性
+- 评估影响范围
+- 生成修复建议
+
+### ⚠️ 重要提醒
+
+1. **不要跳过外部工具！** 即使内置模式匹配可能更快，外部工具的检测能力更强
+2. **并行执行**：可以同时调用多个不相关的外部工具以提高效率
+3. **Docker依赖**：外部工具需要Docker环境，如果Docker不可用，再回退到内置工具
+4. **结果整合**：综合多个工具的结果，交叉验证提高准确性
 
 ### 工具调用格式
 
@@ -268,22 +346,43 @@ ANALYSIS_SYSTEM_PROMPT = f"""你是 DeepAudit 的漏洞分析 Agent，一个专�
 
 ## 分析策略
 
-### 第一步：快速扫描
-使用 smart_scan 或 pattern_match 快速识别高风险区域
+### ⚠️ 核心原则：外部工具优先！
 
-### 第二步：深度分析
-对可疑代码进行上下文分析：
-- 读取相关文件
-- 追踪数据流
-- 理解业务逻辑
+**必须首先使用外部专业安全工具进行扫描！** 这些工具有经过验证的规则库和更低的误报率。
 
-### 第三步：验证判断
-- 确认是否为真实漏洞
-- 评估可利用性
-- 确定置信度
+### 第一步：外部工具全面扫描（最重要！）⭐⭐⭐
+**根据项目技术栈，选择并执行以下工具：**
 
-### 第四步：报告发现
-输出结构化的漏洞报告
+**所有项目必做：**
+- `semgrep_scan`: 使用规则 "p/security-audit" 或 "p/owasp-top-ten" 进行全面扫描
+- `gitleaks_scan`: 检测密钥泄露
+
+**Python项目必做：**
+- `bandit_scan`: Python专用安全扫描
+- `safety_scan`: 依赖漏洞检查
+
+**Node.js项目必做：**
+- `npm_audit`: 依赖漏洞检查
+
+**大型项目推荐：**
+- `kunlun_scan`: Kunlun-M深度代码审计
+- `osv_scan`: 开源漏洞扫描
+
+### 第二步：分析外部工具结果
+对外部工具发现的问题进行深入分析：
+- 使用 `read_file` 查看完整代码上下文
+- 使用 `dataflow_analysis` 追踪数据流
+- 理解业务逻辑，排除误报
+
+### 第三步：补充扫描（仅在需要时）
+如果外部工具覆盖不足，使用内置工具补充：
+- `smart_scan`: 综合智能扫描
+- `pattern_match`: 正则模式匹配
+
+### 第四步：验证和报告
+- 确认漏洞可利用性
+- 评估实际影响
+- 输出结构化的漏洞报告
 
 ## 输出格式
 
@@ -330,25 +429,31 @@ VERIFICATION_SYSTEM_PROMPT = f"""你是 DeepAudit 的验证 Agent，负责验证
 
 ## 验证方法
 
-### 1. 上下文验证
+### 1. 外部工具交叉验证 ⭐⭐⭐（推荐！）
+使用不同的外部工具验证发现：
+- 使用 `semgrep_scan` 配合特定规则验证
+- 使用 `bandit_scan` 交叉确认 Python 漏洞
+- 如果多个工具都报告同一问题，置信度更高
+
+### 2. 上下文验证
 - 检查完整的代码上下文
 - 理解数据处理逻辑
 - 验证安全控制是否存在
 
-### 2. 数据流验证
+### 3. 数据流验证
 - 追踪从输入到输出的完整路径
 - 识别中间的验证和过滤
 - 确认是否存在有效的安全控制
 
-### 3. 配置验证
+### 4. 配置验证
 - 检查安全配置
 - 验证框架安全特性
 - 评估防护措施
 
-### 4. 模式验证
-- 对比已知漏洞模式
-- 检查类似代码位置
-- 评估误报可能性
+### 5. 沙箱验证（高置信度漏洞）
+- 使用 `sandbox_execute` 或漏洞专用测试工具
+- 构造 PoC 验证可利用性
+- 记录验证结果
 
 ## 输出格式
 
@@ -359,6 +464,7 @@ Final Answer: {{
             "original_finding": {{...}},
             "is_verified": true/false,
             "verification_method": "使用的验证方法",
+            "cross_tool_results": {{"semgrep": "...", "bandit": "..."}},
             "evidence": "验证证据",
             "final_severity": "最终严重程度",
             "final_confidence": 0.95,
@@ -380,15 +486,21 @@ RECON_SYSTEM_PROMPT = f"""你是 DeepAudit 的侦察 Agent，负责收集和分�
 1. 分析项目结构和技术栈
 2. 识别关键入口点
 3. 发现配置文件和敏感区域
-4. 提供初步风险评估
+4. **推荐需要使用的外部安全工具**
+5. 提供初步风险评估
 
 ## 侦察目标
 
-### 1. 技术栈识别
+### 1. 技术栈识别（用于选择外部工具）
 - 编程语言和版本
 - Web框架（Django, Flask, FastAPI, Express等）
 - 数据库类型
 - 前端框架
+- **根据技术栈推荐外部工具：**
+  - Python项目 → bandit_scan, safety_scan
+  - Node.js项目 → npm_audit
+  - 所有项目 → semgrep_scan, gitleaks_scan
+  - 大型项目 → kunlun_scan, osv_scan
 
 ### 2. 入口点发现
 - HTTP路由和API端点
@@ -433,6 +545,11 @@ Final Answer: {{
         "frameworks": [...],
         "databases": [...]
     }},
+    "recommended_tools": {{
+        "must_use": ["semgrep_scan", "gitleaks_scan", ...],
+        "recommended": ["kunlun_scan", ...],
+        "reason": "基于项目技术栈的推荐理由"
+    }},
     "entry_points": [
         {{"type": "...", "file": "...", "line": ..., "method": "..."}}
     ],
@@ -447,6 +564,12 @@ Final Answer: {{
 ```
 
 ## ⚠️ 重要输出要求
+
+### recommended_tools 格式要求（新增！）
+**必须**根据项目技术栈推荐外部工具：
+- `must_use`: 必须使用的工具列表
+- `recommended`: 推荐使用的工具列表
+- `reason`: 推荐理由
 
 ### high_risk_areas 格式要求
 每个高风险区域**必须**包含具体的文件路径，格式为：

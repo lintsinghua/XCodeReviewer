@@ -65,3 +65,29 @@ safety>=2.3.0
 # 依赖漏洞扫描
 pip-audit>=2.6.0
 
+# ============ Kunlun-M 依赖 (MIT License) ============
+# https://github.com/LoRexxar/Kunlun-M
+# Kunlun-M 是静态代码安全审计工具，支持 PHP/JS 语义分析
+
+# PHP/JS 解析器
+pyjsparser>=2.7.1
+phply>=1.2.6
+esprima>=4.0.1
+jsbeautifier>=1.14.0
+
+# 工具库
+colorlog>=6.0.0
+portalocker>=2.0.0
+prettytable>=3.0.0
+rarfile>=4.0
+
+# HTML 解析
+beautifulsoup4>=4.12.0
+
+# Django (Kunlun-M 数据库)
+django>=4.2.0
+
+# MySQL 客户端 (可选，用于 Kunlun-M Web 模式)
+# 如需 MySQL 支持，请安装: pip install mysqlclient
+# 注意: mysqlclient 需要系统级 MySQL 开发库
+

@@ -423,7 +423,7 @@ export default function Projects() {
             初始化项目
           </Button>
         </DialogTrigger>
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto cyber-card border-gray-700 bg-[#0c0c12] p-0">
+        <DialogContent className="max-w-2xl max-h-[85vh] !overflow-y-auto cyber-card border-gray-700 bg-[#0c0c12] p-0 !fixed">
           {/* Terminal Header */}
           <div className="flex items-center gap-2 px-4 py-3 bg-[#0a0a0f] border-b border-gray-800/50">
             <div className="flex items-center gap-1.5">
@@ -934,7 +934,7 @@ export default function Projects() {
 
       {/* Edit Dialog */}
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent className="max-w-2xl cyber-card border-gray-700 bg-[#0c0c12] p-0">
+        <DialogContent className="max-w-2xl cyber-card border-gray-700 bg-[#0c0c12] p-0 !fixed">
           {/* Terminal Header */}
           <div className="flex items-center gap-2 px-4 py-3 bg-[#0a0a0f] border-b border-gray-800/50">
             <div className="flex items-center gap-1.5">
@@ -1185,7 +1185,7 @@ export default function Projects() {
 
       {/* Delete Dialog */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent className="cyber-card border-gray-700 bg-[#0c0c12] p-0">
+        <AlertDialogContent className="cyber-card border-gray-700 bg-[#0c0c12] p-0 !fixed">
           {/* Terminal Header */}
           <div className="flex items-center gap-2 px-4 py-3 bg-rose-500/10 border-b border-rose-500/30">
             <div className="flex items-center gap-1.5">

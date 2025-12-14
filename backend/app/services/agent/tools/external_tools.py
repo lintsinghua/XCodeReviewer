@@ -25,8 +25,8 @@ class SemgrepInput(BaseModel):
     """Semgrep 扫描输入"""
     target_path: str = Field(description="要扫描的目录或文件路径（相对于项目根目录）")
     rules: Optional[str] = Field(
-        default="auto",
-        description="规则集: auto, p/security-audit, p/owasp-top-ten, p/r2c-security-audit, 或自定义规则文件路径"
+        default="p/security-audit",
+        description="规则集: p/security-audit, p/owasp-top-ten, p/r2c-security-audit, 或自定义规则文件路径"
     )
     severity: Optional[str] = Field(
         default=None,
@@ -51,7 +51,6 @@ class SemgrepTool(AgentTool):
     """
     
     AVAILABLE_RULESETS = [
-        "auto",
         "p/security-audit",
         "p/owasp-top-ten",
         "p/r2c-security-audit",
@@ -68,11 +67,13 @@ class SemgrepTool(AgentTool):
         "p/command-injection",
     ]
     
-    def __init__(self, project_root: str):
+    def __init__(self, project_root: str, sandbox_manager: Optional["SandboxManager"] = None):
         super().__init__()
-        self.project_root = project_root
-        self.sandbox_manager = SandboxManager()
-    
+        # 🔥 将相对路径转换为绝对路径，Docker 需要绝对路径
+        self.project_root = os.path.abspath(project_root)
+        # 🔥 使用共享的 SandboxManager 实例，避免重复初始化
+        self.sandbox_manager = sandbox_manager or SandboxManager()
+
     @property
     def name(self) -> str:
         return "semgrep_scan"
@@ -103,7 +104,7 @@ Semgrep 是业界领先的静态分析工具，支持 30+ 种编程语言。
     async def _execute(
         self,
         target_path: str = ".",
-        rules: str = "auto",
+        rules: str = "p/security-audit",
         severity: Optional[str] = None,
         max_results: int = 50,
         **kwargs
@@ -112,7 +113,7 @@ Semgrep 是业界领先的静态分析工具，支持 30+ 种编程语言。
         # 确保 Docker 可用
         await self.sandbox_manager.initialize()
         if not self.sandbox_manager.is_available:
-             return ToolResult(success=False, error="Docker 沙箱不可用，无法执行 Semgrep")
+            return ToolResult(success=False, error=f"Semgrep unavailable: {self.sandbox_manager.get_diagnosis()}")
 
         # 构建命令 (相对于 /workspace)
         # 注意: target_path 是相对于 project_root 的
@@ -121,7 +122,8 @@ Semgrep 是业界领先的静态分析工具，支持 30+ 种编程语言。
         cmd = ["semgrep", "--json", "--quiet"]
         
         if rules == "auto":
-            cmd.extend(["--config", "auto"])
+            # 🔥 Fallback if user explicitly requests 'auto', but prefer security-audit
+            cmd.extend(["--config", "p/security-audit"])
         elif rules.startswith("p/"):
             cmd.extend(["--config", rules])
         else:
@@ -139,7 +141,8 @@ Semgrep 是业界领先的静态分析工具，支持 30+ 种编程语言。
             result = await self.sandbox_manager.execute_tool_command(
                 command=cmd_str,
                 host_workdir=self.project_root,
-                timeout=300
+                timeout=300,
+                network_mode="bridge"  # 🔥 Semgrep 需要网络来下载规则
             )
             
             if not result["success"] and result["exit_code"] != 1:  # 1 means findings were found
@@ -230,11 +233,13 @@ class BanditTool(AgentTool):
     - 不安全的反序列化
     """
     
-    def __init__(self, project_root: str):
+    def __init__(self, project_root: str, sandbox_manager: Optional["SandboxManager"] = None):
         super().__init__()
-        self.project_root = project_root
-        self.sandbox_manager = SandboxManager()
-    
+        # 🔥 将相对路径转换为绝对路径，Docker 需要绝对路径
+        self.project_root = os.path.abspath(project_root)
+        # 🔥 使用共享的 SandboxManager 实例，避免重复初始化
+        self.sandbox_manager = sandbox_manager or SandboxManager()
+
     @property
     def name(self) -> str:
         return "bandit_scan"
@@ -271,10 +276,10 @@ Bandit 是 Python 专用的安全分析工具，由 OpenStack 安全团队开发
         # 确保 Docker 可用
         await self.sandbox_manager.initialize()
         if not self.sandbox_manager.is_available:
-             return ToolResult(success=False, error="Docker 沙箱不可用")
+            return ToolResult(success=False, error=f"Bandit unavailable: {self.sandbox_manager.get_diagnosis()}")
 
         safe_target_path = target_path if not target_path.startswith("/") else target_path.lstrip("/")
-        
+
         # 构建命令
         severity_map = {"low": "l", "medium": "m", "high": "h"}
         confidence_map = {"low": "l", "medium": "m", "high": "h"}
@@ -360,11 +365,13 @@ class GitleaksTool(AgentTool):
     - JWT secrets
     """
     
-    def __init__(self, project_root: str):
+    def __init__(self, project_root: str, sandbox_manager: Optional["SandboxManager"] = None):
         super().__init__()
-        self.project_root = project_root
-        self.sandbox_manager = SandboxManager()
-    
+        # 🔥 将相对路径转换为绝对路径，Docker 需要绝对路径
+        self.project_root = os.path.abspath(project_root)
+        # 🔥 使用共享的 SandboxManager 实例，避免重复初始化
+        self.sandbox_manager = sandbox_manager or SandboxManager()
+
     @property
     def name(self) -> str:
         return "gitleaks_scan"
@@ -402,30 +409,36 @@ Gitleaks 是专业的密钥检测工具，支持 150+ 种密钥类型。
         # 确保 Docker 可用
         await self.sandbox_manager.initialize()
         if not self.sandbox_manager.is_available:
-             return ToolResult(success=False, error="Docker 沙箱不可用")
+            return ToolResult(success=False, error=f"Gitleaks unavailable: {self.sandbox_manager.get_diagnosis()}")
 
         safe_target_path = target_path if not target_path.startswith("/") else target_path.lstrip("/")
-        
-        # 构建命令 using . as source because we are mounted to /workspace
-        # But if user specified a subdirectory, we append it.
-        # Actually gitleaks detects pwd by default if source is .
-        
-        cmd = ["gitleaks", "detect", "--source", safe_target_path, "-f", "json"]
+
+        # 🔥 修复：新版 gitleaks 需要使用 --report-path 输出到文件
+        # 使用 /tmp 目录（tmpfs 可写）
+        cmd = [
+            "gitleaks", "detect",
+            "--source", safe_target_path,
+            "--report-format", "json",
+            "--report-path", "/tmp/gitleaks-report.json",
+            "--exit-code", "0"  # 🔥 不要因为发现密钥而返回非零退出码
+        ]
         if no_git:
             cmd.append("--no-git")
-        
-        cmd_str = " ".join(cmd)
-        
+
+        # 执行 gitleaks 并读取报告文件
+        cmd_str = " ".join(cmd) + " && cat /tmp/gitleaks-report.json"
+
         try:
             result = await self.sandbox_manager.execute_tool_command(
                 command=cmd_str,
                 host_workdir=self.project_root,
-                timeout=120
+                timeout=180  # 🔥 增加超时时间
             )
-            
-            # Gitleaks returns 1 if secrets found
-            if result['exit_code'] not in [0, 1]:
-                 return ToolResult(success=False, error=f"Gitleaks 执行失败: {result['stderr'][:300]}")
+
+            if result['exit_code'] != 0:
+                # 🔥 修复：错误信息可能在 error 或 stderr 中
+                error_msg = result.get('error') or result.get('stderr', '')[:300] or '未知错误'
+                return ToolResult(success=False, error=f"Gitleaks 执行失败: {error_msg}")
 
             stdout = result['stdout']
             
@@ -502,11 +515,13 @@ class NpmAuditTool(AgentTool):
     扫描 Node.js 项目的依赖漏洞，基于 npm 官方漏洞数据库。
     """
     
-    def __init__(self, project_root: str):
+    def __init__(self, project_root: str, sandbox_manager: Optional["SandboxManager"] = None):
         super().__init__()
-        self.project_root = project_root
-        self.sandbox_manager = SandboxManager()
-    
+        # 🔥 将相对路径转换为绝对路径，Docker 需要绝对路径
+        self.project_root = os.path.abspath(project_root)
+        # 🔥 使用共享的 SandboxManager 实例，避免重复初始化
+        self.sandbox_manager = sandbox_manager or SandboxManager()
+
     @property
     def name(self) -> str:
         return "npm_audit"
@@ -536,7 +551,7 @@ class NpmAuditTool(AgentTool):
         # 确保 Docker 可用
         await self.sandbox_manager.initialize()
         if not self.sandbox_manager.is_available:
-             return ToolResult(success=False, error="Docker 沙箱不可用")
+            return ToolResult(success=False, error=f"npm audit unavailable: {self.sandbox_manager.get_diagnosis()}")
 
         # 这里的 target_path 是相对于 project_root 的
         # 防止空路径
@@ -645,11 +660,13 @@ class SafetyTool(AgentTool):
     检查 Python 依赖中的已知安全漏洞。
     """
     
-    def __init__(self, project_root: str):
+    def __init__(self, project_root: str, sandbox_manager: Optional["SandboxManager"] = None):
         super().__init__()
-        self.project_root = project_root
-        self.sandbox_manager = SandboxManager()
-    
+        # 🔥 将相对路径转换为绝对路径，Docker 需要绝对路径
+        self.project_root = os.path.abspath(project_root)
+        # 🔥 使用共享的 SandboxManager 实例，避免重复初始化
+        self.sandbox_manager = sandbox_manager or SandboxManager()
+
     @property
     def name(self) -> str:
         return "safety_scan"
@@ -677,7 +694,7 @@ class SafetyTool(AgentTool):
         # 确保 Docker 可用
         await self.sandbox_manager.initialize()
         if not self.sandbox_manager.is_available:
-             return ToolResult(success=False, error="Docker 沙箱不可用")
+            return ToolResult(success=False, error=f"Safety unavailable: {self.sandbox_manager.get_diagnosis()}")
 
         full_path = os.path.join(self.project_root, requirements_file)
         if not os.path.exists(full_path):
@@ -768,11 +785,13 @@ class TruffleHogTool(AgentTool):
     并可以验证密钥是否仍然有效。
     """
     
-    def __init__(self, project_root: str):
+    def __init__(self, project_root: str, sandbox_manager: Optional["SandboxManager"] = None):
         super().__init__()
-        self.project_root = project_root
-        self.sandbox_manager = SandboxManager()
-    
+        # 🔥 将相对路径转换为绝对路径，Docker 需要绝对路径
+        self.project_root = os.path.abspath(project_root)
+        # 🔥 使用共享的 SandboxManager 实例，避免重复初始化
+        self.sandbox_manager = sandbox_manager or SandboxManager()
+
     @property
     def name(self) -> str:
         return "trufflehog_scan"
@@ -804,10 +823,10 @@ TruffleHog 可以扫描代码和 Git 历史，并验证密钥是否有效。
         # 确保 Docker 可用
         await self.sandbox_manager.initialize()
         if not self.sandbox_manager.is_available:
-             return ToolResult(success=False, error="Docker 沙箱不可用")
+            return ToolResult(success=False, error=f"TruffleHog unavailable: {self.sandbox_manager.get_diagnosis()}")
 
         safe_target_path = target_path if not target_path.startswith("/") else target_path.lstrip("/")
-        
+
         cmd = ["trufflehog", "filesystem", safe_target_path, "--json"]
         if only_verified:
             cmd.append("--only-verified")
@@ -879,11 +898,13 @@ class OSVScannerTool(AgentTool):
     支持多种包管理器和锁文件。
     """
     
-    def __init__(self, project_root: str):
+    def __init__(self, project_root: str, sandbox_manager: Optional["SandboxManager"] = None):
         super().__init__()
-        self.project_root = project_root
-        self.sandbox_manager = SandboxManager()
-    
+        # 🔥 将相对路径转换为绝对路径，Docker 需要绝对路径
+        self.project_root = os.path.abspath(project_root)
+        # 🔥 使用共享的 SandboxManager 实例，避免重复初始化
+        self.sandbox_manager = sandbox_manager or SandboxManager()
+
     @property
     def name(self) -> str:
         return "osv_scan"
@@ -920,10 +941,10 @@ Google 开源的漏洞扫描工具，使用 OSV (Open Source Vulnerabilities) �
         # 确保 Docker 可用
         await self.sandbox_manager.initialize()
         if not self.sandbox_manager.is_available:
-             return ToolResult(success=False, error="Docker 沙箱不可用")
+            return ToolResult(success=False, error=f"OSV-Scanner unavailable: {self.sandbox_manager.get_diagnosis()}")
 
         safe_target_path = target_path if not target_path.startswith("/") else target_path.lstrip("/")
-        
+
         # OSV-Scanner
         cmd = ["osv-scanner", "--json", "-r", safe_target_path]
         cmd_str = " ".join(cmd)

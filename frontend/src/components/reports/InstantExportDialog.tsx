@@ -68,105 +68,54 @@ export default function InstantExportDialog({
         }
     };
 
-    const formats = [
-        {
-            value: "json" as ExportFormat,
-            label: "JSON 格式",
-            description: "结构化数据，适合程序处理和集成",
-            icon: FileJson,
-            color: "text-amber-400",
-            bgColor: "bg-amber-500/20",
-            borderColor: "border-amber-500/30",
-            disabled: false
-        },
-        {
-            value: "pdf" as ExportFormat,
-            label: "PDF 格式",
-            description: analysisId ? "专业报告，适合打印和分享" : "需要先保存到历史记录",
-            icon: FileText,
-            color: "text-rose-400",
-            bgColor: "bg-rose-500/20",
-            borderColor: "border-rose-500/30",
-            disabled: !analysisId
-        }
-    ];
+    const isPdfDisabled = !analysisId;
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[600px] cyber-card p-0 bg-[#0c0c12]">
-                <DialogHeader className="cyber-card-header">
-                    <div className="flex items-center gap-3">
+            <DialogContent className="sm:max-w-[600px] bg-[#0c0c12] border-gray-700">
+                <DialogHeader>
+                    <DialogTitle className="flex items-center gap-3 text-lg font-bold uppercase tracking-wider text-white">
                         <Download className="w-5 h-5 text-primary" />
-                        <DialogTitle className="text-lg font-bold uppercase tracking-wider text-white">
-                            导出分析报告
-                        </DialogTitle>
-                    </div>
+                        导出分析报告
+                    </DialogTitle>
+                    <DialogDescription className="text-gray-400 font-mono text-xs">
+                        选择报告格式并导出代码分析结果
+                    </DialogDescription>
                 </DialogHeader>
-                <DialogDescription className="px-6 pt-4 text-gray-400 font-mono text-xs">
-                    选择报告格式并导出代码分析结果
-                </DialogDescription>
 
-                <div className="p-6">
+                <div className="py-4">
                     <RadioGroup
                         value={selectedFormat}
                         onValueChange={(value) => setSelectedFormat(value as ExportFormat)}
                         className="space-y-4"
                     >
-                        {formats.map((format) => {
-                            const Icon = format.icon;
-                            const isSelected = selectedFormat === format.value;
-
-                            return (
-                                <div key={format.value} className="relative">
-                                    <RadioGroupItem
-                                        value={format.value}
-                                        id={format.value}
-                                        className="peer sr-only"
-                                        disabled={format.disabled}
-                                    />
-                                    <Label
-                                        htmlFor={format.value}
-                                        className={`flex items-start space-x-4 p-4 border cursor-pointer transition-all rounded font-mono ${
-                                            format.disabled
-                                                ? "border-gray-800 bg-gray-900/20 cursor-not-allowed opacity-50"
-                                                : isSelected
-                                                    ? "border-primary bg-primary/10"
-                                                    : "border-gray-700 bg-gray-900/30 hover:bg-gray-800/50 hover:border-gray-600"
-                                        }`}
-                                    >
-                                        <div
-                                            className={`w-12 h-12 flex items-center justify-center rounded ${
-                                                format.disabled
-                                                    ? "bg-gray-800 border border-gray-700"
-                                                    : isSelected
-                                                        ? "bg-primary/20 border border-primary/50"
-                                                        : format.bgColor + " border " + format.borderColor
-                                            }`}
-                                        >
-                                            <Icon className={`w-6 h-6 ${format.disabled ? "text-gray-600" : isSelected ? "text-primary" : format.color}`} />
-                                        </div>
-                                        <div className="flex-1">
-                                            <div className="flex items-center justify-between mb-1">
-                                                <h4 className={`font-bold uppercase ${format.disabled ? "text-gray-600" : isSelected ? "text-primary" : "text-gray-200"}`}>
-                                                    {format.label}
-                                                </h4>
-                                                {isSelected && !format.disabled && (
-                                                    <div className="w-3 h-3 bg-primary rounded-full shadow-[0_0_10px_rgba(255,107,44,0.5)]" />
-                                                )}
-                                            </div>
-                                            <p className={`text-xs ${format.disabled ? "text-gray-600" : "text-gray-500"}`}>
-                                                {format.disabled && <AlertTriangle className="w-3 h-3 inline mr-1 text-amber-500" />}
-                                                {format.description}
-                                            </p>
-                                        </div>
-                                    </Label>
+                        <div className="flex items-center space-x-3 p-4 border border-gray-700 rounded bg-gray-900/30 cursor-pointer hover:bg-gray-800/50">
+                            <RadioGroupItem value="json" id="json" />
+                            <Label htmlFor="json" className="flex items-center gap-3 cursor-pointer flex-1">
+                                <FileJson className="w-5 h-5 text-amber-400" />
+                                <div>
+                                    <div className="font-bold text-gray-200">JSON 格式</div>
+                                    <div className="text-xs text-gray-500">结构化数据，适合程序处理和集成</div>
                                 </div>
-                            );
-                        })}
+                            </Label>
+                        </div>
+                        <div className={`flex items-center space-x-3 p-4 border border-gray-700 rounded bg-gray-900/30 ${isPdfDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-gray-800/50'}`}>
+                            <RadioGroupItem value="pdf" id="pdf" disabled={isPdfDisabled} />
+                            <Label htmlFor="pdf" className={`flex items-center gap-3 flex-1 ${isPdfDisabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
+                                <FileText className="w-5 h-5 text-rose-400" />
+                                <div>
+                                    <div className="font-bold text-gray-200">PDF 格式</div>
+                                    <div className="text-xs text-gray-500">
+                                        {isPdfDisabled && <AlertTriangle className="w-3 h-3 inline mr-1 text-amber-500" />}
+                                        {isPdfDisabled ? "需要先保存到历史记录" : "专业报告，适合打印和分享"}
+                                    </div>
+                                </div>
+                            </Label>
+                        </div>
                     </RadioGroup>
 
                     {/* 报告预览信息 */}
-                    <div className="mt-6 cyber-card p-0">
+                    <div className="mt-6 border border-gray-700 rounded bg-gray-900/30">
                         <div className="px-4 py-2 border-b border-gray-800 bg-gray-900/50 flex items-center gap-2">
                             <Terminal className="w-3 h-3 text-primary" />
                             <h4 className="font-bold text-gray-300 uppercase text-xs">报告内容预览</h4>
@@ -192,19 +141,17 @@ export default function InstantExportDialog({
                     </div>
                 </div>
 
-                <DialogFooter className="p-4 border-t border-gray-800 bg-gray-900/50 flex justify-end gap-3">
+                <DialogFooter className="border-t border-gray-800 pt-4">
                     <Button
                         variant="outline"
                         onClick={() => onOpenChange(false)}
                         disabled={isExporting}
-                        className="cyber-btn-outline h-10"
                     >
                         取消
                     </Button>
                     <Button
                         onClick={handleExport}
                         disabled={isExporting || (selectedFormat === "pdf" && !analysisId)}
-                        className="cyber-btn-primary h-10 font-bold uppercase"
                     >
                         {isExporting ? (
                             <>

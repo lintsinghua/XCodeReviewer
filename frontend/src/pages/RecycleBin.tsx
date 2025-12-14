@@ -262,7 +262,7 @@ export default function RecycleBin() {
 
       {/* Restore Dialog */}
       <AlertDialog open={showRestoreDialog} onOpenChange={setShowRestoreDialog}>
-        <AlertDialogContent className="cyber-card p-0 bg-[#0c0c12] max-w-md">
+        <AlertDialogContent className="cyber-card p-0 bg-[#0c0c12] max-w-md !fixed">
           <AlertDialogHeader className="cyber-card-header">
             <RotateCcw className="w-5 h-5 text-emerald-400" />
             <AlertDialogTitle className="text-lg font-bold uppercase tracking-wider text-white">
@@ -288,7 +288,7 @@ export default function RecycleBin() {
 
       {/* Permanent Delete Dialog */}
       <AlertDialog open={showPermanentDeleteDialog} onOpenChange={setShowPermanentDeleteDialog}>
-        <AlertDialogContent className="cyber-card p-0 bg-[#0c0c12] max-w-md">
+        <AlertDialogContent className="cyber-card p-0 bg-[#0c0c12] max-w-md !fixed">
           <AlertDialogHeader className="p-4 border-b border-rose-500/30 bg-rose-500/10 flex flex-row items-center gap-2">
             <AlertTriangle className="w-5 h-5 text-rose-400" />
             <AlertDialogTitle className="text-lg font-bold uppercase tracking-wider text-rose-400">

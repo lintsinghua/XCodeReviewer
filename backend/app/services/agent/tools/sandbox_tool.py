@@ -40,6 +40,7 @@ class SandboxManager:
         self.config = config or SandboxConfig()
         self._docker_client = None
         self._initialized = False
+        self._init_error = None
     
     async def initialize(self):
         """初始化 Docker 客户端"""
@@ -49,25 +50,34 @@ class SandboxManager:
 
         try:
             import docker
-            logger.info("🔄 Attempting to connect to Docker...")
+            logger.info(f"🔄 Attempting to connect to Docker... (lib: {docker.__file__})")
             self._docker_client = docker.from_env()
             # 测试连接
             self._docker_client.ping()
             self._initialized = True
+            self._init_error = None
             logger.info("✅ Docker sandbox manager initialized successfully")
         except ImportError as e:
             logger.error(f"❌ Docker library not installed: {e}")
             self._docker_client = None
+            self._init_error = f"ImportError: {e}"
         except Exception as e:
             logger.warning(f"❌ Docker not available: {e}")
             import traceback
             logger.warning(f"Docker connection traceback: {traceback.format_exc()}")
             self._docker_client = None
+            self._init_error = f"{type(e).__name__}: {str(e)}"
     
     @property
     def is_available(self) -> bool:
         """检查 Docker 是否可用"""
         return self._docker_client is not None
+        
+    def get_diagnosis(self) -> str:
+        """获取诊断信息"""
+        if self.is_available:
+            return "Docker Service Available"
+        return f"Docker Service Unavailable. Error: {self._init_error or 'Not initialized'}"
     
     async def execute_command(
         self,
@@ -211,12 +221,20 @@ class SandboxManager:
             }
         
         timeout = timeout or self.config.timeout
-        
+
         try:
+            # 🔥 清除代理环境变量的方式：在命令前添加 unset
+            # 因为设置空字符串会导致工具尝试解析空 URI 而出错
+            unset_proxy_prefix = "unset HTTP_PROXY HTTPS_PROXY http_proxy https_proxy; "
+            wrapped_command = unset_proxy_prefix + command
+
+            # 用户传入的环境变量
+            container_env = env or {}
+
             # 准备容器配置
             container_config = {
                 "image": self.config.image,
-                "command": ["sh", "-c", command],
+                "command": ["sh", "-c", wrapped_command],
                 "detach": True,
                 "mem_limit": self.config.memory_limit,
                 "cpu_period": 100000,
@@ -228,10 +246,11 @@ class SandboxManager:
                     host_workdir: {"bind": "/workspace", "mode": "ro"}, # 只读挂载项目代码
                 },
                 "tmpfs": {
-                    "/home/sandbox": "rw,size=100m,mode=1777"
+                    "/home/sandbox": "rw,size=100m,mode=1777",
+                    "/tmp": "rw,size=100m,mode=1777"  # 🔥 添加 /tmp 目录供工具写入临时文件
                 },
                 "working_dir": "/workspace",
-                "environment": env or {},
+                "environment": container_env,  # 🔥 用户传入的环境变量
                 "cap_drop": ["ALL"],
                 "security_opt": ["no-new-privileges:true"],
             }
