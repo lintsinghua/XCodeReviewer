@@ -57,20 +57,26 @@ class SmartScanTool(AgentTool):
     
     # 高风险文件模式
     HIGH_RISK_PATTERNS = [
-        r'.*auth.*\.py$', r'.*login.*\.py$', r'.*user.*\.py$',
-        r'.*api.*\.py$', r'.*view.*\.py$', r'.*route.*\.py$',
-        r'.*controller.*\.(py|js|ts|java|php)$',
-        r'.*model.*\.(py|js|ts|java|php)$',
-        r'.*db.*\.(py|js|ts|java|php)$',
-        r'.*sql.*\.(py|js|ts|java|php)$',
-        r'.*upload.*\.(py|js|ts|java|php)$',
-        r'.*file.*\.(py|js|ts|java|php)$',
-        r'.*exec.*\.(py|js|ts|java|php)$',
-        r'.*admin.*\.(py|js|ts|java|php)$',
-        r'.*config.*\.(py|js|ts|json|yaml|yml)$',
-        r'.*setting.*\.(py|js|ts|json|yaml|yml)$',
-        r'.*secret.*\.(py|js|ts|json|yaml|yml)$',
+        r'.*auth.*\.(py|js|ts|tsx|jsx|java|php|swift|m|mm|kt|rs|go)$',
+        r'.*login.*\.(py|js|ts|tsx|jsx|java|php|swift|m|mm|kt|rs|go)$',
+        r'.*user.*\.(py|js|ts|tsx|jsx|java|php|swift|m|mm|kt|rs|go)$',
+        r'.*api.*\.(py|js|ts|tsx|jsx|java|php|swift|m|mm|kt|rs|go)$',
+        r'.*view.*\.(py|js|ts|tsx|jsx|java|php|swift|m|mm|kt|rs|go)$',
+        r'.*route.*\.(py|js|ts|tsx|jsx|java|php|swift|m|mm|kt|rs|go)$',
+        r'.*controller.*\.(py|js|ts|tsx|jsx|java|php|swift|m|mm|kt|rs|go)$',
+        r'.*model.*\.(py|js|ts|tsx|jsx|java|php|swift|m|mm|kt|rs|go)$',
+        r'.*db.*\.(py|js|ts|tsx|jsx|java|php|swift|m|mm|kt|rs|go)$',
+        r'.*sql.*\.(py|js|ts|tsx|jsx|java|php|swift|m|mm|kt|rs|go)$',
+        r'.*upload.*\.(py|js|ts|tsx|jsx|java|php|swift|m|mm|kt|rs|go)$',
+        r'.*file.*\.(py|js|ts|tsx|jsx|java|php|swift|m|mm|kt|rs|go)$',
+        r'.*exec.*\.(py|js|ts|tsx|jsx|java|php|swift|m|mm|kt|rs|go)$',
+        r'.*admin.*\.(py|js|ts|tsx|jsx|java|php|swift|m|mm|kt|rs|go)$',
+        r'.*config.*\.(py|js|ts|tsx|jsx|json|yaml|yml|xml|properties|plist)$',
+        r'.*setting.*\.(py|js|ts|tsx|jsx|json|yaml|yml|xml|properties|plist)$',
+        r'.*secret.*\.(py|js|ts|tsx|jsx|json|yaml|yml|xml|properties|plist)$',
         r'.*\.env.*$',
+        r'.*Info\.plist$',
+        r'.*AndroidManifest\.xml$',
     ]
     
     # 危险模式库（精简版，用于快速扫描）
@@ -81,12 +87,16 @@ class SmartScanTool(AgentTool):
             (r'execute\s*\(.*f["\']', "SQL f-string"),
             (r'\.query\s*\([^)]*\+', "Query拼接"),
             (r'raw\s*\([^)]*%', "Raw SQL"),
+            (r'sqlite3_exec\s*\(', "SQLite3 Exec"),
+            (r'NSPredicate\(format:', "NSPredicate Format"),
         ],
         "command_injection": [
             (r'os\.system\s*\(', "os.system"),
             (r'subprocess.*shell\s*=\s*True', "shell=True"),
             (r'eval\s*\(', "eval()"),
             (r'exec\s*\(', "exec()"),
+            (r'Process\s*\(\s*launchPath:', "Swift Process"),
+            (r'NSTask\s*\.launch', "NSTask Launch"),
         ],
         "xss": [
             (r'innerHTML\s*=', "innerHTML"),
@@ -94,6 +104,8 @@ class SmartScanTool(AgentTool):
             (r'dangerouslySetInnerHTML', "dangerouslySetInnerHTML"),
             (r'\|\s*safe\b', "safe filter"),
             (r'mark_safe\s*\(', "mark_safe"),
+            (r'loadHTMLString', "WebView Load HTML"),
+            (r'evaluateJavaScript', "WebView JS Exec"),
         ],
         "path_traversal": [
             (r'open\s*\([^)]*\+', "open拼接"),
@@ -214,10 +226,12 @@ class SmartScanTool(AgentTool):
         code_extensions = {
             '.py', '.js', '.ts', '.jsx', '.tsx', '.java', '.php',
             '.go', '.rb', '.cs', '.c', '.cpp', '.h', '.hpp',
+            '.swift', '.m', '.mm', '.kt', '.rs', '.sh', '.bat',
+            '.vue', '.html', '.htm', '.xml', '.gradle', '.properties'
         }
         
         # 配置文件扩展名
-        config_extensions = {'.json', '.yaml', '.yml', '.env', '.ini', '.cfg'}
+        config_extensions = {'.json', '.yaml', '.yml', '.env', '.ini', '.cfg', '.plist', '.conf'}
         
         all_extensions = code_extensions | config_extensions
         
