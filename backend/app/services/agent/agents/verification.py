@@ -44,13 +44,70 @@ VERIFICATION_SYSTEM_PROMPT = """你是 DeepAudit 的漏洞验证 Agent，一个*
 - **list_files**: 列出目录文件
   参数: directory (str), pattern (str)
 
-### 沙箱验证 (必须使用)
+### 沙箱核心工具
 - **sandbox_exec**: 在沙箱中执行命令
   参数: command (str), timeout (int)
 - **sandbox_http**: 发送 HTTP 请求测试
   参数: method (str), url (str), data (dict), headers (dict)
 - **verify_vulnerability**: 自动化漏洞验证
-  参数: vulnerability_type (str), target (str), payload (str)
+  参数: vulnerability_type (str), target_url (str), payload (str), expected_pattern (str)
+
+### 🔥 多语言代码测试工具 (按语言选择)
+- **php_test**: 测试 PHP 代码，支持模拟 GET/POST 参数
+  参数: file_path (str), php_code (str), get_params (dict), post_params (dict), timeout (int)
+  示例: {"file_path": "vuln.php", "get_params": {"cmd": "whoami"}}
+
+- **python_test**: 测试 Python 代码，支持模拟 Flask/Django 请求
+  参数: file_path (str), code (str), request_params (dict), form_data (dict), timeout (int)
+  示例: {"code": "import os; os.system(params['cmd'])", "request_params": {"cmd": "id"}}
+
+- **javascript_test**: 测试 JavaScript/Node.js 代码
+  参数: file_path (str), code (str), req_query (dict), req_body (dict), timeout (int)
+  示例: {"code": "exec(req.query.cmd)", "req_query": {"cmd": "id"}}
+
+- **java_test**: 测试 Java 代码，支持模拟 Servlet 请求
+  参数: file_path (str), code (str), request_params (dict), timeout (int)
+
+- **go_test**: 测试 Go 代码
+  参数: file_path (str), code (str), args (list), timeout (int)
+
+- **ruby_test**: 测试 Ruby 代码，支持模拟 Rails 请求
+  参数: file_path (str), code (str), params (dict), timeout (int)
+
+- **shell_test**: 测试 Shell/Bash 脚本
+  参数: file_path (str), code (str), args (list), env (dict), timeout (int)
+
+- **universal_code_test**: 通用多语言测试工具 (自动检测语言)
+  参数: language (str), file_path (str), code (str), params (dict), timeout (int)
+
+### 🔥 漏洞验证专用工具 (按漏洞类型选择，推荐使用)
+- **test_command_injection**: 专门测试命令注入漏洞
+  参数: target_file (str), param_name (str), test_command (str), language (str)
+  示例: {"target_file": "vuln.php", "param_name": "cmd", "test_command": "whoami"}
+
+- **test_sql_injection**: 专门测试 SQL 注入漏洞
+  参数: target_file (str), param_name (str), db_type (str), injection_type (str)
+  示例: {"target_file": "login.php", "param_name": "username", "db_type": "mysql"}
+
+- **test_xss**: 专门测试 XSS 漏洞
+  参数: target_file (str), param_name (str), xss_type (str), context (str)
+  示例: {"target_file": "search.php", "param_name": "q", "xss_type": "reflected"}
+
+- **test_path_traversal**: 专门测试路径遍历漏洞
+  参数: target_file (str), param_name (str), target_path (str)
+  示例: {"target_file": "download.php", "param_name": "file", "target_path": "/etc/passwd"}
+
+- **test_ssti**: 专门测试模板注入漏洞
+  参数: target_file (str), param_name (str), template_engine (str)
+  示例: {"target_file": "render.py", "param_name": "name", "template_engine": "jinja2"}
+
+- **test_deserialization**: 专门测试反序列化漏洞
+  参数: target_file (str), language (str), serialization_format (str)
+  示例: {"target_file": "api.php", "language": "php", "serialization_format": "php_serialize"}
+
+- **universal_vuln_test**: 通用漏洞测试工具 (自动选择测试策略)
+  参数: vuln_type (str), target_file (str), param_name (str), additional_params (dict)
+  支持: command_injection, sql_injection, xss, path_traversal, ssti, deserialization
 
 ## 工作方式
 你将收到一批待验证的漏洞发现。对于每个发现，你需要：
@@ -82,7 +139,7 @@ Final Answer: [JSON 格式的验证报告]
             "poc": {
                 "description": "PoC 描述",
                 "steps": ["步骤1", "步骤2"],
-                "payload": "测试 payload"
+                "payload": "curl 'http://target/vuln.php?cmd=id' 或完整利用代码"
             },
             "impact": "实际影响分析",
             "recommendation": "修复建议"
@@ -104,20 +161,56 @@ Final Answer: [JSON 格式的验证报告]
 - **false_positive**: 确认是误报，有明确理由
 
 ## 验证策略建议
+
+### 对于命令注入漏洞
+1. 使用 **test_command_injection** 工具，它会自动构建测试环境
+2. 或使用对应语言的测试工具 (php_test, python_test 等)
+3. 检查命令输出是否包含 uid=, root, www-data 等特征
+
+### 对于 SQL 注入漏洞
+1. 使用 **test_sql_injection** 工具
+2. 提供数据库类型 (mysql, postgresql, sqlite)
+3. 检查是否能执行 UNION 查询或提取数据
+
+### 对于 XSS 漏洞
+1. 使用 **test_xss** 工具
+2. 指定 XSS 类型 (reflected, stored, dom)
+3. 检查 payload 是否在输出中未转义
+
+### 对于路径遍历漏洞
+1. 使用 **test_path_traversal** 工具
+2. 尝试读取 /etc/passwd 或其他已知文件
+3. 检查是否能访问目标文件
+
+### 对于模板注入 (SSTI) 漏洞
+1. 使用 **test_ssti** 工具
+2. 指定模板引擎 (jinja2, twig, freemarker 等)
+3. 检查数学表达式是否被执行
+
+### 对于反序列化漏洞
+1. 使用 **test_deserialization** 工具
+2. 指定语言和序列化格式
+3. 检查是否能执行任意代码
+
+### 对于其他漏洞
 1. **上下文分析**: 用 read_file 获取更多代码上下文
-2. **数据流追踪**: 用 dataflow_analysis 确认污点传播
-3. **LLM 深度分析**: 用 vulnerability_validation 进行专业分析
-4. **沙箱测试**: 对高危漏洞用沙箱进行安全测试
+2. **通用测试**: 使用 universal_vuln_test 或 universal_code_test
+3. **沙箱测试**: 对高危漏洞用沙箱进行安全测试
 
 ## 重要原则
 1. **质量优先** - 宁可漏报也不要误报太多
 2. **深入理解** - 理解代码逻辑，不要表面判断
 3. **证据支撑** - 判定要有依据
 4. **安全第一** - 沙箱测试要谨慎
-5. **🔥 PoC 生成** - 对于 confirmed 和 likely 的漏洞，**必须**生成 PoC:
+5. **🔥 PoC 生成** - 对于 confirmed 和 likely 的漏洞，**必须**生成完整的 PoC:
    - poc.description: 简要描述这个 PoC 的作用
    - poc.steps: 详细的复现步骤列表
-   - poc.payload: 实际的攻击载荷或测试代码
+   - poc.payload: **完整的**利用代码或命令，例如:
+     - Web漏洞: 完整URL如 `http://target/path?param=<payload>`
+     - 命令注入: 完整的 curl 命令或 HTTP 请求
+     - SQL注入: 完整的利用语句或请求
+     - 代码执行: 可直接运行的利用脚本
+   - ⚠️ payload 字段必须是**可直接复制执行**的完整利用代码，不要只写参数值
 
 现在开始验证漏洞发现！"""
 
@@ -168,19 +261,15 @@ class VerificationAgent(BaseAgent):
 
     
     def _parse_llm_response(self, response: str) -> VerificationStep:
-        """解析 LLM 响应"""
+        """解析 LLM 响应 - 增强版，更健壮地提取思考内容"""
         step = VerificationStep(thought="")
-        
-        # 提取 Thought
+
+        # 🔥 首先尝试提取明确的 Thought 标记
         thought_match = re.search(r'Thought:\s*(.*?)(?=Action:|Final Answer:|$)', response, re.DOTALL)
         if thought_match:
             step.thought = thought_match.group(1).strip()
-        elif not re.search(r'Action:|Final Answer:', response):
-             # 🔥 Fallback: If no markers found, treat the whole response as Thought
-             if response.strip():
-                 step.thought = response.strip()
-        
-        # 检查是否是最终答案
+
+        # 🔥 检查是否是最终答案
         final_match = re.search(r'Final Answer:\s*(.*?)$', response, re.DOTALL)
         if final_match:
             step.is_final = True
@@ -189,23 +278,40 @@ class VerificationAgent(BaseAgent):
             answer_text = re.sub(r'```\s*', '', answer_text)
             # 使用增强的 JSON 解析器
             step.final_answer = AgentJsonParser.parse(
-                answer_text, 
+                answer_text,
                 default={"findings": [], "raw_answer": answer_text}
             )
             # 确保 findings 格式正确
             if "findings" in step.final_answer:
                 step.final_answer["findings"] = [
-                    f for f in step.final_answer["findings"] 
+                    f for f in step.final_answer["findings"]
                     if isinstance(f, dict)
                 ]
+
+            # 🔥 如果没有提取到 thought，使用 Final Answer 前的内容作为思考
+            if not step.thought:
+                before_final = response[:response.find('Final Answer:')].strip()
+                if before_final:
+                    before_final = re.sub(r'^Thought:\s*', '', before_final)
+                    step.thought = before_final[:500] if len(before_final) > 500 else before_final
+
             return step
-        
-        # 提取 Action
+
+        # 🔥 提取 Action
         action_match = re.search(r'Action:\s*(\w+)', response)
         if action_match:
             step.action = action_match.group(1).strip()
-        
-        # 提取 Action Input
+
+            # 🔥 如果没有提取到 thought，提取 Action 之前的内容作为思考
+            if not step.thought:
+                action_pos = response.find('Action:')
+                if action_pos > 0:
+                    before_action = response[:action_pos].strip()
+                    before_action = re.sub(r'^Thought:\s*', '', before_action)
+                    if before_action:
+                        step.thought = before_action[:500] if len(before_action) > 500 else before_action
+
+        # 🔥 提取 Action Input
         input_match = re.search(r'Action Input:\s*(.*?)(?=Thought:|Action:|Observation:|$)', response, re.DOTALL)
         if input_match:
             input_text = input_match.group(1).strip()
@@ -216,7 +322,12 @@ class VerificationAgent(BaseAgent):
                 input_text,
                 default={"raw_input": input_text}
             )
-        
+
+        # 🔥 最后的 fallback：如果整个响应没有任何标记，整体作为思考
+        if not step.thought and not step.action and not step.is_final:
+            if response.strip():
+                step.thought = response.strip()[:500]
+
         return step
     
     async def run(self, input_data: Dict[str, Any]) -> AgentResult:
@@ -297,7 +408,24 @@ class VerificationAgent(BaseAgent):
         
         # 去重
         findings_to_verify = self._deduplicate(findings_to_verify)
-        
+
+        # 🔥 FIX: 优先处理有明确文件路径的发现，将没有文件路径的发现放到后面
+        # 这确保 Analysis 的具体发现优先于 Recon 的泛化描述
+        def has_valid_file_path(finding: Dict) -> bool:
+            file_path = finding.get("file_path", "")
+            return bool(file_path and file_path.strip() and file_path.lower() not in ["unknown", "n/a", ""])
+
+        findings_with_path = [f for f in findings_to_verify if has_valid_file_path(f)]
+        findings_without_path = [f for f in findings_to_verify if not has_valid_file_path(f)]
+
+        # 合并：有路径的在前，没路径的在后
+        findings_to_verify = findings_with_path + findings_without_path
+
+        if findings_with_path:
+            logger.info(f"[Verification] 优先处理 {len(findings_with_path)} 个有明确文件路径的发现")
+        if findings_without_path:
+            logger.info(f"[Verification] 还有 {len(findings_without_path)} 个发现需要自行定位文件")
+
         if not findings_to_verify:
             logger.warning(f"[Verification] 没有需要验证的发现! previous_results keys: {list(previous_results.keys()) if isinstance(previous_results, dict) else 'not dict'}")
             await self.emit_event("warning", "没有需要验证的发现 - 可能是数据格式问题")
@@ -322,11 +450,25 @@ class VerificationAgent(BaseAgent):
         
         findings_summary = []
         for i, f in enumerate(findings_to_verify):
+            # 🔥 FIX: 正确处理 file_path 格式，可能包含行号 (如 "app.py:36")
+            file_path = f.get('file_path', 'unknown')
+            line_start = f.get('line_start', 0)
+
+            # 如果 file_path 已包含行号，提取出来
+            if isinstance(file_path, str) and ':' in file_path:
+                parts = file_path.split(':', 1)
+                if len(parts) == 2 and parts[1].split()[0].isdigit():
+                    file_path = parts[0]
+                    try:
+                        line_start = int(parts[1].split()[0])
+                    except ValueError:
+                        pass
+
             findings_summary.append(f"""
 ### 发现 {i+1}: {f.get('title', 'Unknown')}
 - 类型: {f.get('vulnerability_type', 'unknown')}
 - 严重度: {f.get('severity', 'medium')}
-- 文件: {f.get('file_path', 'unknown')}:{f.get('line_start', 0)}
+- 文件: {file_path} (行 {line_start})
 - 代码:
 ```
 {f.get('code_snippet', 'N/A')[:500]}
@@ -341,13 +483,22 @@ class VerificationAgent(BaseAgent):
 ## 待验证发现
 {''.join(findings_summary)}
 
+## ⚠️ 重要验证指南
+1. **直接使用上面列出的文件路径** - 不要猜测或搜索其他路径
+2. **如果文件路径包含冒号和行号** (如 "app.py:36"), 请提取文件名 "app.py" 并使用 read_file 读取
+3. **先读取文件内容，再判断漏洞是否存在**
+4. **不要假设文件在子目录中** - 使用发现中提供的精确路径
+
 ## 验证要求
 - 验证级别: {config.get('verification_level', 'standard')}
 
 ## 可用工具
 {self.get_tools_description()}
 
-请开始验证。对于每个发现，思考如何验证它，使用合适的工具获取更多信息，然后判断是否为真实漏洞。
+请开始验证。对于每个发现：
+1. 首先使用 read_file 读取发现中指定的文件（使用精确路径）
+2. 分析代码上下文
+3. 判断是否为真实漏洞
 {f"特别注意 Analysis Agent 提到的关注点。" if handoff_context else ""}"""
 
         # 初始化对话历史

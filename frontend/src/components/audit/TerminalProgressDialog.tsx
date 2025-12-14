@@ -432,12 +432,13 @@ export default function TerminalProgressDialog({
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogPortal>
-                <DialogOverlay className="bg-black/80 backdrop-blur-sm" />
+                <DialogOverlay className="bg-black/85 backdrop-blur-md" />
                 <DialogPrimitive.Content
                     className={cn(
                         "fixed left-[50%] top-[50%] z-50 translate-x-[-50%] translate-y-[-50%]",
                         "w-[95vw] max-w-[1000px] h-[85vh] max-h-[700px]",
-                        "cyber-card p-0 gap-0 overflow-hidden",
+                        "bg-[#08090d] border border-[#1a2535] rounded overflow-hidden",
+                        "shadow-[0_0_60px_rgba(0,0,0,0.8),inset_0_1px_0_rgba(255,255,255,0.02)]",
                         "data-[state=open]:animate-in data-[state=closed]:animate-out",
                         "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
                         "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
@@ -453,30 +454,44 @@ export default function TerminalProgressDialog({
                         </DialogPrimitive.Description>
                     </VisuallyHidden.Root>
 
+                    {/* Scanline overlay */}
+                    <div className="absolute inset-0 pointer-events-none z-20 opacity-30"
+                        style={{
+                            backgroundImage: "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.1) 2px, rgba(0,0,0,0.1) 4px)",
+                        }}
+                    />
+
                     {/* Header */}
-                    <div className="cyber-card-header justify-between">
+                    <div className="flex items-center justify-between px-4 py-3 bg-[#0a0c10] border-b border-[#1a2535]"
+                        style={{ backgroundImage: "linear-gradient(90deg, rgba(255, 95, 31, 0.05) 0%, transparent 50%, rgba(14, 181, 196, 0.05) 100%)" }}>
                         <div className="flex items-center gap-3">
-                            <Terminal className="w-5 h-5 text-primary" />
+                            <Terminal className="w-5 h-5 text-primary" style={{ filter: "drop-shadow(0 0 8px rgba(255, 95, 31, 0.5))" }} />
                             <div>
-                                <span className="text-lg font-bold uppercase tracking-wider text-white">AUDIT_TERMINAL</span>
-                                <span className="text-xs text-gray-500 ml-2">v2.0</span>
+                                <span className="text-lg font-bold uppercase tracking-[0.15em] text-[#f0e6d3]" style={{ textShadow: "0 0 20px rgba(255, 95, 31, 0.3)" }}>AUDIT_TERMINAL</span>
+                                <span className="text-[10px] text-[#5a6577] ml-2 tracking-wider">v3.0</span>
                             </div>
                         </div>
 
                         <div className="flex items-center gap-4">
                             {/* 状态指示灯 */}
-                            <div className="flex items-center gap-2 px-3 py-1 bg-gray-900 rounded border border-gray-800">
-                                <div className={`w-2 h-2 rounded-full ${!isCompleted && !isFailed && !isCancelled ? 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.6)] animate-pulse' : 'bg-gray-600'}`} />
-                                <div className={`w-2 h-2 rounded-full ${isFailed ? 'bg-rose-400 shadow-[0_0_6px_rgba(251,113,133,0.6)]' : 'bg-gray-600'}`} />
-                                <div className={`w-2 h-2 rounded-full ${isCompleted ? 'bg-sky-400 shadow-[0_0_6px_rgba(56,189,248,0.6)]' : 'bg-gray-600'}`} />
+                            <div className="flex items-center gap-2.5 px-3 py-1.5 bg-[#060810] rounded border border-[#1a2535]">
+                                <div className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${!isCompleted && !isFailed && !isCancelled
+                                    ? 'bg-[#3dd68c] shadow-[0_0_10px_rgba(61,214,140,0.7)] animate-pulse'
+                                    : 'bg-[#3a4555]'}`} />
+                                <div className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${isFailed
+                                    ? 'bg-[#f87171] shadow-[0_0_10px_rgba(248,113,113,0.7)]'
+                                    : 'bg-[#3a4555]'}`} />
+                                <div className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${isCompleted
+                                    ? 'bg-[#22d3ee] shadow-[0_0_10px_rgba(34,211,238,0.7)]'
+                                    : 'bg-[#3a4555]'}`} />
                             </div>
 
                             <button
                                 type="button"
-                                className="w-8 h-8 flex items-center justify-center hover:bg-rose-500/20 rounded transition-colors"
+                                className="w-8 h-8 flex items-center justify-center hover:bg-[#e53935]/20 rounded transition-all duration-200 group"
                                 onClick={() => onOpenChange(false)}
                             >
-                                <XIcon className="w-5 h-5 text-gray-400 hover:text-rose-400" />
+                                <XIcon className="w-5 h-5 text-[#6a7587] group-hover:text-[#f87171] transition-colors" />
                             </button>
                         </div>
                     </div>
@@ -484,19 +499,22 @@ export default function TerminalProgressDialog({
                     {/* Main Content */}
                     <div className="flex h-[calc(100%-56px)]">
                         {/* Left Sidebar - Task Info */}
-                        <div className="w-48 p-4 border-r border-gray-800 bg-gray-900/30 flex flex-col gap-4">
-                            <div className="space-y-1">
-                                <div className="text-[10px] font-bold text-gray-600 uppercase tracking-wider">Task ID</div>
-                                <div className="text-xs font-mono text-primary truncate bg-gray-900 p-2 rounded border border-gray-800">
+                        <div className="w-48 p-4 border-r border-[#1a2535] bg-[#060810] flex flex-col gap-4">
+                            <div className="space-y-1.5">
+                                <div className="text-[9px] font-bold text-[#5a6577] uppercase tracking-[0.15em]">Task ID</div>
+                                <div className="text-xs font-mono text-primary truncate bg-[#0a0c10] p-2.5 rounded border border-[#1a2535]"
+                                    style={{ textShadow: "0 0 10px rgba(255, 95, 31, 0.3)" }}>
                                     {taskId?.slice(0, 8)}...
                                 </div>
                             </div>
 
-                            <div className="space-y-1">
-                                <div className="text-[10px] font-bold text-gray-600 uppercase tracking-wider">Type</div>
-                                <div className="flex items-center gap-2 bg-gray-900 p-2 rounded border border-gray-800">
-                                    {taskType === 'repository' ? <Cpu className="w-3 h-3 text-sky-400" /> : <HardDrive className="w-3 h-3 text-amber-400" />}
-                                    <span className="text-xs font-bold text-gray-300 uppercase">{taskType}</span>
+                            <div className="space-y-1.5">
+                                <div className="text-[9px] font-bold text-[#5a6577] uppercase tracking-[0.15em]">Type</div>
+                                <div className="flex items-center gap-2 bg-[#0a0c10] p-2.5 rounded border border-[#1a2535]">
+                                    {taskType === 'repository'
+                                        ? <Cpu className="w-3.5 h-3.5 text-[#22d3ee]" style={{ filter: "drop-shadow(0 0 6px rgba(34, 211, 238, 0.5))" }} />
+                                        : <HardDrive className="w-3.5 h-3.5 text-[#fbbf24]" style={{ filter: "drop-shadow(0 0 6px rgba(251, 191, 36, 0.5))" }} />}
+                                    <span className="text-xs font-bold text-[#d0d8e8] uppercase tracking-wider">{taskType}</span>
                                 </div>
                             </div>
 
@@ -504,7 +522,7 @@ export default function TerminalProgressDialog({
 
                             {/* Status Badge */}
                             <div className="space-y-2">
-                                <div className="text-[10px] font-bold text-gray-600 uppercase tracking-wider">Status</div>
+                                <div className="text-[9px] font-bold text-[#5a6577] uppercase tracking-[0.15em]">Status</div>
                                 {isCancelled ? (
                                     <Badge className="w-full justify-center cyber-badge-warning">CANCELLED</Badge>
                                 ) : isCompleted ? (
@@ -520,17 +538,18 @@ export default function TerminalProgressDialog({
                         {/* Terminal Screen */}
                         <div className="flex-1 flex flex-col">
                             {/* Terminal Output */}
-                            <div className="flex-1 bg-[#0a0a0f] p-4 overflow-y-auto font-mono text-sm custom-scrollbar relative">
+                            <div className="flex-1 bg-[#050608] p-4 overflow-y-auto font-mono text-sm custom-scrollbar relative">
                                 {/* Grid background */}
-                                <div className="absolute inset-0 cyber-grid-subtle pointer-events-none opacity-30" />
+                                <div className="absolute inset-0 cyber-grid-subtle pointer-events-none opacity-40" />
 
                                 <div className="relative z-10 space-y-0.5 pb-10">
                                     {logs.map((log) => (
-                                        <div key={log.id} className="flex items-start gap-3 hover:bg-white/5 px-2 py-0.5 transition-colors group rounded">
-                                            <span className="text-gray-600 text-xs flex-shrink-0 w-20 font-mono">
+                                        <div key={log.id} className="flex items-start gap-3 hover:bg-[#ffffff]/[0.03] px-2 py-0.5 transition-colors group rounded">
+                                            <span className="text-[#4a5565] text-xs flex-shrink-0 w-20 font-mono">
                                                 {log.timestamp}
                                             </span>
-                                            <span className={`${getLogColor(log.type)} flex-1 font-mono text-sm`}>
+                                            <span className={`${getLogColor(log.type)} flex-1 font-mono text-sm`}
+                                                style={{ textShadow: log.type === 'success' ? '0 0 8px rgba(61, 214, 140, 0.3)' : log.type === 'error' ? '0 0 8px rgba(248, 113, 113, 0.3)' : log.type === 'warning' ? '0 0 8px rgba(251, 191, 36, 0.3)' : 'none' }}>
                                                 {log.message}
                                             </span>
                                         </div>
@@ -538,8 +557,8 @@ export default function TerminalProgressDialog({
 
                                     {!isCompleted && !isFailed && !isCancelled && (
                                         <div className="flex items-center gap-3 mt-4 px-2">
-                                            <span className="text-gray-600 text-xs w-20 font-mono">{currentTime}</span>
-                                            <span className="text-primary animate-pulse font-bold">_</span>
+                                            <span className="text-[#4a5565] text-xs w-20 font-mono">{currentTime}</span>
+                                            <span className="text-primary animate-pulse font-bold" style={{ textShadow: "0 0 10px rgba(255, 95, 31, 0.5)" }}>_</span>
                                         </div>
                                     )}
                                     <div ref={logsEndRef} />
@@ -547,11 +566,11 @@ export default function TerminalProgressDialog({
                             </div>
 
                             {/* Bottom Controls */}
-                            <div className="h-14 px-4 border-t border-gray-800 bg-gray-900/50 flex items-center justify-between">
-                                <div className="flex items-center gap-2 text-xs text-gray-500 font-mono">
-                                    <Activity className="w-3 h-3" />
+                            <div className="h-14 px-4 border-t border-[#1a2535] bg-[#0a0c10]/90 flex items-center justify-between">
+                                <div className="flex items-center gap-2 text-xs text-[#6a7587] font-mono tracking-wide">
+                                    <Activity className="w-3.5 h-3.5" />
                                     <span>
-                                        {isCompleted ? "任务已完成" : isFailed ? "任务失败" : isCancelled ? "任务已取消" : "正在执行..."}
+                                        {isCompleted ? "TASK COMPLETED" : isFailed ? "TASK FAILED" : isCancelled ? "TASK CANCELLED" : "EXECUTING..."}
                                     </span>
                                 </div>
 
@@ -561,9 +580,9 @@ export default function TerminalProgressDialog({
                                             size="sm"
                                             variant="outline"
                                             onClick={handleCancel}
-                                            className="h-8 cyber-btn-outline text-amber-400 border-amber-500/30 hover:bg-amber-500/10 hover:border-amber-500/50"
+                                            className="h-8 bg-transparent border-[#fbbf24]/40 text-[#fbbf24] hover:bg-[#fbbf24]/10 hover:border-[#fbbf24]/60 font-mono uppercase tracking-wider text-[10px]"
                                         >
-                                            <AlertTriangle className="w-3 h-3 mr-1" />
+                                            <AlertTriangle className="w-3 h-3 mr-1.5" />
                                             取消任务
                                         </Button>
                                     )}
@@ -573,9 +592,9 @@ export default function TerminalProgressDialog({
                                             size="sm"
                                             variant="outline"
                                             onClick={() => window.open('/logs', '_blank')}
-                                            className="h-8 cyber-btn-outline"
+                                            className="h-8 bg-transparent border-[#6a7587]/40 text-[#a8b0c0] hover:bg-[#1a2030]/50 hover:border-[#6a7587]/60 font-mono uppercase tracking-wider text-[10px]"
                                         >
-                                            <Activity className="w-3 h-3 mr-1" />
+                                            <Activity className="w-3 h-3 mr-1.5" />
                                             查看日志
                                         </Button>
                                     )}
@@ -584,9 +603,9 @@ export default function TerminalProgressDialog({
                                         <Button
                                             size="sm"
                                             onClick={() => onOpenChange(false)}
-                                            className="h-8 cyber-btn-primary"
+                                            className="h-8 cyber-btn-primary font-mono uppercase tracking-wider text-[10px]"
                                         >
-                                            <CheckCircle2 className="w-3 h-3 mr-1" />
+                                            <CheckCircle2 className="w-3 h-3 mr-1.5" />
                                             确认
                                         </Button>
                                     )}

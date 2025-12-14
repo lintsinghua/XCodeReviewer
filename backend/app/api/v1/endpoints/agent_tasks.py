@@ -597,11 +597,50 @@ async def _initialize_tools(
     }
     
     # Verification 工具
+    # 🔥 导入沙箱工具
+    from app.services.agent.tools import (
+        SandboxTool, SandboxHttpTool, VulnerabilityVerifyTool, SandboxManager,
+        # 多语言代码测试工具
+        PhpTestTool, PythonTestTool, JavaScriptTestTool, JavaTestTool,
+        GoTestTool, RubyTestTool, ShellTestTool, UniversalCodeTestTool,
+        # 漏洞验证专用工具
+        CommandInjectionTestTool, SqlInjectionTestTool, XssTestTool,
+        PathTraversalTestTool, SstiTestTool, DeserializationTestTool,
+        UniversalVulnTestTool,
+    )
+
+    # 🔥 初始化沙箱管理器
+    sandbox_manager = SandboxManager()
+    await sandbox_manager.initialize()
+    logger.info(f"✅ Sandbox initialized (available: {sandbox_manager.is_available})")
+
     verification_tools = {
         **base_tools,
-        # 强制使用沙箱工具，移除 LLM 模拟验证工具
-        # "vulnerability_validation": VulnerabilityValidationTool(llm_service),
-        # "dataflow_analysis": DataFlowAnalysisTool(llm_service),
+        # 🔥 沙箱验证工具
+        "sandbox_exec": SandboxTool(sandbox_manager),
+        "sandbox_http": SandboxHttpTool(sandbox_manager),
+        "verify_vulnerability": VulnerabilityVerifyTool(sandbox_manager),
+
+        # 🔥 多语言代码测试工具
+        "php_test": PhpTestTool(sandbox_manager, project_root),
+        "python_test": PythonTestTool(sandbox_manager, project_root),
+        "javascript_test": JavaScriptTestTool(sandbox_manager, project_root),
+        "java_test": JavaTestTool(sandbox_manager, project_root),
+        "go_test": GoTestTool(sandbox_manager, project_root),
+        "ruby_test": RubyTestTool(sandbox_manager, project_root),
+        "shell_test": ShellTestTool(sandbox_manager, project_root),
+        "universal_code_test": UniversalCodeTestTool(sandbox_manager, project_root),
+
+        # 🔥 漏洞验证专用工具
+        "test_command_injection": CommandInjectionTestTool(sandbox_manager, project_root),
+        "test_sql_injection": SqlInjectionTestTool(sandbox_manager, project_root),
+        "test_xss": XssTestTool(sandbox_manager, project_root),
+        "test_path_traversal": PathTraversalTestTool(sandbox_manager, project_root),
+        "test_ssti": SstiTestTool(sandbox_manager, project_root),
+        "test_deserialization": DeserializationTestTool(sandbox_manager, project_root),
+        "universal_vuln_test": UniversalVulnTestTool(sandbox_manager, project_root),
+
+        # 报告工具
         "create_vulnerability_report": CreateVulnerabilityReportTool(),
     }
     

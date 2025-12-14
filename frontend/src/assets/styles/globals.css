@@ -11,69 +11,95 @@
 }
 
 /*
-  DeepAudit Design System v2.0
-  Aesthetic: Cyberpunk Terminal / Cassette Futurism / Hacker Dark
-  Core Palette: Orange (#FF6B2C), Emerald, Deep Blacks, Grays
-  Philosophy: Dark, professional, high-tech, clean
+  DeepAudit Design System v3.0
+  Aesthetic: Cyberpunk Hacker / Mechanical Retro Terminal / Cassette Futurism
+  Core Palette: Phosphor Orange (#FF6B2C), Matrix Green, CRT Blue, Deep Void Black
+  Philosophy: High contrast, readable, cinematic, immersive hacker atmosphere
+
+  Design Principles:
+  - Phosphor glow effects mimicking CRT monitors
+  - Cassette tape-inspired mechanical elements
+  - High contrast text for readability (WCAG AA compliant)
+  - Subtle scanline overlays for authenticity
+  - Warm amber/orange accent with cool cyan highlights
 */
 
 @layer base {
   :root {
-    /* Force dark mode colors for cyberpunk aesthetic */
-    --background: 240 10% 4%;           /* #0a0a0f - Deep black */
-    --foreground: 0 0% 95%;             /* Almost white text */
+    /* ====== Core Background System ====== */
+    /* Void Black - Deep space black with subtle blue undertone */
+    --background: 230 15% 4%;           /* #08090d - Deeper void */
+    --foreground: 45 10% 88%;           /* Warm off-white, easier on eyes */
 
-    /* Card & Surfaces - Darker with subtle blue tint */
-    --card: 240 10% 6%;                 /* #0d0d14 */
-    --card-foreground: 0 0% 95%;
+    /* Card & Surfaces - Layered depth system */
+    --card: 230 15% 7%;                 /* #0e1014 - Elevated surface */
+    --card-foreground: 45 10% 88%;
 
-    /* Popover - Slightly elevated surface */
-    --popover: 240 10% 8%;              /* #101018 */
-    --popover-foreground: 0 0% 95%;
+    /* Popover - Floating elements */
+    --popover: 230 15% 9%;              /* #121418 - Highest elevation */
+    --popover-foreground: 45 10% 88%;
 
-    /* Primary - Vibrant Orange (Core brand) */
-    --primary: 16 100% 58%;             /* #FF6B2C */
+    /* ====== Accent Color System ====== */
+    /* Primary - Phosphor Orange (CRT warm glow) */
+    --primary: 18 100% 55%;             /* #FF5F1F - Brighter, more vibrant */
     --primary-foreground: 0 0% 100%;
 
-    /* Secondary - Cyan/Teal accent */
-    --secondary: 180 70% 45%;           /* Teal */
+    /* Secondary - Matrix Cyan (Cool contrast) */
+    --secondary: 185 85% 45%;           /* #0EB5C4 - Electric cyan */
     --secondary-foreground: 0 0% 100%;
 
-    /* Success - Emerald Green */
-    --success: 160 84% 39%;             /* #10b981 */
+    /* Success - Terminal Green (Classic hacker) */
+    --success: 145 80% 42%;             /* #15C46A - Phosphor green */
     --success-foreground: 0 0% 100%;
 
-    /* Muted - Dark grey for subtle elements */
-    --muted: 240 10% 12%;
-    --muted-foreground: 240 5% 55%;
+    /* Muted - CRT Grey (Inactive elements) */
+    --muted: 230 10% 14%;
+    --muted-foreground: 230 8% 55%;
 
-    /* Accent - Purple/Violet for thinking/AI */
-    --accent: 270 70% 55%;              /* Violet */
+    /* Accent - Synthwave Purple (AI/Thinking) */
+    --accent: 280 75% 58%;              /* #A855F7 - Neon purple */
     --accent-foreground: 0 0% 100%;
 
-    /* Destructive - Red for errors */
-    --destructive: 0 84% 60%;           /* Rose */
+    /* Destructive - Alarm Red */
+    --destructive: 0 85% 55%;           /* #E53935 - Warning red */
     --destructive-foreground: 0 0% 100%;
 
-    /* Borders & Inputs */
-    --border: 240 10% 18%;              /* Subtle dark border */
-    --input: 240 10% 15%;
-    --ring: 16 100% 58%;                /* Orange focus ring */
+    /* Warning - Amber Alert */
+    --warning: 38 95% 55%;              /* #F59E0B - Caution amber */
+    --warning-foreground: 0 0% 10%;
 
-    /* Border radius - Sharp cyber aesthetic */
-    --radius: 4px;
+    /* ====== Border & Input System ====== */
+    --border: 230 12% 20%;              /* Subtle visible border */
+    --input: 230 15% 12%;
+    --ring: 18 100% 55%;                /* Orange focus ring */
 
-    /* Shadows - Subtle glow effects */
-    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
-    --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.5);
-    --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.5);
-    --shadow-focus: 0 0 0 2px rgba(255, 107, 44, 0.3);
-    --shadow-glow-primary: 0 0 20px rgba(255, 107, 44, 0.15);
-    --shadow-glow-success: 0 0 20px rgba(16, 185, 129, 0.15);
-    --shadow-glow-accent: 0 0 20px rgba(139, 92, 246, 0.15);
+    /* ====== Design Tokens ====== */
+    --radius: 3px;                      /* Sharper, more technical */
+
+    /* ====== Shadow & Glow System ====== */
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.6);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
+    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.6);
+    --shadow-focus: 0 0 0 2px rgba(255, 95, 31, 0.4);
+
+    /* Phosphor Glow Effects */
+    --glow-primary: 0 0 20px rgba(255, 95, 31, 0.25), 0 0 40px rgba(255, 95, 31, 0.1);
+    --glow-success: 0 0 20px rgba(21, 196, 106, 0.25), 0 0 40px rgba(21, 196, 106, 0.1);
+    --glow-accent: 0 0 20px rgba(168, 85, 247, 0.25), 0 0 40px rgba(168, 85, 247, 0.1);
+    --glow-cyan: 0 0 20px rgba(14, 181, 196, 0.25), 0 0 40px rgba(14, 181, 196, 0.1);
+    --glow-red: 0 0 20px rgba(229, 57, 53, 0.25), 0 0 40px rgba(229, 57, 53, 0.1);
+
+    /* CRT Screen Effect */
+    --crt-flicker: rgba(255, 255, 255, 0.02);
+    --scanline-color: rgba(0, 0, 0, 0.08);
+
+    /* Cassette Tape Colors */
+    --tape-brown: #2a1f1a;
+    --tape-cream: #e8e0d0;
+    --tape-label: #1a1a1a;
   }
 
-  /* Keep dark mode as default - no light mode needed */
+  /* Dark mode is the only mode */
   .dark {
     /* Same as root - always dark */
   }
@@ -91,242 +117,420 @@
 
   body {
     @apply bg-background text-foreground font-mono antialiased;
-    background-color: hsl(240 10% 4%);
+    background-color: hsl(230 15% 4%);
     transition: background-color 0.2s ease;
+    /* Subtle CRT curvature effect on body */
+    background-image:
+      radial-gradient(ellipse at center, transparent 0%, transparent 70%, rgba(0,0,0,0.3) 100%);
   }
 
-  /* Typography Hierarchy */
+  /* ====== Typography System - High Contrast, Readable ====== */
   h1 {
-    @apply font-display font-bold tracking-tight text-3xl text-white;
+    @apply font-display font-bold tracking-tight text-3xl;
+    color: #f0e6d3; /* Warm white - easier on eyes */
     letter-spacing: -0.02em;
+    text-shadow: 0 0 30px rgba(255, 95, 31, 0.15);
   }
 
   h2 {
-    @apply font-display font-bold tracking-tight text-2xl text-white;
+    @apply font-display font-bold tracking-tight text-2xl;
+    color: #ebe2d0;
     letter-spacing: -0.01em;
   }
 
   h3 {
-    @apply font-display font-bold tracking-tight text-xl text-white;
+    @apply font-display font-bold tracking-tight text-xl;
+    color: #e5dcc8;
   }
 
   h4 {
-    @apply font-display font-semibold tracking-tight text-lg text-gray-100;
+    @apply font-display font-semibold tracking-tight text-lg;
+    color: #ddd4c0;
   }
 
   h5, h6 {
-    @apply font-display font-semibold text-base text-gray-200;
+    @apply font-display font-semibold text-base;
+    color: #d5ccb8;
   }
 
-  /* Focus states */
+  /* Paragraph text - optimized for readability */
+  p, span, div {
+    color: #c8c0b0; /* Warm grey - reduces eye strain */
+  }
+
+  /* Code blocks - high contrast for readability */
+  code, pre {
+    color: #e8e0d0;
+    background-color: rgba(0, 0, 0, 0.3);
+  }
+
+  /* Focus states - Phosphor glow */
   button:focus-visible,
   input:focus-visible,
   textarea:focus-visible,
   select:focus-visible {
     outline: none;
-    box-shadow: var(--shadow-focus);
+    box-shadow: var(--shadow-focus), var(--glow-primary);
   }
 
-  /* Custom selection */
+  /* Custom selection - Warm highlight */
   ::selection {
-    background: rgba(255, 107, 44, 0.3);
-    color: white;
+    background: rgba(255, 95, 31, 0.35);
+    color: #ffffff;
+  }
+
+  /* Links - Cyan accent */
+  a {
+    color: hsl(var(--secondary));
+    transition: all 0.15s ease;
+  }
+
+  a:hover {
+    color: hsl(185 85% 55%);
+    text-shadow: 0 0 10px rgba(14, 181, 196, 0.3);
   }
 }
 
 @layer utilities {
-  /* ============ Cyberpunk Card Styles ============ */
+  /* ============ Cyberpunk Card Styles - Enhanced ============ */
   .cyber-card {
-    @apply bg-[#0c0c12] border border-gray-800/60 rounded-lg overflow-hidden;
-    box-shadow: var(--shadow-md);
+    @apply bg-[#0a0c10] border border-[#1a2030]/80 rounded overflow-hidden;
+    box-shadow: var(--shadow-md), inset 0 1px 0 rgba(255,255,255,0.02);
     transition: all 0.2s ease;
+    position: relative;
+  }
+
+  /* Subtle corner accents */
+  .cyber-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 20px;
+    height: 20px;
+    border-top: 1px solid rgba(255, 95, 31, 0.3);
+    border-left: 1px solid rgba(255, 95, 31, 0.3);
+    pointer-events: none;
+  }
+
+  .cyber-card::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 20px;
+    height: 20px;
+    border-bottom: 1px solid rgba(255, 95, 31, 0.3);
+    border-right: 1px solid rgba(255, 95, 31, 0.3);
+    pointer-events: none;
   }
 
   .cyber-card:hover {
-    @apply border-gray-700/80;
-    box-shadow: var(--shadow-lg);
+    @apply border-[#2a3545];
+    box-shadow: var(--shadow-lg), var(--glow-primary);
   }
 
   .cyber-card-glow {
     @apply cyber-card;
-    box-shadow: var(--shadow-md), var(--shadow-glow-primary);
+    box-shadow: var(--shadow-md), var(--glow-primary);
   }
 
   .cyber-card-header {
-    @apply flex items-center gap-2 px-4 py-3 bg-[#0a0a0f] border-b border-gray-800/50;
+    @apply flex items-center gap-2 px-4 py-3 bg-[#080a0e] border-b border-[#1a2030]/60;
+    background-image: linear-gradient(180deg, rgba(255,255,255,0.02) 0%, transparent 100%);
   }
 
-  /* ============ Terminal Window Style ============ */
+  /* ============ Terminal Window Style - CRT Monitor ============ */
   .terminal-window {
-    @apply bg-[#0c0c12] border border-gray-800/60 rounded-lg overflow-hidden;
+    @apply bg-[#050608] border border-[#1a2030] rounded overflow-hidden;
+    box-shadow:
+      inset 0 0 100px rgba(0,0,0,0.5),
+      0 0 30px rgba(0,0,0,0.8);
+    position: relative;
+  }
+
+  /* CRT Scanline effect */
+  .terminal-window::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0, 0, 0, 0.1) 2px,
+      rgba(0, 0, 0, 0.1) 4px
+    );
+    pointer-events: none;
+    z-index: 10;
   }
 
   .terminal-header {
-    @apply flex items-center gap-2 px-4 py-2.5 bg-[#0a0a0f] border-b border-gray-800/50;
+    @apply flex items-center gap-2 px-4 py-2.5 bg-[#0a0c10] border-b border-[#1a2030]/60;
+    background-image:
+      linear-gradient(90deg, rgba(255, 95, 31, 0.05) 0%, transparent 50%, rgba(14, 181, 196, 0.05) 100%);
   }
 
   .terminal-dots {
-    @apply flex items-center gap-1.5;
+    @apply flex items-center gap-2;
   }
 
   .terminal-dot {
-    @apply w-3 h-3 rounded-full;
+    @apply w-3 h-3 rounded-full transition-all duration-200;
   }
 
-  .terminal-dot-red { @apply bg-red-500/80; }
-  .terminal-dot-yellow { @apply bg-yellow-500/80; }
-  .terminal-dot-green { @apply bg-green-500/80; }
+  .terminal-dot-red {
+    background: radial-gradient(circle at 30% 30%, #ff6b6b, #cc3333);
+    box-shadow: 0 0 6px rgba(255, 107, 107, 0.5);
+  }
+  .terminal-dot-yellow {
+    background: radial-gradient(circle at 30% 30%, #ffd93d, #cc9900);
+    box-shadow: 0 0 6px rgba(255, 217, 61, 0.5);
+  }
+  .terminal-dot-green {
+    background: radial-gradient(circle at 30% 30%, #6bcb77, #2e8b3a);
+    box-shadow: 0 0 6px rgba(107, 203, 119, 0.5);
+  }
 
   .terminal-title {
-    @apply text-[11px] text-gray-500 ml-3 font-mono tracking-wider;
+    @apply text-[11px] text-[#5a6577] ml-3 font-mono tracking-[0.15em] uppercase;
   }
 
   .terminal-content {
     @apply p-4 font-mono text-sm;
+    color: #b8c0cc;
+    text-shadow: 0 0 2px rgba(184, 192, 204, 0.3);
   }
 
-  /* ============ Cyber Buttons ============ */
+  /* ============ Cyber Buttons - Mechanical Feel ============ */
   .cyber-btn {
     @apply font-mono font-semibold py-2 px-4 rounded transition-all duration-150;
-    @apply border border-gray-700/50 bg-gray-800/50;
-    @apply hover:bg-gray-700/50 hover:border-gray-600;
-    @apply disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply border border-[#2a3545]/80 bg-[#0d1015];
+    @apply disabled:opacity-40 disabled:cursor-not-allowed;
+    position: relative;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 12px;
+  }
+
+  .cyber-btn:hover:not(:disabled) {
+    @apply bg-[#151a22] border-[#3a4555];
+    transform: translateY(-1px);
+  }
+
+  .cyber-btn:active:not(:disabled) {
+    transform: translateY(0);
   }
 
   .cyber-btn-primary {
-    @apply cyber-btn bg-primary/90 border-primary/50 text-white;
-    @apply hover:bg-primary hover:border-primary;
-    box-shadow: 0 0 15px rgba(255, 107, 44, 0.2);
+    @apply cyber-btn text-white;
+    background: linear-gradient(180deg, #ff6a2c 0%, #e55a1c 100%);
+    border-color: rgba(255, 106, 44, 0.5);
+    box-shadow: 0 0 20px rgba(255, 95, 31, 0.2), inset 0 1px 0 rgba(255,255,255,0.1);
   }
 
-  .cyber-btn-primary:hover {
-    box-shadow: 0 0 25px rgba(255, 107, 44, 0.3);
+  .cyber-btn-primary:hover:not(:disabled) {
+    background: linear-gradient(180deg, #ff7a3c 0%, #f56a2c 100%);
+    box-shadow: 0 0 30px rgba(255, 95, 31, 0.35), inset 0 1px 0 rgba(255,255,255,0.15);
   }
 
   .cyber-btn-success {
-    @apply cyber-btn bg-emerald-600/90 border-emerald-500/50 text-white;
-    @apply hover:bg-emerald-500 hover:border-emerald-400;
+    @apply cyber-btn text-white;
+    background: linear-gradient(180deg, #15c46a 0%, #10a855 100%);
+    border-color: rgba(21, 196, 106, 0.5);
+    box-shadow: 0 0 20px rgba(21, 196, 106, 0.2);
+  }
+
+  .cyber-btn-success:hover:not(:disabled) {
+    background: linear-gradient(180deg, #20d475 0%, #15b860 100%);
+    box-shadow: 0 0 30px rgba(21, 196, 106, 0.35);
   }
 
   .cyber-btn-ghost {
     @apply cyber-btn bg-transparent border-transparent;
-    @apply hover:bg-gray-800/50 hover:border-gray-700/50;
+    @apply hover:bg-[#1a2030]/60 hover:border-[#2a3545]/60;
   }
 
   .cyber-btn-outline {
-    @apply cyber-btn bg-transparent border-gray-600;
-    @apply text-gray-300 hover:bg-gray-800/50 hover:text-white;
+    @apply cyber-btn bg-transparent border-[#3a4555];
+    @apply text-[#a8b0c0] hover:bg-[#1a2030]/60 hover:text-[#d0d8e8] hover:border-[#4a5565];
   }
 
-  /* ============ Cyber Input Fields ============ */
+  /* ============ Cyber Input Fields - CRT Style ============ */
   .cyber-input {
-    @apply bg-[#0a0a0f] border border-gray-700/50 px-4 py-2.5 rounded font-mono text-sm text-gray-200;
-    @apply placeholder:text-gray-600;
-    @apply focus:border-primary/50 focus:outline-none;
-    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    @apply bg-[#060810] border border-[#2a3545]/70 px-4 py-2.5 rounded font-mono text-sm;
+    color: #d0d8e8;
+    transition: all 0.15s ease;
+  }
+
+  .cyber-input::placeholder {
+    color: #4a5565;
   }
 
   .cyber-input:focus {
-    box-shadow: 0 0 0 2px rgba(255, 107, 44, 0.2);
+    @apply border-primary/60 outline-none;
+    box-shadow: 0 0 0 2px rgba(255, 95, 31, 0.2), 0 0 20px rgba(255, 95, 31, 0.1);
+    background-color: #080a10;
   }
 
-  /* ============ Cyber Badges ============ */
+  .cyber-input:hover:not(:focus) {
+    border-color: #3a4555;
+  }
+
+  /* ============ Cyber Badges - Status Indicators ============ */
   .cyber-badge {
-    @apply inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider;
+    @apply inline-flex items-center px-2.5 py-1 rounded text-[10px] font-mono font-bold uppercase tracking-wider;
     @apply border;
+    text-shadow: 0 0 10px currentColor;
   }
 
   .cyber-badge-primary {
-    @apply cyber-badge bg-primary/20 text-primary border-primary/40;
+    @apply cyber-badge;
+    background: rgba(255, 95, 31, 0.15);
+    color: #ff8a4c;
+    border-color: rgba(255, 95, 31, 0.4);
+    box-shadow: 0 0 15px rgba(255, 95, 31, 0.15);
   }
 
   .cyber-badge-success {
-    @apply cyber-badge bg-emerald-500/20 text-emerald-400 border-emerald-500/40;
+    @apply cyber-badge;
+    background: rgba(21, 196, 106, 0.15);
+    color: #3dd68c;
+    border-color: rgba(21, 196, 106, 0.4);
+    box-shadow: 0 0 15px rgba(21, 196, 106, 0.15);
   }
 
   .cyber-badge-warning {
-    @apply cyber-badge bg-amber-500/20 text-amber-400 border-amber-500/40;
+    @apply cyber-badge;
+    background: rgba(245, 158, 11, 0.15);
+    color: #fbbf24;
+    border-color: rgba(245, 158, 11, 0.4);
+    box-shadow: 0 0 15px rgba(245, 158, 11, 0.15);
   }
 
   .cyber-badge-danger {
-    @apply cyber-badge bg-rose-500/20 text-rose-400 border-rose-500/40;
+    @apply cyber-badge;
+    background: rgba(229, 57, 53, 0.15);
+    color: #f87171;
+    border-color: rgba(229, 57, 53, 0.4);
+    box-shadow: 0 0 15px rgba(229, 57, 53, 0.15);
   }
 
   .cyber-badge-info {
-    @apply cyber-badge bg-sky-500/20 text-sky-400 border-sky-500/40;
+    @apply cyber-badge;
+    background: rgba(14, 181, 196, 0.15);
+    color: #22d3ee;
+    border-color: rgba(14, 181, 196, 0.4);
+    box-shadow: 0 0 15px rgba(14, 181, 196, 0.15);
   }
 
   .cyber-badge-muted {
-    @apply cyber-badge bg-gray-500/20 text-gray-400 border-gray-500/40;
+    @apply cyber-badge;
+    background: rgba(100, 116, 139, 0.15);
+    color: #94a3b8;
+    border-color: rgba(100, 116, 139, 0.4);
   }
 
-  /* ============ Severity Badges ============ */
+  /* ============ Severity Badges - Enhanced Glow ============ */
   .severity-critical {
-    @apply text-rose-300 bg-rose-500/20 border border-rose-500/40;
+    background: rgba(220, 38, 38, 0.2);
+    color: #fca5a5;
+    border: 1px solid rgba(220, 38, 38, 0.5);
+    box-shadow: 0 0 20px rgba(220, 38, 38, 0.25);
+    text-shadow: 0 0 8px rgba(220, 38, 38, 0.5);
   }
 
   .severity-high {
-    @apply text-orange-300 bg-orange-500/20 border border-orange-500/40;
+    background: rgba(234, 88, 12, 0.2);
+    color: #fdba74;
+    border: 1px solid rgba(234, 88, 12, 0.5);
+    box-shadow: 0 0 20px rgba(234, 88, 12, 0.25);
+    text-shadow: 0 0 8px rgba(234, 88, 12, 0.5);
   }
 
   .severity-medium {
-    @apply text-amber-300 bg-amber-500/20 border border-amber-500/40;
+    background: rgba(245, 158, 11, 0.2);
+    color: #fcd34d;
+    border: 1px solid rgba(245, 158, 11, 0.5);
+    box-shadow: 0 0 20px rgba(245, 158, 11, 0.25);
+    text-shadow: 0 0 8px rgba(245, 158, 11, 0.5);
   }
 
   .severity-low {
-    @apply text-sky-300 bg-sky-500/20 border border-sky-500/40;
+    background: rgba(14, 181, 196, 0.2);
+    color: #67e8f9;
+    border: 1px solid rgba(14, 181, 196, 0.5);
+    box-shadow: 0 0 20px rgba(14, 181, 196, 0.25);
+    text-shadow: 0 0 8px rgba(14, 181, 196, 0.5);
   }
 
   .severity-info {
-    @apply text-slate-300 bg-slate-500/20 border border-slate-500/40;
+    background: rgba(100, 116, 139, 0.2);
+    color: #cbd5e1;
+    border: 1px solid rgba(100, 116, 139, 0.5);
   }
 
-  /* ============ Status Indicators ============ */
+  /* ============ Status Indicators - Phosphor Glow ============ */
   .status-dot {
     @apply w-2 h-2 rounded-full;
+    position: relative;
   }
 
   .status-active {
-    @apply bg-emerald-400;
-    box-shadow: 0 0 8px rgba(52, 211, 153, 0.5);
+    background: radial-gradient(circle, #34d399 0%, #10b981 100%);
+    box-shadow: 0 0 10px rgba(52, 211, 153, 0.6), 0 0 20px rgba(52, 211, 153, 0.3);
+    animation: pulse-glow 2s ease-in-out infinite;
   }
 
   .status-warning {
-    @apply bg-amber-400;
-    box-shadow: 0 0 8px rgba(251, 191, 36, 0.5);
+    background: radial-gradient(circle, #fcd34d 0%, #f59e0b 100%);
+    box-shadow: 0 0 10px rgba(251, 191, 36, 0.6), 0 0 20px rgba(251, 191, 36, 0.3);
+    animation: pulse-glow 2s ease-in-out infinite;
   }
 
   .status-error {
-    @apply bg-rose-400;
-    box-shadow: 0 0 8px rgba(251, 113, 133, 0.5);
+    background: radial-gradient(circle, #f87171 0%, #ef4444 100%);
+    box-shadow: 0 0 10px rgba(248, 113, 113, 0.6), 0 0 20px rgba(248, 113, 113, 0.3);
+    animation: pulse-glow 1.5s ease-in-out infinite;
   }
 
   .status-inactive {
-    @apply bg-gray-500;
+    @apply bg-[#3a4555];
   }
 
-  /* ============ Glow Effects ============ */
+  /* ============ Phosphor Glow Effects ============ */
   .glow-primary {
-    box-shadow: 0 0 20px rgba(255, 107, 44, 0.3);
+    box-shadow: var(--glow-primary);
   }
 
   .glow-success {
-    box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+    box-shadow: var(--glow-success);
   }
 
   .glow-accent {
-    box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
+    box-shadow: var(--glow-accent);
+  }
+
+  .glow-cyan {
+    box-shadow: var(--glow-cyan);
   }
 
   .text-glow-primary {
-    text-shadow: 0 0 20px rgba(255, 107, 44, 0.5);
+    text-shadow: 0 0 20px rgba(255, 95, 31, 0.5), 0 0 40px rgba(255, 95, 31, 0.25);
   }
 
   .text-glow-success {
-    text-shadow: 0 0 20px rgba(16, 185, 129, 0.5);
+    text-shadow: 0 0 20px rgba(21, 196, 106, 0.5), 0 0 40px rgba(21, 196, 106, 0.25);
   }
 
-  /* ============ Scanline Effect ============ */
+  .text-glow-cyan {
+    text-shadow: 0 0 20px rgba(14, 181, 196, 0.5), 0 0 40px rgba(14, 181, 196, 0.25);
+  }
+
+  /* ============ CRT Scanline Effect ============ */
   .scanline-overlay {
     position: relative;
   }
@@ -342,29 +546,36 @@
       0deg,
       transparent,
       transparent 2px,
-      rgba(0, 0, 0, 0.1) 2px,
-      rgba(0, 0, 0, 0.1) 4px
+      rgba(0, 0, 0, 0.08) 2px,
+      rgba(0, 0, 0, 0.08) 4px
     );
     pointer-events: none;
     z-index: 10;
   }
 
-  /* ============ Grid Background ============ */
+  /* ============ Grid Background - Cyberpunk ============ */
   .cyber-grid {
     background-image:
-      linear-gradient(rgba(255, 107, 44, 0.03) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255, 107, 44, 0.03) 1px, transparent 1px);
+      linear-gradient(rgba(255, 95, 31, 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 95, 31, 0.04) 1px, transparent 1px);
     background-size: 32px 32px;
   }
 
   .cyber-grid-subtle {
     background-image:
-      linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+      linear-gradient(rgba(14, 181, 196, 0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(14, 181, 196, 0.02) 1px, transparent 1px);
     background-size: 24px 24px;
   }
 
-  /* ============ Vignette Effect ============ */
+  .cyber-grid-dense {
+    background-image:
+      linear-gradient(rgba(255, 95, 31, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 95, 31, 0.03) 1px, transparent 1px);
+    background-size: 16px 16px;
+  }
+
+  /* ============ Vignette Effect - CRT Monitor ============ */
   .vignette {
     position: relative;
   }
@@ -373,50 +584,93 @@
     content: '';
     position: absolute;
     inset: 0;
-    background: radial-gradient(ellipse at center, transparent 0%, transparent 50%, rgba(0, 0, 0, 0.4) 100%);
+    background: radial-gradient(ellipse at center, transparent 0%, transparent 50%, rgba(0, 0, 0, 0.5) 100%);
     pointer-events: none;
   }
 
-  /* ============ Custom Scrollbar ============ */
+  /* ============ Gradient Background ============ */
+  .gradient-bg {
+    background: linear-gradient(180deg, #08090d 0%, #0a0c10 50%, #0d1015 100%);
+  }
+
+  /* ============ Custom Scrollbar - Minimal Cyberpunk ============ */
   .custom-scrollbar::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
   }
 
   .custom-scrollbar::-webkit-scrollbar-track {
-    background: #0a0a0f;
-    border-radius: 4px;
+    background: #08090d;
+    border-radius: 3px;
   }
 
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: #2a2a35;
-    border-radius: 4px;
+    background: linear-gradient(180deg, #2a3545 0%, #1a2535 100%);
+    border-radius: 3px;
+    border: 1px solid #1a2535;
   }
 
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: #3a3a45;
+    background: linear-gradient(180deg, #3a4555 0%, #2a3545 100%);
   }
 
-  /* ============ Animations ============ */
+  .custom-scrollbar::-webkit-scrollbar-corner {
+    background: #08090d;
+  }
+
+  /* ============ Animations - Enhanced CRT Feel ============ */
   @keyframes pulse-glow {
-    0%, 100% { opacity: 1; box-shadow: 0 0 10px currentColor; }
-    50% { opacity: 0.7; box-shadow: 0 0 20px currentColor; }
+    0%, 100% {
+      opacity: 1;
+      filter: brightness(1);
+    }
+    50% {
+      opacity: 0.8;
+      filter: brightness(1.1);
+    }
   }
 
   @keyframes blink {
-    0%, 50% { opacity: 1; }
-    51%, 100% { opacity: 0; }
+    0%, 49% { opacity: 1; }
+    50%, 100% { opacity: 0; }
   }
 
   @keyframes fadeSlideIn {
     from {
       opacity: 0;
-      transform: translateY(10px);
+      transform: translateY(8px);
     }
     to {
       opacity: 1;
       transform: translateY(0);
     }
+  }
+
+  @keyframes glitch {
+    0%, 100% { transform: translate(0); }
+    20% { transform: translate(-2px, 2px); }
+    40% { transform: translate(-2px, -2px); }
+    60% { transform: translate(2px, 2px); }
+    80% { transform: translate(2px, -2px); }
+  }
+
+  @keyframes scanline-move {
+    0% { transform: translateY(-100%); }
+    100% { transform: translateY(100vh); }
+  }
+
+  @keyframes flicker {
+    0%, 100% { opacity: 1; }
+    92% { opacity: 1; }
+    93% { opacity: 0.8; }
+    94% { opacity: 1; }
+    95% { opacity: 0.9; }
+    96% { opacity: 1; }
+  }
+
+  @keyframes typing {
+    from { width: 0; }
+    to { width: 100%; }
   }
 
   .animate-pulse-glow {
@@ -431,100 +685,229 @@
     animation: fadeSlideIn 0.3s ease-out forwards;
   }
 
-  /* ============ Section Headers ============ */
+  .animate-glitch {
+    animation: glitch 0.3s ease-in-out;
+  }
+
+  .animate-flicker {
+    animation: flicker 3s linear infinite;
+  }
+
+  /* ============ Section Headers - Enhanced ============ */
   .section-header {
-    @apply flex items-center gap-3 mb-4 pb-3 border-b border-gray-800/50;
+    @apply flex items-center gap-3 mb-4 pb-3 border-b border-[#1a2535];
+    position: relative;
+  }
+
+  .section-header::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    width: 60px;
+    height: 2px;
+    background: linear-gradient(90deg, rgba(255, 95, 31, 0.8), transparent);
   }
 
   .section-title {
-    @apply text-lg font-bold text-white uppercase tracking-wider;
+    @apply text-lg font-bold uppercase tracking-wider;
+    color: #e8e0d0;
+    text-shadow: 0 0 20px rgba(255, 95, 31, 0.2);
   }
 
-  /* ============ Stat Cards ============ */
+  /* ============ Stat Cards - Dashboard Style ============ */
   .stat-card {
     @apply cyber-card p-4;
     @apply flex items-center justify-between;
   }
 
   .stat-value {
-    @apply text-3xl font-bold text-white;
+    @apply text-3xl font-bold;
+    color: #f0e6d3;
+    text-shadow: 0 0 15px rgba(255, 95, 31, 0.2);
   }
 
   .stat-label {
-    @apply text-xs text-gray-500 uppercase tracking-wider font-mono;
+    @apply text-[10px] uppercase tracking-[0.15em] font-mono font-bold;
+    color: #5a6577;
   }
 
   .stat-icon {
-    @apply w-12 h-12 rounded-lg flex items-center justify-center;
-    @apply bg-gray-800/50 border border-gray-700/50;
+    @apply w-12 h-12 rounded flex items-center justify-center;
+    background: linear-gradient(135deg, #1a2030 0%, #0d1015 100%);
+    border: 1px solid #2a3545;
   }
 
-  /* ============ Table Styles ============ */
+  /* ============ Table Styles - Data Grid ============ */
   .cyber-table {
     @apply w-full text-sm;
   }
 
   .cyber-table thead {
-    @apply bg-gray-900/50 border-b border-gray-800;
+    background: linear-gradient(180deg, #0d1015 0%, #0a0c10 100%);
+    border-bottom: 1px solid #2a3545;
   }
 
   .cyber-table th {
-    @apply px-4 py-3 text-left text-xs font-mono font-bold uppercase tracking-wider text-gray-400;
+    @apply px-4 py-3 text-left text-[10px] font-mono font-bold uppercase tracking-[0.15em];
+    color: #6a7587;
   }
 
   .cyber-table td {
-    @apply px-4 py-3 border-b border-gray-800/50;
+    @apply px-4 py-3 border-b border-[#1a2030]/60;
+    color: #b8c0cc;
   }
 
   .cyber-table tbody tr:hover {
-    @apply bg-gray-800/30;
+    background: rgba(255, 95, 31, 0.03);
+  }
+
+  .cyber-table tbody tr {
+    transition: background-color 0.15s ease;
   }
 
   /* ============ Empty State ============ */
   .empty-state {
-    @apply flex flex-col items-center justify-center py-12 text-center;
+    @apply flex flex-col items-center justify-center py-16 text-center;
   }
 
   .empty-state-icon {
-    @apply w-16 h-16 text-gray-600 mb-4;
+    @apply w-20 h-20 mb-6;
+    color: #3a4555;
   }
 
   .empty-state-title {
-    @apply text-lg font-semibold text-gray-400 mb-2;
+    @apply text-lg font-semibold mb-2;
+    color: #8a95a5;
   }
 
   .empty-state-description {
-    @apply text-sm text-gray-500;
+    @apply text-sm;
+    color: #5a6577;
   }
 
-  /* ============ Corner Decorations ============ */
+  /* ============ Corner Decorations - Cassette Tape Style ============ */
   .corner-decoration {
-    @apply absolute text-[10px] font-mono text-gray-700 z-30;
+    @apply absolute text-[9px] font-mono z-30;
+    color: #3a4555;
+    letter-spacing: 0.1em;
   }
 
-  .corner-tl { @apply top-4 left-4; }
-  .corner-tr { @apply top-4 right-4 text-right; }
-  .corner-bl { @apply bottom-4 left-4; }
-  .corner-br { @apply bottom-4 right-4 text-right; }
+  .corner-tl { @apply top-3 left-3; }
+  .corner-tr { @apply top-3 right-3 text-right; }
+  .corner-bl { @apply bottom-3 left-3; }
+  .corner-br { @apply bottom-3 right-3 text-right; }
 
-  /* ============ Loading States ============ */
+  /* ============ Loading States - Terminal Style ============ */
   .loading-spinner {
-    @apply w-8 h-8 border-2 border-gray-700 border-t-primary rounded-full animate-spin;
+    @apply w-8 h-8 border-2 border-[#2a3545] border-t-primary rounded-full animate-spin;
   }
 
   .loading-dots {
-    @apply flex gap-1;
+    @apply flex gap-1.5;
   }
 
   .loading-dots span {
-    @apply w-2 h-2 bg-primary rounded-full animate-bounce;
+    @apply w-2 h-2 rounded-full animate-bounce;
+    background: linear-gradient(135deg, #ff6a2c 0%, #e55a1c 100%);
+    box-shadow: 0 0 10px rgba(255, 95, 31, 0.4);
   }
 
   .loading-dots span:nth-child(2) {
-    animation-delay: 0.1s;
+    animation-delay: 0.15s;
   }
 
   .loading-dots span:nth-child(3) {
-    animation-delay: 0.2s;
+    animation-delay: 0.3s;
+  }
+
+  /* ============ Cassette Tape Elements ============ */
+  .tape-label {
+    background: linear-gradient(180deg, #1a1a1a 0%, #0d0d0d 100%);
+    border: 1px solid #2a2a2a;
+    border-radius: 2px;
+    padding: 4px 8px;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: #8a8a8a;
+  }
+
+  .tape-reel {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%);
+    border: 2px solid #3a3a3a;
+    position: relative;
+  }
+
+  .tape-reel::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #0a0a0a;
+    border: 1px solid #2a2a2a;
+  }
+
+  /* ============ HUD Elements ============ */
+  .hud-border {
+    position: relative;
+  }
+
+  .hud-border::before,
+  .hud-border::after {
+    content: '';
+    position: absolute;
+    width: 10px;
+    height: 10px;
+  }
+
+  .hud-border::before {
+    top: 0;
+    left: 0;
+    border-top: 2px solid rgba(255, 95, 31, 0.5);
+    border-left: 2px solid rgba(255, 95, 31, 0.5);
+  }
+
+  .hud-border::after {
+    bottom: 0;
+    right: 0;
+    border-bottom: 2px solid rgba(255, 95, 31, 0.5);
+    border-right: 2px solid rgba(255, 95, 31, 0.5);
+  }
+
+  /* ============ Data Display ============ */
+  .data-value {
+    font-family: 'JetBrains Mono', 'Roboto Mono', monospace;
+    color: #22d3ee;
+    text-shadow: 0 0 10px rgba(34, 211, 238, 0.3);
+  }
+
+  .data-label {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: #5a6577;
+  }
+
+  /* ============ Noise Texture Overlay ============ */
+  .noise-overlay {
+    position: relative;
+  }
+
+  .noise-overlay::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+    opacity: 0.02;
+    pointer-events: none;
+    mix-blend-mode: overlay;
   }
 }

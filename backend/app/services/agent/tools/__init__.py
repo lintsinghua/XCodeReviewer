@@ -15,7 +15,35 @@ from .rag_tool import RAGQueryTool, SecurityCodeSearchTool, FunctionContextTool
 from .pattern_tool import PatternMatchTool
 from .code_analysis_tool import CodeAnalysisTool, DataFlowAnalysisTool, VulnerabilityValidationTool
 from .file_tool import FileReadTool, FileSearchTool, ListFilesTool
-from .sandbox_tool import SandboxTool, SandboxHttpTool, VulnerabilityVerifyTool, SandboxManager
+from .sandbox_tool import (
+    SandboxTool,
+    SandboxHttpTool,
+    VulnerabilityVerifyTool,
+    SandboxManager,
+)
+
+# 🔥 多语言代码测试工具
+from .sandbox_language import (
+    PhpTestTool,
+    PythonTestTool,
+    JavaScriptTestTool,
+    JavaTestTool,
+    GoTestTool,
+    RubyTestTool,
+    ShellTestTool,
+    UniversalCodeTestTool,
+)
+
+# 🔥 漏洞验证专用工具
+from .sandbox_vuln import (
+    CommandInjectionTestTool,
+    SqlInjectionTestTool,
+    XssTestTool,
+    PathTraversalTestTool,
+    SstiTestTool,
+    DeserializationTestTool,
+    UniversalVulnTestTool,
+)
 
 # 外部安全工具
 from .external_tools import (
@@ -77,6 +105,25 @@ __all__ = [
     "SandboxHttpTool",
     "VulnerabilityVerifyTool",
     "SandboxManager",
+
+    # 🔥 多语言代码测试工具
+    "PhpTestTool",
+    "PythonTestTool",
+    "JavaScriptTestTool",
+    "JavaTestTool",
+    "GoTestTool",
+    "RubyTestTool",
+    "ShellTestTool",
+    "UniversalCodeTestTool",
+
+    # 🔥 漏洞验证专用工具
+    "CommandInjectionTestTool",
+    "SqlInjectionTestTool",
+    "XssTestTool",
+    "PathTraversalTestTool",
+    "SstiTestTool",
+    "DeserializationTestTool",
+    "UniversalVulnTestTool",
     
     # 外部安全工具
     "SemgrepTool",

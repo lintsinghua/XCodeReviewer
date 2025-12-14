@@ -673,37 +673,25 @@ function AgentAuditPageContent() {
 
   if (isLoading && !task) {
     return (
-      <div className="h-screen bg-[#0a0a0f] flex items-center justify-center relative overflow-hidden">
+      <div className="h-screen bg-[#08090d] flex items-center justify-center relative overflow-hidden">
         {/* Grid background */}
-        <div className="absolute inset-0 opacity-[0.02]"
-          style={{
-            backgroundImage: `
-              linear-gradient(rgba(255,107,44,0.5) 1px, transparent 1px),
-              linear-gradient(90deg, rgba(255,107,44,0.5) 1px, transparent 1px)
-            `,
-            backgroundSize: '32px 32px',
-          }}
-        />
-        <div className="flex items-center gap-3 text-gray-400 relative z-10">
+        <div className="absolute inset-0 cyber-grid opacity-30" />
+        {/* Vignette */}
+        <div className="absolute inset-0 vignette pointer-events-none" />
+        <div className="flex items-center gap-3 text-[#8a95a5] relative z-10">
           <Loader2 className="w-5 h-5 animate-spin text-primary" />
-          <span className="font-mono text-sm">Loading audit task...</span>
+          <span className="font-mono text-sm tracking-wide">LOADING AUDIT TASK...</span>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="h-screen bg-[#0a0a0f] flex flex-col overflow-hidden relative">
+    <div className="h-screen bg-[#08090d] flex flex-col overflow-hidden relative">
       {/* Subtle grid background */}
-      <div className="absolute inset-0 opacity-[0.015] pointer-events-none"
-        style={{
-          backgroundImage: `
-            linear-gradient(rgba(255,107,44,0.5) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(255,107,44,0.5) 1px, transparent 1px)
-          `,
-          backgroundSize: '48px 48px',
-        }}
-      />
+      <div className="absolute inset-0 cyber-grid-subtle opacity-40 pointer-events-none" />
+      {/* Scanline effect */}
+      <div className="absolute inset-0 scanline-overlay pointer-events-none opacity-50" />
 
       {/* Header */}
       <Header
@@ -718,24 +706,24 @@ function AgentAuditPageContent() {
       {/* Main content */}
       <div className="flex-1 flex overflow-hidden relative">
         {/* Left Panel - Activity Log */}
-        <div className="w-3/4 flex flex-col border-r border-gray-800/50">
+        <div className="w-3/4 flex flex-col border-r border-[#1a2535]">
           {/* Log header */}
-          <div className="flex-shrink-0 h-11 border-b border-gray-800/50 flex items-center justify-between px-4 bg-[#0d0d12]/80 backdrop-blur-sm">
-            <div className="flex items-center gap-3 text-xs text-gray-400">
+          <div className="flex-shrink-0 h-11 border-b border-[#1a2535] flex items-center justify-between px-4 bg-[#0a0c10]/90 backdrop-blur-sm">
+            <div className="flex items-center gap-3 text-xs text-[#8a95a5]">
               <div className="flex items-center gap-2">
-                <Terminal className="w-4 h-4 text-gray-500" />
-                <span className="uppercase font-bold tracking-wider text-gray-300">Activity Log</span>
+                <Terminal className="w-4 h-4 text-[#5a6577]" />
+                <span className="uppercase font-bold tracking-[0.15em] text-[#d0d8e8]">Activity Log</span>
               </div>
               {isConnected && (
-                <div className="flex items-center gap-1.5 text-green-400">
+                <div className="flex items-center gap-1.5 text-[#3dd68c]">
                   <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-400"></span>
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#3dd68c] opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-[#3dd68c] shadow-[0_0_8px_rgba(61,214,140,0.5)]"></span>
                   </span>
-                  <span className="text-[10px] font-mono uppercase">Live</span>
+                  <span className="text-[10px] font-mono uppercase tracking-wider">Live</span>
                 </div>
               )}
-              <Badge variant="outline" className="h-5 px-1.5 text-[10px] border-gray-700/50 text-gray-500 font-mono">
+              <Badge variant="outline" className="h-5 px-1.5 text-[10px] border-[#2a3545] text-[#6a7587] font-mono bg-[#0d1015]">
                 {filteredLogs.length}{!showAllLogs && logs.length !== filteredLogs.length ? ` / ${logs.length}` : ''}
               </Badge>
             </div>
@@ -743,11 +731,11 @@ function AgentAuditPageContent() {
             <button
               onClick={() => setAutoScroll(!isAutoScroll)}
               className={`
-                flex items-center gap-1.5 text-[10px] px-2 py-1 rounded font-mono uppercase tracking-wider
+                flex items-center gap-1.5 text-[10px] px-2.5 py-1 rounded font-mono uppercase tracking-wider
                 transition-all duration-200
                 ${isAutoScroll
-                  ? 'bg-primary/20 text-primary border border-primary/30'
-                  : 'text-gray-500 hover:text-gray-300 border border-transparent hover:border-gray-700'
+                  ? 'bg-primary/15 text-primary border border-primary/40 shadow-[0_0_10px_rgba(255,95,31,0.15)]'
+                  : 'text-[#6a7587] hover:text-[#a8b0c0] border border-transparent hover:border-[#2a3545] hover:bg-[#1a2030]/50'
                 }
               `}
             >
@@ -757,17 +745,17 @@ function AgentAuditPageContent() {
           </div>
 
           {/* Log content */}
-          <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+          <div className="flex-1 overflow-y-auto p-4 custom-scrollbar bg-[#060810]/50">
             {/* Filter indicator */}
             {selectedAgentId && !showAllLogs && (
-              <div className="mb-3 px-3 py-2 bg-primary/5 border border-primary/20 rounded flex items-center justify-between">
+              <div className="mb-3 px-3 py-2 bg-primary/8 border border-primary/25 rounded flex items-center justify-between">
                 <div className="flex items-center gap-2 text-xs text-primary">
                   <Filter className="w-3.5 h-3.5" />
-                  <span>Filtering logs for selected agent</span>
+                  <span className="tracking-wide">Filtering logs for selected agent</span>
                 </div>
                 <button
                   onClick={() => selectAgent(null)}
-                  className="text-[10px] text-gray-400 hover:text-white transition-colors font-mono uppercase"
+                  className="text-[10px] text-[#6a7587] hover:text-[#d0d8e8] transition-colors font-mono uppercase tracking-wider"
                 >
                   Clear
                 </button>
@@ -777,21 +765,21 @@ function AgentAuditPageContent() {
             {/* Logs */}
             {filteredLogs.length === 0 ? (
               <div className="h-full flex items-center justify-center">
-                <div className="text-center text-gray-600">
+                <div className="text-center text-[#4a5565]">
                   {isRunning ? (
                     <div className="flex flex-col items-center gap-3">
-                      <Loader2 className="w-6 h-6 animate-spin text-gray-500" />
-                      <span className="text-sm">
+                      <Loader2 className="w-6 h-6 animate-spin text-[#5a6577]" />
+                      <span className="text-sm font-mono tracking-wide">
                         {selectedAgentId && !showAllLogs
-                          ? 'Waiting for activity from selected agent...'
-                          : 'Waiting for agent activity...'}
+                          ? 'WAITING FOR ACTIVITY FROM SELECTED AGENT...'
+                          : 'WAITING FOR AGENT ACTIVITY...'}
                       </span>
                     </div>
                   ) : (
-                    <span className="text-sm">
+                    <span className="text-sm font-mono tracking-wide">
                       {selectedAgentId && !showAllLogs
-                        ? 'No activity from selected agent'
-                        : 'No activity yet'}
+                        ? 'NO ACTIVITY FROM SELECTED AGENT'
+                        : 'NO ACTIVITY YET'}
                     </span>
                   )}
                 </div>
@@ -813,36 +801,36 @@ function AgentAuditPageContent() {
 
           {/* Status bar */}
           {task && (
-            <div className="flex-shrink-0 h-9 border-t border-gray-800/50 flex items-center justify-between px-4 text-xs bg-[#0d0d12]/80 backdrop-blur-sm">
+            <div className="flex-shrink-0 h-9 border-t border-[#1a2535] flex items-center justify-between px-4 text-xs bg-[#0a0c10]/90 backdrop-blur-sm">
               <span>
                 {isRunning ? (
-                  <span className="flex items-center gap-2 text-green-400">
+                  <span className="flex items-center gap-2 text-[#3dd68c]">
                     <span className="relative flex h-1.5 w-1.5">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-400"></span>
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#3dd68c] opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#3dd68c] shadow-[0_0_6px_rgba(61,214,140,0.5)]"></span>
                     </span>
-                    <span className="font-mono">{statusVerb}{'.'.repeat(statusDots)}</span>
+                    <span className="font-mono tracking-wide">{statusVerb}{'.'.repeat(statusDots)}</span>
                   </span>
                 ) : isComplete ? (
-                  <span className="text-gray-500 font-mono">Audit {task.status}</span>
+                  <span className="text-[#6a7587] font-mono tracking-wide">AUDIT {task.status?.toUpperCase()}</span>
                 ) : (
-                  <span className="text-gray-600 font-mono">Ready</span>
+                  <span className="text-[#4a5565] font-mono tracking-wide">READY</span>
                 )}
               </span>
-              <div className="flex items-center gap-4 font-mono text-gray-500">
+              <div className="flex items-center gap-4 font-mono text-[#6a7587]">
                 <span>
-                  <span className="text-primary">{task.progress_percentage?.toFixed(0) || 0}</span>
-                  <span className="text-gray-600">%</span>
+                  <span className="text-primary text-glow-primary">{task.progress_percentage?.toFixed(0) || 0}</span>
+                  <span className="text-[#4a5565]">%</span>
                 </span>
-                <span className="text-gray-700">|</span>
+                <span className="text-[#2a3545]">│</span>
                 <span>
-                  <span className="text-gray-400">{task.analyzed_files}</span>
-                  <span className="text-gray-600">/{task.total_files} files</span>
+                  <span className="text-[#a8b0c0]">{task.analyzed_files}</span>
+                  <span className="text-[#4a5565]">/{task.total_files} files</span>
                 </span>
-                <span className="text-gray-700">|</span>
+                <span className="text-[#2a3545]">│</span>
                 <span>
-                  <span className="text-gray-400">{task.tool_calls_count || 0}</span>
-                  <span className="text-gray-600"> tools</span>
+                  <span className="text-[#a8b0c0]">{task.tool_calls_count || 0}</span>
+                  <span className="text-[#4a5565]"> tools</span>
                 </span>
               </div>
             </div>
@@ -850,16 +838,16 @@ function AgentAuditPageContent() {
         </div>
 
         {/* Right Panel - Agent Tree + Stats */}
-        <div className="w-1/4 flex flex-col bg-[#0b0b10]">
+        <div className="w-1/4 flex flex-col bg-[#080a0e]">
           {/* Agent Tree section */}
-          <div className="flex-1 flex flex-col border-b border-gray-800/50 overflow-hidden">
+          <div className="flex-1 flex flex-col border-b border-[#1a2535] overflow-hidden">
             {/* Tree header */}
-            <div className="flex-shrink-0 h-11 border-b border-gray-800/50 flex items-center justify-between px-4 bg-[#0d0d12]/80">
-              <div className="flex items-center gap-2 text-xs text-gray-400">
-                <Bot className="w-4 h-4 text-gray-500" />
-                <span className="uppercase font-bold tracking-wider text-gray-300">Agent Tree</span>
+            <div className="flex-shrink-0 h-11 border-b border-[#1a2535] flex items-center justify-between px-4 bg-[#0a0c10]/90">
+              <div className="flex items-center gap-2 text-xs text-[#8a95a5]">
+                <Bot className="w-4 h-4 text-[#5a6577]" />
+                <span className="uppercase font-bold tracking-[0.15em] text-[#d0d8e8]">Agent Tree</span>
                 {agentTree && (
-                  <Badge variant="outline" className="h-5 px-1.5 text-[10px] border-gray-700/50 text-gray-500 font-mono">
+                  <Badge variant="outline" className="h-5 px-1.5 text-[10px] border-[#2a3545] text-[#6a7587] font-mono bg-[#0d1015]">
                     {agentTree.total_agents}
                   </Badge>
                 )}
@@ -868,16 +856,16 @@ function AgentAuditPageContent() {
                 {selectedAgentId && !showAllLogs && (
                   <button
                     onClick={() => selectAgent(null)}
-                    className="text-[10px] text-primary hover:text-primary/80 transition-colors font-mono uppercase"
+                    className="text-[10px] text-primary hover:text-primary/80 transition-colors font-mono uppercase tracking-wider"
                   >
                     Show All
                   </button>
                 )}
                 {agentTree && agentTree.running_agents > 0 && (
-                  <div className="flex items-center gap-1.5 text-green-400">
+                  <div className="flex items-center gap-1.5 text-[#3dd68c]">
                     <span className="relative flex h-1.5 w-1.5">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-400"></span>
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#3dd68c] opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#3dd68c] shadow-[0_0_6px_rgba(61,214,140,0.5)]"></span>
                     </span>
                     <span className="text-[10px] font-mono">{agentTree.running_agents}</span>
                   </div>
@@ -886,7 +874,7 @@ function AgentAuditPageContent() {
             </div>
 
             {/* Tree content */}
-            <div className="flex-1 overflow-y-auto p-2 custom-scrollbar">
+            <div className="flex-1 overflow-y-auto p-2 custom-scrollbar bg-[#060810]/50">
               {treeNodes.length > 0 ? (
                 treeNodes.map(node => (
                   <AgentTreeNodeItem
@@ -897,14 +885,14 @@ function AgentAuditPageContent() {
                   />
                 ))
               ) : (
-                <div className="h-full flex items-center justify-center text-gray-600 text-xs">
+                <div className="h-full flex items-center justify-center text-[#4a5565] text-xs">
                   {isRunning ? (
                     <div className="flex items-center gap-2">
                       <Loader2 className="w-3 h-3 animate-spin" />
-                      <span>Initializing agents...</span>
+                      <span className="font-mono tracking-wide">INITIALIZING AGENTS...</span>
                     </div>
                   ) : (
-                    'No agents yet'
+                    <span className="font-mono tracking-wide">NO AGENTS YET</span>
                   )}
                 </div>
               )}

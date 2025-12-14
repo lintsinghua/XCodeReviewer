@@ -159,6 +159,9 @@ class OrchestratorAgent(BaseAgent):
         
         # 🔥 跟踪已调度的 Agent 任务，避免重复调度
         self._dispatched_tasks: Dict[str, int] = {}  # agent_name -> dispatch_count
+
+        # 🔥 保存各个 Agent 的完整结果，用于传递给后续 Agent
+        self._agent_results: Dict[str, Dict[str, Any]] = {}  # agent_name -> full result data
     
     def register_sub_agent(self, name: str, agent: BaseAgent):
         """注册子 Agent"""
@@ -216,6 +219,7 @@ class OrchestratorAgent(BaseAgent):
         
         self._steps = []
         self._all_findings = []
+        self._agent_results = {}  # 🔥 重置 Agent 结果缓存
         final_result = None
         error_message = None  # 🔥 跟踪错误信息
         
@@ -625,16 +629,23 @@ Action Input: {{"参数": "值"}}
             # 确保 project_info 包含 root 路径
             if "root" not in project_info:
                 project_info["root"] = self._runtime_context.get("project_root", ".")
-            
+
+            # 🔥 FIX: 构建完整的 previous_results，包含所有已执行 Agent 的结果
+            previous_results = {
+                "findings": self._all_findings,  # 传递已收集的发现
+            }
+
+            # 🔥 将之前 Agent 的完整结果传递给后续 Agent
+            for prev_agent, prev_data in self._agent_results.items():
+                previous_results[prev_agent] = {"data": prev_data}
+
             sub_input = {
                 "task": task,
                 "task_context": context,
                 "project_info": project_info,
                 "config": self._runtime_context.get("config", {}),
                 "project_root": self._runtime_context.get("project_root", "."),
-                "previous_results": {
-                    "findings": self._all_findings,  # 传递已收集的发现
-                },
+                "previous_results": previous_results,
             }
             
             # 🔥 执行子 Agent 前检查取消状态
@@ -647,10 +658,17 @@ Action Input: {{"参数": "值"}}
             # 🔥 执行后再次检查取消状态
             if self.is_cancelled:
                 return f"## {agent_name} Agent 执行中断\n\n任务已被用户取消"
-            
+
             # 🔥 处理子 Agent 结果 - 不同 Agent 返回不同的数据结构
+            # 🔥 DEBUG: 添加诊断日志
+            logger.info(f"[Orchestrator] Processing {agent_name} result: success={result.success}, data_type={type(result.data).__name__}, data_keys={list(result.data.keys()) if isinstance(result.data, dict) else 'N/A'}")
+
             if result.success and result.data:
                 data = result.data
+
+                # 🔥 FIX: 保存 Agent 的完整结果，供后续 Agent 使用
+                self._agent_results[agent_name] = data
+                logger.info(f"[Orchestrator] Saved {agent_name} result with keys: {list(data.keys())}")
 
                 # 🔥 CRITICAL FIX: 收集发现 - 支持多种字段名
                 # findings 字段通常来自 Analysis/Verification Agent
@@ -662,21 +680,112 @@ Action Input: {{"参数": "值"}}
                 # 即使 findings 为空列表，也检查 initial_findings
                 if "initial_findings" in data:
                     initial = data.get("initial_findings", [])
-                    logger.info(f"[Orchestrator] {agent_name} has {len(initial)} initial_findings")
+                    logger.info(f"[Orchestrator] {agent_name} has {len(initial)} initial_findings, types: {[type(f).__name__ for f in initial[:3]]}")
                     for f in initial:
                         if isinstance(f, dict):
                             # 🔥 Normalize finding format - 处理 Recon 返回的格式
                             normalized = self._normalize_finding(f)
                             if normalized not in raw_findings:
                                 raw_findings.append(normalized)
-                        elif isinstance(f, str):
-                            # String finding from Recon - skip, it's just an observation
-                            logger.debug(f"[Orchestrator] Skipping string finding: {f[:50]}...")
+                                logger.info(f"[Orchestrator] Added dict finding from initial_findings")
+                        elif isinstance(f, str) and f.strip():
+                            # 🔥 FIX: Convert string finding to dict format instead of skipping
+                            # Recon Agent 有时候会返回字符串格式的发现
+                            # 尝试从字符串中提取文件路径（格式如 "app.py:36 - 描述"）
+                            file_path = ""
+                            line_start = 0
+                            if ":" in f:
+                                parts = f.split(":", 1)
+                                potential_file = parts[0].strip()
+                                # 检查是否像文件路径
+                                if "." in potential_file and "/" not in potential_file[:3]:
+                                    file_path = potential_file
+                                    # 尝试提取行号
+                                    if len(parts) > 1:
+                                        remaining = parts[1].strip()
+                                        line_match = remaining.split()[0] if remaining else ""
+                                        if line_match.isdigit():
+                                            line_start = int(line_match)
+
+                            string_finding = {
+                                "title": f[:100] if len(f) > 100 else f,
+                                "description": f,
+                                "file_path": file_path,
+                                "line_start": line_start,
+                                "severity": "medium",  # 默认中等严重度，Analysis 会重新评估
+                                "vulnerability_type": "potential_issue",
+                                "source": "recon",
+                                "needs_verification": True,
+                                "confidence": 0.5,  # 较低置信度，需要进一步分析
+                            }
+                            logger.info(f"[Orchestrator] Converted string finding to dict: {f[:80]}... (file={file_path}, line={line_start})")
+                            raw_findings.append(string_finding)
+                else:
+                    logger.info(f"[Orchestrator] {agent_name} has no 'initial_findings' key in data")
 
                 # 🔥 Also check high_risk_areas from Recon for potential findings
                 if agent_name == "recon" and "high_risk_areas" in data:
                     high_risk = data.get("high_risk_areas", [])
                     logger.info(f"[Orchestrator] {agent_name} identified {len(high_risk)} high risk areas")
+                    # 🔥 FIX: 将 high_risk_areas 也转换为发现
+                    for area in high_risk:
+                        if isinstance(area, str) and area.strip():
+                            # 尝试从描述中提取文件路径和漏洞类型
+                            file_path = ""
+                            line_start = 0
+                            vuln_type = "potential_issue"
+
+                            # 🔥 FIX: 改进文件路径提取逻辑
+                            # 格式1: "file.py:36 - 描述" -> 提取 file.py 和 36
+                            # 格式2: "描述性文本" -> 不提取文件路径
+                            if ":" in area:
+                                parts = area.split(":", 1)
+                                potential_file = parts[0].strip()
+                                # 只有当 parts[0] 看起来像文件路径时才提取
+                                # 文件路径通常包含 . 且没有空格（或只在结尾有扩展名）
+                                if ("." in potential_file and
+                                    " " not in potential_file and
+                                    len(potential_file) < 100 and
+                                    any(potential_file.endswith(ext) for ext in ['.py', '.js', '.ts', '.java', '.go', '.php', '.rb', '.c', '.cpp', '.h'])):
+                                    file_path = potential_file
+                                    # 尝试提取行号
+                                    if len(parts) > 1:
+                                        remaining = parts[1].strip()
+                                        line_match = remaining.split()[0] if remaining else ""
+                                        if line_match.isdigit():
+                                            line_start = int(line_match)
+
+                            # 推断漏洞类型
+                            area_lower = area.lower()
+                            if "command" in area_lower or "命令" in area_lower or "subprocess" in area_lower:
+                                vuln_type = "command_injection"
+                            elif "sql" in area_lower:
+                                vuln_type = "sql_injection"
+                            elif "xss" in area_lower:
+                                vuln_type = "xss"
+                            elif "path" in area_lower or "traversal" in area_lower or "路径" in area_lower:
+                                vuln_type = "path_traversal"
+                            elif "ssrf" in area_lower:
+                                vuln_type = "ssrf"
+                            elif "secret" in area_lower or "密钥" in area_lower or "key" in area_lower:
+                                vuln_type = "hardcoded_secret"
+
+                            high_risk_finding = {
+                                "title": area[:100] if len(area) > 100 else area,
+                                "description": area,
+                                "file_path": file_path,
+                                "line_start": line_start,
+                                "severity": "high",  # 高风险区域默认高严重度
+                                "vulnerability_type": vuln_type,
+                                "source": "recon_high_risk",
+                                "needs_verification": True,
+                                "confidence": 0.6,
+                            }
+                            raw_findings.append(high_risk_finding)
+                            logger.info(f"[Orchestrator] Converted high_risk_area to finding: {area[:60]}... (file={file_path}, type={vuln_type})")
+
+                # 🔥 初始化 valid_findings，确保后续代码可以访问
+                valid_findings = []
 
                 if raw_findings:
                     # 只添加字典格式的发现

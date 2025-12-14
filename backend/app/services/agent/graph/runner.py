@@ -197,6 +197,13 @@ class AgentRunner:
         from app.services.agent.tools import (
             ThinkTool, ReflectTool,
             CreateVulnerabilityReportTool,
+            # 多语言代码测试工具
+            PhpTestTool, PythonTestTool, JavaScriptTestTool, JavaTestTool,
+            GoTestTool, RubyTestTool, ShellTestTool, UniversalCodeTestTool,
+            # 漏洞验证专用工具
+            CommandInjectionTestTool, SqlInjectionTestTool, XssTestTool,
+            PathTraversalTestTool, SstiTestTool, DeserializationTestTool,
+            UniversalVulnTestTool,
         )
         # 🔥 导入知识查询工具
         from app.services.agent.knowledge import (
@@ -282,6 +289,8 @@ class AgentRunner:
                 network_mode=settings.SANDBOX_NETWORK_MODE,
             )
             self.sandbox_manager = SandboxManager(config=sandbox_config)
+            # 🔥 必须调用 initialize() 来连接 Docker
+            await self.sandbox_manager.initialize()
         except Exception as e:
             logger.warning(f"❌ Sandbox Manager initialization failed: {e}")
             import traceback
@@ -289,15 +298,38 @@ class AgentRunner:
             # 尝试创建默认管理器作为后备
             try:
                 self.sandbox_manager = SandboxManager()
+                # 🔥 同样需要调用 initialize()
+                await self.sandbox_manager.initialize()
                 logger.info("⚠️ Created fallback SandboxManager (Docker might be unavailable)")
             except Exception as e2:
                 logger.error(f"❌ Failed to create fallback SandboxManager: {e2}")
 
         # 始终注册沙箱工具，即使 Docker 不可用（工具内部会检查）
         if self.sandbox_manager:
+            # 🔥 沙箱核心工具
             self.verification_tools["sandbox_exec"] = SandboxTool(self.sandbox_manager)
             self.verification_tools["sandbox_http"] = SandboxHttpTool(self.sandbox_manager)
             self.verification_tools["verify_vulnerability"] = VulnerabilityVerifyTool(self.sandbox_manager)
+
+            # 🔥 多语言代码测试工具
+            self.verification_tools["php_test"] = PhpTestTool(self.sandbox_manager, self.project_root)
+            self.verification_tools["python_test"] = PythonTestTool(self.sandbox_manager, self.project_root)
+            self.verification_tools["javascript_test"] = JavaScriptTestTool(self.sandbox_manager, self.project_root)
+            self.verification_tools["java_test"] = JavaTestTool(self.sandbox_manager, self.project_root)
+            self.verification_tools["go_test"] = GoTestTool(self.sandbox_manager, self.project_root)
+            self.verification_tools["ruby_test"] = RubyTestTool(self.sandbox_manager, self.project_root)
+            self.verification_tools["shell_test"] = ShellTestTool(self.sandbox_manager, self.project_root)
+            self.verification_tools["universal_code_test"] = UniversalCodeTestTool(self.sandbox_manager, self.project_root)
+
+            # 🔥 漏洞验证专用工具
+            self.verification_tools["test_command_injection"] = CommandInjectionTestTool(self.sandbox_manager, self.project_root)
+            self.verification_tools["test_sql_injection"] = SqlInjectionTestTool(self.sandbox_manager, self.project_root)
+            self.verification_tools["test_xss"] = XssTestTool(self.sandbox_manager, self.project_root)
+            self.verification_tools["test_path_traversal"] = PathTraversalTestTool(self.sandbox_manager, self.project_root)
+            self.verification_tools["test_ssti"] = SstiTestTool(self.sandbox_manager, self.project_root)
+            self.verification_tools["test_deserialization"] = DeserializationTestTool(self.sandbox_manager, self.project_root)
+            self.verification_tools["universal_vuln_test"] = UniversalVulnTestTool(self.sandbox_manager, self.project_root)
+
             logger.info(f"✅ Sandbox tools initialized (Docker available: {self.sandbox_manager.is_available})")
         else:
              logger.error("❌ Sandbox tools NOT initialized due to critical manager failure")

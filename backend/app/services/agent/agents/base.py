@@ -16,6 +16,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from datetime import datetime, timezone
 import asyncio
+import json
 import logging
 import uuid
 
@@ -1036,26 +1037,49 @@ class BaseAgent(ABC):
             
             if result.success:
                 output = str(result.data)
-                
+
                 # 包含 metadata 中的额外信息
                 if result.metadata:
                     if "issues" in result.metadata:
-                        import json
                         output += f"\n\n发现的问题:\n{json.dumps(result.metadata['issues'], ensure_ascii=False, indent=2)}"
                     if "findings" in result.metadata:
-                        import json
                         output += f"\n\n发现:\n{json.dumps(result.metadata['findings'][:10], ensure_ascii=False, indent=2)}"
-                
+
                 # 截断过长输出
                 if len(output) > 6000:
                     output = output[:6000] + f"\n\n... [输出已截断，共 {len(str(result.data))} 字符]"
                 return output
             else:
-                return f"工具执行失败: {result.error}"
-                
+                # 🔥 输出详细的错误信息，包括原始错误
+                error_msg = f"""⚠️ 工具执行失败
+
+**工具**: {tool_name}
+**参数**: {json.dumps(tool_input, ensure_ascii=False, indent=2) if tool_input else '无'}
+**错误**: {result.error}
+
+请根据错误信息调整参数或尝试其他方法。"""
+                return error_msg
+
         except Exception as e:
+            import traceback
             logger.error(f"Tool execution error: {e}")
-            return f"工具执行错误: {str(e)}"
+            # 🔥 输出完整的原始错误信息，包括堆栈跟踪
+            error_msg = f"""❌ 工具执行异常
+
+**工具**: {tool_name}
+**参数**: {json.dumps(tool_input, ensure_ascii=False, indent=2) if tool_input else '无'}
+**错误类型**: {type(e).__name__}
+**错误信息**: {str(e)}
+**堆栈跟踪**:
+```
+{traceback.format_exc()}
+```
+
+请分析错误原因，可能需要：
+1. 检查参数格式是否正确
+2. 尝试使用其他工具
+3. 如果是权限或资源问题，跳过该操作"""
+            return error_msg
     
     def get_tools_description(self) -> str:
         """生成工具描述文本（用于 prompt）"""

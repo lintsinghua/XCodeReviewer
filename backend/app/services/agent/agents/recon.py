@@ -70,20 +70,15 @@ class ReconAgent(BaseAgent):
         self._steps: List[ReconStep] = []
     
     def _parse_llm_response(self, response: str) -> ReconStep:
-        """解析 LLM 响应"""
+        """解析 LLM 响应 - 增强版，更健壮地提取思考内容"""
         step = ReconStep(thought="")
-        
-        # 提取 Thought
+
+        # 🔥 首先尝试提取明确的 Thought 标记
         thought_match = re.search(r'Thought:\s*(.*?)(?=Action:|Final Answer:|$)', response, re.DOTALL)
         if thought_match:
             step.thought = thought_match.group(1).strip()
-        elif not re.search(r'Action:|Final Answer:', response):
-             # 🔥 Fallback: If no markers found, treat the whole response as Thought
-             # This prevents empty steps loops "Decision: Continue Thinking"
-             if response.strip():
-                 step.thought = response.strip()
-        
-        # 检查是否是最终答案
+
+        # 🔥 检查是否是最终答案
         final_match = re.search(r'Final Answer:\s*(.*?)$', response, re.DOTALL)
         if final_match:
             step.is_final = True
@@ -92,29 +87,45 @@ class ReconAgent(BaseAgent):
             answer_text = re.sub(r'```\s*', '', answer_text)
             # 使用增强的 JSON 解析器
             step.final_answer = AgentJsonParser.parse(
-                answer_text, 
+                answer_text,
                 default={"raw_answer": answer_text}
             )
             # 确保 findings 格式正确
             if "initial_findings" in step.final_answer:
                 step.final_answer["initial_findings"] = [
-                    f for f in step.final_answer["initial_findings"] 
+                    f for f in step.final_answer["initial_findings"]
                     if isinstance(f, dict)
                 ]
+
+            # 🔥 如果没有提取到 thought，使用 Final Answer 前的内容作为思考
+            if not step.thought:
+                before_final = response[:response.find('Final Answer:')].strip()
+                if before_final:
+                    # 移除可能的 Thought: 前缀
+                    before_final = re.sub(r'^Thought:\s*', '', before_final)
+                    step.thought = before_final[:500] if len(before_final) > 500 else before_final
+
             return step
-        
-        # 提取 Action
+
+        # 🔥 提取 Action
         action_match = re.search(r'Action:\s*(\w+)', response)
         if action_match:
             step.action = action_match.group(1).strip()
-        
-        # 提取 Action Input
+
+            # 🔥 如果没有提取到 thought，提取 Action 之前的内容作为思考
+            if not step.thought:
+                action_pos = response.find('Action:')
+                if action_pos > 0:
+                    before_action = response[:action_pos].strip()
+                    # 移除可能的 Thought: 前缀
+                    before_action = re.sub(r'^Thought:\s*', '', before_action)
+                    if before_action:
+                        step.thought = before_action[:500] if len(before_action) > 500 else before_action
+
+        # 🔥 提取 Action Input
         input_match = re.search(r'Action Input:\s*(.*?)(?=Thought:|Action:|Observation:|$)', response, re.DOTALL)
         if input_match:
             input_text = input_match.group(1).strip()
-    
-
-
             input_text = re.sub(r'```json\s*', '', input_text)
             input_text = re.sub(r'```\s*', '', input_text)
             # 使用增强的 JSON 解析器
@@ -122,7 +133,12 @@ class ReconAgent(BaseAgent):
                 input_text,
                 default={"raw_input": input_text}
             )
-        
+
+        # 🔥 最后的 fallback：如果整个响应没有任何标记，整体作为思考
+        if not step.thought and not step.action and not step.is_final:
+            if response.strip():
+                step.thought = response.strip()[:500]
+
         return step
     
 

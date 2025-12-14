@@ -44,17 +44,24 @@ class SandboxManager:
     async def initialize(self):
         """初始化 Docker 客户端"""
         if self._initialized:
+            logger.info("✅ SandboxManager already initialized")
             return
-        
+
         try:
             import docker
+            logger.info("🔄 Attempting to connect to Docker...")
             self._docker_client = docker.from_env()
             # 测试连接
             self._docker_client.ping()
             self._initialized = True
-            logger.info("Docker sandbox manager initialized")
+            logger.info("✅ Docker sandbox manager initialized successfully")
+        except ImportError as e:
+            logger.error(f"❌ Docker library not installed: {e}")
+            self._docker_client = None
         except Exception as e:
-            logger.warning(f"Docker not available: {e}")
+            logger.warning(f"❌ Docker not available: {e}")
+            import traceback
+            logger.warning(f"Docker connection traceback: {traceback.format_exc()}")
             self._docker_client = None
     
     @property
@@ -462,12 +469,13 @@ class SandboxTool(AgentTool):
     沙箱执行工具
     在安全隔离的环境中执行代码和命令
     """
-    
+
     # 允许的命令前缀
     ALLOWED_COMMANDS = [
         "python", "python3", "node", "curl", "wget",
         "cat", "head", "tail", "grep", "find", "ls",
         "echo", "printf", "test", "id", "whoami",
+        "php",  # 🔥 添加 PHP 支持
     ]
     
     def __init__(self, sandbox_manager: Optional[SandboxManager] = None):
@@ -763,3 +771,398 @@ class VulnerabilityVerifyTool(AgentTool):
             }
         )
 
+
+# ============ PHP 测试工具 ============
+
+class PhpTestInput(BaseModel):
+    """PHP 测试输入"""
+    php_code: Optional[str] = Field(default=None, description="要执行的 PHP 代码（可选，与 file_path 二选一）")
+    file_path: Optional[str] = Field(default=None, description="要测试的 PHP 文件路径（可选，与 php_code 二选一）")
+    get_params: Optional[Dict[str, str]] = Field(default=None, description="模拟的 GET 参数，如 {'cmd': 'whoami'}")
+    post_params: Optional[Dict[str, str]] = Field(default=None, description="模拟的 POST 参数")
+    timeout: int = Field(default=30, description="超时时间（秒）")
+
+
+class PhpTestTool(AgentTool):
+    """
+    PHP 代码测试工具
+    在沙箱中执行 PHP 代码，支持模拟 GET/POST 参数
+    """
+
+    def __init__(self, sandbox_manager: Optional[SandboxManager] = None, project_root: str = "."):
+        super().__init__()
+        self.sandbox_manager = sandbox_manager or SandboxManager()
+        self.project_root = project_root
+
+    @property
+    def name(self) -> str:
+        return "php_test"
+
+    @property
+    def description(self) -> str:
+        return """在沙箱中测试 PHP 代码，支持模拟 GET/POST 参数。
+专门用于验证 PHP 漏洞（如命令注入、SQL 注入等）。
+
+输入 (二选一):
+- php_code: 直接提供要执行的 PHP 代码
+- file_path: 项目中的 PHP 文件路径
+
+模拟参数:
+- get_params: 模拟 $_GET 参数，如 {"cmd": "whoami", "id": "1"}
+- post_params: 模拟 $_POST 参数
+
+示例:
+1. 测试命令注入:
+   {"file_path": "vuln.php", "get_params": {"cmd": "whoami"}}
+
+2. 直接测试代码:
+   {"php_code": "<?php echo shell_exec($_GET['cmd']); ?>", "get_params": {"cmd": "id"}}
+
+⚠️ 在沙箱中执行，不影响真实环境。"""
+
+    @property
+    def args_schema(self):
+        return PhpTestInput
+
+    async def _execute(
+        self,
+        php_code: Optional[str] = None,
+        file_path: Optional[str] = None,
+        get_params: Optional[Dict[str, str]] = None,
+        post_params: Optional[Dict[str, str]] = None,
+        timeout: int = 30,
+        **kwargs
+    ) -> ToolResult:
+        """执行 PHP 测试"""
+        try:
+            await self.sandbox_manager.initialize()
+        except Exception as e:
+            logger.warning(f"Sandbox init failed: {e}")
+
+        if not self.sandbox_manager.is_available:
+            return ToolResult(
+                success=False,
+                error="沙箱环境不可用 (Docker Unavailable)",
+            )
+
+        # 构建 PHP 代码
+        if file_path:
+            # 从文件读取
+            import os
+            full_path = os.path.join(self.project_root, file_path)
+            if not os.path.exists(full_path):
+                return ToolResult(
+                    success=False,
+                    error=f"文件不存在: {file_path}",
+                )
+            with open(full_path, 'r', encoding='utf-8', errors='ignore') as f:
+                php_code = f.read()
+
+        if not php_code:
+            return ToolResult(
+                success=False,
+                error="必须提供 php_code 或 file_path",
+            )
+
+        # 构建模拟 $_GET 和 $_POST 的包装代码
+        wrapper_parts = ["<?php"]
+
+        # 模拟 $_GET
+        if get_params:
+            for key, value in get_params.items():
+                # 安全转义
+                escaped_value = value.replace("'", "\\'")
+                wrapper_parts.append(f"$_GET['{key}'] = '{escaped_value}';")
+
+        # 模拟 $_POST
+        if post_params:
+            for key, value in post_params.items():
+                escaped_value = value.replace("'", "\\'")
+                wrapper_parts.append(f"$_POST['{key}'] = '{escaped_value}';")
+
+        # 移除 php_code 开头的 <?php 标签
+        clean_code = php_code.strip()
+        if clean_code.startswith("<?php"):
+            clean_code = clean_code[5:].strip()
+        if clean_code.startswith("<?"):
+            clean_code = clean_code[2:].strip()
+        if clean_code.endswith("?>"):
+            clean_code = clean_code[:-2].strip()
+
+        wrapper_parts.append(clean_code)
+        wrapper_parts.append("?>")
+
+        full_php_code = "\n".join(wrapper_parts)
+
+        # 在沙箱中执行
+        # 使用 php -r 直接执行代码
+        import shlex
+        escaped_code = full_php_code.replace("'", "'\"'\"'")
+        command = f"php -r '{escaped_code}'"
+
+        result = await self.sandbox_manager.execute_command(
+            command=command,
+            timeout=timeout,
+        )
+
+        # 格式化输出
+        output_parts = ["🐘 PHP 测试结果\n"]
+
+        if get_params:
+            output_parts.append(f"模拟 GET 参数: {get_params}")
+        if post_params:
+            output_parts.append(f"模拟 POST 参数: {post_params}")
+
+        output_parts.append(f"\n退出码: {result['exit_code']}")
+
+        if result["stdout"]:
+            stdout = result["stdout"][:3000]
+            output_parts.append(f"\n输出:\n```\n{stdout}\n```")
+
+        if result["stderr"]:
+            stderr = result["stderr"][:1000]
+            output_parts.append(f"\n错误:\n```\n{stderr}\n```")
+
+        # 判断是否执行成功
+        is_vulnerable = False
+        evidence = None
+
+        if result["exit_code"] == 0 and result["stdout"]:
+            # 检查是否有命令执行输出
+            stdout_lower = result["stdout"].lower()
+            if get_params and "cmd" in get_params:
+                cmd_value = get_params["cmd"].lower()
+                # 检查常见命令输出
+                if cmd_value in ["whoami", "id"]:
+                    if "root" in stdout_lower or "uid=" in stdout_lower or "www-data" in stdout_lower:
+                        is_vulnerable = True
+                        evidence = f"命令 '{get_params['cmd']}' 执行成功，输出: {result['stdout'][:200]}"
+                elif cmd_value.startswith("echo "):
+                    expected = cmd_value[5:].lower()
+                    if expected in stdout_lower:
+                        is_vulnerable = True
+                        evidence = f"Echo 命令执行成功"
+                else:
+                    # 通用检查：有输出就可能成功
+                    if len(result["stdout"].strip()) > 0:
+                        is_vulnerable = True
+                        evidence = f"命令可能执行成功，输出: {result['stdout'][:200]}"
+
+        if is_vulnerable:
+            output_parts.append(f"\n🔴 **漏洞确认**: {evidence}")
+        else:
+            output_parts.append(f"\n🟡 未能确认漏洞执行（可能需要检查输出）")
+
+        return ToolResult(
+            success=True,
+            data="\n".join(output_parts),
+            metadata={
+                "exit_code": result["exit_code"],
+                "is_vulnerable": is_vulnerable,
+                "evidence": evidence,
+                "stdout": result["stdout"][:500] if result["stdout"] else None,
+            }
+        )
+
+
+# ============ 命令注入专用测试工具 ============
+
+class CommandInjectionTestInput(BaseModel):
+    """命令注入测试输入"""
+    target_file: str = Field(description="目标文件路径（如 'vuln.php'）")
+    param_name: str = Field(default="cmd", description="注入参数名（默认 'cmd'）")
+    test_command: str = Field(default="id", description="测试命令（默认 'id'）")
+    language: str = Field(default="php", description="目标语言 (php, python, node)")
+
+
+class CommandInjectionTestTool(AgentTool):
+    """
+    命令注入专用测试工具
+    智能检测和验证命令注入漏洞
+    """
+
+    def __init__(self, sandbox_manager: Optional[SandboxManager] = None, project_root: str = "."):
+        super().__init__()
+        self.sandbox_manager = sandbox_manager or SandboxManager()
+        self.project_root = project_root
+
+    @property
+    def name(self) -> str:
+        return "test_command_injection"
+
+    @property
+    def description(self) -> str:
+        return """专门用于测试命令注入漏洞的工具。
+
+输入:
+- target_file: 目标文件路径
+- param_name: 注入参数名（默认 'cmd'）
+- test_command: 测试命令（默认 'id'，也可用 'whoami', 'echo test'）
+- language: 目标语言（php, python, node）
+
+示例:
+{"target_file": "ttt/t.php", "param_name": "cmd", "test_command": "whoami"}
+
+自动执行:
+1. 读取目标文件代码
+2. 构建包含测试命令的执行环境
+3. 在沙箱中执行并分析结果
+4. 判断命令注入是否成功"""
+
+    @property
+    def args_schema(self):
+        return CommandInjectionTestInput
+
+    async def _execute(
+        self,
+        target_file: str,
+        param_name: str = "cmd",
+        test_command: str = "id",
+        language: str = "php",
+        **kwargs
+    ) -> ToolResult:
+        """执行命令注入测试"""
+        try:
+            await self.sandbox_manager.initialize()
+        except Exception as e:
+            logger.warning(f"Sandbox init failed: {e}")
+
+        if not self.sandbox_manager.is_available:
+            return ToolResult(
+                success=False,
+                error="沙箱环境不可用 (Docker Unavailable)",
+            )
+
+        import os
+        full_path = os.path.join(self.project_root, target_file)
+
+        if not os.path.exists(full_path):
+            return ToolResult(
+                success=False,
+                error=f"文件不存在: {target_file}",
+            )
+
+        # 读取文件内容
+        with open(full_path, 'r', encoding='utf-8', errors='ignore') as f:
+            code_content = f.read()
+
+        output_parts = ["🎯 命令注入测试\n"]
+        output_parts.append(f"目标文件: {target_file}")
+        output_parts.append(f"注入参数: {param_name}")
+        output_parts.append(f"测试命令: {test_command}")
+        output_parts.append(f"语言: {language}")
+
+        # 根据语言构建测试
+        if language.lower() == "php":
+            result = await self._test_php_injection(code_content, param_name, test_command)
+        elif language.lower() == "python":
+            result = await self._test_python_injection(code_content, param_name, test_command)
+        else:
+            return ToolResult(
+                success=False,
+                error=f"暂不支持语言: {language}",
+            )
+
+        output_parts.append(f"\n退出码: {result['exit_code']}")
+
+        if result.get("stdout"):
+            output_parts.append(f"\n命令输出:\n```\n{result['stdout'][:2000]}\n```")
+
+        if result.get("stderr"):
+            output_parts.append(f"\n错误输出:\n```\n{result['stderr'][:500]}\n```")
+
+        # 分析结果
+        is_vulnerable = False
+        evidence = None
+        poc = None
+
+        if result["exit_code"] == 0 and result.get("stdout"):
+            stdout = result["stdout"].strip()
+            # 检查命令执行特征
+            if test_command in ["id", "whoami"]:
+                if "uid=" in stdout or "root" in stdout or "www-data" in stdout or stdout.strip():
+                    is_vulnerable = True
+                    evidence = f"命令 '{test_command}' 成功执行，输出: {stdout[:200]}"
+                    poc = f"curl 'http://target/{target_file}?{param_name}={test_command}'"
+            elif test_command.startswith("echo "):
+                expected = test_command[5:]
+                if expected in stdout:
+                    is_vulnerable = True
+                    evidence = f"Echo 测试成功"
+                    poc = f"curl 'http://target/{target_file}?{param_name}=echo+test'"
+            else:
+                if len(stdout) > 0:
+                    is_vulnerable = True
+                    evidence = f"命令可能执行成功，输出: {stdout[:200]}"
+                    poc = f"curl 'http://target/{target_file}?{param_name}={test_command}'"
+
+        if is_vulnerable:
+            output_parts.append(f"\n\n🔴 **漏洞已确认!**")
+            output_parts.append(f"证据: {evidence}")
+            output_parts.append(f"\nPoC: `{poc}`")
+        else:
+            output_parts.append(f"\n\n🟡 未能确认漏洞")
+            if result.get("stderr"):
+                output_parts.append(f"可能原因: 执行错误或参数未正确传递")
+
+        return ToolResult(
+            success=True,
+            data="\n".join(output_parts),
+            metadata={
+                "is_vulnerable": is_vulnerable,
+                "evidence": evidence,
+                "poc": poc,
+                "exit_code": result["exit_code"],
+            }
+        )
+
+    async def _test_php_injection(self, code: str, param_name: str, test_command: str) -> Dict[str, Any]:
+        """测试 PHP 命令注入"""
+        # 构建模拟环境
+        wrapper = f"""<?php
+$_GET['{param_name}'] = '{test_command}';
+$_POST['{param_name}'] = '{test_command}';
+$_REQUEST['{param_name}'] = '{test_command}';
+"""
+        # 移除原代码的 PHP 标签
+        clean_code = code.strip()
+        if clean_code.startswith("<?php"):
+            clean_code = clean_code[5:]
+        elif clean_code.startswith("<?"):
+            clean_code = clean_code[2:]
+        if clean_code.endswith("?>"):
+            clean_code = clean_code[:-2]
+
+        full_code = wrapper + clean_code + "\n?>"
+
+        # 转义并执行
+        escaped_code = full_code.replace("'", "'\"'\"'")
+        command = f"php -r '{escaped_code}'"
+
+        return await self.sandbox_manager.execute_command(command, timeout=30)
+
+    async def _test_python_injection(self, code: str, param_name: str, test_command: str) -> Dict[str, Any]:
+        """测试 Python 命令注入"""
+        # 模拟 request.args.get
+        wrapper = f"""
+import sys
+class MockArgs:
+    def get(self, key, default=None):
+        if key == '{param_name}':
+            return '{test_command}'
+        return default
+
+class MockRequest:
+    args = MockArgs()
+    form = MockArgs()
+
+request = MockRequest()
+sys.argv = ['script.py', '{test_command}']
+
+"""
+        full_code = wrapper + code
+
+        escaped_code = full_code.replace("'", "'\"'\"'")
+        command = f"python3 -c '{escaped_code}'"
+
+        return await self.sandbox_manager.execute_command(command, timeout=30)

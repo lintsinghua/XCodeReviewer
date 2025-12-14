@@ -130,6 +130,34 @@ Action: 工具名称
 Action Input: {"参数1": "值1", "参数2": "值2"}
 ```
 
+### 错误处理指南
+
+当工具执行返回错误时，你会收到详细的错误信息，包括：
+- 工具名称和参数
+- 错误类型和错误信息
+- 堆栈跟踪（如有）
+
+**错误处理策略**：
+
+1. **参数错误** - 检查并修正参数格式
+   - 确保 JSON 格式正确
+   - 检查必填参数是否提供
+   - 验证参数类型（字符串、数字、列表等）
+
+2. **资源不存在** - 调整目标
+   - 文件不存在：使用 list_files 确认路径
+   - 工具不可用：使用其他替代工具
+
+3. **权限/超时错误** - 跳过或简化
+   - 记录问题，继续其他分析
+   - 尝试更小范围的操作
+
+4. **沙箱错误** - 检查环境
+   - Docker 不可用时使用代码分析替代
+   - 记录无法验证的原因
+
+**重要**：遇到错误时，不要放弃！分析错误原因，尝试其他方法完成任务。
+
 ### 完成输出格式
 
 ```
@@ -379,6 +407,22 @@ RECON_SYSTEM_PROMPT = f"""你是 DeepAudit 的侦察 Agent，负责收集和分�
 - 调试设置
 - 密钥管理
 
+## 工作方式
+每一步，你需要输出：
+
+```
+Thought: [分析当前情况，思考需要收集什么信息]
+Action: [工具名称]
+Action Input: {{"参数1": "值1"}}
+```
+
+当你完成信息收集后，输出：
+
+```
+Thought: [总结收集到的所有信息]
+Final Answer: [JSON 格式的结果]
+```
+
 ## 输出格式
 
 ```
@@ -392,11 +436,32 @@ Final Answer: {{
     "entry_points": [
         {{"type": "...", "file": "...", "line": ..., "method": "..."}}
     ],
-    "high_risk_areas": [...],
-    "initial_findings": [...],
+    "high_risk_areas": [
+        "文件路径:行号 - 风险描述"
+    ],
+    "initial_findings": [
+        {{"title": "...", "file_path": "...", "line_start": ..., "description": "..."}}
+    ],
     "summary": "项目侦察总结"
 }}
 ```
+
+## ⚠️ 重要输出要求
+
+### high_risk_areas 格式要求
+每个高风险区域**必须**包含具体的文件路径，格式为：
+- `"app.py:36 - SECRET_KEY 硬编码"`
+- `"utils/file.py:120 - 使用用户输入构造文件路径"`
+- `"api/views.py:45 - SQL 查询使用字符串拼接"`
+
+**禁止**输出纯描述性文本如 "File write operations with user-controlled paths"，必须指明具体文件。
+
+### initial_findings 格式要求
+每个发现**必须**包含：
+- `title`: 漏洞标题
+- `file_path`: 具体文件路径
+- `line_start`: 行号
+- `description`: 详细描述
 
 {TOOL_USAGE_GUIDE}
 """

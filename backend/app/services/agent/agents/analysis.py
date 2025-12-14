@@ -190,19 +190,15 @@ class AnalysisAgent(BaseAgent):
 
     
     def _parse_llm_response(self, response: str) -> AnalysisStep:
-        """解析 LLM 响应"""
+        """解析 LLM 响应 - 增强版，更健壮地提取思考内容"""
         step = AnalysisStep(thought="")
-        
-        # 提取 Thought
+
+        # 🔥 首先尝试提取明确的 Thought 标记
         thought_match = re.search(r'Thought:\s*(.*?)(?=Action:|Final Answer:|$)', response, re.DOTALL)
         if thought_match:
             step.thought = thought_match.group(1).strip()
-        elif not re.search(r'Action:|Final Answer:', response):
-             # 🔥 Fallback: If no markers found, treat the whole response as Thought
-             if response.strip():
-                 step.thought = response.strip()
-        
-        # 检查是否是最终答案
+
+        # 🔥 检查是否是最终答案
         final_match = re.search(r'Final Answer:\s*(.*?)$', response, re.DOTALL)
         if final_match:
             step.is_final = True
@@ -211,23 +207,40 @@ class AnalysisAgent(BaseAgent):
             answer_text = re.sub(r'```\s*', '', answer_text)
             # 使用增强的 JSON 解析器
             step.final_answer = AgentJsonParser.parse(
-                answer_text, 
+                answer_text,
                 default={"findings": [], "raw_answer": answer_text}
             )
             # 确保 findings 格式正确
             if "findings" in step.final_answer:
                 step.final_answer["findings"] = [
-                    f for f in step.final_answer["findings"] 
+                    f for f in step.final_answer["findings"]
                     if isinstance(f, dict)
                 ]
+
+            # 🔥 如果没有提取到 thought，使用 Final Answer 前的内容作为思考
+            if not step.thought:
+                before_final = response[:response.find('Final Answer:')].strip()
+                if before_final:
+                    before_final = re.sub(r'^Thought:\s*', '', before_final)
+                    step.thought = before_final[:500] if len(before_final) > 500 else before_final
+
             return step
-        
-        # 提取 Action
+
+        # 🔥 提取 Action
         action_match = re.search(r'Action:\s*(\w+)', response)
         if action_match:
             step.action = action_match.group(1).strip()
-        
-        # 提取 Action Input
+
+            # 🔥 如果没有提取到 thought，提取 Action 之前的内容作为思考
+            if not step.thought:
+                action_pos = response.find('Action:')
+                if action_pos > 0:
+                    before_action = response[:action_pos].strip()
+                    before_action = re.sub(r'^Thought:\s*', '', before_action)
+                    if before_action:
+                        step.thought = before_action[:500] if len(before_action) > 500 else before_action
+
+        # 🔥 提取 Action Input
         input_match = re.search(r'Action Input:\s*(.*?)(?=Thought:|Action:|Observation:|$)', response, re.DOTALL)
         if input_match:
             input_text = input_match.group(1).strip()
@@ -238,7 +251,12 @@ class AnalysisAgent(BaseAgent):
                 input_text,
                 default={"raw_input": input_text}
             )
-        
+
+        # 🔥 最后的 fallback：如果整个响应没有任何标记，整体作为思考
+        if not step.thought and not step.action and not step.is_final:
+            if response.strip():
+                step.thought = response.strip()[:500]
+
         return step
     
 
@@ -304,8 +322,11 @@ class AnalysisAgent(BaseAgent):
 """
         
         initial_message += f"""{handoff_context if handoff_context else f'''## 上下文信息
-### 高风险区域
+### ⚠️ 高风险区域（来自 Recon Agent，必须优先分析）
+以下是 Recon Agent 识别的高风险区域，请**务必优先**读取和分析这些文件：
 {json.dumps(high_risk_areas[:20], ensure_ascii=False)}
+
+**重要**: 请使用 read_file 工具读取上述高风险文件，不要假设文件路径或使用其他路径。
 
 ### 入口点 (前10个)
 {json.dumps(entry_points[:10], ensure_ascii=False, indent=2)}
@@ -316,13 +337,20 @@ class AnalysisAgent(BaseAgent):
 ## 任务
 {task_context or task or '进行全面的安全漏洞分析，发现代码中的安全问题。'}
 
+## ⚠️ 分析策略要求
+1. **首先**：使用 read_file 读取上面列出的高风险文件
+2. **然后**：分析这些文件中的安全问题
+3. **最后**：如果需要，使用 smart_scan 或其他工具扩展分析
+
+**禁止**：不要跳过高风险区域直接做全局扫描
+
 ## 目标漏洞类型
 {config.get('target_vulnerabilities', ['all'])}
 
 ## 可用工具
 {self.get_tools_description()}
 
-请开始你的安全分析。首先思考分析策略，然后选择合适的工具开始分析。"""
+请开始你的安全分析。首先读取高风险区域的文件，然后分析其中的安全问题。"""
         
         # 🔥 记录工作开始
         self.record_work("开始安全漏洞分析")
