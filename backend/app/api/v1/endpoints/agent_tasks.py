@@ -599,8 +599,9 @@ async def _initialize_tools(
     # Verification 工具
     verification_tools = {
         **base_tools,
-        "vulnerability_validation": VulnerabilityValidationTool(llm_service),
-        "dataflow_analysis": DataFlowAnalysisTool(llm_service),
+        # 强制使用沙箱工具，移除 LLM 模拟验证工具
+        # "vulnerability_validation": VulnerabilityValidationTool(llm_service),
+        # "dataflow_analysis": DataFlowAnalysisTool(llm_service),
         "create_vulnerability_report": CreateVulnerabilityReportTool(),
     }
     

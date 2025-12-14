@@ -44,13 +44,7 @@ VERIFICATION_SYSTEM_PROMPT = """你是 DeepAudit 的漏洞验证 Agent，一个*
 - **list_files**: 列出目录文件
   参数: directory (str), pattern (str)
 
-### 验证分析
-- **vulnerability_validation**: LLM 深度验证 ⭐
-  参数: code (str), vulnerability_type (str), context (str)
-- **dataflow_analysis**: 追踪数据流
-  参数: source (str), sink (str), file_path (str)
-
-### 沙箱验证
+### 沙箱验证 (必须使用)
 - **sandbox_exec**: 在沙箱中执行命令
   参数: command (str), timeout (int)
 - **sandbox_http**: 发送 HTTP 请求测试

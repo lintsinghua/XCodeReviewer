@@ -263,9 +263,7 @@ class AgentRunner:
         # 职责：漏洞验证、PoC 执行、误报排除
         self.verification_tools = {
             **base_tools,
-            # 验证工具
-            "vulnerability_validation": VulnerabilityValidationTool(self.llm_service),
-            "dataflow_analysis": DataFlowAnalysisTool(self.llm_service),
+            # 验证工具 - 移除旧的 vulnerability_validation 和 dataflow_analysis，强制使用沙箱
             # 🔥 新增：漏洞报告工具（仅Verification可用）
             "create_vulnerability_report": CreateVulnerabilityReportTool(),
             # 🔥 新增：反思工具

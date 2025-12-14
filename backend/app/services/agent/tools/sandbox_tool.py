@@ -110,8 +110,9 @@ class SandboxManager:
                         temp_dir: {"bind": "/workspace", "mode": "rw"},
                     },
                     "tmpfs": {
-                        "/home/sandbox": "rw,size=100m,mode=1777"
-                    },
+                            "/home/sandbox": "rw,size=100m,mode=1777",
+                            "/tmp": "rw,size=100m,mode=1777"
+                        },
                     "working_dir": working_dir or "/workspace",
                     "environment": env or {},
                     # 安全配置
