@@ -614,12 +614,15 @@ class SandboxHttpTool(AgentTool):
         **kwargs
     ) -> ToolResult:
         """执行 HTTP 请求"""
-        await self.sandbox_manager.initialize()
+        try:
+            await self.sandbox_manager.initialize()
+        except Exception as e:
+            logger.warning(f"Sandbox init failed during execution: {e}")
         
         if not self.sandbox_manager.is_available:
             return ToolResult(
                 success=False,
-                error="沙箱环境不可用",
+                error="沙箱环境不可用 (Docker Unavailable)",
             )
         
         result = await self.sandbox_manager.execute_http_request(
@@ -716,12 +719,15 @@ class VulnerabilityVerifyTool(AgentTool):
         **kwargs
     ) -> ToolResult:
         """执行漏洞验证"""
-        await self.sandbox_manager.initialize()
+        try:
+            await self.sandbox_manager.initialize()
+        except Exception as e:
+            logger.warning(f"Sandbox init failed during execution: {e}")
         
         if not self.sandbox_manager.is_available:
             return ToolResult(
                 success=False,
-                error="沙箱环境不可用",
+                error="沙箱环境不可用 (Docker Unavailable)",
             )
         
         result = await self.sandbox_manager.verify_vulnerability(

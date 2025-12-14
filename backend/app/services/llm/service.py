@@ -8,7 +8,7 @@ import re
 import logging
 from typing import Dict, Any, Optional, List
 from .types import LLMConfig, LLMProvider, LLMMessage, LLMRequest, DEFAULT_MODELS
-from .factory import LLMFactory
+from .factory import LLMFactory, NATIVE_ONLY_PROVIDERS
 from app.core.config import settings
 
 # json-repair 库用于修复损坏的 JSON
@@ -460,8 +460,6 @@ Please analyze the following code:
         Yields:
             dict: {"type": "token", "content": str} 或 {"type": "done", ...}
         """
-        from .adapters.litellm_adapter import LiteLLMAdapter
-        
         llm_messages = [
             LLMMessage(role=msg["role"], content=msg["content"])
             for msg in messages
@@ -473,11 +471,46 @@ Please analyze the following code:
             max_tokens=max_tokens,
         )
         
-        # 使用 LiteLLM adapter 进行流式调用
-        adapter = LiteLLMAdapter(self.config)
-        
-        async for chunk in adapter.stream_complete(request):
-            yield chunk
+        if self.config.provider in NATIVE_ONLY_PROVIDERS:
+            adapter = LLMFactory.create_adapter(self.config)
+            response = await adapter.complete(request)
+            content = response.content or ""
+            usage = None
+            if response.usage:
+                usage = {
+                    "prompt_tokens": response.usage.prompt_tokens or 0,
+                    "completion_tokens": response.usage.completion_tokens or 0,
+                    "total_tokens": response.usage.total_tokens or 0,
+                }
+            if not content:
+                yield {
+                    "type": "done",
+                    "content": "",
+                    "usage": usage,
+                    "finish_reason": response.finish_reason or "stop",
+                }
+            else:
+                accumulated = ""
+                chunk_size = 20
+                for i in range(0, len(content), chunk_size):
+                    part = content[i:i + chunk_size]
+                    accumulated += part
+                    yield {
+                        "type": "token",
+                        "content": part,
+                        "accumulated": accumulated,
+                    }
+                yield {
+                    "type": "done",
+                    "content": content,
+                    "usage": usage,
+                    "finish_reason": response.finish_reason or "stop",
+                }
+        else:
+            from .adapters.litellm_adapter import LiteLLMAdapter
+            adapter = LiteLLMAdapter(self.config)
+            async for chunk in adapter.stream_complete(request):
+                yield chunk
     
     def _parse_json(self, text: str) -> Dict[str, Any]:
         """从LLM响应中解析JSON（增强版）"""

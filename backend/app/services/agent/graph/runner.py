@@ -271,6 +271,7 @@ class AgentRunner:
         }
         
         # 沙箱工具（仅 Verification Agent 可用）
+        self.sandbox_manager = None
         try:
             from app.services.agent.tools.sandbox_tool import SandboxConfig
             sandbox_config = SandboxConfig(
@@ -281,17 +282,27 @@ class AgentRunner:
                 network_mode=settings.SANDBOX_NETWORK_MODE,
             )
             self.sandbox_manager = SandboxManager(config=sandbox_config)
+        except Exception as e:
+            logger.warning(f"❌ Sandbox Manager initialization failed: {e}")
+            import traceback
+            logger.warning(f"Traceback: {traceback.format_exc()}")
+            # 尝试创建默认管理器作为后备
+            try:
+                self.sandbox_manager = SandboxManager()
+                logger.info("⚠️ Created fallback SandboxManager (Docker might be unavailable)")
+            except Exception as e2:
+                logger.error(f"❌ Failed to create fallback SandboxManager: {e2}")
 
+        # 始终注册沙箱工具，即使 Docker 不可用（工具内部会检查）
+        if self.sandbox_manager:
             self.verification_tools["sandbox_exec"] = SandboxTool(self.sandbox_manager)
             self.verification_tools["sandbox_http"] = SandboxHttpTool(self.sandbox_manager)
             self.verification_tools["verify_vulnerability"] = VulnerabilityVerifyTool(self.sandbox_manager)
-            logger.info(f"✅ Sandbox tools initialized successfully: sandbox_exec, sandbox_http, verify_vulnerability")
-            logger.info(f"✅ Verification tools: {list(self.verification_tools.keys())}")
-
-        except Exception as e:
-            logger.warning(f"❌ Sandbox initialization failed: {e}")
-            import traceback
-            logger.warning(f"Traceback: {traceback.format_exc()}")
+            logger.info(f"✅ Sandbox tools initialized (Docker available: {self.sandbox_manager.is_available})")
+        else:
+             logger.error("❌ Sandbox tools NOT initialized due to critical manager failure")
+        
+        logger.info(f"✅ Verification tools: {list(self.verification_tools.keys())}")
         
         # 统计总工具数
         total_tools = len(set(
