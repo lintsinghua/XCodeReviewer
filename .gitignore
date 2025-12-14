@@ -168,3 +168,25 @@ Thumbs.db
 *.crt
 secrets/
 .secrets/
+
+# Agent checkpoints and data
+agent_checkpoints/
+data/
+*.checkpoint
+
+# Scan result files (temporary)
+bandit_results.json
+semgrep_results.json
+gitleaks_results.json
+trufflehog_results.json
+
+# Test files
+ttt/
+examples/
+
+# Milvus data
+milvus_data/
+
+# ChromaDB data
+chroma/
+

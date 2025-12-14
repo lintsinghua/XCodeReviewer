@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: '版本号 (例如: v2.0.0)'
+        description: '版本号 (例如: v3.0.0)'
         required: true
         type: string
       prerelease:
@@ -112,7 +112,7 @@ jobs:
             --exclude=backend/uploads \
             backend/
           
-          # 打包 Docker 配置文件
+          # 打包 Docker 配置文件（包含 Agent 模式配置）
           tar -czf release/deepaudit-docker-${{ steps.version.outputs.VERSION }}.tar.gz \
             docker-compose.yml \
             backend/Dockerfile \
@@ -121,7 +121,8 @@ jobs:
             frontend/.dockerignore \
             frontend/docker-entrypoint.sh \
             backend/env.example \
-            frontend/.env.example
+            frontend/.env.example \
+            docker/sandbox/
           
           # 打包完整源码（包括配置文件）
           tar -czf release/deepaudit-source-${{ steps.version.outputs.VERSION }}.tar.gz \
@@ -157,12 +158,19 @@ jobs:
           
           echo "" >> CHANGELOG.md
           echo "" >> CHANGELOG.md
+          echo "## 🚀 v3.0.0 新特性" >> CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          echo "- 🤖 **Multi-Agent 架构**: Orchestrator/Analysis/Recon/Verification 多智能体协作" >> CHANGELOG.md
+          echo "- 🧠 **RAG 知识库增强**: 代码语义理解 + CWE/CVE 漏洞知识库" >> CHANGELOG.md
+          echo "- 🔒 **沙箱漏洞验证**: Docker 安全容器自动执行 PoC" >> CHANGELOG.md
+          echo "- 🛠️ **专业安全工具集成**: Semgrep, Bandit, Gitleaks, OSV-Scanner" >> CHANGELOG.md
+          echo "" >> CHANGELOG.md
           echo "## 📦 下载说明" >> CHANGELOG.md
           echo "" >> CHANGELOG.md
           echo "### 构建产物" >> CHANGELOG.md
           echo "- \`deepaudit-frontend-*.tar.gz\`: 前端构建产物（用于生产部署）" >> CHANGELOG.md
           echo "- \`deepaudit-backend-*.tar.gz\`: 后端源码包" >> CHANGELOG.md
-          echo "- \`deepaudit-docker-*.tar.gz\`: Docker 配置文件" >> CHANGELOG.md
+          echo "- \`deepaudit-docker-*.tar.gz\`: Docker 配置文件（包含沙箱配置）" >> CHANGELOG.md
           echo "- \`deepaudit-source-*.tar.gz\`: 完整源码包" >> CHANGELOG.md
           echo "- \`checksums.txt\`: 文件校验和" >> CHANGELOG.md
           echo "" >> CHANGELOG.md
@@ -172,8 +180,11 @@ jobs:
           echo "" >> CHANGELOG.md
           echo "### 快速部署" >> CHANGELOG.md
           echo "\`\`\`bash" >> CHANGELOG.md
-          echo "# 使用 Docker Compose 部署" >> CHANGELOG.md
-          echo "docker-compose up -d" >> CHANGELOG.md
+          echo "# 基础部署" >> CHANGELOG.md
+          echo "docker compose up -d" >> CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          echo "# Agent 模式部署（包含 Milvus 向量数据库）" >> CHANGELOG.md
+          echo "docker compose --profile agent up -d" >> CHANGELOG.md
           echo "\`\`\`" >> CHANGELOG.md
       
       # 12. 创建 GitHub Release
@@ -235,7 +246,21 @@ jobs:
           cache-from: type=gha,scope=backend
           cache-to: type=gha,mode=max,scope=backend
       
-      # 18. 更新 README 中的版本号
+      # 18. 构建并推送沙箱 Docker 镜像
+      - name: 构建并推送沙箱 Docker 镜像
+        uses: docker/build-push-action@v5
+        with:
+          context: ./docker/sandbox
+          file: ./docker/sandbox/Dockerfile
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/deepaudit-sandbox:${{ steps.version.outputs.VERSION }}
+            ghcr.io/${{ github.repository_owner }}/deepaudit-sandbox:latest
+          cache-from: type=gha,scope=sandbox
+          cache-to: type=gha,mode=max,scope=sandbox
+      
+      # 19. 更新 README 中的版本号
       - name: 更新 README 版本号
         if: github.event_name == 'push'
         run: |

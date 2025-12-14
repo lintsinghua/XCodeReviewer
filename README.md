@@ -1,6 +1,4 @@
-# DeepAudit - 您的智能代码审计专家 🦸‍♂️
-
-> 多Agent、PR批量自动审计版本正在开发中，敬请期待......
+# DeepAudit - AI 驱动的智能代码安全审计平台 🛡️
 
 <div style="width: 100%; max-width: 600px; margin: 0 auto;">
   <img src="frontend/public/images/logo.png" alt="DeepAudit Logo" style="width: 100%; height: auto; display: block; margin: 0 auto;">
@@ -8,7 +6,7 @@
 
 <div align="center">
 
-[![Version](https://img.shields.io/badge/version-2.0.0--beta.7-blue.svg)](https://github.com/lintsinghua/DeepAudit/releases)
+[![Version](https://img.shields.io/badge/version-3.0.0-blue.svg)](https://github.com/lintsinghua/DeepAudit/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![React](https://img.shields.io/badge/React-18-61dafb.svg)](https://reactjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178c6.svg)](https://www.typescriptlang.org/)
@@ -21,33 +19,44 @@
 
 </div>
 
+## 🚀 v3.0.0 新特性
+
+**DeepAudit v3.0.0** 带来了革命性的 **Multi-Agent 智能审计系统**：
+
+- 🤖 **Multi-Agent 架构** — Orchestrator 编排决策，Analysis/Recon/Verification 多智能体协作
+- 🧠 **RAG 知识库增强** — 代码语义理解 + CWE/CVE 漏洞知识库，精准识别安全风险
+- 🔒 **沙箱漏洞验证** — Docker 安全容器自动执行 PoC，验证漏洞真实有效性
+- 🛠️ **专业安全工具集成** — Semgrep、Bandit、Gitleaks、TruffleHog、OSV-Scanner
+
+---
+
 ## 💡 这是什么？
 
 **你是否也有这样的困扰？**
 
 - 😫 人工审计的无力：哪怕我不吃不睡，也追不上代码迭代的速度
 - 🤯 传统工具的噪音：每天都在清理误报，感觉自己像个垃圾分类员
-- 😰 代码隐私的风险：想用 AI 却不敢“裸奔”，生怕源码泄露给云端 
+- 😰 代码隐私的风险：想用 AI 却不敢"裸奔"，生怕源码泄露给云端 
 - 🥺 外包项目的隐患：不知道里面藏了多少雷，却不得不签字验收
 
 **DeepAudit 来拯救你！** 🦸‍♂️
 
-- 全自动智能审计：AI 不知疲倦地自动审计，让审计速度跑赢开发节奏
-- 上下文精准理解：告别死板的正则匹配，用大模型读懂代码业务逻辑，大大降低误报率
-- 支持本地私有部署：支持本地模型运行，代码数据可以不出内网，彻底根除“裸奔”焦虑
-- 深层隐患排查：一键扫描第三方外包项目、交付项目，快速揪出隐藏后门与逻辑炸弹，让签字验收有底气
+- 全自动智能审计：AI 驱动的 Multi-Agent 系统自主编排审计策略
+- 上下文精准理解：RAG 增强的代码语义理解，大大降低误报率
+- 沙箱验证漏洞：自动生成 PoC 并在隔离环境验证，确保漏洞真实有效
+- 支持本地私有部署：支持 Ollama 本地模型，代码数据可以不出内网
 
-## 🎬 眼见为实，但不仅如此：
+## 🎬 眼见为实：
 
 | 智能仪表盘 | 即时分析 |
 |:---:|:---:|
 | ![仪表盘](frontend/public/images/example1.png) | ![即时分析](frontend/public/images/example2.png) |
 | *一眼掌握项目安全态势* | *粘贴代码/上传文件，秒出结果* |
 
-| 项目管理 | 审计报告 |
+| Agent 审计 | 审计报告 |
 |:---:|:---:|
-| <img src="frontend/public/images/example3.png" alt="项目管理" width="400"> | <img src="frontend/public/images/审计报告示例.png" alt="审计报告" width="400"> |
-| *GitHub/GitLab 无缝集成* | *专业报告，一键导出* |
+| <img src="frontend/public/images/example3.png" alt="Agent审计" width="400"> | <img src="frontend/public/images/审计报告示例.png" alt="审计报告" width="400"> |
+| *Multi-Agent 深度安全分析* | *专业报告，一键导出* |
 
 | 审计规则管理 | 提示词模板管理 |
 |:---:|:---:|
@@ -60,34 +69,47 @@
 <tr>
 <td width="50%">
 
-### 🧠 真正理解你的代码
-不是简单的关键词匹配，而是深度理解代码逻辑和业务意图，像人类专家一样思考。
+### 🤖 Multi-Agent 智能协作
+- **Orchestrator Agent**: 统筹编排，自主决策审计策略
+- **Recon Agent**: 信息收集，识别技术栈和入口点
+- **Analysis Agent**: 深度分析，挖掘潜在安全漏洞
+- **Verification Agent**: 沙箱验证，确认漏洞真实有效
+
+### 🧠 RAG 知识库增强
+- 代码语义理解，不只是关键词匹配
+- CWE/CVE 漏洞知识库集成
+- 精准漏洞识别，大幅降低误报
 
 ### 🎯 What-Why-How 三步修复
 - **What**: 精准定位问题所在
 - **Why**: 解释为什么这是个问题
 - **How**: 给出可直接使用的修复建议
 
-### 🔌 10+ LLM 平台任你选
-OpenAI、Claude、Gemini、通义千问、DeepSeek、智谱AI... 想用哪个用哪个，还支持 Ollama 本地部署！
-
 </td>
 <td width="50%">
 
-### ⚡ 5 分钟快速上手
-Docker 一键部署，浏览器配置 API Key，无需复杂环境搭建。
+### 🔒 沙箱安全验证
+- Docker 隔离容器执行 PoC
+- 资源限制 + 网络隔离 + seccomp 策略
+- 自动验证漏洞可利用性
 
-### 🔒 代码隐私有保障
-支持 Ollama 本地模型，敏感代码不出内网，安全合规无忧。
+### 🛠️ 专业安全工具集成
+- **Semgrep**: 多语言静态分析
+- **Bandit**: Python 安全扫描
+- **Gitleaks/TruffleHog**: 密钥泄露检测
+- **OSV-Scanner**: 依赖漏洞扫描
 
-### 📊 专业报告一键导出
-JSON、PDF 格式随心选，审计报告直接交付，省去整理时间。
+### 🔌 10+ LLM 平台任你选
+OpenAI、Claude、Gemini、通义千问、DeepSeek、智谱AI...
+还支持 Ollama 本地私有化部署！
 
 </td>
 </tr>
 </table>
 
-## 🚀 3 步开始你的智能审计之旅
+## 🚀 快速开始
+
+### Docker Compose 一键部署（推荐）
 
 ```bash
 # 1️⃣ 克隆项目
@@ -98,14 +120,26 @@ cp backend/env.example backend/.env
 # 编辑 backend/.env，填入你的 API Key
 
 # 3️⃣ 一键启动！
-docker-compose up -d
+docker compose up -d
 ```
 
 🎉 **搞定！** 打开 http://localhost:3000 开始体验吧！
 
+### Agent 审计模式部署（可选）
+
+如需使用 Multi-Agent 深度审计功能：
+
+```bash
+# 启动包含 Milvus 向量数据库的完整服务
+docker compose --profile agent up -d
+
+# 构建安全沙箱镜像（用于漏洞验证）
+cd docker/sandbox && ./build.sh
+```
+
 ### 演示账户
 
-系统内置演示账户，包含示例项目和审计数据，可直接体验完整功能：
+系统内置演示账户，包含示例项目和审计数据：
 
 - 📧 邮箱：`demo@example.com`
 - 🔑 密码：`demo123`
@@ -118,12 +152,15 @@ docker-compose up -d
 
 | 功能 | 说明 |
 |------|------|
+| 🤖 **Agent 审计** | Multi-Agent 架构，Orchestrator 自主编排决策，深度漏洞挖掘 |
+| 🧠 **RAG 增强** | 代码语义理解，CWE/CVE 知识库检索，精准漏洞识别 |
+| 🔒 **沙箱验证** | Docker 安全容器执行 PoC，自动验证漏洞有效性 |
 | 🗂️ **项目管理** | GitHub/GitLab 一键导入，ZIP 上传，支持 10+ 编程语言 |
 | ⚡ **即时分析** | 代码片段秒级分析，粘贴即用，无需创建项目 |
 | 🔍 **智能审计** | Bug、安全、性能、风格、可维护性五维检测 |
 | 💡 **可解释分析** | What-Why-How 模式，精准定位 + 修复建议 |
-| 📋 **审计规则** | 内置 OWASP Top 10、代码质量、性能优化规则集，支持自定义 |
-| 📝 **提示词模板** | 可视化管理审计提示词，支持中英文双语，在线测试 |
+| 📋 **审计规则** | 内置 OWASP Top 10、代码质量、性能优化规则集 |
+| 📝 **提示词模板** | 可视化管理审计提示词，支持中英文双语 |
 | 📊 **可视化报告** | 质量仪表盘、趋势分析、PDF/JSON 一键导出 |
 | ⚙️ **灵活配置** | 浏览器运行时配置 LLM，无需重启服务 |
 
@@ -141,15 +178,22 @@ docker-compose up -d
 
 ## 🎯 未来蓝图
 
-这个项目目前还比较初级，很多地方做得不够好，我们一直在努力改进！接下来才是我们真正想做的事情！
+### ✅ 已完成
 
-- **接入 CI/CD** — 让它能跑在 GitHub/GitLab 流水线里，提 PR 的时候自动帮你批量审代码
-- **RAG 知识库** — 把 CWE/CVE 这些漏洞库喂给模型，让它真正懂安全，不再瞎报一通
-- **多 Agent 协作** — 多智能体架构，模拟真实的安全团队工作流程
-- **自动生成补丁** — 光说哪里有问题不够，还得能自动生成能用的修复代码
-- **混合分析** — AI 分析完再用传统 SAST 工具验证一遍，两边互相补充，减少误报漏报
-- **跨文件分析** — 做代码知识图谱，理解模块间的调用关系
-- **多仓库支持** — 除Github/GitLab以外，更新支持Gitea等更多平台以及自建仓库
+- ✅ **RAG 知识库** — 代码语义理解 + CWE/CVE 漏洞知识库集成
+- ✅ **多 Agent 协作** — Orchestrator/Analysis/Recon/Verification 多智能体架构
+- ✅ **沙箱验证** — Docker 安全容器自动执行 PoC 验证
+
+### 🚧 开发中
+
+- 🔄 **CI/CD 集成** — GitHub/GitLab 流水线自动审计，PR 批量扫描
+- 🔄 **自动生成补丁** — 基于漏洞分析自动生成修复代码
+- 🔄 **跨文件分析** — 代码知识图谱，理解模块间调用关系
+
+### 📋 计划中
+
+- 📋 **混合分析** — AI 分析 + 传统 SAST 工具验证，减少误报漏报
+- 📋 **多仓库支持** — Gitea、Bitbucket 等更多平台支持
 
 💡 **您的 Star 和反馈是我们前进的最大动力！有任何想法欢迎提 Issue 一起讨论~**
 
@@ -158,7 +202,8 @@ docker-compose up -d
 | 文档 | 说明 |
 |------|------|
 | [部署指南](docs/DEPLOYMENT.md) | Docker 部署 / 本地开发环境搭建 |
-| [配置说明](docs/CONFIGURATION.md) | 后端配置、审计规则、提示词模板、API 中转站 |
+| [Agent 审计](docs/AGENT_AUDIT.md) | Multi-Agent 审计模块详解 |
+| [配置说明](docs/CONFIGURATION.md) | 后端配置、审计规则、提示词模板 |
 | [LLM 平台支持](docs/LLM_PROVIDERS.md) | 各家 LLM 的配置方法和 API Key 获取 |
 | [常见问题](docs/FAQ.md) | 遇到问题先看这里 |
 | [更新日志](CHANGELOG.md) | 版本更新记录 |

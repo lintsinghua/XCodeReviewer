@@ -1,11 +1,12 @@
 # 部署指南
 
-本文档详细介绍 DeepAudit 的各种部署方式，包括 Docker Compose 一键部署、生产环境部署和本地开发环境搭建。
+本文档详细介绍 DeepAudit v3.0.0 的各种部署方式，包括 Docker Compose 一键部署、Agent 审计模式部署和本地开发环境搭建。
 
 ## 目录
 
 - [快速开始](#快速开始)
 - [Docker Compose 部署（推荐）](#docker-compose-部署推荐)
+- [Agent 审计模式部署](#agent-审计模式部署)
 - [生产环境部署](#生产环境部署)
 - [本地开发部署](#本地开发部署)
 - [常见部署问题](#常见部署问题)
@@ -50,10 +51,12 @@ docker compose up -d
 
 ### 系统要求
 
-- Docker 20.10+
-- Docker Compose 2.0+
-- 至少 2GB 可用内存
-- 至少 5GB 可用磁盘空间
+| 资源 | 基础模式 | Agent 模式 |
+|------|----------|-----------|
+| 内存 | 2GB+ | 4GB+ |
+| 磁盘 | 5GB+ | 10GB+ |
+| Docker | 20.10+ | 20.10+ |
+| Docker Compose | 2.0+ | 2.0+ |
 
 ### 部署步骤
 
@@ -102,8 +105,8 @@ docker compose logs -f
 
 | 服务 | 端口 | 说明 |
 |------|------|------|
-| `frontend` | 3000 | React 前端应用（生产构建，使用 serve 提供静态文件） |
-| `backend` | 8000 | FastAPI 后端 API（使用 uv 管理依赖） |
+| `frontend` | 3000 | React 前端应用（生产构建） |
+| `backend` | 8000 | FastAPI 后端 API |
 | `db` | 5432 | PostgreSQL 15 数据库 |
 
 ### 访问地址
@@ -131,6 +134,91 @@ docker compose logs -f backend
 # 进入容器调试
 docker compose exec backend sh
 docker compose exec db psql -U postgres -d deepaudit
+```
+
+---
+
+## Agent 审计模式部署
+
+v3.0.0 新增的 Multi-Agent 深度审计功能，需要额外的服务支持。
+
+### 功能特点
+
+- 🤖 **Multi-Agent 架构**: Orchestrator/Analysis/Recon/Verification 多智能体协作
+- 🧠 **RAG 知识库**: 代码语义理解 + CWE/CVE 漏洞知识库
+- 🔒 **沙箱验证**: Docker 安全容器执行 PoC
+
+### 部署步骤
+
+```bash
+# 1. 配置 Agent 相关参数
+# 编辑 backend/.env，确保以下配置正确
+
+# Agent 配置
+AGENT_ENABLED=true
+AGENT_MAX_ITERATIONS=5
+
+# 嵌入模型配置
+EMBEDDING_PROVIDER=openai
+EMBEDDING_MODEL=text-embedding-3-small
+EMBEDDING_API_KEY=  # 留空则使用 LLM_API_KEY
+
+# 向量数据库配置（使用 Milvus）
+VECTOR_DB_TYPE=milvus
+MILVUS_HOST=milvus
+MILVUS_PORT=19530
+
+# 沙箱配置
+SANDBOX_ENABLED=true
+```
+
+```bash
+# 2. 启动包含 Agent 服务的完整部署
+docker compose --profile agent up -d
+```
+
+### Agent 模式服务说明
+
+| 服务 | 端口 | 说明 |
+|------|------|------|
+| `milvus` | 19530 | Milvus 向量数据库 |
+| `milvus-etcd` | - | Milvus 元数据存储 |
+| `milvus-minio` | - | Milvus 对象存储 |
+| `redis` | 6379 | 任务队列（可选） |
+
+### 构建安全沙箱镜像
+
+沙箱用于安全地执行漏洞验证 PoC：
+
+```bash
+# 进入沙箱目录
+cd docker/sandbox
+
+# 构建沙箱镜像
+./build.sh
+
+# 验证镜像构建成功
+docker images | grep deepaudit-sandbox
+```
+
+沙箱镜像包含：
+- Python 3.11 + 安全工具 (Semgrep, Bandit, Safety)
+- Node.js 20 + npm audit
+- Go 1.21 + gosec
+- Rust (cargo-audit)
+- Gitleaks, TruffleHog, OSV-Scanner
+
+### 验证 Agent 模式
+
+```bash
+# 检查所有服务状态
+docker compose --profile agent ps
+
+# 检查 Milvus 连接
+curl http://localhost:9091/healthz
+
+# 查看 Agent 日志
+docker compose logs -f backend | grep -i agent
 ```
 
 ---
@@ -185,6 +273,16 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # SSE 事件流（Agent 审计日志）
+    location /api/v1/agent-tasks/ {
+        proxy_pass http://localhost:8000/api/v1/agent-tasks/;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        proxy_buffering off;
+        proxy_cache off;
+        proxy_read_timeout 86400;
     }
 }
 ```
@@ -347,6 +445,33 @@ docker compose up -d backend
 3. 重启 Docker Desktop
 4. 重新构建：`docker compose build --no-cache`
 
+### Agent 模式相关
+
+**Q: Milvus 启动失败**
+
+```bash
+# 检查 Milvus 相关服务状态
+docker compose --profile agent ps
+
+# 查看 Milvus 日志
+docker compose logs milvus milvus-etcd milvus-minio
+
+# 重新启动 Milvus 服务
+docker compose --profile agent restart milvus
+```
+
+**Q: 沙箱镜像构建失败**
+
+```bash
+# 检查 Docker 服务状态
+docker info
+
+# 使用国内镜像源重新构建
+cd docker/sandbox
+# 编辑 Dockerfile，使用国内镜像源
+./build.sh
+```
+
 ### 后端相关
 
 **Q: PDF 导出功能报错（WeasyPrint 依赖问题）**
@@ -395,6 +520,7 @@ VITE_API_BASE_URL=http://localhost:8000/api/v1
 ## 更多资源
 
 - [配置说明](CONFIGURATION.md) - 详细的配置参数说明
+- [Agent 审计](AGENT_AUDIT.md) - Multi-Agent 审计模块详解
 - [LLM 平台支持](LLM_PROVIDERS.md) - 各 LLM 平台的配置方法
 - [常见问题](FAQ.md) - 更多问题解答
 - [贡献指南](../CONTRIBUTING.md) - 参与项目开发
