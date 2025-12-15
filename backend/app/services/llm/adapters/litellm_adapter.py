@@ -66,13 +66,43 @@ class LiteLLMAdapter(BaseLLMAdapter):
         self._api_base = self._get_api_base()
 
     def _get_litellm_model(self) -> str:
-        """获取 LiteLLM 格式的模型名称"""
+        """获取 LiteLLM 格式的模型名称
+        
+        对于使用第三方 OpenAI 兼容 API（如 SiliconFlow）的情况：
+        - 如果用户设置了自定义 base_url，且模型名包含 / (如 Qwen/Qwen3-8B)
+        - 需要将其转换为 openai/Qwen/Qwen3-8B 格式
+        - 因为 LiteLLM 只认识 openai 作为有效前缀
+        """
         provider = self.config.provider
         model = self.config.model
 
         # 检查模型名是否已经包含前缀
         if "/" in model:
-            return model
+            # 提取第一部分作为可能的 provider 前缀
+            prefix_part = model.split("/")[0].lower()
+            
+            # LiteLLM 认识的有效 provider 前缀列表
+            valid_litellm_prefixes = [
+                "openai", "anthropic", "gemini", "deepseek", "ollama",
+                "azure", "huggingface", "together", "groq", "mistral",
+                "anyscale", "replicate", "bedrock", "vertex_ai", "cohere",
+                "sagemaker", "palm", "ai21", "nlp_cloud", "aleph_alpha",
+                "petals", "baseten", "vllm", "cloudflare", "xinference"
+            ]
+            
+            # 如果前缀是 LiteLLM 认识的，直接返回
+            if prefix_part in valid_litellm_prefixes:
+                return model
+            
+            # 如果用户设置了自定义 base_url，将其视为 OpenAI 兼容 API
+            # 例如 SiliconFlow 使用模型名 "Qwen/Qwen3-8B"
+            if self.config.base_url:
+                logger.debug(f"使用自定义 base_url，将模型 {model} 视为 OpenAI 兼容格式")
+                return f"openai/{model}"
+            
+            # 对于没有自定义 base_url 的情况，尝试使用 provider 的前缀
+            prefix = self.PROVIDER_PREFIX_MAP.get(provider, "openai")
+            return f"{prefix}/{model}"
 
         # 获取 provider 前缀
         prefix = self.PROVIDER_PREFIX_MAP.get(provider, "openai")
@@ -106,6 +136,10 @@ class LiteLLMAdapter(BaseLLMAdapter):
     async def _send_request(self, request: LLMRequest) -> LLMResponse:
         """发送请求到 LiteLLM"""
         import litellm
+        
+        # 启用 LiteLLM 调试模式以获取更详细的错误信息
+        # 注释掉下一行可关闭调试模式
+        # litellm._turn_on_debug()
         
         # 禁用 LiteLLM 的缓存，确保每次都实际调用 API
         litellm.cache = None
@@ -152,7 +186,7 @@ class LiteLLMAdapter(BaseLLMAdapter):
         # 设置 API Base URL
         if self._api_base:
             kwargs["api_base"] = self._api_base
-            print(f"🔗 使用自定义 API Base: {self._api_base}")
+            logger.debug(f"🔗 使用自定义 API Base: {self._api_base}")
 
         # 设置超时
         kwargs["timeout"] = self.config.timeout
