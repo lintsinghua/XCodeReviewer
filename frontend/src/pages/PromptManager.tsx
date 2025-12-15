@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
@@ -28,7 +28,7 @@ import {
   Terminal,
   MessageSquare,
   Shield,
-  Zap,
+
   Code,
   AlertTriangle,
   Activity,
@@ -344,14 +344,23 @@ export default function PromptManager() {
 
       {/* Create/Edit Dialog */}
       <Dialog open={showCreateDialog || showEditDialog} onOpenChange={(open) => { if (!open) { setShowCreateDialog(false); setShowEditDialog(false); } }}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto cyber-card p-0 bg-[#0c0c12]">
-          <DialogHeader className="cyber-card-header">
-            <Terminal className="w-5 h-5 text-primary" />
-            <DialogTitle className="text-lg font-bold uppercase tracking-wider text-white">
-              {showEditDialog ? '编辑模板' : '新建模板'}
+        <DialogContent className="!w-[min(90vw,700px)] !max-w-none max-h-[85vh] flex flex-col p-0 gap-0 bg-[#0c0c12] border border-gray-800 rounded-lg">
+          <DialogHeader className="px-6 py-4 border-b border-gray-800 flex-shrink-0 bg-gray-900/50">
+            <DialogTitle className="flex items-center gap-3 font-mono text-white">
+              <div className="p-2 bg-primary/20 rounded border border-primary/30">
+                <Terminal className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <span className="text-base font-bold uppercase tracking-wider">
+                  {showEditDialog ? '编辑模板' : '新建模板'}
+                </span>
+                <p className="text-xs text-gray-500 font-normal mt-0.5">
+                  {showEditDialog ? 'Edit Template' : 'Create Template'}
+                </p>
+              </div>
             </DialogTitle>
           </DialogHeader>
-          <div className="p-6 space-y-4">
+          <div className="flex-1 overflow-y-auto p-6 space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label className="text-xs font-bold text-gray-500 uppercase">模板名称 *</Label>
@@ -381,10 +390,10 @@ export default function PromptManager() {
                 </TabsTrigger>
               </TabsList>
               <TabsContent value="zh" className="mt-4">
-                <Textarea value={form.content_zh} onChange={e => setForm({ ...form, content_zh: e.target.value })} placeholder="输入中文提示词内容..." rows={15} className="cyber-input font-mono text-sm text-emerald-400" />
+                <Textarea value={form.content_zh} onChange={e => setForm({ ...form, content_zh: e.target.value })} placeholder="输入中文提示词内容..." rows={12} className="cyber-input font-mono text-sm text-emerald-400" />
               </TabsContent>
               <TabsContent value="en" className="mt-4">
-                <Textarea value={form.content_en} onChange={e => setForm({ ...form, content_en: e.target.value })} placeholder="Enter English prompt content..." rows={15} className="cyber-input font-mono text-sm text-emerald-400" />
+                <Textarea value={form.content_en} onChange={e => setForm({ ...form, content_en: e.target.value })} placeholder="Enter English prompt content..." rows={12} className="cyber-input font-mono text-sm text-emerald-400" />
               </TabsContent>
             </Tabs>
             <div className="flex items-center gap-2">
@@ -392,7 +401,7 @@ export default function PromptManager() {
               <Label className="text-xs font-bold text-gray-400 uppercase">启用此模板</Label>
             </div>
           </div>
-          <DialogFooter className="p-4 border-t border-gray-800">
+          <DialogFooter className="flex-shrink-0 flex justify-end gap-3 px-6 py-4 bg-gray-900/50 border-t border-gray-800">
             <Button variant="outline" onClick={() => { setShowCreateDialog(false); setShowEditDialog(false); }} className="cyber-btn-outline">取消</Button>
             <Button onClick={showEditDialog ? handleUpdate : handleCreate} className="cyber-btn-primary">{showEditDialog ? '保存' : '创建'}</Button>
           </DialogFooter>
@@ -401,15 +410,21 @@ export default function PromptManager() {
 
       {/* Test Dialog */}
       <Dialog open={showTestDialog} onOpenChange={setShowTestDialog}>
-        <DialogContent className="!max-w-6xl w-[90vw] max-h-[90vh] !overflow-y-auto cyber-card p-0 bg-[#0c0c12] !fixed">
-          <DialogHeader className="cyber-card-header">
-            <Sparkles className="w-5 h-5 text-violet-400" />
-            <DialogTitle className="text-lg font-bold uppercase tracking-wider text-white">
-              测试提示词: {selectedTemplate?.name}
+        <DialogContent className="!w-[min(95vw,1200px)] !max-w-none max-h-[85vh] flex flex-col p-0 gap-0 bg-[#0c0c12] border border-gray-800 rounded-lg">
+          <DialogHeader className="px-6 py-4 border-b border-gray-800 flex-shrink-0 bg-gray-900/50">
+            <DialogTitle className="flex items-center gap-3 font-mono text-white">
+              <div className="p-2 bg-violet-500/20 rounded border border-violet-500/30">
+                <Sparkles className="w-5 h-5 text-violet-400" />
+              </div>
+              <div>
+                <span className="text-base font-bold uppercase tracking-wider">
+                  测试提示词: {selectedTemplate?.name}
+                </span>
+                <p className="text-xs text-gray-500 font-normal mt-0.5">使用示例代码测试提示词效果</p>
+              </div>
             </DialogTitle>
           </DialogHeader>
-          <DialogDescription className="px-6 pt-4 text-gray-400">使用示例代码测试提示词效果</DialogDescription>
-          <div className="p-6 grid grid-cols-2 gap-6">
+          <div className="flex-1 overflow-y-auto p-6 grid grid-cols-2 gap-6">
             {/* Left: Input */}
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
@@ -470,10 +485,9 @@ export default function PromptManager() {
                         <div className="p-3 bg-gray-900/50 border-b border-gray-800 flex items-center justify-between">
                           <span className="text-xs font-bold uppercase text-gray-500">质量评分</span>
                           <div className="flex items-center gap-2">
-                            <div className={`text-2xl font-bold ${
-                              testResult.result.quality_score >= 80 ? 'text-emerald-400' :
+                            <div className={`text-2xl font-bold ${testResult.result.quality_score >= 80 ? 'text-emerald-400' :
                               testResult.result.quality_score >= 60 ? 'text-amber-400' : 'text-rose-400'
-                            }`}>
+                              }`}>
                               {testResult.result.quality_score}
                             </div>
                             <span className="text-xs text-gray-500">/ 100</span>
@@ -493,11 +507,10 @@ export default function PromptManager() {
                             </div>
                             {testResult.result.issues.map((issue: any, idx: number) => (
                               <div key={idx} className="cyber-card p-0 overflow-hidden">
-                                <div className={`px-3 py-2 border-b border-gray-800 flex items-center justify-between ${
-                                  issue.severity === 'critical' ? 'bg-rose-500/20 text-rose-400' :
+                                <div className={`px-3 py-2 border-b border-gray-800 flex items-center justify-between ${issue.severity === 'critical' ? 'bg-rose-500/20 text-rose-400' :
                                   issue.severity === 'high' ? 'bg-orange-500/20 text-orange-400' :
-                                  issue.severity === 'medium' ? 'bg-amber-500/20 text-amber-400' : 'bg-sky-500/20 text-sky-400'
-                                }`}>
+                                    issue.severity === 'medium' ? 'bg-amber-500/20 text-amber-400' : 'bg-sky-500/20 text-sky-400'
+                                  }`}>
                                   <span className="font-bold text-xs uppercase">{issue.severity}</span>
                                   {issue.line && <span className="text-xs opacity-80">行 {issue.line}</span>}
                                 </div>
@@ -565,7 +578,7 @@ export default function PromptManager() {
               </div>
             </div>
           </div>
-          <DialogFooter className="p-4 border-t border-gray-800">
+          <DialogFooter className="flex-shrink-0 flex justify-end gap-3 px-6 py-4 bg-gray-900/50 border-t border-gray-800">
             <Button variant="outline" onClick={() => setShowTestDialog(false)} className="cyber-btn-outline">关闭</Button>
           </DialogFooter>
         </DialogContent>
@@ -573,15 +586,21 @@ export default function PromptManager() {
 
       {/* View Dialog */}
       <Dialog open={showViewDialog} onOpenChange={setShowViewDialog}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto cyber-card p-0 bg-[#0c0c12]">
-          <DialogHeader className="cyber-card-header">
-            <FileText className="w-5 h-5 text-primary" />
-            <DialogTitle className="text-lg font-bold uppercase tracking-wider text-white">
-              {viewTemplate?.name}
+        <DialogContent className="!w-[min(90vw,800px)] !max-w-none max-h-[85vh] flex flex-col p-0 gap-0 bg-[#0c0c12] border border-gray-800 rounded-lg">
+          <DialogHeader className="px-6 py-4 border-b border-gray-800 flex-shrink-0 bg-gray-900/50">
+            <DialogTitle className="flex items-center gap-3 font-mono text-white">
+              <div className="p-2 bg-primary/20 rounded border border-primary/30">
+                <FileText className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <span className="text-base font-bold uppercase tracking-wider">
+                  {viewTemplate?.name}
+                </span>
+                <p className="text-xs text-gray-500 font-normal mt-0.5">{viewTemplate?.description || 'View Template'}</p>
+              </div>
             </DialogTitle>
           </DialogHeader>
-          <DialogDescription className="px-6 pt-4 text-gray-400">{viewTemplate?.description}</DialogDescription>
-          <div className="p-6 space-y-4">
+          <div className="flex-1 overflow-y-auto p-6 space-y-4">
             <div className="flex flex-wrap gap-2 mb-4">
               {viewTemplate?.is_system && <Badge className="cyber-badge-info">系统模板</Badge>}
               {viewTemplate?.is_default && <Badge className="cyber-badge-success">默认</Badge>}
@@ -614,7 +633,7 @@ export default function PromptManager() {
               </TabsContent>
             </Tabs>
           </div>
-          <DialogFooter className="p-4 border-t border-gray-800 flex gap-2">
+          <DialogFooter className="flex-shrink-0 flex justify-end gap-3 px-6 py-4 bg-gray-900/50 border-t border-gray-800">
             <Button variant="outline" onClick={() => copyToClipboard(viewTemplate?.content_zh || viewTemplate?.content_en || '')} className="cyber-btn-outline">
               <Copy className="w-4 h-4 mr-2" />
               复制内容

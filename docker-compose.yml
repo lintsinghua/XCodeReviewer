@@ -65,9 +65,7 @@ services:
       context: ./frontend
     restart: unless-stopped
     ports:
-      - "3000:3000"
-    environment:
-      - VITE_API_BASE_URL=http://localhost:8000/api/v1
+      - "3000:80"  # Nginx 监听 80 端口
     depends_on:
       - backend
     networks:

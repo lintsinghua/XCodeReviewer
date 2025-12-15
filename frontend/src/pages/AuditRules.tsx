@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
 import {
@@ -435,12 +435,16 @@ export default function AuditRules() {
 
       {/* Create Rule Set Dialog */}
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-        <DialogContent className="max-w-lg cyber-card !fixed p-0 bg-[#0c0c12]">
-          <DialogHeader className="cyber-card-header">
-            <Terminal className="w-5 h-5 text-primary" />
-            <DialogTitle className="text-lg font-bold uppercase tracking-wider text-white">新建规则集</DialogTitle>
+        <DialogContent className="!w-[min(90vw,500px)] !max-w-none max-h-[85vh] flex flex-col p-0 gap-0 bg-[#0c0c12] border border-gray-800 rounded-lg">
+          <DialogHeader className="px-6 py-4 border-b border-gray-800 flex-shrink-0 bg-gray-900/50">
+            <DialogTitle className="flex items-center gap-3 font-mono text-white">
+              <div className="p-2 bg-primary/20 rounded border border-primary/30">
+                <Terminal className="w-5 h-5 text-primary" />
+              </div>
+              <span className="text-base font-bold uppercase tracking-wider">新建规则集</span>
+            </DialogTitle>
           </DialogHeader>
-          <div className="p-6 space-y-4">
+          <div className="flex-1 overflow-y-auto p-6 space-y-4">
             <div className="space-y-2">
               <Label className="text-xs font-bold text-gray-500 uppercase">名称 *</Label>
               <Input value={ruleSetForm.name} onChange={e => setRuleSetForm({ ...ruleSetForm, name: e.target.value })} placeholder="规则集名称" className="cyber-input" />
@@ -470,7 +474,7 @@ export default function AuditRules() {
               </div>
             </div>
           </div>
-          <DialogFooter className="p-4 border-t border-gray-800">
+          <DialogFooter className="flex-shrink-0 flex justify-end gap-3 px-6 py-4 bg-gray-900/50 border-t border-gray-800">
             <Button variant="outline" onClick={() => setShowCreateDialog(false)} className="cyber-btn-outline">取消</Button>
             <Button onClick={handleCreateRuleSet} className="cyber-btn-primary">创建</Button>
           </DialogFooter>
@@ -479,12 +483,16 @@ export default function AuditRules() {
 
       {/* Edit Rule Set Dialog */}
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent className="max-w-lg cyber-card !fixed p-0 bg-[#0c0c12]">
-          <DialogHeader className="cyber-card-header">
-            <Edit className="w-5 h-5 text-primary" />
-            <DialogTitle className="text-lg font-bold uppercase tracking-wider text-white">编辑规则集</DialogTitle>
+        <DialogContent className="!w-[min(90vw,500px)] !max-w-none max-h-[85vh] flex flex-col p-0 gap-0 bg-[#0c0c12] border border-gray-800 rounded-lg">
+          <DialogHeader className="px-6 py-4 border-b border-gray-800 flex-shrink-0 bg-gray-900/50">
+            <DialogTitle className="flex items-center gap-3 font-mono text-white">
+              <div className="p-2 bg-primary/20 rounded border border-primary/30">
+                <Edit className="w-5 h-5 text-primary" />
+              </div>
+              <span className="text-base font-bold uppercase tracking-wider">编辑规则集</span>
+            </DialogTitle>
           </DialogHeader>
-          <div className="p-6 space-y-4">
+          <div className="flex-1 overflow-y-auto p-6 space-y-4">
             <div className="space-y-2">
               <Label className="text-xs font-bold text-gray-500 uppercase">名称</Label>
               <Input value={ruleSetForm.name} onChange={e => setRuleSetForm({ ...ruleSetForm, name: e.target.value })} className="cyber-input" />
@@ -510,7 +518,7 @@ export default function AuditRules() {
               </div>
             </div>
           </div>
-          <DialogFooter className="p-4 border-t border-gray-800">
+          <DialogFooter className="flex-shrink-0 flex justify-end gap-3 px-6 py-4 bg-gray-900/50 border-t border-gray-800">
             <Button variant="outline" onClick={() => setShowEditDialog(false)} className="cyber-btn-outline">取消</Button>
             <Button onClick={handleUpdateRuleSet} className="cyber-btn-primary">保存</Button>
           </DialogFooter>
@@ -519,12 +527,16 @@ export default function AuditRules() {
 
       {/* Rule Edit Dialog */}
       <Dialog open={showRuleDialog} onOpenChange={setShowRuleDialog}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto cyber-card !fixed p-0 bg-[#0c0c12]">
-          <DialogHeader className="cyber-card-header">
-            <Code className="w-5 h-5 text-primary" />
-            <DialogTitle className="text-lg font-bold uppercase tracking-wider text-white">{selectedRule ? '编辑规则' : '添加规则'}</DialogTitle>
+        <DialogContent className="!w-[min(90vw,700px)] !max-w-none max-h-[85vh] flex flex-col p-0 gap-0 bg-[#0c0c12] border border-gray-800 rounded-lg">
+          <DialogHeader className="px-6 py-4 border-b border-gray-800 flex-shrink-0 bg-gray-900/50">
+            <DialogTitle className="flex items-center gap-3 font-mono text-white">
+              <div className="p-2 bg-primary/20 rounded border border-primary/30">
+                <Code className="w-5 h-5 text-primary" />
+              </div>
+              <span className="text-base font-bold uppercase tracking-wider">{selectedRule ? '编辑规则' : '添加规则'}</span>
+            </DialogTitle>
           </DialogHeader>
-          <div className="p-6 space-y-4">
+          <div className="flex-1 overflow-y-auto p-6 space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label className="text-xs font-bold text-gray-500 uppercase">规则代码 *</Label>
@@ -568,7 +580,7 @@ export default function AuditRules() {
               <Input value={ruleForm.reference_url} onChange={e => setRuleForm({ ...ruleForm, reference_url: e.target.value })} placeholder="如 https://owasp.org/..." className="cyber-input" />
             </div>
           </div>
-          <DialogFooter className="p-4 border-t border-gray-800">
+          <DialogFooter className="flex-shrink-0 flex justify-end gap-3 px-6 py-4 bg-gray-900/50 border-t border-gray-800">
             <Button variant="outline" onClick={() => setShowRuleDialog(false)} className="cyber-btn-outline">取消</Button>
             <Button onClick={selectedRule ? handleUpdateRule : handleAddRule} className="cyber-btn-primary">{selectedRule ? '保存' : '添加'}</Button>
           </DialogFooter>
@@ -577,16 +589,22 @@ export default function AuditRules() {
 
       {/* Import Dialog */}
       <Dialog open={showImportDialog} onOpenChange={setShowImportDialog}>
-        <DialogContent className="max-w-2xl cyber-card !fixed p-0 bg-[#0c0c12]">
-          <DialogHeader className="cyber-card-header">
-            <Upload className="w-5 h-5 text-primary" />
-            <DialogTitle className="text-lg font-bold uppercase tracking-wider text-white">导入规则集</DialogTitle>
+        <DialogContent className="!w-[min(90vw,700px)] !max-w-none max-h-[85vh] flex flex-col p-0 gap-0 bg-[#0c0c12] border border-gray-800 rounded-lg">
+          <DialogHeader className="px-6 py-4 border-b border-gray-800 flex-shrink-0 bg-gray-900/50">
+            <DialogTitle className="flex items-center gap-3 font-mono text-white">
+              <div className="p-2 bg-primary/20 rounded border border-primary/30">
+                <Upload className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <span className="text-base font-bold uppercase tracking-wider">导入规则集</span>
+                <p className="text-xs text-gray-500 font-normal mt-0.5">粘贴导出的 JSON 内容</p>
+              </div>
+            </DialogTitle>
           </DialogHeader>
-          <DialogDescription className="px-6 pt-4 text-gray-400">粘贴导出的 JSON 内容</DialogDescription>
-          <div className="p-6">
+          <div className="flex-1 overflow-y-auto p-6">
             <Textarea value={importJson} onChange={e => setImportJson(e.target.value)} placeholder='{"name": "...", "rules": [...]}' rows={15} className="cyber-input font-mono text-sm text-emerald-400" />
           </div>
-          <DialogFooter className="p-4 border-t border-gray-800">
+          <DialogFooter className="flex-shrink-0 flex justify-end gap-3 px-6 py-4 bg-gray-900/50 border-t border-gray-800">
             <Button variant="outline" onClick={() => setShowImportDialog(false)} className="cyber-btn-outline">取消</Button>
             <Button onClick={handleImport} className="cyber-btn-primary">导入</Button>
           </DialogFooter>

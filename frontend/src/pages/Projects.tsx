@@ -423,9 +423,9 @@ export default function Projects() {
             初始化项目
           </Button>
         </DialogTrigger>
-        <DialogContent className="max-w-2xl max-h-[85vh] !overflow-y-auto cyber-card border-gray-700 bg-[#0c0c12] p-0 !fixed">
+        <DialogContent className="!w-[min(90vw,700px)] !max-w-none max-h-[85vh] flex flex-col p-0 gap-0 bg-[#0c0c12] border border-gray-800 rounded-lg">
           {/* Terminal Header */}
-          <div className="flex items-center gap-2 px-4 py-3 bg-[#0a0a0f] border-b border-gray-800/50">
+          <div className="flex items-center gap-2 px-4 py-3 bg-[#0a0a0f] border-b border-gray-800/50 flex-shrink-0">
             <div className="flex items-center gap-1.5">
               <div className="w-3 h-3 rounded-full bg-red-500/80" />
               <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
@@ -436,14 +436,14 @@ export default function Projects() {
             </span>
           </div>
 
-          <DialogHeader className="px-6 pt-4">
+          <DialogHeader className="px-6 pt-4 flex-shrink-0">
             <DialogTitle className="font-mono text-lg uppercase tracking-wider flex items-center gap-2 text-white">
               <Terminal className="w-5 h-5 text-primary" />
               初始化新项目
             </DialogTitle>
           </DialogHeader>
 
-          <div className="p-6">
+          <div className="flex-1 overflow-y-auto p-6">
             <Tabs defaultValue="repository" className="w-full">
               <TabsList className="flex w-full bg-gray-900/50 border border-gray-800 p-1 h-auto gap-1 rounded">
                 <TabsTrigger
@@ -934,9 +934,9 @@ export default function Projects() {
 
       {/* Edit Dialog */}
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent className="max-w-2xl cyber-card border-gray-700 bg-[#0c0c12] p-0 !fixed">
+        <DialogContent className="!w-[min(90vw,700px)] !max-w-none max-h-[85vh] flex flex-col p-0 gap-0 bg-[#0c0c12] border border-gray-800 rounded-lg">
           {/* Terminal Header */}
-          <div className="flex items-center gap-2 px-4 py-3 bg-[#0a0a0f] border-b border-gray-800/50">
+          <div className="flex items-center gap-2 px-4 py-3 bg-[#0a0a0f] border-b border-gray-800/50 flex-shrink-0">
             <div className="flex items-center gap-1.5">
               <div className="w-3 h-3 rounded-full bg-red-500/80" />
               <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
@@ -947,7 +947,7 @@ export default function Projects() {
             </span>
           </div>
 
-          <DialogHeader className="px-6 pt-4">
+          <DialogHeader className="px-6 pt-4 flex-shrink-0">
             <DialogTitle className="font-mono text-lg uppercase tracking-wider flex items-center gap-2 text-white">
               <Edit className="w-5 h-5 text-primary" />
               编辑项目配置
@@ -959,7 +959,7 @@ export default function Projects() {
             </DialogTitle>
           </DialogHeader>
 
-          <div className="p-6 flex flex-col gap-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
+          <div className="flex-1 overflow-y-auto p-6 space-y-6">
             {/* 基本信息 */}
             <div className="space-y-4">
               <h3 className="font-mono font-bold uppercase text-sm text-gray-400 border-b border-gray-800 pb-2">基本信息</h3>
@@ -1172,7 +1172,7 @@ export default function Projects() {
             </div>
           </div>
 
-          <div className="flex justify-end space-x-3 p-4 border-t border-gray-800 bg-gray-900/30">
+          <div className="flex-shrink-0 flex justify-end gap-3 px-6 py-4 bg-gray-900/50 border-t border-gray-800">
             <Button variant="outline" onClick={() => setShowEditDialog(false)} className="cyber-btn-outline">
               取消
             </Button>

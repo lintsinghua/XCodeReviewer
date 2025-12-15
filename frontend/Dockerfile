@@ -1,3 +1,8 @@
+# =============================================
+# DeepAudit Frontend Docker 构建
+# =============================================
+# 使用 Nginx 提供静态文件和反向代理 (支持 SSE 流式传输)
+
 FROM node:20-alpine AS builder
 
 WORKDIR /app
@@ -20,38 +25,23 @@ RUN unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY all_proxy ALL_PROXY && \
 # 复制源代码
 COPY . .
 
-# 构建时使用占位符，运行时替换
-ENV VITE_API_BASE_URL=__API_BASE_URL__
+# 🔥 构建时使用相对路径 /api - Nginx 会处理代理
+ENV VITE_API_BASE_URL=/api/v1
 
 # 构建生产版本
 RUN pnpm build
 
-# 生产镜像
-FROM node:20-alpine
-
-WORKDIR /app
-
-# 清除代理设置
-ENV http_proxy=
-ENV https_proxy=
-ENV HTTP_PROXY=
-ENV HTTPS_PROXY=
-
-# 安装 serve（确保无代理）
-RUN unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY all_proxy ALL_PROXY && \
-    npm install -g serve
+# =============================================
+# 生产镜像 - 使用 Nginx (支持 SSE 反向代理)
+# =============================================
+FROM nginx:alpine
 
 # 复制构建产物
-COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/dist /usr/share/nginx/html
 
-# 复制启动脚本
-COPY docker-entrypoint.sh /docker-entrypoint.sh
-RUN chmod +x /docker-entrypoint.sh
+# 复制 Nginx 配置 (包含 SSE 反向代理配置)
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-EXPOSE 3000
+EXPOSE 80
 
-ENTRYPOINT ["/docker-entrypoint.sh"]
-CMD ["serve", "-s", "dist", "-l", "3000"]
-
-
-
+CMD ["nginx", "-g", "daemon off;"]
