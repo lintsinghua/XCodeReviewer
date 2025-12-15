@@ -1,6 +1,6 @@
-# DeepAudit - 开源的代码审计智能体平台
+# DeepAudit - 开源的代码审计智能体平台 🦸‍♂️
 
-> 让代码漏洞挖掘像呼吸一样简单，小白也能当黑客挖洞 🦸‍♂️
+> 让代码漏洞挖掘像呼吸一样简单，小白也能当黑客挖洞
 
 <div style="width: 100%; max-width: 600px; margin: 0 auto;">
   <img src="frontend/public/images/logo.png" alt="DeepAudit Logo" style="width: 100%; height: auto; display: block; margin: 0 auto;">
