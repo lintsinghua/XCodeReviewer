@@ -1,57 +1,21 @@
+# DeepAudit - 国内首批开源的代码审计智能体平台，小白也能当黑客挖洞 🦸‍♂️
+
+<div style="width: 100%; max-width: 600px; margin: 0 auto;">
+  <img src="frontend/public/images/logo.png" alt="DeepAudit Logo" style="width: 100%; height: auto; display: block; margin: 0 auto;">
+</div>
+
 <div align="center">
-  <a href="https://github.com/lintsinghua/DeepAudit">
-    <img src="frontend/public/images/logo.png" alt="DeepAudit Logo" width="100%">
-  </a>
 
-  <br/>
-  <br/>
+[![Version](https://img.shields.io/badge/version-3.0.0-blue.svg)](https://github.com/lintsinghua/DeepAudit/releases)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![React](https://img.shields.io/badge/React-18-61dafb.svg)](https://reactjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178c6.svg)](https://www.typescriptlang.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688.svg)](https://fastapi.tiangolo.com/)
+[![Python](https://img.shields.io/badge/Python-3.13+-3776ab.svg)](https://www.python.org/)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/lintsinghua/DeepAudit)
 
-  <!-- Slogan -->
-  <h1>🕵️‍♂️ DeepAudit: The AI-Powered Security Auditor</h1>
-  
-  <p align="center">
-    <strong>基于 Multi-Agent 协作的下一代代码安全审计平台</strong>
-  </p>
-  
-  <p align="center">
-    <em>"像黑客一样思考，像专家一样审计"</em>
-  </p>
-  
-  <p align="center">
-    🚀 <strong>Multi-Agent 编排</strong> · 🧠 <strong>RAG 知识增强</strong> · 🔒 <strong>沙箱 PoC 验证</strong> · 🛡️ <strong>0 误报目标</strong>
-  </p>
-
-  <br/>
-
-  <!-- Badges -->
-  <p align="center">
-    <a href="https://github.com/lintsinghua/DeepAudit/stargazers"><img src="https://img.shields.io/github/stars/lintsinghua/DeepAudit?style=for-the-badge&logo=starship&color=fbbf24" alt="Stars"/></a>
-    <a href="https://github.com/lintsinghua/DeepAudit/network/members"><img src="https://img.shields.io/github/forks/lintsinghua/DeepAudit?style=for-the-badge&logo=git&color=3b82f6" alt="Forks"/></a>
-    <a href="https://github.com/lintsinghua/DeepAudit/issues"><img src="https://img.shields.io/github/issues/lintsinghua/DeepAudit?style=for-the-badge&logo=github&color=ef4444" alt="Issues"/></a>
-    <a href="docs/DEPLOYMENT.md"><img src="https://img.shields.io/badge/Deployment-Docker-2496ED?style=for-the-badge&logo=docker" alt="Docker"/></a>
-    <a href="LICENSE"><img src="https://img.shields.io/github/license/lintsinghua/DeepAudit?style=for-the-badge&color=22c55e" alt="License"/></a>
-  </p>
-
-  <!-- Tech Stack -->
-  <p align="center">
-    <a href="https://skillicons.dev">
-      <img src="https://skillicons.dev/icons?i=react,typescript,vite,tailwind,python,fastapi,postgres,docker,redis&theme=dark" alt="Tech Stack" />
-    </a>
-  </p>
-
-  <br/>
-
-  <!-- Quick Links -->
-  <p align="center">
-    <a href="#-快速开始"><strong>🚀 快速开始</strong></a> &nbsp;&nbsp;|&nbsp;&nbsp;
-    <a href="docs/AGENT_AUDIT.md"><strong>🤖 Agent 原理</strong></a> &nbsp;&nbsp;|&nbsp;&nbsp;
-    <a href="docs/DEPLOYMENT.md"><strong>📖 部署文档</strong></a> &nbsp;&nbsp;|&nbsp;&nbsp;
-    <a href="https://github.com/lintsinghua/DeepAudit/issues"><strong>💬 交流反馈</strong></a>
-  </p>
-
-  <br/>
-
-  <img src="frontend/public/DeepAudit.gif" alt="DeepAudit Demo" width="100%" style="border-radius: 10px; box-shadow: 0 0 20px rgba(0,0,0,0.5);">
+[![Stars](https://img.shields.io/github/stars/lintsinghua/DeepAudit?style=social)](https://github.com/lintsinghua/DeepAudit/stargazers)
+[![Forks](https://img.shields.io/github/forks/lintsinghua/DeepAudit?style=social)](https://github.com/lintsinghua/DeepAudit/network/members)
 
 </div>
 
