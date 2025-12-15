@@ -535,10 +535,44 @@ Final Answer: {{"findings": [...], "summary": "..."}}"""
                     # 🔥 发射 LLM 动作决策事件
                     await self.emit_llm_action(step.action, step.action_input or {})
                     
+                    # 🔥 循环检测：追踪工具调用失败历史
+                    tool_call_key = f"{step.action}:{json.dumps(step.action_input or {}, sort_keys=True)}"
+                    if not hasattr(self, '_failed_tool_calls'):
+                        self._failed_tool_calls = {}
+                    
                     observation = await self.execute_tool(
                         step.action,
                         step.action_input or {}
                     )
+                    
+                    # 🔥 检测工具调用失败并追踪
+                    is_tool_error = (
+                        "失败" in observation or 
+                        "错误" in observation or 
+                        "不存在" in observation or
+                        "文件过大" in observation or
+                        "Error" in observation
+                    )
+                    
+                    if is_tool_error:
+                        self._failed_tool_calls[tool_call_key] = self._failed_tool_calls.get(tool_call_key, 0) + 1
+                        fail_count = self._failed_tool_calls[tool_call_key]
+                        
+                        # 🔥 如果同一调用连续失败3次，添加强制跳过提示
+                        if fail_count >= 3:
+                            logger.warning(f"[{self.name}] Tool call failed {fail_count} times: {tool_call_key}")
+                            observation += f"\n\n⚠️ **系统提示**: 此工具调用已连续失败 {fail_count} 次。请：\n"
+                            observation += "1. 尝试使用不同的参数（如指定较小的行范围）\n"
+                            observation += "2. 使用 search_code 工具定位关键代码片段\n"
+                            observation += "3. 跳过此文件，继续分析其他文件\n"
+                            observation += "4. 如果已有足够发现，直接输出 Final Answer"
+                            
+                            # 重置计数器但保留记录
+                            self._failed_tool_calls[tool_call_key] = 0
+                    else:
+                        # 成功调用，重置失败计数
+                        if tool_call_key in self._failed_tool_calls:
+                            del self._failed_tool_calls[tool_call_key]
                     
                     # 🔥 工具执行后检查取消状态
                     if self.is_cancelled:

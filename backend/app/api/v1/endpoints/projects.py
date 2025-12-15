@@ -584,8 +584,8 @@ async def upload_project_zip(
         
         # 检查文件大小
         file_size = os.path.getsize(temp_file_path)
-        if file_size > 100 * 1024 * 1024:  # 100MB limit
-            raise HTTPException(status_code=400, detail="文件大小不能超过100MB")
+        if file_size > 500 * 1024 * 1024:  # 500MB limit
+            raise HTTPException(status_code=400, detail="文件大小不能超过500MB")
         
         # 保存到持久化存储
         meta = await save_project_zip(id, temp_file_path, file.filename)

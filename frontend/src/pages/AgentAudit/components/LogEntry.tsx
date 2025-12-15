@@ -217,7 +217,7 @@ export const LogEntry = memo(function LogEntry({ item, isExpanded, onToggle }: L
           {isThinking && item.content && (
             <div className="mt-2.5 relative">
               <div className="absolute left-0 top-0 bottom-0 w-px bg-gradient-to-b from-purple-500/50 via-purple-500/20 to-transparent" />
-              <div className="pl-3 text-sm text-purple-200/90 leading-relaxed whitespace-pre-wrap break-words max-h-48 overflow-y-auto custom-scrollbar">
+              <div className="pl-3 text-sm text-purple-200/90 leading-relaxed whitespace-pre-wrap break-words">
                 {item.content}
               </div>
             </div>

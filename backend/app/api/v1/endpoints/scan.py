@@ -255,9 +255,9 @@ async def scan_zip(
     
     # Check file size
     file_size = os.path.getsize(file_path)
-    if file_size > 100 * 1024 * 1024:  # 100MB limit
+    if file_size > 500 * 1024 * 1024:  # 500MB limit
         os.remove(file_path)
-        raise HTTPException(status_code=400, detail="文件大小不能超过100MB")
+        raise HTTPException(status_code=400, detail="文件大小不能超过500MB")
     
     # 保存ZIP文件到持久化存储
     await save_project_zip(project_id, file_path, file.filename)

@@ -125,31 +125,64 @@ class FileReadTool(AgentTool):
             
             # 检查文件大小
             file_size = os.path.getsize(full_path)
-            if file_size > 1024 * 1024:  # 1MB
+            is_large_file = file_size > 1024 * 1024  # 1MB
+            
+            # 🔥 修复：如果指定了行范围，允许读取大文件的部分内容
+            if is_large_file and start_line is None and end_line is None:
                 return ToolResult(
                     success=False,
-                    error=f"文件过大 ({file_size / 1024:.1f}KB)，请指定行范围",
+                    error=f"文件过大 ({file_size / 1024:.1f}KB)，请指定 start_line 和 end_line 读取部分内容",
                 )
             
-            # 读取文件
-            with open(full_path, 'r', encoding='utf-8', errors='ignore') as f:
-                lines = f.readlines()
-            
-            total_lines = len(lines)
-            
-            # 处理行范围
-            if start_line is not None:
-                start_idx = max(0, start_line - 1)
+            # 🔥 对于大文件，使用流式读取指定行范围
+            if is_large_file and (start_line is not None or end_line is not None):
+                # 流式读取，避免一次性加载整个文件
+                selected_lines = []
+                total_lines = 0
+                
+                # 计算实际的起始和结束行
+                start_idx = max(0, (start_line or 1) - 1)
+                end_idx = end_line if end_line else start_idx + max_lines
+                
+                with open(full_path, 'r', encoding='utf-8', errors='ignore') as f:
+                    for i, line in enumerate(f):
+                        total_lines = i + 1
+                        if i >= start_idx and i < end_idx:
+                            selected_lines.append(line)
+                        elif i >= end_idx:
+                            # 继续计数以获取总行数，但限制读取量
+                            if i < end_idx + 1000:  # 最多再读1000行来估算总行数
+                                continue
+                            else:
+                                # 估算剩余行数
+                                remaining_bytes = file_size - f.tell()
+                                avg_line_size = f.tell() / (i + 1)
+                                estimated_remaining_lines = int(remaining_bytes / avg_line_size) if avg_line_size > 0 else 0
+                                total_lines = i + 1 + estimated_remaining_lines
+                                break
+                
+                # 更新实际的结束索引
+                end_idx = min(end_idx, start_idx + len(selected_lines))
             else:
-                start_idx = 0
-            
-            if end_line is not None:
-                end_idx = min(total_lines, end_line)
-            else:
-                end_idx = min(total_lines, start_idx + max_lines)
-            
-            # 截取指定行
-            selected_lines = lines[start_idx:end_idx]
+                # 正常读取小文件
+                with open(full_path, 'r', encoding='utf-8', errors='ignore') as f:
+                    lines = f.readlines()
+                
+                total_lines = len(lines)
+                
+                # 处理行范围
+                if start_line is not None:
+                    start_idx = max(0, start_line - 1)
+                else:
+                    start_idx = 0
+                
+                if end_line is not None:
+                    end_idx = min(total_lines, end_line)
+                else:
+                    end_idx = min(total_lines, start_idx + max_lines)
+                
+                # 截取指定行
+                selected_lines = lines[start_idx:end_idx]
             
             # 添加行号
             numbered_lines = []

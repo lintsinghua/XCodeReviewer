@@ -636,7 +636,7 @@ export default function Projects() {
                       <Upload className="w-10 h-10 text-gray-500 mx-auto mb-3 group-hover:text-primary transition-colors" />
                       <h3 className="text-base font-bold text-gray-300 uppercase mb-1">上传 ZIP 归档</h3>
                       <p className="text-[10px] font-mono text-gray-500 mb-3">
-                        最大: 100MB // 格式: .ZIP
+                        最大: 500MB // 格式: .ZIP
                       </p>
                       <input
                         ref={fileInputRef}

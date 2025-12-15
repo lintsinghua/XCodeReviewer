@@ -65,10 +65,10 @@ export function validateZipFile(file: File): { valid: boolean; error?: string } 
     return { valid: false, error: '请上传ZIP格式的文件' };
   }
 
-  // 检查文件大小 (限制为100MB)
-  const maxSize = 100 * 1024 * 1024;
+  // 检查文件大小 (限制为500MB)
+  const maxSize = 500 * 1024 * 1024;
   if (file.size > maxSize) {
-    return { valid: false, error: '文件大小不能超过100MB' };
+    return { valid: false, error: '文件大小不能超过500MB' };
   }
 
   return { valid: true };
