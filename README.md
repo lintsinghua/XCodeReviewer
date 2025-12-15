@@ -1,4 +1,5 @@
-# DeepAudit - 国内首批开源的代码审计智能体平台，小白也能当黑客挖洞 🦸‍♂️
+# DeepAudit
+# 国内首批开源的代码审计智能体平台，小白也能当黑客挖洞 🦸‍♂️
 
 <div style="width: 100%; max-width: 600px; margin: 0 auto;">
   <img src="frontend/public/images/logo.png" alt="DeepAudit Logo" style="width: 100%; height: auto; display: block; margin: 0 auto;">
