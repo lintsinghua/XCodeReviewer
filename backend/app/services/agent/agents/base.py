@@ -731,8 +731,9 @@ class BaseAgent(ABC):
     
     async def emit_tool_result(self, tool_name: str, result: str, duration_ms: int):
         """发射工具结果事件"""
-        # 🔥 将结果转换为字典格式，因为 AgentEventData.tool_output 期望 Dict 类型
-        tool_output_dict = {"result": result[:2000] if result else ""}  # 截断长输出
+        # 🔥 修复：确保 result 不为 None，避免显示 "None" 字符串
+        safe_result = result if result and result != "None" else ""
+        tool_output_dict = {"result": safe_result[:2000] if safe_result else ""}  # 截断长输出
         await self.emit_event(
             "tool_result",
             f"[{self.name}] 工具 {tool_name} 完成 ({duration_ms}ms)",
@@ -1033,7 +1034,9 @@ class BaseAgent(ABC):
             result = await tool.execute(**tool_input)
             
             duration_ms = int((time.time() - start) * 1000)
-            await self.emit_tool_result(tool_name, str(result.data)[:200], duration_ms)
+            # 🔥 修复：确保传递有意义的结果字符串，避免 "None"
+            result_preview = str(result.data)[:200] if result.data is not None else (result.error[:200] if result.error else "")
+            await self.emit_tool_result(tool_name, result_preview, duration_ms)
             
             if result.success:
                 output = str(result.data)

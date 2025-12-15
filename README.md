@@ -205,6 +205,7 @@ cd docker/sandbox && ./build.sh
 | [Agent 审计](docs/AGENT_AUDIT.md) | Multi-Agent 审计模块详解 |
 | [配置说明](docs/CONFIGURATION.md) | 后端配置、审计规则、提示词模板 |
 | [LLM 平台支持](docs/LLM_PROVIDERS.md) | 各家 LLM 的配置方法和 API Key 获取 |
+| [安全工具设置](docs/SECURITY_TOOLS_SETUP.md) | 安全扫描工具本地安装指南 |
 | [常见问题](docs/FAQ.md) | 遇到问题先看这里 |
 | [更新日志](CHANGELOG.md) | 版本更新记录 |
 | [贡献指南](CONTRIBUTING.md) | 想参与开发？看这个 |

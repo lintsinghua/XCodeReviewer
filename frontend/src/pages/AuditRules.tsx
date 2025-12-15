@@ -435,7 +435,7 @@ export default function AuditRules() {
 
       {/* Create Rule Set Dialog */}
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-        <DialogContent className="max-w-lg cyber-card p-0 bg-[#0c0c12]">
+        <DialogContent className="max-w-lg cyber-card !fixed p-0 bg-[#0c0c12]">
           <DialogHeader className="cyber-card-header">
             <Terminal className="w-5 h-5 text-primary" />
             <DialogTitle className="text-lg font-bold uppercase tracking-wider text-white">新建规则集</DialogTitle>
@@ -479,7 +479,7 @@ export default function AuditRules() {
 
       {/* Edit Rule Set Dialog */}
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent className="max-w-lg cyber-card p-0 bg-[#0c0c12]">
+        <DialogContent className="max-w-lg cyber-card !fixed p-0 bg-[#0c0c12]">
           <DialogHeader className="cyber-card-header">
             <Edit className="w-5 h-5 text-primary" />
             <DialogTitle className="text-lg font-bold uppercase tracking-wider text-white">编辑规则集</DialogTitle>
@@ -519,7 +519,7 @@ export default function AuditRules() {
 
       {/* Rule Edit Dialog */}
       <Dialog open={showRuleDialog} onOpenChange={setShowRuleDialog}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto cyber-card p-0 bg-[#0c0c12]">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto cyber-card !fixed p-0 bg-[#0c0c12]">
           <DialogHeader className="cyber-card-header">
             <Code className="w-5 h-5 text-primary" />
             <DialogTitle className="text-lg font-bold uppercase tracking-wider text-white">{selectedRule ? '编辑规则' : '添加规则'}</DialogTitle>
@@ -577,7 +577,7 @@ export default function AuditRules() {
 
       {/* Import Dialog */}
       <Dialog open={showImportDialog} onOpenChange={setShowImportDialog}>
-        <DialogContent className="max-w-2xl cyber-card p-0 bg-[#0c0c12]">
+        <DialogContent className="max-w-2xl cyber-card !fixed p-0 bg-[#0c0c12]">
           <DialogHeader className="cyber-card-header">
             <Upload className="w-5 h-5 text-primary" />
             <DialogTitle className="text-lg font-bold uppercase tracking-wider text-white">导入规则集</DialogTitle>

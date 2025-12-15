@@ -113,7 +113,12 @@ Semgrep 是业界领先的静态分析工具，支持 30+ 种编程语言。
         # 确保 Docker 可用
         await self.sandbox_manager.initialize()
         if not self.sandbox_manager.is_available:
-            return ToolResult(success=False, error=f"Semgrep unavailable: {self.sandbox_manager.get_diagnosis()}")
+            error_msg = f"Semgrep unavailable: {self.sandbox_manager.get_diagnosis()}"
+            return ToolResult(
+                success=False,
+                data=error_msg,  # 🔥 修复：设置 data 字段避免 None
+                error=error_msg
+            )
 
         # 构建命令 (相对于 /workspace)
         # 注意: target_path 是相对于 project_root 的
@@ -144,25 +149,46 @@ Semgrep 是业界领先的静态分析工具，支持 30+ 种编程语言。
                 timeout=300,
                 network_mode="bridge"  # 🔥 Semgrep 需要网络来下载规则
             )
-            
+
+            # 🔥 添加调试日志
+            logger.info(f"[Semgrep] 执行结果: success={result['success']}, exit_code={result['exit_code']}, "
+                       f"stdout_len={len(result.get('stdout', ''))}, stderr_len={len(result.get('stderr', ''))}")
+            if result.get('error'):
+                logger.warning(f"[Semgrep] 错误信息: {result['error']}")
+            if result.get('stderr'):
+                logger.warning(f"[Semgrep] stderr: {result['stderr'][:500]}")
+
             if not result["success"] and result["exit_code"] != 1:  # 1 means findings were found
+                error_msg = result['stderr'][:500] or result['error'] or "未知错误"
+                logger.error(f"[Semgrep] 执行失败: {error_msg}")
                 return ToolResult(
                     success=False,
-                    error=f"Semgrep 执行失败: {result['stderr'][:500] or result['error']}",
+                    data=f"Semgrep 执行失败: {error_msg}",  # 🔥 修复：设置 data 字段避免 None
+                    error=f"Semgrep 执行失败: {error_msg}",
                 )
-            
+
             # 解析结果
+            stdout = result.get('stdout', '')
             try:
                 # 尝试从 stdout 查找 JSON
-                json_start = result['stdout'].find('{')
+                json_start = stdout.find('{')
+                logger.debug(f"[Semgrep] JSON 起始位置: {json_start}, stdout 前200字符: {stdout[:200]}")
+
                 if json_start >= 0:
-                    results = json.loads(result['stdout'][json_start:])
+                    json_str = stdout[json_start:]
+                    results = json.loads(json_str)
+                    logger.info(f"[Semgrep] JSON 解析成功, results 数量: {len(results.get('results', []))}")
                 else:
+                    logger.warning(f"[Semgrep] 未找到 JSON 起始符 '{{', stdout: {stdout[:500]}")
                     results = {}
-            except json.JSONDecodeError:
+            except json.JSONDecodeError as e:
+                error_msg = f"无法解析 Semgrep 输出 (位置 {e.pos}): {e.msg}"
+                logger.error(f"[Semgrep] JSON 解析失败: {error_msg}")
+                logger.error(f"[Semgrep] 原始输出前500字符: {stdout[:500]}")
                 return ToolResult(
                     success=False,
-                    error=f"无法解析 Semgrep 输出: {result['stdout'][:200]}",
+                    data=error_msg,  # 🔥 修复：设置 data 字段避免 None
+                    error=error_msg,
                 )
             
             findings = results.get("results", [])[:max_results]
@@ -204,9 +230,11 @@ Semgrep 是业界领先的静态分析工具，支持 30+ 种编程语言。
             )
             
         except Exception as e:
+            error_msg = f"Semgrep 执行错误: {str(e)}"
             return ToolResult(
-                success=False, 
-                error=f"Semgrep 执行错误: {str(e)}"
+                success=False,
+                data=error_msg,  # 🔥 修复：设置 data 字段避免 None
+                error=error_msg
             )
 
 
@@ -276,7 +304,8 @@ Bandit 是 Python 专用的安全分析工具，由 OpenStack 安全团队开发
         # 确保 Docker 可用
         await self.sandbox_manager.initialize()
         if not self.sandbox_manager.is_available:
-            return ToolResult(success=False, error=f"Bandit unavailable: {self.sandbox_manager.get_diagnosis()}")
+            error_msg = f"Bandit unavailable: {self.sandbox_manager.get_diagnosis()}"
+            return ToolResult(success=False, data=error_msg, error=error_msg)
 
         safe_target_path = target_path if not target_path.startswith("/") else target_path.lstrip("/")
 
@@ -308,7 +337,8 @@ Bandit 是 Python 专用的安全分析工具，由 OpenStack 安全团队开发
                 else:
                     results = {}
             except json.JSONDecodeError:
-                return ToolResult(success=False, error=f"无法解析 Bandit 输出: {result['stdout'][:200]}")
+                error_msg = f"无法解析 Bandit 输出: {result['stdout'][:200]}"
+                return ToolResult(success=False, data=error_msg, error=error_msg)
             
             findings = results.get("results", [])[:max_results]
             
@@ -340,7 +370,8 @@ Bandit 是 Python 专用的安全分析工具，由 OpenStack 安全团队开发
             )
             
         except Exception as e:
-            return ToolResult(success=False, error=f"Bandit 执行错误: {str(e)}")
+            error_msg = f"Bandit 执行错误: {str(e)}"
+            return ToolResult(success=False, data=error_msg, error=error_msg)
 
 
 # ============ Gitleaks 工具 ============
@@ -409,7 +440,8 @@ Gitleaks 是专业的密钥检测工具，支持 150+ 种密钥类型。
         # 确保 Docker 可用
         await self.sandbox_manager.initialize()
         if not self.sandbox_manager.is_available:
-            return ToolResult(success=False, error=f"Gitleaks unavailable: {self.sandbox_manager.get_diagnosis()}")
+            error_msg = f"Gitleaks unavailable: {self.sandbox_manager.get_diagnosis()}"
+            return ToolResult(success=False, data=error_msg, error=error_msg)
 
         safe_target_path = target_path if not target_path.startswith("/") else target_path.lstrip("/")
 
@@ -438,7 +470,7 @@ Gitleaks 是专业的密钥检测工具，支持 150+ 种密钥类型。
             if result['exit_code'] != 0:
                 # 🔥 修复：错误信息可能在 error 或 stderr 中
                 error_msg = result.get('error') or result.get('stderr', '')[:300] or '未知错误'
-                return ToolResult(success=False, error=f"Gitleaks 执行失败: {error_msg}")
+                return ToolResult(success=False, data=f"Gitleaks 执行失败: {error_msg}", error=f"Gitleaks 执行失败: {error_msg}")
 
             stdout = result['stdout']
             
@@ -497,7 +529,8 @@ Gitleaks 是专业的密钥检测工具，支持 150+ 种密钥类型。
             )
             
         except Exception as e:
-            return ToolResult(success=False, error=f"Gitleaks 执行错误: {str(e)}")
+            error_msg = f"Gitleaks 执行错误: {str(e)}"
+            return ToolResult(success=False, data=error_msg, error=error_msg)
 
 
 # ============ npm audit 工具 ============
@@ -551,7 +584,8 @@ class NpmAuditTool(AgentTool):
         # 确保 Docker 可用
         await self.sandbox_manager.initialize()
         if not self.sandbox_manager.is_available:
-            return ToolResult(success=False, error=f"npm audit unavailable: {self.sandbox_manager.get_diagnosis()}")
+            error_msg = f"npm audit unavailable: {self.sandbox_manager.get_diagnosis()}"
+            return ToolResult(success=False, data=error_msg, error=error_msg)
 
         # 这里的 target_path 是相对于 project_root 的
         # 防止空路径
@@ -564,9 +598,11 @@ class NpmAuditTool(AgentTool):
         # 宿主机预检查
         package_json = os.path.join(full_path, "package.json")
         if not os.path.exists(package_json):
+            error_msg = f"未找到 package.json: {target_path}"
             return ToolResult(
                 success=False,
-                error=f"未找到 package.json: {target_path}",
+                data=error_msg,
+                error=error_msg,
             )
         
         cmd = ["npm", "audit", "--json"]
@@ -643,7 +679,8 @@ class NpmAuditTool(AgentTool):
             )
             
         except Exception as e:
-            return ToolResult(success=False, error=f"npm audit 错误: {str(e)}")
+            error_msg = f"npm audit 错误: {str(e)}"
+            return ToolResult(success=False, data=error_msg, error=error_msg)
 
 
 # ============ Safety 工具 (Python 依赖) ============
@@ -694,11 +731,13 @@ class SafetyTool(AgentTool):
         # 确保 Docker 可用
         await self.sandbox_manager.initialize()
         if not self.sandbox_manager.is_available:
-            return ToolResult(success=False, error=f"Safety unavailable: {self.sandbox_manager.get_diagnosis()}")
+            error_msg = f"Safety unavailable: {self.sandbox_manager.get_diagnosis()}"
+            return ToolResult(success=False, data=error_msg, error=error_msg)
 
         full_path = os.path.join(self.project_root, requirements_file)
         if not os.path.exists(full_path):
-            return ToolResult(success=False, error=f"未找到依赖文件: {requirements_file}")
+            error_msg = f"未找到依赖文件: {requirements_file}"
+            return ToolResult(success=False, data=error_msg, error=error_msg)
             
         # commands
         # requirements_file relative path inside container is just requirements_file (assuming it's relative to root)
@@ -766,7 +805,8 @@ class SafetyTool(AgentTool):
             )
             
         except Exception as e:
-            return ToolResult(success=False, error=f"Safety 执行错误: {str(e)}")
+            error_msg = f"Safety 执行错误: {str(e)}"
+            return ToolResult(success=False, data=error_msg, error=error_msg)
 
 
 # ============ TruffleHog 工具 ============
@@ -823,7 +863,8 @@ TruffleHog 可以扫描代码和 Git 历史，并验证密钥是否有效。
         # 确保 Docker 可用
         await self.sandbox_manager.initialize()
         if not self.sandbox_manager.is_available:
-            return ToolResult(success=False, error=f"TruffleHog unavailable: {self.sandbox_manager.get_diagnosis()}")
+            error_msg = f"TruffleHog unavailable: {self.sandbox_manager.get_diagnosis()}"
+            return ToolResult(success=False, data=error_msg, error=error_msg)
 
         safe_target_path = target_path if not target_path.startswith("/") else target_path.lstrip("/")
 
@@ -880,7 +921,8 @@ TruffleHog 可以扫描代码和 Git 历史，并验证密钥是否有效。
             )
             
         except Exception as e:
-            return ToolResult(success=False, error=f"TruffleHog 执行错误: {str(e)}")
+            error_msg = f"TruffleHog 执行错误: {str(e)}"
+            return ToolResult(success=False, data=error_msg, error=error_msg)
 
 
 # ============ OSV-Scanner 工具 ============
@@ -941,7 +983,8 @@ Google 开源的漏洞扫描工具，使用 OSV (Open Source Vulnerabilities) �
         # 确保 Docker 可用
         await self.sandbox_manager.initialize()
         if not self.sandbox_manager.is_available:
-            return ToolResult(success=False, error=f"OSV-Scanner unavailable: {self.sandbox_manager.get_diagnosis()}")
+            error_msg = f"OSV-Scanner unavailable: {self.sandbox_manager.get_diagnosis()}"
+            return ToolResult(success=False, data=error_msg, error=error_msg)
 
         safe_target_path = target_path if not target_path.startswith("/") else target_path.lstrip("/")
 
@@ -995,7 +1038,8 @@ Google 开源的漏洞扫描工具，使用 OSV (Open Source Vulnerabilities) �
             )
             
         except Exception as e:
-            return ToolResult(success=False, error=f"OSV-Scanner 执行错误: {str(e)}")
+            error_msg = f"OSV-Scanner 执行错误: {str(e)}"
+            return ToolResult(success=False, data=error_msg, error=error_msg)
 
 
 # ============ 导出所有工具 ============

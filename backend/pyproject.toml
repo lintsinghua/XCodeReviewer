@@ -2,7 +2,7 @@
 name = "deepaudit-backend"
 version = "3.0.0"
 description = "DeepAudit Backend API - AI-Powered Code Security Audit Platform"
-requires-python = ">=3.11,<3.13"
+requires-python = ">=3.11"
 readme = "README.md"
 license = { text = "MIT" }
 authors = [
@@ -108,9 +108,11 @@ docs = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/your-org/deepaudit"
-Documentation = "https://docs.deepaudit.io"
-Repository = "https://github.com/your-org/deepaudit"
+Homepage = "https://github.com/lintsinghua/DeepAudit"
+Documentation = "https://github.com/lintsinghua/DeepAudit/tree/main/docs"
+Repository = "https://github.com/lintsinghua/DeepAudit"
+Issues = "https://github.com/lintsinghua/DeepAudit/issues"
+Changelog = "https://github.com/lintsinghua/DeepAudit/blob/main/CHANGELOG.md"
 
 [build-system]
 requires = ["hatchling"]

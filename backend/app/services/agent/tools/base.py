@@ -91,9 +91,11 @@ class AgentTool(ABC):
             
         except Exception as e:
             logger.error(f"Tool '{self.name}' error: {e}", exc_info=True)
+            error_msg = str(e)
             result = ToolResult(
                 success=False,
-                error=str(e),
+                data=f"工具执行异常: {error_msg}",  # 🔥 修复：设置 data 字段避免 None
+                error=error_msg,
             )
         
         duration_ms = int((time.time() - start_time) * 1000)

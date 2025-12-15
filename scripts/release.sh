@@ -105,11 +105,34 @@ cd frontend
 npm version "$NEW_VERSION" --no-git-tag-version
 cd ..
 
+# 更新后端 pyproject.toml
+print_info "更新后端 pyproject.toml..."
+if [ -f "backend/pyproject.toml" ]; then
+    sed -i.bak "s/^version = \".*\"/version = \"$NEW_VERSION\"/" backend/pyproject.toml
+    rm -f backend/pyproject.toml.bak
+fi
+
+# 更新 README.md 中的版本徽章
+print_info "更新 README.md 版本徽章..."
+if [ -f "README.md" ]; then
+    sed -i.bak "s/version-[0-9]*\.[0-9]*\.[0-9]*/version-$NEW_VERSION/" README.md
+    rm -f README.md.bak
+fi
+
+# 更新 docker-compose.yml 中的版本注释
+print_info "更新 docker-compose.yml 版本注释..."
+if [ -f "docker-compose.yml" ]; then
+    sed -i.bak "s/DeepAudit v[0-9]*\.[0-9]*\.[0-9]*/DeepAudit v$NEW_VERSION/" docker-compose.yml
+    rm -f docker-compose.yml.bak
+fi
+
 # 提交更改
 print_info "提交版本更改..."
 git add frontend/package.json frontend/package-lock.json 2>/dev/null || true
 git add frontend/pnpm-lock.yaml 2>/dev/null || true
+git add backend/pyproject.toml 2>/dev/null || true
 git add README.md 2>/dev/null || true
+git add docker-compose.yml 2>/dev/null || true
 git commit -m "chore: bump version to v$NEW_VERSION" || true
 
 # 创建 tag
