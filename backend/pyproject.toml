@@ -21,6 +21,7 @@ dependencies = [
     "asyncpg>=0.29.0",
     "alembic>=1.13.0",
     "greenlet>=3.0.0",
+    "redis>=5.0.0",
 
     # ============ Data Validation ============
     "pydantic>=2.0.0",

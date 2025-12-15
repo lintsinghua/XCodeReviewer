@@ -78,8 +78,8 @@ Agent 审计模块是 DeepAudit v3.0.0 的核心功能，基于 **Multi-Agent �
 cp backend/env.example backend/.env
 # 编辑 .env，设置 AGENT_ENABLED=true
 
-# 启动包含 Milvus 的完整服务
-docker compose --profile agent up -d
+# 启动完整服务
+docker compose up -d
 ```
 
 ### 2. 构建沙箱镜像
@@ -136,7 +136,7 @@ cd docker/sandbox
 ### 功能特点
 
 - **代码分块**: 基于 Tree-sitter AST 的智能分块
-- **向量存储**: Milvus 或 ChromaDB 持久化
+- **向量存储**: ChromaDB 持久化
 - **多语言支持**: Python, JavaScript, TypeScript, Java, Go, PHP, Rust 等
 - **知识库增强**: 支持上传自定义漏洞知识库
 
@@ -148,9 +148,7 @@ EMBEDDING_PROVIDER=openai
 EMBEDDING_MODEL=text-embedding-3-small
 
 # 向量数据库配置
-VECTOR_DB_TYPE=milvus
-MILVUS_HOST=milvus
-MILVUS_PORT=19530
+VECTOR_DB_TYPE=chroma
 ```
 
 ---
@@ -284,7 +282,7 @@ backend/app/services/agent/
 
 ```bash
 # 检查服务状态
-docker compose --profile agent ps
+docker compose ps
 
 # 查看后端日志
 docker compose logs backend | grep -i agent
@@ -293,9 +291,6 @@ docker compose logs backend | grep -i agent
 **Q: RAG 初始化失败**
 
 ```bash
-# 检查 Milvus 连接
-curl http://localhost:9091/healthz
-
 # 检查嵌入模型配置
 # 确保 EMBEDDING_API_KEY 正确设置
 ```

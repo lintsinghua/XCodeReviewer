@@ -8,16 +8,14 @@ ENV https_proxy=
 ENV HTTP_PROXY=
 ENV HTTPS_PROXY=
 
-# 安装 pnpm（确保无代理）
 RUN unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY all_proxy ALL_PROXY && \
     npm install -g pnpm
 
 # 复制依赖文件
 COPY package.json pnpm-lock.yaml ./
 
-# 安装依赖（确保无代理）
 RUN unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY all_proxy ALL_PROXY && \
-    pnpm install --frozen-lockfile
+    pnpm install --no-frozen-lockfile
 
 # 复制源代码
 COPY . .
@@ -54,7 +52,6 @@ EXPOSE 3000
 
 ENTRYPOINT ["/docker-entrypoint.sh"]
 CMD ["serve", "-s", "dist", "-l", "3000"]
-
 
 
 

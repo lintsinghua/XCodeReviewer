@@ -184,9 +184,6 @@ trufflehog_results.json
 ttt/
 examples/
 
-# Milvus data
-milvus_data/
-
 # ChromaDB data
 chroma/
 

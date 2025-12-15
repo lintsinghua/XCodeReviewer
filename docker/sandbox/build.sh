@@ -4,7 +4,7 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-IMAGE_NAME="deepaudit-sandbox"
+IMAGE_NAME="deepaudit/sandbox"
 IMAGE_TAG="latest"
 
 echo "Building sandbox image: ${IMAGE_NAME}:${IMAGE_TAG}"

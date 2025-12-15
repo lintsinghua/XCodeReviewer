@@ -1,4 +1,4 @@
-FROM python:3.13-slim
+FROM python:3.12-slim
 
 WORKDIR /app
 
@@ -10,15 +10,17 @@ ENV https_proxy=
 ENV HTTP_PROXY=
 ENV HTTPS_PROXY=
 
+# 配置 apt 重试机制以处理网络不稳定
+RUN echo 'Acquire::Retries "3";' > /etc/apt/apt.conf.d/80-retries
+
 # 安装系统依赖（包含 WeasyPrint 所需的库和中文字体支持）
 RUN rm -f /etc/apt/apt.conf.d/proxy.conf 2>/dev/null || true && \
     unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY all_proxy ALL_PROXY && \
     apt-get update && \
-    apt-get install -y --no-install-recommends \
+    apt-get install -y --no-install-recommends --fix-missing \
         gcc \
         libpq-dev \
         curl \
-        # WeasyPrint 完整依赖
         libpango-1.0-0 \
         libpangoft2-1.0-0 \
         libpangocairo-1.0-0 \
@@ -27,7 +29,6 @@ RUN rm -f /etc/apt/apt.conf.d/proxy.conf 2>/dev/null || true && \
         libffi-dev \
         libglib2.0-0 \
         shared-mime-info \
-        # 字体支持（中文）
         fonts-noto-cjk \
         fonts-noto-cjk-extra \
         fontconfig \
@@ -37,8 +38,8 @@ RUN rm -f /etc/apt/apt.conf.d/proxy.conf 2>/dev/null || true && \
 # 安装 uv
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
-# 复制依赖文件
-COPY pyproject.toml uv.lock ./
+# 复制依赖文件和 README
+COPY pyproject.toml uv.lock README.md ./
 
 # 使用 uv 安装依赖（确保无代理）
 RUN unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY all_proxy ALL_PROXY && \

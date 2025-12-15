@@ -3,7 +3,6 @@ __pycache__
 *.pyc
 .git
 .gitignore
-*.md
 .env
 .vscode
 .DS_Store

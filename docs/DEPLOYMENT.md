@@ -47,16 +47,16 @@ docker compose up -d
 
 ## Docker Compose 部署（推荐）
 
-完整的前后端分离部署方案，包含前端、后端和 PostgreSQL 数据库。
+完整的前后端分离部署方案，包含前端、后端、PostgreSQL 数据库以及 Agent 模式所需服务。
 
 ### 系统要求
 
-| 资源 | 基础模式 | Agent 模式 |
-|------|----------|-----------|
-| 内存 | 2GB+ | 4GB+ |
-| 磁盘 | 5GB+ | 10GB+ |
-| Docker | 20.10+ | 20.10+ |
-| Docker Compose | 2.0+ | 2.0+ |
+| 资源 | 最低配置（含 Agent 模式） |
+|------|---------------------------|
+| 内存 | 4GB+                      |
+| 磁盘 | 10GB+                     |
+| Docker | 20.10+                 |
+| Docker Compose | 2.0+           |
 
 ### 部署步骤
 
@@ -163,10 +163,8 @@ EMBEDDING_PROVIDER=openai
 EMBEDDING_MODEL=text-embedding-3-small
 EMBEDDING_API_KEY=  # 留空则使用 LLM_API_KEY
 
-# 向量数据库配置（使用 Milvus）
-VECTOR_DB_TYPE=milvus
-MILVUS_HOST=milvus
-MILVUS_PORT=19530
+# 向量数据库配置（使用 ChromaDB）
+VECTOR_DB_TYPE=chroma
 
 # 沙箱配置
 SANDBOX_ENABLED=true
@@ -174,16 +172,13 @@ SANDBOX_ENABLED=true
 
 ```bash
 # 2. 启动包含 Agent 服务的完整部署
-docker compose --profile agent up -d
+docker compose up -d
 ```
 
 ### Agent 模式服务说明
 
 | 服务 | 端口 | 说明 |
 |------|------|------|
-| `milvus` | 19530 | Milvus 向量数据库 |
-| `milvus-etcd` | - | Milvus 元数据存储 |
-| `milvus-minio` | - | Milvus 对象存储 |
 | `redis` | 6379 | 任务队列（可选） |
 
 ### 构建安全沙箱镜像
@@ -212,10 +207,7 @@ docker images | grep deepaudit-sandbox
 
 ```bash
 # 检查所有服务状态
-docker compose --profile agent ps
-
-# 检查 Milvus 连接
-curl http://localhost:9091/healthz
+docker compose ps
 
 # 查看 Agent 日志
 docker compose logs -f backend | grep -i agent
@@ -446,19 +438,6 @@ docker compose up -d backend
 4. 重新构建：`docker compose build --no-cache`
 
 ### Agent 模式相关
-
-**Q: Milvus 启动失败**
-
-```bash
-# 检查 Milvus 相关服务状态
-docker compose --profile agent ps
-
-# 查看 Milvus 日志
-docker compose logs milvus milvus-etcd milvus-minio
-
-# 重新启动 Milvus 服务
-docker compose --profile agent restart milvus
-```
 
 **Q: 沙箱镜像构建失败**
 

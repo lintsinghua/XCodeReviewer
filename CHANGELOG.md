@@ -27,7 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 #### RAG Knowledge Base
 - Code semantic understanding with Tree-sitter AST-based chunking
 - CWE/CVE vulnerability knowledge base integration
-- Milvus/ChromaDB vector database support
+- ChromaDB vector database support
 - Multi-language support: Python, JavaScript, TypeScript, Java, Go, PHP, Rust
 
 #### Security Sandbox

@@ -68,17 +68,23 @@ export default function AuditTasks() {
     loadAgentTasks();
   }, []);
 
-  // 加载Agent任务
-  const loadAgentTasks = async () => {
+  // 加载Agent任务（支持静默更新，不触发 loading 状态）
+  const loadAgentTasks = async (silent = false) => {
     try {
-      setAgentLoading(true);
+      if (!silent) {
+        setAgentLoading(true);
+      }
       const data = await getAgentTasks();
       setAgentTasks(data);
     } catch (error) {
       console.error('Failed to load agent tasks:', error);
-      toast.error("加载Agent任务失败");
+      if (!silent) {
+        toast.error("加载Agent任务失败");
+      }
     } finally {
-      setAgentLoading(false);
+      if (!silent) {
+        setAgentLoading(false);
+      }
     }
   };
 
@@ -150,7 +156,7 @@ export default function AuditTasks() {
     return () => clearInterval(intervalId);
   }, [tasks.map(t => t.id + t.status).join(',')]);
 
-  // 自动刷新Agent任务
+  // 自动刷新Agent任务（静默更新，不显示 loading）
   useEffect(() => {
     const activeAgentTasks = agentTasks.filter(
       task => task.status === 'running' || task.status === 'pending'
@@ -158,7 +164,7 @@ export default function AuditTasks() {
 
     if (activeAgentTasks.length === 0) return;
 
-    const intervalId = setInterval(loadAgentTasks, 5000);
+    const intervalId = setInterval(() => loadAgentTasks(true), 5000);
     return () => clearInterval(intervalId);
   }, [agentTasks.map(t => t.id + t.status).join(',')]);
 
@@ -185,7 +191,8 @@ export default function AuditTasks() {
       setCancellingAgentTaskId(taskId);
       await cancelAgentTask(taskId);
       toast.success("Agent任务已取消");
-      await loadAgentTasks();
+      // 取消后刷新列表，不使用静默模式以显示最新状态
+      await loadAgentTasks(false);
     } catch (error: any) {
       console.error('取消Agent任务失败:', error);
       toast.error(error?.response?.data?.detail || "取消Agent任务失败");

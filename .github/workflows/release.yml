@@ -180,11 +180,8 @@ jobs:
           echo "" >> CHANGELOG.md
           echo "### 快速部署" >> CHANGELOG.md
           echo "\`\`\`bash" >> CHANGELOG.md
-          echo "# 基础部署" >> CHANGELOG.md
+          echo "# 部署" >> CHANGELOG.md
           echo "docker compose up -d" >> CHANGELOG.md
-          echo "" >> CHANGELOG.md
-          echo "# Agent 模式部署（包含 Milvus 向量数据库）" >> CHANGELOG.md
-          echo "docker compose --profile agent up -d" >> CHANGELOG.md
           echo "\`\`\`" >> CHANGELOG.md
       
       # 12. 创建 GitHub Release
