@@ -66,7 +66,7 @@ class Settings(BaseSettings):
     GITLAB_TOKEN: Optional[str] = None
     
     # 扫描配置
-    MAX_ANALYZE_FILES: int = 50  # 最大分析文件数
+    MAX_ANALYZE_FILES: int = 0  # 最大分析文件数，0表示无限制
     MAX_FILE_SIZE_BYTES: int = 200 * 1024  # 最大文件大小 200KB
     LLM_CONCURRENCY: int = 3  # LLM并发数
     LLM_GAP_MS: int = 2000  # LLM请求间隔（毫秒）

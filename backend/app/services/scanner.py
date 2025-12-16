@@ -350,7 +350,7 @@ async def scan_repo_task(task_id: str, db_session_factory, user_config: dict = N
             if target_files:
                 print(f"🎯 指定分析 {len(target_files)} 个文件")
                 files = [f for f in files if f['path'] in target_files]
-            else:
+            elif settings.MAX_ANALYZE_FILES > 0:
                 files = files[:settings.MAX_ANALYZE_FILES]
             
             task.total_files = len(files)

@@ -101,7 +101,7 @@ async def process_zip_task(task_id: str, file_path: str, db_session_factory, use
                 normalized_targets = {normalize_path(p) for p in target_files}
                 print(f"🎯 ZIP任务: 指定分析 {len(normalized_targets)} 个文件")
                 files_to_scan = [f for f in files_to_scan if f['path'] in normalized_targets]
-            else:
+            elif settings.MAX_ANALYZE_FILES > 0:
                 files_to_scan = files_to_scan[:settings.MAX_ANALYZE_FILES]
             
             task.total_files = len(files_to_scan)

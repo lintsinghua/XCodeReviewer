@@ -78,7 +78,7 @@ export function SystemConfig() {
           llmMaxTokens: llmConfig.llmMaxTokens || 4096,
           githubToken: otherConfig.githubToken || '',
           gitlabToken: otherConfig.gitlabToken || '',
-          maxAnalyzeFiles: otherConfig.maxAnalyzeFiles || 50,
+          maxAnalyzeFiles: otherConfig.maxAnalyzeFiles ?? 0,
           llmConcurrency: otherConfig.llmConcurrency || 3,
           llmGapMs: otherConfig.llmGapMs || 2000,
           outputLanguage: otherConfig.outputLanguage || 'zh-CN',
@@ -98,7 +98,7 @@ export function SystemConfig() {
           llmProvider: 'openai', llmApiKey: '', llmModel: '', llmBaseUrl: '',
           llmTimeout: 150000, llmTemperature: 0.1, llmMaxTokens: 4096,
           githubToken: '', gitlabToken: '',
-          maxAnalyzeFiles: 50, llmConcurrency: 3, llmGapMs: 2000, outputLanguage: 'zh-CN',
+          maxAnalyzeFiles: 0, llmConcurrency: 3, llmGapMs: 2000, outputLanguage: 'zh-CN',
         });
       }
     } catch (error) {
@@ -107,7 +107,7 @@ export function SystemConfig() {
         llmProvider: 'openai', llmApiKey: '', llmModel: '', llmBaseUrl: '',
         llmTimeout: 150000, llmTemperature: 0.1, llmMaxTokens: 4096,
         githubToken: '', gitlabToken: '',
-        maxAnalyzeFiles: 50, llmConcurrency: 3, llmGapMs: 2000, outputLanguage: 'zh-CN',
+        maxAnalyzeFiles: 0, llmConcurrency: 3, llmGapMs: 2000, outputLanguage: 'zh-CN',
       });
     } finally {
       setLoading(false);
@@ -144,7 +144,7 @@ export function SystemConfig() {
           llmMaxTokens: llmConfig.llmMaxTokens || 4096,
           githubToken: otherConfig.githubToken || '',
           gitlabToken: otherConfig.gitlabToken || '',
-          maxAnalyzeFiles: otherConfig.maxAnalyzeFiles || 50,
+          maxAnalyzeFiles: otherConfig.maxAnalyzeFiles ?? 0,
           llmConcurrency: otherConfig.llmConcurrency || 3,
           llmGapMs: otherConfig.llmGapMs || 2000,
           outputLanguage: otherConfig.outputLanguage || 'zh-CN',

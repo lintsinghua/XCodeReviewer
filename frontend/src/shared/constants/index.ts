@@ -79,7 +79,7 @@ export const ANALYSIS_DEPTH = {
 // 默认配置（与后端对齐）
 export const DEFAULT_CONFIG = {
   MAX_FILE_SIZE: 200 * 1024, // 200KB (对齐后端 MAX_FILE_SIZE_BYTES)
-  MAX_FILES_PER_SCAN: 50, // 对齐后端 MAX_ANALYZE_FILES
+  MAX_FILES_PER_SCAN: 0, // 对齐后端 MAX_ANALYZE_FILES，0表示无限制
   ANALYSIS_TIMEOUT: 30000, // 30秒
   DEBOUNCE_DELAY: 300, // 300ms
 } as const;

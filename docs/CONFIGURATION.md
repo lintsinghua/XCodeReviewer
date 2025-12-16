@@ -82,7 +82,7 @@ GITHUB_TOKEN=                      # GitHub Personal Access Token
 GITLAB_TOKEN=                      # GitLab Personal Access Token
 
 # ========== 扫描配置 ==========
-MAX_ANALYZE_FILES=50               # 单次扫描最大文件数
+MAX_ANALYZE_FILES=0                # 单次扫描最大文件数，0表示无限制
 MAX_FILE_SIZE_BYTES=204800         # 单文件最大大小（字节），默认 200KB
 LLM_CONCURRENCY=3                  # LLM 并发请求数
 LLM_GAP_MS=2000                    # 请求间隔（毫秒），避免限流
@@ -164,7 +164,7 @@ VITE_API_BASE_URL=/api             # 后端 API 地址
 VITE_APP_ID=deepaudit
 
 # ========== 代码分析配置 ==========
-VITE_MAX_ANALYZE_FILES=40          # 最大分析文件数
+VITE_MAX_ANALYZE_FILES=0           # 最大分析文件数，0表示无限制
 VITE_LLM_CONCURRENCY=2             # LLM 并发数
 VITE_LLM_GAP_MS=500                # 请求间隔（毫秒）
 VITE_OUTPUT_LANGUAGE=zh-CN         # 输出语言
@@ -175,7 +175,7 @@ VITE_OUTPUT_LANGUAGE=zh-CN         # 输出语言
 | 配置项 | 说明 | 默认值 |
 |--------|------|--------|
 | `VITE_API_BASE_URL` | 后端 API 地址，Docker 部署时使用 `/api` | `/api` |
-| `VITE_MAX_ANALYZE_FILES` | 单次扫描最大文件数 | `40` |
+| `VITE_MAX_ANALYZE_FILES` | 单次扫描最大文件数，0表示无限制 | `0` |
 | `VITE_LLM_CONCURRENCY` | 前端 LLM 并发请求数 | `2` |
 | `VITE_LLM_GAP_MS` | 前端请求间隔 | `500` |
 | `VITE_OUTPUT_LANGUAGE` | 分析结果输出语言 | `zh-CN` |

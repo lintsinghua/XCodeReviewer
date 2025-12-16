@@ -41,6 +41,7 @@ services:
         - ALL_PROXY=
     restart: unless-stopped
     volumes:
+      - ./backend/app:/app/app:ro  # 挂载代码目录，修改后自动生效
       - backend_uploads:/app/uploads
       - /var/run/docker.sock:/var/run/docker.sock  # 沙箱执行必须
     ports:
@@ -63,7 +64,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    command: sh -c ".venv/bin/alembic upgrade head && .venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000"
+    # 开发模式：启用 --reload 热重载
+    command: sh -c ".venv/bin/alembic upgrade head && .venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
     networks:
       - deepaudit-network
 
