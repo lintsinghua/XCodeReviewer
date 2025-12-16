@@ -12,7 +12,7 @@
 
 <div align="center">
 
-[![Version](https://img.shields.io/badge/version-3.0.0-blue.svg)](https://github.com/lintsinghua/DeepAudit/releases)
+[![Version](https://img.shields.io/badge/version-3.0.1-blue.svg)](https://github.com/lintsinghua/DeepAudit/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![React](https://img.shields.io/badge/React-18-61dafb.svg)](https://reactjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178c6.svg)](https://www.typescriptlang.org/)
