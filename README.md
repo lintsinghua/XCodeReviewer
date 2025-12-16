@@ -337,7 +337,7 @@ DeepSeek-Coder · Codestral<br/>
 
 ## 📄 许可证
 
-本项目采用 [Apache-2.0 License](LICENSE) 开源。
+本项目采用 [MIT License](LICENSE) 开源。
 
 ## 📈 项目热度
 
