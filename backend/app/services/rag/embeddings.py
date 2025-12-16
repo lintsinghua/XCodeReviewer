@@ -584,68 +584,96 @@ class EmbeddingService:
         texts: List[str],
         batch_size: int = 100,
         show_progress: bool = False,
+        progress_callback: Optional[callable] = None,
+        cancel_check: Optional[callable] = None,
     ) -> List[List[float]]:
         """
         批量嵌入文本
-        
+
         Args:
             texts: 文本列表
             batch_size: 批次大小
             show_progress: 是否显示进度
-            
+            progress_callback: 进度回调函数，接收 (processed, total) 参数
+            cancel_check: 取消检查函数，返回 True 表示应该取消
+
         Returns:
             嵌入向量列表
+
+        Raises:
+            asyncio.CancelledError: 当 cancel_check 返回 True 时
         """
         if not texts:
             return []
-        
+
         embeddings = []
         uncached_indices = []
         uncached_texts = []
-        
+
         # 检查缓存
         for i, text in enumerate(texts):
             if not text or not text.strip():
                 embeddings.append([0.0] * self.dimension)
                 continue
-            
+
             if self.cache_enabled:
                 cache_key = self._cache_key(text)
                 if cache_key in self._cache:
                     embeddings.append(self._cache[cache_key])
                     continue
-            
+
             embeddings.append(None)  # 占位
             uncached_indices.append(i)
             uncached_texts.append(text)
-        
+
         # 批量处理未缓存的文本
         if uncached_texts:
+            total_batches = (len(uncached_texts) + batch_size - 1) // batch_size
+            processed_batches = 0
+
             for i in range(0, len(uncached_texts), batch_size):
+                # 🔥 检查是否应该取消
+                if cancel_check and cancel_check():
+                    logger.info(f"[Embedding] Cancelled at batch {processed_batches + 1}/{total_batches}")
+                    raise asyncio.CancelledError("嵌入操作已取消")
+
                 batch = uncached_texts[i:i + batch_size]
                 batch_indices = uncached_indices[i:i + batch_size]
-                
+
                 try:
                     results = await self._provider.embed_texts(batch)
-                    
+
                     for idx, result in zip(batch_indices, results):
                         embeddings[idx] = result.embedding
-                        
+
                         # 存入缓存
                         if self.cache_enabled:
                             cache_key = self._cache_key(texts[idx])
                             self._cache[cache_key] = result.embedding
-                        
+
+                except asyncio.CancelledError:
+                    # 🔥 重新抛出取消异常
+                    raise
                 except Exception as e:
                     logger.error(f"Batch embedding error: {e}")
                     # 对失败的使用零向量
                     for idx in batch_indices:
                         if embeddings[idx] is None:
                             embeddings[idx] = [0.0] * self.dimension
-                
+
+                processed_batches += 1
+
+                # 🔥 调用进度回调
+                if progress_callback:
+                    processed_count = min(i + batch_size, len(uncached_texts))
+                    try:
+                        progress_callback(processed_count, len(uncached_texts))
+                    except Exception as e:
+                        logger.warning(f"Progress callback error: {e}")
+
                 # 添加小延迟避免限流
                 await asyncio.sleep(0.1)
-        
+
         # 确保没有 None
         return [e if e is not None else [0.0] * self.dimension for e in embeddings]
     

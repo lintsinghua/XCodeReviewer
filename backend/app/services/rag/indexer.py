@@ -104,6 +104,8 @@ class IndexingProgress:
     deleted_files: int = 0
     skipped_files: int = 0
     update_mode: str = "full"
+    # 🔥 新增：状态消息（用于前端显示）
+    status_message: str = ""
 
     def __post_init__(self):
         if self.errors is None:
@@ -838,6 +840,8 @@ class CodeIndexer:
         include_patterns: Optional[List[str]] = None,
         update_mode: IndexUpdateMode = IndexUpdateMode.SMART,
         progress_callback: Optional[Callable[[IndexingProgress], None]] = None,
+        embedding_progress_callback: Optional[Callable[[int, int], None]] = None,
+        cancel_check: Optional[Callable[[], bool]] = None,
     ) -> AsyncGenerator[IndexingProgress, None]:
         """
         智能索引目录
@@ -845,9 +849,11 @@ class CodeIndexer:
         Args:
             directory: 目录路径
             exclude_patterns: 排除模式
-            include_patterns: 包含模式
+            include_patterns: 包含模式（🔥 用于限制只索引指定文件）
             update_mode: 更新模式
             progress_callback: 进度回调
+            embedding_progress_callback: 嵌入进度回调，接收 (processed, total) 参数
+            cancel_check: 取消检查函数，返回 True 表示应该取消
 
         Yields:
             索引进度
@@ -873,11 +879,11 @@ class CodeIndexer:
 
         if actual_mode == IndexUpdateMode.FULL:
             # 全量重建
-            async for p in self._full_index(directory, exclude_patterns, include_patterns, progress, progress_callback):
+            async for p in self._full_index(directory, exclude_patterns, include_patterns, progress, progress_callback, embedding_progress_callback, cancel_check):
                 yield p
         else:
             # 增量更新
-            async for p in self._incremental_index(directory, exclude_patterns, include_patterns, progress, progress_callback):
+            async for p in self._incremental_index(directory, exclude_patterns, include_patterns, progress, progress_callback, embedding_progress_callback, cancel_check):
                 yield p
 
     async def _full_index(
@@ -887,6 +893,8 @@ class CodeIndexer:
         include_patterns: Optional[List[str]],
         progress: IndexingProgress,
         progress_callback: Optional[Callable[[IndexingProgress], None]],
+        embedding_progress_callback: Optional[Callable[[int, int], None]] = None,
+        cancel_check: Optional[Callable[[], bool]] = None,
     ) -> AsyncGenerator[IndexingProgress, None]:
         """全量索引"""
         logger.info("🔄 开始全量索引...")
@@ -950,7 +958,11 @@ class CodeIndexer:
 
         # 批量嵌入和索引
         if all_chunks:
-            await self._index_chunks(all_chunks, progress, use_upsert=False)
+            # 🔥 发送嵌入向量生成状态
+            progress.status_message = f"🔢 生成 {len(all_chunks)} 个代码块的嵌入向量..."
+            yield progress
+
+            await self._index_chunks(all_chunks, progress, use_upsert=False, embedding_progress_callback=embedding_progress_callback)
 
         # 更新 collection 元数据
         project_hash = hashlib.md5(json.dumps(sorted(file_hashes.items())).encode()).hexdigest()
@@ -970,6 +982,7 @@ class CodeIndexer:
         include_patterns: Optional[List[str]],
         progress: IndexingProgress,
         progress_callback: Optional[Callable[[IndexingProgress], None]],
+        embedding_progress_callback: Optional[Callable[[int, int], None]] = None,
     ) -> AsyncGenerator[IndexingProgress, None]:
         """增量索引"""
         logger.info("📝 开始增量索引...")
@@ -1082,7 +1095,11 @@ class CodeIndexer:
 
         # 批量嵌入和索引新的代码块
         if all_chunks:
-            await self._index_chunks(all_chunks, progress, use_upsert=True)
+            # 🔥 发送嵌入向量生成状态
+            progress.status_message = f"🔢 生成 {len(all_chunks)} 个代码块的嵌入向量..."
+            yield progress
+
+            await self._index_chunks(all_chunks, progress, use_upsert=True, embedding_progress_callback=embedding_progress_callback)
 
         # 更新 collection 元数据
         # 移除已删除文件的 hash
@@ -1208,8 +1225,18 @@ class CodeIndexer:
         chunks: List[CodeChunk],
         progress: IndexingProgress,
         use_upsert: bool = False,
+        embedding_progress_callback: Optional[Callable[[int, int], None]] = None,
+        cancel_check: Optional[Callable[[], bool]] = None,
     ):
-        """索引代码块"""
+        """索引代码块
+
+        Args:
+            chunks: 代码块列表
+            progress: 索引进度对象
+            use_upsert: 是否使用 upsert（增量更新）
+            embedding_progress_callback: 嵌入进度回调
+            cancel_check: 取消检查函数，返回 True 表示应该取消
+        """
         if not chunks:
             return
 
@@ -1218,8 +1245,13 @@ class CodeIndexer:
 
         logger.info(f"🔢 生成 {len(texts)} 个代码块的嵌入向量...")
 
-        # 批量嵌入
-        embeddings = await self.embedding_service.embed_batch(texts, batch_size=50)
+        # 批量嵌入（带进度回调和取消检查）
+        embeddings = await self.embedding_service.embed_batch(
+            texts,
+            batch_size=50,
+            progress_callback=embedding_progress_callback,
+            cancel_check=cancel_check,
+        )
 
         # 准备元数据
         ids = [chunk.id for chunk in chunks]

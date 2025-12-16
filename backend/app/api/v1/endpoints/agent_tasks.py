@@ -707,10 +707,30 @@ async def _initialize_tools(
 
         index_progress = None
         last_progress_update = 0
+        last_embedding_progress = [0]  # 使用列表以便在闭包中修改
+        embedding_total = [0]  # 记录总数
+
+        # 🔥 嵌入进度回调函数（同步，但会调度异步任务）
+        def on_embedding_progress(processed: int, total: int):
+            embedding_total[0] = total
+            # 每处理 50 个或完成时更新
+            if processed - last_embedding_progress[0] >= 50 or processed == total:
+                last_embedding_progress[0] = processed
+                percentage = (processed / total * 100) if total > 0 else 0
+                msg = f"🔢 嵌入进度: {processed}/{total} ({percentage:.0f}%)"
+                logger.info(msg)
+                # 使用 asyncio.create_task 调度异步 emit
+                try:
+                    loop = asyncio.get_running_loop()
+                    loop.create_task(emit(msg))
+                except Exception as e:
+                    logger.warning(f"Failed to emit embedding progress: {e}")
+
         async for progress in indexer.smart_index_directory(
             directory=project_root,
             exclude_patterns=exclude_patterns or [],
             update_mode=IndexUpdateMode.SMART,
+            embedding_progress_callback=on_embedding_progress,
         ):
             # 🔥 在索引过程中检查取消状态
             if task_id and is_task_cancelled(task_id):
@@ -726,6 +746,11 @@ async def _initialize_tools(
                         f"({progress.progress_percentage:.0f}%)"
                     )
                 last_progress_update = progress.processed_files
+
+            # 🔥 发送状态消息（如嵌入向量生成进度）
+            if progress.status_message:
+                await emit(progress.status_message)
+                progress.status_message = ""  # 清空已发送的消息
 
         if index_progress:
             summary = (
