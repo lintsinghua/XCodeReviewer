@@ -647,14 +647,62 @@ Action Input: {{"参数": "值"}}
                 "project_root": self._runtime_context.get("project_root", "."),
                 "previous_results": previous_results,
             }
-            
+
             # 🔥 执行子 Agent 前检查取消状态
             if self.is_cancelled:
                 return f"## {agent_name} Agent 执行取消\n\n任务已被用户取消"
-            
-            # 执行子 Agent
-            result = await agent.run(sub_input)
-            
+
+            # 🔥 执行子 Agent - 支持取消和超时
+            # 设置子 Agent 超时（根据 Agent 类型）
+            agent_timeouts = {
+                "recon": 300,        # 5 分钟
+                "analysis": 600,     # 10 分钟
+                "verification": 300,  # 5 分钟
+            }
+            timeout = agent_timeouts.get(agent_name, 300)
+
+            async def run_with_cancel_check():
+                """包装子 Agent 执行，定期检查取消状态"""
+                run_task = asyncio.create_task(agent.run(sub_input))
+                try:
+                    while not run_task.done():
+                        if self.is_cancelled:
+                            # 传播取消到子 Agent
+                            if hasattr(agent, 'cancel'):
+                                agent.cancel()
+                            run_task.cancel()
+                            try:
+                                await run_task
+                            except asyncio.CancelledError:
+                                pass
+                            raise asyncio.CancelledError("任务已取消")
+
+                        try:
+                            return await asyncio.wait_for(
+                                asyncio.shield(run_task),
+                                timeout=1.0  # 每秒检查一次取消状态
+                            )
+                        except asyncio.TimeoutError:
+                            continue
+
+                    return await run_task
+                except asyncio.CancelledError:
+                    if not run_task.done():
+                        run_task.cancel()
+                    raise
+
+            try:
+                result = await asyncio.wait_for(
+                    run_with_cancel_check(),
+                    timeout=timeout
+                )
+            except asyncio.TimeoutError:
+                logger.warning(f"[{self.name}] Sub-agent {agent_name} timed out after {timeout}s")
+                return f"## {agent_name} Agent 执行超时\n\n子 Agent 执行超过 {timeout} 秒，已强制终止。请尝试更具体的任务或使用其他 Agent。"
+            except asyncio.CancelledError:
+                logger.info(f"[{self.name}] Sub-agent {agent_name} was cancelled")
+                return f"## {agent_name} Agent 执行取消\n\n任务已被用户取消"
+
             # 🔥 执行后再次检查取消状态
             if self.is_cancelled:
                 return f"## {agent_name} Agent 执行中断\n\n任务已被用户取消"

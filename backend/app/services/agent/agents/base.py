@@ -1006,38 +1006,104 @@ class BaseAgent(ABC):
     
     async def execute_tool(self, tool_name: str, tool_input: Dict) -> str:
         """
-        统一的工具执行方法
-        
+        统一的工具执行方法 - 支持取消和超时
+
         Args:
             tool_name: 工具名称
             tool_input: 工具参数
-            
+
         Returns:
             工具执行结果字符串
         """
         # 🔥 在执行工具前检查取消
         if self.is_cancelled:
-            return "任务已取消"
-        
+            return "⚠️ 任务已取消"
+
         tool = self.tools.get(tool_name)
-        
+
         if not tool:
             return f"错误: 工具 '{tool_name}' 不存在。可用工具: {list(self.tools.keys())}"
-        
+
         try:
             self._tool_calls += 1
             await self.emit_tool_call(tool_name, tool_input)
-            
+
             import time
             start = time.time()
-            
-            result = await tool.execute(**tool_input)
-            
+
+            # 🔥 根据工具类型设置不同的超时时间
+            tool_timeouts = {
+                "semgrep_scan": 120,      # 外部扫描工具需要更长时间
+                "bandit_scan": 90,
+                "gitleaks_scan": 60,
+                "npm_audit": 90,
+                "safety_scan": 60,
+                "kunlun_scan": 180,
+                "osv_scanner": 60,
+                "trufflehog_scan": 90,
+                "sandbox_exec": 60,
+                "php_test": 30,
+                "command_injection_test": 30,
+                "sql_injection_test": 30,
+                "xss_test": 30,
+            }
+            timeout = tool_timeouts.get(tool_name, 30)  # 默认30秒
+
+            # 🔥 使用 asyncio.wait_for 添加超时控制，同时支持取消
+            async def execute_with_cancel_check():
+                """包装工具执行，定期检查取消状态"""
+                # 创建工具执行任务
+                execute_task = asyncio.create_task(tool.execute(**tool_input))
+
+                try:
+                    # 使用循环定期检查取消状态
+                    while not execute_task.done():
+                        if self.is_cancelled:
+                            execute_task.cancel()
+                            try:
+                                await execute_task
+                            except asyncio.CancelledError:
+                                pass
+                            raise asyncio.CancelledError("任务已取消")
+
+                        # 等待任务完成或超时检查间隔
+                        try:
+                            return await asyncio.wait_for(
+                                asyncio.shield(execute_task),
+                                timeout=0.5  # 每0.5秒检查一次取消状态
+                            )
+                        except asyncio.TimeoutError:
+                            continue  # 继续循环检查
+
+                    return await execute_task
+                except asyncio.CancelledError:
+                    if not execute_task.done():
+                        execute_task.cancel()
+                    raise
+
+            try:
+                result = await asyncio.wait_for(
+                    execute_with_cancel_check(),
+                    timeout=timeout
+                )
+            except asyncio.TimeoutError:
+                duration_ms = int((time.time() - start) * 1000)
+                await self.emit_tool_result(tool_name, f"超时 ({timeout}s)", duration_ms)
+                return f"⚠️ 工具 '{tool_name}' 执行超时 ({timeout}秒)，请尝试其他方法或减小操作范围。"
+            except asyncio.CancelledError:
+                duration_ms = int((time.time() - start) * 1000)
+                await self.emit_tool_result(tool_name, "已取消", duration_ms)
+                return "⚠️ 任务已取消"
+
             duration_ms = int((time.time() - start) * 1000)
             # 🔥 修复：确保传递有意义的结果字符串，避免 "None"
             result_preview = str(result.data)[:200] if result.data is not None else (result.error[:200] if result.error else "")
             await self.emit_tool_result(tool_name, result_preview, duration_ms)
-            
+
+            # 🔥 工具执行后再次检查取消
+            if self.is_cancelled:
+                return "⚠️ 任务已取消"
+
             if result.success:
                 output = str(result.data)
 
@@ -1063,6 +1129,9 @@ class BaseAgent(ABC):
 请根据错误信息调整参数或尝试其他方法。"""
                 return error_msg
 
+        except asyncio.CancelledError:
+            logger.info(f"[{self.name}] Tool '{tool_name}' execution cancelled")
+            return "⚠️ 任务已取消"
         except Exception as e:
             import traceback
             logger.error(f"Tool execution error: {e}")

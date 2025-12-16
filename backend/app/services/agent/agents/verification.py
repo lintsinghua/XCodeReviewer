@@ -622,7 +622,12 @@ class VerificationAgent(BaseAgent):
                         # 成功调用，重置失败计数
                         if tool_call_key in self._failed_tool_calls:
                             del self._failed_tool_calls[tool_call_key]
-                    
+
+                    # 🔥 工具执行后检查取消状态
+                    if self.is_cancelled:
+                        logger.info(f"[{self.name}] Cancelled after tool execution")
+                        break
+
                     step.observation = observation
                     
                     # 🔥 发射 LLM 观察事件
