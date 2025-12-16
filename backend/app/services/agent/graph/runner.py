@@ -142,30 +142,45 @@ class AgentRunner:
     async def _initialize_rag(self):
         """初始化 RAG 系统"""
         await self.event_emitter.emit_info("📚 初始化 RAG 代码检索系统...")
-        
+
         try:
-            # 🔥 从用户配置中获取 LLM 配置（用于 Embedding API Key）
-            # 优先级：用户配置 > 环境变量
+            # 🔥 从用户配置中获取配置
+            # 优先级：用户嵌入配置 > 用户 LLM 配置 > 环境变量
             user_llm_config = self.user_config.get('llmConfig', {})
-            
-            # 获取 Embedding 配置（优先使用用户配置的 LLM API Key）
-            embedding_provider = getattr(settings, 'EMBEDDING_PROVIDER', 'openai')
-            embedding_model = getattr(settings, 'EMBEDDING_MODEL', 'text-embedding-3-small')
-            
-            # 🔥 API Key 优先级：用户配置 > 环境变量
+            user_other_config = self.user_config.get('otherConfig', {})
+            user_embedding_config = user_other_config.get('embedding_config', {})
+
+            # 🔥 Embedding Provider 优先级：用户嵌入配置 > 环境变量
+            embedding_provider = (
+                user_embedding_config.get('provider') or
+                getattr(settings, 'EMBEDDING_PROVIDER', 'openai')
+            )
+
+            # 🔥 Embedding Model 优先级：用户嵌入配置 > 环境变量
+            embedding_model = (
+                user_embedding_config.get('model') or
+                getattr(settings, 'EMBEDDING_MODEL', 'text-embedding-3-small')
+            )
+
+            # 🔥 API Key 优先级：用户嵌入配置 > 用户 LLM 配置 > 环境变量
             embedding_api_key = (
+                user_embedding_config.get('api_key') or
                 user_llm_config.get('llmApiKey') or
                 getattr(settings, 'LLM_API_KEY', '') or
                 ''
             )
-            
-            # 🔥 Base URL 优先级：用户配置 > 环境变量
+
+            # 🔥 Base URL 优先级：用户嵌入配置 > 用户 LLM 配置 > 环境变量
             embedding_base_url = (
+                user_embedding_config.get('base_url') or
                 user_llm_config.get('llmBaseUrl') or
                 getattr(settings, 'LLM_BASE_URL', None) or
                 None
             )
-            
+
+            logger.info(f"RAG 配置: provider={embedding_provider}, model={embedding_model}")
+            await self.event_emitter.emit_info(f"嵌入模型: {embedding_provider}/{embedding_model}")
+
             embedding_service = EmbeddingService(
                 provider=embedding_provider,
                 model=embedding_model,
@@ -267,11 +282,14 @@ class AgentRunner:
             "safety_scan": SafetyTool(self.project_root, self.sandbox_manager),
             "npm_audit": NpmAuditTool(self.project_root, self.sandbox_manager),
         }
-        
+
         # RAG 工具（Recon 用于语义搜索）
         if self.retriever:
             self.recon_tools["rag_query"] = RAGQueryTool(self.retriever)
-        
+            logger.info("✅ RAG 工具已注册到 Recon Agent")
+        else:
+            logger.warning("⚠️ RAG 未初始化，rag_query 工具不可用")
+
         # ============ Analysis Agent 专属工具 ============
         # 职责：漏洞分析、代码审计、模式匹配
         self.analysis_tools = {
@@ -300,11 +318,13 @@ class AgentRunner:
             "query_security_knowledge": SecurityKnowledgeQueryTool(),
             "get_vulnerability_knowledge": GetVulnerabilityKnowledgeTool(),
         }
-        
+
         # RAG 工具（Analysis 用于安全相关代码搜索）
         if self.retriever:
-            self.analysis_tools["security_search"] = SecurityCodeSearchTool(self.retriever)
-            self.analysis_tools["function_context"] = FunctionContextTool(self.retriever)
+            self.analysis_tools["rag_query"] = RAGQueryTool(self.retriever)  # 通用语义搜索
+            self.analysis_tools["security_search"] = SecurityCodeSearchTool(self.retriever)  # 安全代码搜索
+            self.analysis_tools["function_context"] = FunctionContextTool(self.retriever)  # 函数上下文
+            logger.info("✅ RAG 工具已注册到 Analysis Agent (rag_query, security_search, function_context)")
         
         # ============ Verification Agent 专属工具 ============
         # 职责：漏洞验证、PoC 执行、误报排除

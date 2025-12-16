@@ -296,12 +296,13 @@ async def _execute_agent_task(task_id: str):
             
             # 初始化工具集 - 传递排除模式和目标文件以及预初始化的 sandbox_manager
             tools = await _initialize_tools(
-                project_root, 
-                llm_service, 
+                project_root,
+                llm_service,
                 user_config,
                 sandbox_manager=sandbox_manager,
                 exclude_patterns=task.exclude_patterns,
                 target_files=task.target_files,
+                project_id=str(project.id),  # 🔥 传递 project_id 用于 RAG
             )
             
             # 创建子 Agent
@@ -552,15 +553,16 @@ async def _get_user_config(db: AsyncSession, user_id: Optional[str]) -> Optional
 
 
 async def _initialize_tools(
-    project_root: str, 
-    llm_service, 
+    project_root: str,
+    llm_service,
     user_config: Optional[Dict[str, Any]],
     sandbox_manager: Any, # 传递预初始化的 SandboxManager
     exclude_patterns: Optional[List[str]] = None,
     target_files: Optional[List[str]] = None,
+    project_id: Optional[str] = None,  # 🔥 用于 RAG collection_name
 ) -> Dict[str, Dict[str, Any]]:
     """初始化工具集
-    
+
     Args:
         project_root: 项目根目录
         llm_service: LLM 服务
@@ -568,6 +570,7 @@ async def _initialize_tools(
         sandbox_manager: 沙箱管理器
         exclude_patterns: 排除模式列表
         target_files: 目标文件列表
+        project_id: 项目 ID（用于 RAG collection_name）
     """
     from app.services.agent.tools import (
         FileReadTool, FileSearchTool, ListFilesTool,
@@ -577,12 +580,82 @@ async def _initialize_tools(
         ThinkTool, ReflectTool,
         CreateVulnerabilityReportTool,
         VulnerabilityValidationTool,
+        # 🔥 RAG 工具
+        RAGQueryTool, SecurityCodeSearchTool, FunctionContextTool,
     )
     from app.services.agent.knowledge import (
         SecurityKnowledgeQueryTool,
         GetVulnerabilityKnowledgeTool,
     )
-    
+    # 🔥 RAG 相关导入
+    from app.services.rag import CodeIndexer, CodeRetriever, EmbeddingService
+    from app.core.config import settings
+
+    # ============ 🔥 初始化 RAG 系统 ============
+    retriever = None
+    try:
+        # 从用户配置中获取 embedding 配置
+        user_llm_config = (user_config or {}).get('llmConfig', {})
+        user_other_config = (user_config or {}).get('otherConfig', {})
+        user_embedding_config = user_other_config.get('embedding_config', {})
+
+        # Embedding Provider 优先级：用户嵌入配置 > 环境变量
+        embedding_provider = (
+            user_embedding_config.get('provider') or
+            getattr(settings, 'EMBEDDING_PROVIDER', 'openai')
+        )
+
+        # Embedding Model 优先级：用户嵌入配置 > 环境变量
+        embedding_model = (
+            user_embedding_config.get('model') or
+            getattr(settings, 'EMBEDDING_MODEL', 'text-embedding-3-small')
+        )
+
+        # API Key 优先级：用户嵌入配置 > 环境变量 EMBEDDING_API_KEY > 用户 LLM 配置 > 环境变量 LLM_API_KEY
+        # 注意：API Key 可以共享，因为很多用户使用同一个 OpenAI Key 做 LLM 和 Embedding
+        embedding_api_key = (
+            user_embedding_config.get('api_key') or
+            getattr(settings, 'EMBEDDING_API_KEY', None) or
+            user_llm_config.get('llmApiKey') or
+            getattr(settings, 'LLM_API_KEY', '') or
+            ''
+        )
+
+        # Base URL 优先级：用户嵌入配置 > 环境变量 EMBEDDING_BASE_URL > None（使用提供商默认地址）
+        # 🔥 重要：Base URL 不应该回退到 LLM 的 base_url，因为 Embedding 和 LLM 可能使用完全不同的服务
+        # 例如：LLM 使用 SiliconFlow，但 Embedding 使用 HuggingFace
+        embedding_base_url = (
+            user_embedding_config.get('base_url') or
+            getattr(settings, 'EMBEDDING_BASE_URL', None) or
+            None
+        )
+
+        logger.info(f"RAG 配置: provider={embedding_provider}, model={embedding_model}, base_url={embedding_base_url or '(使用默认)'}")
+
+        # 创建 Embedding 服务
+        embedding_service = EmbeddingService(
+            provider=embedding_provider,
+            model=embedding_model,
+            api_key=embedding_api_key,
+            base_url=embedding_base_url,
+        )
+
+        # 创建 collection_name（基于 project_id）
+        collection_name = f"project_{project_id}" if project_id else "default_project"
+
+        # 创建 CodeRetriever（用于搜索）
+        retriever = CodeRetriever(
+            collection_name=collection_name,
+            embedding_service=embedding_service,
+            persist_directory=settings.VECTOR_DB_PATH,
+        )
+
+        logger.info(f"✅ RAG 系统初始化成功: collection={collection_name}")
+
+    except Exception as e:
+        logger.warning(f"⚠️ RAG 系统初始化失败: {e}")
+        retriever = None
+
     # 基础工具 - 传递排除模式和目标文件
     base_tools = {
         "read_file": FileReadTool(project_root, exclude_patterns, target_files),
@@ -604,6 +677,11 @@ async def _initialize_tools(
         "trufflehog_scan": TruffleHogTool(project_root, sandbox_manager),
         "osv_scan": OSVScannerTool(project_root, sandbox_manager),
     }
+
+    # 🔥 注册 RAG 工具到 Recon Agent
+    if retriever:
+        recon_tools["rag_query"] = RAGQueryTool(retriever)
+        logger.info("✅ RAG 工具 (rag_query) 已注册到 Recon Agent")
     
     # Analysis 工具
     # 🔥 导入智能扫描工具
@@ -630,6 +708,15 @@ async def _initialize_tools(
         "query_security_knowledge": SecurityKnowledgeQueryTool(),
         "get_vulnerability_knowledge": GetVulnerabilityKnowledgeTool(),
     }
+
+    # 🔥 注册 RAG 工具到 Analysis Agent
+    if retriever:
+        analysis_tools["rag_query"] = RAGQueryTool(retriever)
+        analysis_tools["security_search"] = SecurityCodeSearchTool(retriever)
+        analysis_tools["function_context"] = FunctionContextTool(retriever)
+        logger.info("✅ RAG 工具 (rag_query, security_search, function_context) 已注册到 Analysis Agent")
+    else:
+        logger.warning("⚠️ RAG 未初始化，rag_query/security_search/function_context 工具不可用")
     
     # Verification 工具
     # 🔥 导入沙箱工具
