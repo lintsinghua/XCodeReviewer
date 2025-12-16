@@ -4,6 +4,7 @@
 """
 
 import re
+import asyncio
 import logging
 from typing import List, Dict, Any, Optional
 from dataclasses import dataclass, field
@@ -75,27 +76,35 @@ class CodeRetriever:
     """
     代码检索器
     支持语义检索、关键字检索和混合检索
+
+    🔥 自动兼容不同维度的向量：
+    - 查询时自动检测 collection 的 embedding 配置
+    - 动态创建对应的 embedding 服务
     """
-    
+
     def __init__(
         self,
         collection_name: str,
         embedding_service: Optional[EmbeddingService] = None,
         vector_store: Optional[VectorStore] = None,
         persist_directory: Optional[str] = None,
+        api_key: Optional[str] = None,  # 🔥 新增：用于动态创建 embedding 服务
     ):
         """
         初始化检索器
-        
+
         Args:
             collection_name: 向量集合名称
-            embedding_service: 嵌入服务
+            embedding_service: 嵌入服务（可选，会根据 collection 配置自动创建）
             vector_store: 向量存储
             persist_directory: 持久化目录
+            api_key: API Key（用于动态创建 embedding 服务）
         """
         self.collection_name = collection_name
-        self.embedding_service = embedding_service or EmbeddingService()
-        
+        self._provided_embedding_service = embedding_service  # 用户提供的 embedding 服务
+        self.embedding_service = embedding_service  # 实际使用的 embedding 服务
+        self._api_key = api_key
+
         # 创建向量存储
         if vector_store:
             self.vector_store = vector_store
@@ -108,14 +117,124 @@ class CodeRetriever:
             except ImportError:
                 logger.warning("Chroma not available, using in-memory store")
                 self.vector_store = InMemoryVectorStore(collection_name=collection_name)
-        
+
         self._initialized = False
-    
+
     async def initialize(self):
-        """初始化检索器"""
-        if not self._initialized:
-            await self.vector_store.initialize()
-            self._initialized = True
+        """初始化检索器，自动检测并适配 collection 的 embedding 配置"""
+        if self._initialized:
+            return
+
+        await self.vector_store.initialize()
+
+        # 🔥 自动检测 collection 的 embedding 配置
+        if hasattr(self.vector_store, 'get_embedding_config'):
+            stored_config = self.vector_store.get_embedding_config()
+            stored_provider = stored_config.get("provider")
+            stored_model = stored_config.get("model")
+            stored_dimension = stored_config.get("dimension")
+            stored_base_url = stored_config.get("base_url")
+
+            # 🔥 如果没有存储的配置（旧的 collection），尝试通过维度推断
+            if not stored_provider or not stored_model:
+                inferred = await self._infer_embedding_config_from_dimension()
+                if inferred:
+                    stored_provider = inferred.get("provider")
+                    stored_model = inferred.get("model")
+                    stored_dimension = inferred.get("dimension")
+                    logger.info(f"📊 从向量维度推断 embedding 配置: {stored_provider}/{stored_model}")
+
+            if stored_provider and stored_model:
+                # 检查是否需要使用不同的 embedding 服务
+                current_provider = getattr(self.embedding_service, 'provider', None) if self.embedding_service else None
+                current_model = getattr(self.embedding_service, 'model', None) if self.embedding_service else None
+
+                if current_provider != stored_provider or current_model != stored_model:
+                    logger.info(
+                        f"🔄 Collection 使用的 embedding 配置与当前不同: "
+                        f"{stored_provider}/{stored_model} (维度: {stored_dimension}) vs "
+                        f"{current_provider}/{current_model}"
+                    )
+                    logger.info(f"🔄 自动切换到 collection 的 embedding 配置")
+
+                    # 动态创建对应的 embedding 服务
+                    api_key = self._api_key
+                    if not api_key and self._provided_embedding_service:
+                        api_key = getattr(self._provided_embedding_service, 'api_key', None)
+
+                    self.embedding_service = EmbeddingService(
+                        provider=stored_provider,
+                        model=stored_model,
+                        api_key=api_key,
+                        base_url=stored_base_url,
+                    )
+                    logger.info(f"✅ 已切换到: {stored_provider}/{stored_model}")
+
+        # 如果仍然没有 embedding 服务，创建默认的
+        if not self.embedding_service:
+            self.embedding_service = EmbeddingService()
+
+        self._initialized = True
+
+    async def _infer_embedding_config_from_dimension(self) -> Optional[Dict[str, Any]]:
+        """
+        🔥 从向量维度推断 embedding 配置（用于处理旧的 collection）
+
+        Returns:
+            推断的 embedding 配置，如果无法推断则返回 None
+        """
+        try:
+            # 获取一个样本向量来检查维度
+            if hasattr(self.vector_store, '_collection') and self.vector_store._collection:
+                count = await self.vector_store.get_count()
+                if count > 0:
+                    sample = await asyncio.to_thread(
+                        self.vector_store._collection.peek,
+                        limit=1
+                    )
+                    embeddings = sample.get("embeddings")
+                    if embeddings is not None and len(embeddings) > 0:
+                        dim = len(embeddings[0])
+
+                        # 🔥 根据维度推断模型（优先选择常用模型）
+                        dimension_mapping = {
+                            # OpenAI 系列
+                            1536: {"provider": "openai", "model": "text-embedding-3-small", "dimension": 1536},
+                            3072: {"provider": "openai", "model": "text-embedding-3-large", "dimension": 3072},
+
+                            # HuggingFace 系列
+                            1024: {"provider": "huggingface", "model": "BAAI/bge-m3", "dimension": 1024},
+                            384: {"provider": "huggingface", "model": "sentence-transformers/all-MiniLM-L6-v2", "dimension": 384},
+
+                            # Ollama 系列
+                            768: {"provider": "ollama", "model": "nomic-embed-text", "dimension": 768},
+
+                            # Jina 系列
+                            512: {"provider": "jina", "model": "jina-embeddings-v2-small-en", "dimension": 512},
+
+                            # Cohere 系列
+                            # 1024 已被 HuggingFace 占用，Cohere 维度相同时会默认使用 HuggingFace
+                        }
+
+                        inferred = dimension_mapping.get(dim)
+                        if inferred:
+                            logger.info(f"📊 检测到向量维度 {dim}，推断为: {inferred['provider']}/{inferred['model']}")
+                        return inferred
+        except Exception as e:
+            logger.warning(f"无法推断 embedding 配置: {e}")
+
+        return None
+
+    def get_collection_embedding_config(self) -> Dict[str, Any]:
+        """
+        获取 collection 存储的 embedding 配置
+
+        Returns:
+            包含 provider, model, dimension, base_url 的字典
+        """
+        if hasattr(self.vector_store, 'get_embedding_config'):
+            return self.vector_store.get_embedding_config()
+        return {}
     
     async def retrieve(
         self,

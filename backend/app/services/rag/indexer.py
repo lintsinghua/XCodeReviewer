@@ -109,23 +109,25 @@ class VectorStore:
 
 class ChromaVectorStore(VectorStore):
     """Chroma 向量存储"""
-    
+
     def __init__(
         self,
         collection_name: str,
         persist_directory: Optional[str] = None,
+        embedding_config: Optional[Dict[str, Any]] = None,  # 🔥 新增：embedding 配置
     ):
         self.collection_name = collection_name
         self.persist_directory = persist_directory
+        self.embedding_config = embedding_config or {}  # 🔥 存储 embedding 配置
         self._client = None
         self._collection = None
-    
+
     async def initialize(self):
         """初始化 Chroma"""
         try:
             import chromadb
             from chromadb.config import Settings
-            
+
             if self.persist_directory:
                 self._client = chromadb.PersistentClient(
                     path=self.persist_directory,
@@ -135,16 +137,44 @@ class ChromaVectorStore(VectorStore):
                 self._client = chromadb.Client(
                     settings=Settings(anonymized_telemetry=False),
                 )
-            
+
+            # 🔥 构建 collection 元数据，包含 embedding 配置
+            collection_metadata = {"hnsw:space": "cosine"}
+            if self.embedding_config:
+                # 在元数据中记录 embedding 配置
+                collection_metadata["embedding_provider"] = self.embedding_config.get("provider", "openai")
+                collection_metadata["embedding_model"] = self.embedding_config.get("model", "text-embedding-3-small")
+                collection_metadata["embedding_dimension"] = self.embedding_config.get("dimension", 1536)
+                if self.embedding_config.get("base_url"):
+                    collection_metadata["embedding_base_url"] = self.embedding_config.get("base_url")
+
             self._collection = self._client.get_or_create_collection(
                 name=self.collection_name,
-                metadata={"hnsw:space": "cosine"},
+                metadata=collection_metadata,
             )
-            
+
             logger.info(f"Chroma collection '{self.collection_name}' initialized")
-            
+
         except ImportError:
             raise ImportError("chromadb is required. Install with: pip install chromadb")
+
+    def get_embedding_config(self) -> Dict[str, Any]:
+        """
+        🔥 获取 collection 的 embedding 配置
+
+        Returns:
+            包含 provider, model, dimension, base_url 的字典
+        """
+        if not self._collection:
+            return {}
+
+        metadata = self._collection.metadata or {}
+        return {
+            "provider": metadata.get("embedding_provider"),
+            "model": metadata.get("embedding_model"),
+            "dimension": metadata.get("embedding_dimension"),
+            "base_url": metadata.get("embedding_base_url"),
+        }
     
     async def add_documents(
         self,
@@ -312,7 +342,7 @@ class CodeIndexer:
     代码索引器
     将代码文件分块、嵌入并索引到向量数据库
     """
-    
+
     def __init__(
         self,
         collection_name: str,
@@ -323,7 +353,7 @@ class CodeIndexer:
     ):
         """
         初始化索引器
-        
+
         Args:
             collection_name: 向量集合名称
             embedding_service: 嵌入服务
@@ -334,7 +364,15 @@ class CodeIndexer:
         self.collection_name = collection_name
         self.embedding_service = embedding_service or EmbeddingService()
         self.splitter = splitter or CodeSplitter()
-        
+
+        # 🔥 从 embedding_service 获取配置，用于存储到 collection 元数据
+        embedding_config = {
+            "provider": getattr(self.embedding_service, 'provider', 'openai'),
+            "model": getattr(self.embedding_service, 'model', 'text-embedding-3-small'),
+            "dimension": getattr(self.embedding_service, 'dimension', 1536),
+            "base_url": getattr(self.embedding_service, 'base_url', None),
+        }
+
         # 创建向量存储
         if vector_store:
             self.vector_store = vector_store
@@ -343,11 +381,12 @@ class CodeIndexer:
                 self.vector_store = ChromaVectorStore(
                     collection_name=collection_name,
                     persist_directory=persist_directory,
+                    embedding_config=embedding_config,  # 🔥 传递 embedding 配置
                 )
             except ImportError:
                 logger.warning("Chroma not available, using in-memory store")
                 self.vector_store = InMemoryVectorStore(collection_name=collection_name)
-        
+
         self._initialized = False
     
     async def initialize(self):

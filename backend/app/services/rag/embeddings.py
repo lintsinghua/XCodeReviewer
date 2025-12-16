@@ -487,7 +487,7 @@ class EmbeddingService:
     ):
         """
         初始化嵌入服务
-        
+
         Args:
             provider: 提供商 (openai, azure, ollama, cohere, huggingface, jina)
             model: 模型名称
@@ -497,20 +497,22 @@ class EmbeddingService:
         """
         self.cache_enabled = cache_enabled
         self._cache: Dict[str, List[float]] = {}
-        
-        # 确定提供商
-        provider = provider or getattr(settings, 'EMBEDDING_PROVIDER', 'openai')
-        model = model or getattr(settings, 'EMBEDDING_MODEL', 'text-embedding-3-small')
-        
+
+        # 确定提供商（保存原始值用于属性访问）
+        self.provider = provider or getattr(settings, 'EMBEDDING_PROVIDER', 'openai')
+        self.model = model or getattr(settings, 'EMBEDDING_MODEL', 'text-embedding-3-small')
+        self.api_key = api_key
+        self.base_url = base_url
+
         # 创建提供商实例
         self._provider = self._create_provider(
-            provider=provider,
-            model=model,
+            provider=self.provider,
+            model=self.model,
             api_key=api_key,
             base_url=base_url,
         )
-        
-        logger.info(f"Embedding service initialized with {provider}/{model}")
+
+        logger.info(f"Embedding service initialized with {self.provider}/{self.model}")
     
     def _create_provider(
         self,

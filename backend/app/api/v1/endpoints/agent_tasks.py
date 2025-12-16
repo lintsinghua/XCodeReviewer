@@ -644,10 +644,12 @@ async def _initialize_tools(
         collection_name = f"project_{project_id}" if project_id else "default_project"
 
         # 创建 CodeRetriever（用于搜索）
+        # 🔥 传递 api_key，用于自动适配 collection 的 embedding 配置
         retriever = CodeRetriever(
             collection_name=collection_name,
             embedding_service=embedding_service,
             persist_directory=settings.VECTOR_DB_PATH,
+            api_key=embedding_api_key,  # 🔥 传递 api_key 以支持自动切换 embedding
         )
 
         logger.info(f"✅ RAG 系统初始化成功: collection={collection_name}")
