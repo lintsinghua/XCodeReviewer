@@ -392,19 +392,33 @@ function AgentAuditPageContent() {
         setCurrentAgentName(event.metadata.agent_name);
       }
 
-      const dispatchEvents = ['dispatch', 'dispatch_complete', 'node_start', 'phase_start'];
+      const dispatchEvents = ['dispatch', 'dispatch_complete', 'node_start', 'phase_start', 'phase_complete'];
       if (dispatchEvents.includes(event.type)) {
-        if (event.type === 'dispatch' || event.type === 'dispatch_complete') {
-          dispatch({
-            type: 'ADD_LOG',
-            payload: {
-              type: 'dispatch',
-              title: event.message || `Agent dispatch: ${event.metadata?.agent || 'unknown'}`,
-              agentName: getCurrentAgentName() || undefined,
-            }
-          });
-        }
+        // 所有 dispatch 类型事件都添加到日志
+        dispatch({
+          type: 'ADD_LOG',
+          payload: {
+            type: 'dispatch',
+            title: event.message || `Agent dispatch: ${event.metadata?.agent || 'unknown'}`,
+            agentName: getCurrentAgentName() || undefined,
+          }
+        });
         debouncedLoadAgentTree();
+        return;
+      }
+
+      // 🔥 处理 info、warning、error 类型事件（克隆进度、索引进度等）
+      const infoEvents = ['info', 'warning', 'error', 'progress'];
+      if (infoEvents.includes(event.type)) {
+        dispatch({
+          type: 'ADD_LOG',
+          payload: {
+            type: event.type === 'error' ? 'error' : 'info',
+            title: event.message || event.type,
+            agentName: getCurrentAgentName() || undefined,
+          }
+        });
+        return;
       }
     },
     onThinkingStart: () => {

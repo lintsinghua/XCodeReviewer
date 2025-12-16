@@ -502,6 +502,10 @@ class ListFilesTool(AgentTool):
     ) -> ToolResult:
         """执行文件列表"""
         try:
+            # 🔥 兼容性处理：支持 path 参数作为 directory 的别名
+            if "path" in kwargs and kwargs["path"]:
+                directory = kwargs["path"]
+
             target_dir = os.path.normpath(os.path.join(self.project_root, directory))
             if not target_dir.startswith(os.path.normpath(self.project_root)):
                 return ToolResult(

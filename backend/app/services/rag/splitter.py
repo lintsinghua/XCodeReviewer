@@ -188,22 +188,34 @@ class TreeSitterParser:
         },
     }
     
+    # tree-sitter-languages 支持的语言列表
+    SUPPORTED_LANGUAGES = {
+        "python", "javascript", "typescript", "tsx", "java", "go", "rust",
+        "c", "cpp", "c_sharp", "php", "ruby", "kotlin", "swift", "bash",
+        "json", "yaml", "html", "css", "sql", "markdown",
+    }
+
     def __init__(self):
         self._parsers: Dict[str, Any] = {}
         self._initialized = False
-    
+
     def _ensure_initialized(self, language: str) -> bool:
         """确保语言解析器已初始化"""
         if language in self._parsers:
             return True
-        
+
+        # 检查语言是否受支持
+        if language not in self.SUPPORTED_LANGUAGES:
+            # 不是 tree-sitter 支持的语言，静默跳过
+            return False
+
         try:
-            from tree_sitter_languages import get_parser, get_language
-            
+            from tree_sitter_languages import get_parser
+
             parser = get_parser(language)
             self._parsers[language] = parser
             return True
-            
+
         except ImportError:
             logger.warning("tree-sitter-languages not installed, falling back to regex parsing")
             return False

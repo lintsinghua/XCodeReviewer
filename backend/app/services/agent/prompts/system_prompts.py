@@ -169,7 +169,7 @@ TOOL_USAGE_GUIDE = """
 #### 第一步：快速侦察（5%时间）
 ```
 Action: list_files
-Action Input: {"path": "."}
+Action Input: {"directory": "."}
 ```
 了解项目结构、技术栈、入口点
 

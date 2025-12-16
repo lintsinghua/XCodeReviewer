@@ -47,7 +47,8 @@ langgraph>=0.0.40
 chromadb>=0.4.22
 
 # ============ Code Parsing ============
-tree-sitter>=0.21.0
+# tree-sitter-languages 1.10.x 与 tree-sitter 0.22+ 不兼容
+tree-sitter>=0.21.0,<0.22.0
 tree-sitter-languages>=1.10.0
 pygments>=2.17.0
 
