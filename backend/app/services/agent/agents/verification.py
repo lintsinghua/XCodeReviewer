@@ -667,31 +667,50 @@ class VerificationAgent(BaseAgent):
             
             # 处理最终结果
             verified_findings = []
-            
+
             # 🔥 Robustness: If LLM returns empty findings but we had input, fallback to original
             llm_findings = []
             if final_result and "findings" in final_result:
                 llm_findings = final_result["findings"]
-            
+
             if not llm_findings and findings_to_verify:
                 logger.warning(f"[{self.name}] LLM returned empty findings despite {len(findings_to_verify)} inputs. Falling back to originals.")
                 # Fallback to logic below (else branch)
-                final_result = None 
+                final_result = None
 
             if final_result and "findings" in final_result:
+                # 🔥 DEBUG: Log what LLM returned for verdict diagnosis
+                verdicts_debug = [(f.get("file_path", "?"), f.get("verdict"), f.get("confidence")) for f in final_result["findings"]]
+                logger.info(f"[{self.name}] LLM returned verdicts: {verdicts_debug}")
+
                 for f in final_result["findings"]:
+                    # 🔥 FIX: Normalize verdict - handle missing/empty verdict
+                    verdict = f.get("verdict")
+                    if not verdict or verdict not in ["confirmed", "likely", "uncertain", "false_positive"]:
+                        # Try to infer verdict from other fields
+                        if f.get("is_verified") is True:
+                            verdict = "confirmed"
+                        elif f.get("confidence", 0) >= 0.8:
+                            verdict = "likely"
+                        elif f.get("confidence", 0) <= 0.3:
+                            verdict = "false_positive"
+                        else:
+                            verdict = "uncertain"
+                        logger.warning(f"[{self.name}] Missing/invalid verdict for {f.get('file_path', '?')}, inferred as: {verdict}")
+
                     verified = {
                         **f,
-                        "is_verified": f.get("verdict") == "confirmed" or (
-                            f.get("verdict") == "likely" and f.get("confidence", 0) >= 0.8
+                        "verdict": verdict,  # 🔥 Ensure verdict is set
+                        "is_verified": verdict == "confirmed" or (
+                            verdict == "likely" and f.get("confidence", 0) >= 0.8
                         ),
-                        "verified_at": datetime.now(timezone.utc).isoformat() if f.get("verdict") in ["confirmed", "likely"] else None,
+                        "verified_at": datetime.now(timezone.utc).isoformat() if verdict in ["confirmed", "likely"] else None,
                     }
-                    
+
                     # 添加修复建议
                     if not verified.get("recommendation"):
                         verified["recommendation"] = self._get_recommendation(f.get("vulnerability_type", ""))
-                    
+
                     verified_findings.append(verified)
             else:
                 # 如果没有最终结果，使用原始发现

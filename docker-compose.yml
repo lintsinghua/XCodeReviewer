@@ -111,14 +111,13 @@ services:
       - deepaudit-network
 
   # 沙箱镜像构建服务 (漏洞验证必须)
-  # 注意: 此服务仅用于构建镜像，不会持续运行
+  # 注意: 此服务仅用于构建镜像，构建完成后自动退出
   sandbox:
     build:
       context: ./docker/sandbox
       dockerfile: Dockerfile
     image: deepaudit/sandbox:latest
-    profiles:
-      - build-only
+    restart: "no"
     command: echo "Sandbox image built successfully"
 
 networks:
