@@ -22,7 +22,7 @@ services:
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -43,7 +43,7 @@ services:
     volumes:
       - ./backend/app:/app/app:ro  # 挂载代码目录，修改后自动生效
       - backend_uploads:/app/uploads
-      - /var/run/docker.sock:/var/run/docker.sock  # 沙箱执行必须
+      - /var/run/docker.sock:/var/run/docker.sock # 沙箱执行必须
     ports:
       - "8000:8000"
     env_file:
@@ -81,7 +81,9 @@ services:
         - ALL_PROXY=
     restart: unless-stopped
     ports:
-      - "3000:80"  # Nginx 监听 80 端口
+      - "3000:80" # Nginx 监听 80 端口
+    environment:
+      - VITE_API_BASE_URL=/api/v1
     depends_on:
       - backend
     networks:
@@ -100,7 +102,7 @@ services:
     volumes:
       - redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: [ "CMD", "redis-cli", "ping" ]
       interval: 10s
       timeout: 5s
       retries: 5
