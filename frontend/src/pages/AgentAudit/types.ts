@@ -15,7 +15,8 @@ export type LogType =
   | 'info'
   | 'error'
   | 'user'
-  | 'dispatch';
+  | 'dispatch'
+  | 'progress';
 
 export type ToolStatus = 'running' | 'completed' | 'failed';
 
@@ -33,6 +34,7 @@ export interface LogItem {
   };
   severity?: string;
   agentName?: string;
+  progressKey?: string; // 用于标识进度日志的唯一键，如 "index_progress"
 }
 
 // ============ Connection Types ============
@@ -76,6 +78,7 @@ export type AgentAuditAction =
   | { type: 'SET_LOGS'; payload: LogItem[] }
   | { type: 'ADD_LOG'; payload: Omit<LogItem, 'id' | 'time'> & { id?: string } }
   | { type: 'UPDATE_LOG'; payload: { id: string; updates: Partial<LogItem> } }
+  | { type: 'UPDATE_OR_ADD_PROGRESS_LOG'; payload: { progressKey: string; title: string; agentName?: string } }
   | { type: 'COMPLETE_TOOL_LOG'; payload: { toolName: string; output: string; duration: number } }
   | { type: 'REMOVE_LOG'; payload: string }
   | { type: 'SELECT_AGENT'; payload: string | null }

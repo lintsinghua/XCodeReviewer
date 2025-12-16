@@ -317,16 +317,36 @@ function AgentAuditPageContent() {
 
           // 进度事件
           case 'progress':
-            // 进度事件可以选择显示或跳过
+            // 进度事件使用 UPDATE_OR_ADD_PROGRESS_LOG 来更新而不是添加
             if (event.message) {
-              dispatch({
-                type: 'ADD_LOG',
-                payload: {
-                  type: 'info',
-                  title: event.message,
-                  agentName,
-                }
-              });
+              const progressPatterns: { pattern: RegExp; key: string }[] = [
+                { pattern: /索引进度[:：]?\s*\d+\/\d+/, key: 'index_progress' },
+                { pattern: /克隆进度[:：]?\s*\d+%/, key: 'clone_progress' },
+                { pattern: /下载进度[:：]?\s*\d+%/, key: 'download_progress' },
+                { pattern: /上传进度[:：]?\s*\d+%/, key: 'upload_progress' },
+                { pattern: /扫描进度[:：]?\s*\d+/, key: 'scan_progress' },
+                { pattern: /分析进度[:：]?\s*\d+/, key: 'analyze_progress' },
+              ];
+              const matchedProgress = progressPatterns.find(p => p.pattern.test(event.message || ''));
+              if (matchedProgress) {
+                dispatch({
+                  type: 'UPDATE_OR_ADD_PROGRESS_LOG',
+                  payload: {
+                    progressKey: matchedProgress.key,
+                    title: event.message,
+                    agentName,
+                  }
+                });
+              } else {
+                dispatch({
+                  type: 'ADD_LOG',
+                  payload: {
+                    type: 'info',
+                    title: event.message,
+                    agentName,
+                  }
+                });
+              }
               processedCount++;
             }
             break;
@@ -335,17 +355,40 @@ function AgentAuditPageContent() {
           case 'info':
           case 'complete':
           case 'error':
-          case 'warning':
-            dispatch({
-              type: 'ADD_LOG',
-              payload: {
-                type: event.event_type === 'error' ? 'error' : 'info',
-                title: event.message || `${event.event_type}`,
-                agentName,
-              }
-            });
+          case 'warning': {
+            const message = event.message || `${event.event_type}`;
+            // 检测进度类型消息
+            const progressPatterns: { pattern: RegExp; key: string }[] = [
+              { pattern: /索引进度[:：]?\s*\d+\/\d+/, key: 'index_progress' },
+              { pattern: /克隆进度[:：]?\s*\d+%/, key: 'clone_progress' },
+              { pattern: /下载进度[:：]?\s*\d+%/, key: 'download_progress' },
+              { pattern: /上传进度[:：]?\s*\d+%/, key: 'upload_progress' },
+              { pattern: /扫描进度[:：]?\s*\d+/, key: 'scan_progress' },
+              { pattern: /分析进度[:：]?\s*\d+/, key: 'analyze_progress' },
+            ];
+            const matchedProgress = progressPatterns.find(p => p.pattern.test(message));
+            if (matchedProgress) {
+              dispatch({
+                type: 'UPDATE_OR_ADD_PROGRESS_LOG',
+                payload: {
+                  progressKey: matchedProgress.key,
+                  title: message,
+                  agentName,
+                }
+              });
+            } else {
+              dispatch({
+                type: 'ADD_LOG',
+                payload: {
+                  type: event.event_type === 'error' ? 'error' : 'info',
+                  title: message,
+                  agentName,
+                }
+              });
+            }
             processedCount++;
             break;
+          }
 
           // 跳过 thinking_token 等高频事件（它们不会被保存到数据库）
           case 'thinking_token':
@@ -410,14 +453,41 @@ function AgentAuditPageContent() {
       // 🔥 处理 info、warning、error 类型事件（克隆进度、索引进度等）
       const infoEvents = ['info', 'warning', 'error', 'progress'];
       if (infoEvents.includes(event.type)) {
-        dispatch({
-          type: 'ADD_LOG',
-          payload: {
-            type: event.type === 'error' ? 'error' : 'info',
-            title: event.message || event.type,
-            agentName: getCurrentAgentName() || undefined,
-          }
-        });
+        const message = event.message || event.type;
+
+        // 🔥 检测进度类型消息，使用更新而不是添加
+        const progressPatterns: { pattern: RegExp; key: string }[] = [
+          { pattern: /索引进度[:：]?\s*\d+\/\d+/, key: 'index_progress' },
+          { pattern: /克隆进度[:：]?\s*\d+%/, key: 'clone_progress' },
+          { pattern: /下载进度[:：]?\s*\d+%/, key: 'download_progress' },
+          { pattern: /上传进度[:：]?\s*\d+%/, key: 'upload_progress' },
+          { pattern: /扫描进度[:：]?\s*\d+/, key: 'scan_progress' },
+          { pattern: /分析进度[:：]?\s*\d+/, key: 'analyze_progress' },
+        ];
+
+        const matchedProgress = progressPatterns.find(p => p.pattern.test(message));
+
+        if (matchedProgress) {
+          // 使用 UPDATE_OR_ADD_PROGRESS_LOG 来更新进度而不是添加新日志
+          dispatch({
+            type: 'UPDATE_OR_ADD_PROGRESS_LOG',
+            payload: {
+              progressKey: matchedProgress.key,
+              title: message,
+              agentName: getCurrentAgentName() || undefined,
+            }
+          });
+        } else {
+          // 非进度消息正常添加
+          dispatch({
+            type: 'ADD_LOG',
+            payload: {
+              type: event.type === 'error' ? 'error' : 'info',
+              title: message,
+              agentName: getCurrentAgentName() || undefined,
+            }
+          });
+        }
         return;
       }
     },

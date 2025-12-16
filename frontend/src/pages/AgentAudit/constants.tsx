@@ -78,6 +78,11 @@ export const LOG_TYPE_CONFIG: Record<string, {
     borderColor: "border-l-indigo-500",
     bgColor: "bg-indigo-500/10"
   },
+  progress: {
+    icon: React.createElement(Loader2, { className: "w-4 h-4 text-cyan-400 animate-spin" }),
+    borderColor: "border-l-cyan-500",
+    bgColor: "bg-cyan-500/10"
+  },
 };
 
 // ============ Agent Status Configurations ============

@@ -101,6 +101,34 @@ function agentAuditReducer(state: AgentAuditState, action: AgentAuditAction): Ag
       return { ...state, logs: updatedLogs };
     }
 
+    case 'UPDATE_OR_ADD_PROGRESS_LOG': {
+      const { progressKey, title, agentName } = action.payload;
+      // 查找是否已存在相同 progressKey 的进度日志
+      const existingIndex = state.logs.findIndex(
+        log => log.type === 'progress' && log.progressKey === progressKey
+      );
+
+      if (existingIndex >= 0) {
+        // 更新现有日志的 title 和 time
+        const updatedLogs = [...state.logs];
+        updatedLogs[existingIndex] = {
+          ...updatedLogs[existingIndex],
+          title,
+          time: new Date().toLocaleTimeString('en-US', { hour12: false }),
+        };
+        return { ...state, logs: updatedLogs };
+      } else {
+        // 添加新的进度日志
+        const newLog = createLogItem({
+          type: 'progress',
+          title,
+          progressKey,
+          agentName,
+        });
+        return { ...state, logs: [...state.logs, newLog] };
+      }
+    }
+
     case 'SELECT_AGENT':
       return {
         ...state,

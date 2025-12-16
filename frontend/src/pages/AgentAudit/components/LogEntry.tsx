@@ -24,6 +24,7 @@ const LOG_TYPE_LABELS: Record<string, string> = {
   info: 'INFO',
   error: 'ERROR',
   user: 'USER',
+  progress: 'PROGRESS',
 };
 
 // Helper to format title (remove emojis and clean up)
@@ -73,6 +74,7 @@ export const LogEntry = memo(function LogEntry({ item, isExpanded, onToggle }: L
   const isFinding = item.type === 'finding';
   const isError = item.type === 'error';
   const isInfo = item.type === 'info';
+  const isProgress = item.type === 'progress';
   const showContent = isThinking || isExpanded;
   const isCollapsible = !isThinking && item.content;
 
@@ -124,6 +126,7 @@ export const LogEntry = memo(function LogEntry({ item, isExpanded, onToggle }: L
               ${isFinding ? 'bg-rose-500/25 text-rose-300' : ''}
               ${isError ? 'bg-red-500/25 text-red-300' : ''}
               ${isInfo ? 'bg-slate-500/25 text-slate-300' : ''}
+              ${isProgress ? 'bg-cyan-500/25 text-cyan-300' : ''}
               ${item.type === 'dispatch' ? 'bg-sky-500/25 text-sky-300' : ''}
               ${item.type === 'phase' ? 'bg-teal-500/25 text-teal-300' : ''}
               ${item.type === 'user' ? 'bg-indigo-500/25 text-indigo-300' : ''}
