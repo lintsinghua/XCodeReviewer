@@ -80,6 +80,9 @@ services:
         - all_proxy=
         - ALL_PROXY=
     restart: unless-stopped
+    volumes:
+      - ./frontend/dist:/usr/share/nginx/html:ro  # 挂载构建产物，本地 pnpm build 后自动生效
+      - ./frontend/nginx.conf:/etc/nginx/conf.d/default.conf:ro  # 挂载 nginx 配置
     ports:
       - "3000:80"  # Nginx 监听 80 端口
     depends_on:

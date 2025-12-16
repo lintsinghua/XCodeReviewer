@@ -92,7 +92,7 @@ class CodeChunk:
             return len(self.content) // 4
     
     def to_dict(self) -> Dict[str, Any]:
-        return {
+        result = {
             "id": self.id,
             "content": self.content,
             "file_path": self.file_path,
@@ -110,8 +110,13 @@ class CodeChunk:
             "definitions": self.definitions,
             "security_indicators": self.security_indicators,
             "estimated_tokens": self.estimated_tokens,
-            "metadata": self.metadata,
         }
+        # 将 metadata 中的字段提升到顶级，确保 file_hash 等字段可以被正确检索
+        if self.metadata:
+            for key, value in self.metadata.items():
+                if key not in result:
+                    result[key] = value
+        return result
     
     def to_embedding_text(self) -> str:
         """生成用于嵌入的文本"""
@@ -244,20 +249,29 @@ class TreeSitterParser:
         """从 AST 提取定义"""
         if tree is None:
             return []
-        
+
         definitions = []
         definition_types = self.DEFINITION_TYPES.get(language, {})
-        
+
         def traverse(node, parent_name=None):
             node_type = node.type
-            
+
             # 检查是否是定义节点
+            matched = False
             for def_category, types in definition_types.items():
                 if node_type in types:
                     name = self._extract_name(node, language)
-                    
+
+                    # 根据是否有 parent_name 来区分 function 和 method
+                    actual_category = def_category
+                    if def_category == "function" and parent_name:
+                        actual_category = "method"
+                    elif def_category == "method" and not parent_name:
+                        # 跳过没有 parent 的 method 定义（由 function 类别处理）
+                        continue
+
                     definitions.append({
-                        "type": def_category,
+                        "type": actual_category,
                         "name": name,
                         "parent_name": parent_name,
                         "start_point": node.start_point,
@@ -266,17 +280,23 @@ class TreeSitterParser:
                         "end_byte": node.end_byte,
                         "node_type": node_type,
                     })
-                    
+
+                    matched = True
+
                     # 对于类，继续遍历子节点找方法
                     if def_category == "class":
                         for child in node.children:
                             traverse(child, name)
                         return
-            
-            # 继续遍历子节点
-            for child in node.children:
-                traverse(child, parent_name)
-        
+
+                    # 匹配到一个类别后就不再匹配其他类别
+                    break
+
+            # 如果没有匹配到定义，继续遍历子节点
+            if not matched:
+                for child in node.children:
+                    traverse(child, parent_name)
+
         traverse(tree.root_node)
         return definitions
     

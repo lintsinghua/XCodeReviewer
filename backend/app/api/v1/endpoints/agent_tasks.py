@@ -1583,18 +1583,28 @@ async def cancel_agent_task(
     if runner:
         runner.cancel()
         logger.info(f"[Cancel] Set cancel flag for task {task_id}")
-    
-    # 🔥 2. 强制取消 asyncio Task（立即中断 LLM 调用）
+
+    # 🔥 2. 通过 agent_registry 取消所有子 Agent
+    from app.services.agent.core import agent_registry
+    from app.services.agent.core.graph_controller import stop_all_agents
+    try:
+        # 停止所有 Agent（包括子 Agent）
+        stop_result = stop_all_agents(exclude_root=False)
+        logger.info(f"[Cancel] Stopped all agents: {stop_result}")
+    except Exception as e:
+        logger.warning(f"[Cancel] Failed to stop agents via registry: {e}")
+
+    # 🔥 3. 强制取消 asyncio Task（立即中断 LLM 调用）
     asyncio_task = _running_asyncio_tasks.get(task_id)
     if asyncio_task and not asyncio_task.done():
         asyncio_task.cancel()
         logger.info(f"[Cancel] Cancelled asyncio task for {task_id}")
-    
+
     # 更新状态
     task.status = AgentTaskStatus.CANCELLED
     task.completed_at = datetime.now(timezone.utc)
     await db.commit()
-    
+
     logger.info(f"[Cancel] Task {task_id} cancelled successfully")
     return {"message": "任务已取消", "task_id": task_id}
 

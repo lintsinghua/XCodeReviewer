@@ -992,6 +992,8 @@ class CodeIndexer:
         indexed_file_hashes = await self.vector_store.get_file_hashes()
         indexed_files = set(indexed_file_hashes.keys())
 
+        logger.debug(f"📂 已索引文件数: {len(indexed_files)}, file_hashes: {list(indexed_file_hashes.keys())[:5]}...")
+
         # 收集当前文件
         current_files = self._collect_files(directory, exclude_patterns, include_patterns)
         current_file_map: Dict[str, str] = {}  # relative_path -> absolute_path
@@ -1002,10 +1004,14 @@ class CodeIndexer:
 
         current_file_set = set(current_file_map.keys())
 
+        logger.debug(f"📁 当前文件数: {len(current_file_set)}, 示例: {list(current_file_set)[:5]}...")
+
         # 计算差异
         files_to_add = current_file_set - indexed_files
         files_to_delete = indexed_files - current_file_set
         files_to_check = current_file_set & indexed_files
+
+        logger.debug(f"📊 差异分析: 交集={len(files_to_check)}, 新增候选={len(files_to_add)}, 删除候选={len(files_to_delete)}")
 
         # 检查需要更新的文件（hash 变化）
         files_to_update: Set[str] = set()

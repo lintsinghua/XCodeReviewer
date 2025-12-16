@@ -11,6 +11,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm.attributes import flag_modified
 
 from app.api import deps
 from app.models.user import User
@@ -46,10 +47,10 @@ class EmbeddingConfigResponse(BaseModel):
     """配置响应"""
     provider: str
     model: str
+    api_key: Optional[str] = None  # 返回 API Key
     base_url: Optional[str]
     dimensions: int
     batch_size: int
-    # 不返回 API Key
 
 
 class TestEmbeddingRequest(BaseModel):
@@ -165,14 +166,14 @@ async def get_embedding_config_from_db(db: AsyncSession, user_id: str) -> Embedd
         select(UserConfig).where(UserConfig.user_id == user_id)
     )
     user_config = result.scalar_one_or_none()
-    
+
     if user_config and user_config.other_config:
         try:
             other_config = json.loads(user_config.other_config) if isinstance(user_config.other_config, str) else user_config.other_config
             embedding_data = other_config.get(EMBEDDING_CONFIG_KEY)
-            
+
             if embedding_data:
-                return EmbeddingConfig(
+                config = EmbeddingConfig(
                     provider=embedding_data.get("provider", settings.EMBEDDING_PROVIDER),
                     model=embedding_data.get("model", settings.EMBEDDING_MODEL),
                     api_key=embedding_data.get("api_key"),
@@ -180,10 +181,13 @@ async def get_embedding_config_from_db(db: AsyncSession, user_id: str) -> Embedd
                     dimensions=embedding_data.get("dimensions"),
                     batch_size=embedding_data.get("batch_size", 100),
                 )
-        except (json.JSONDecodeError, AttributeError):
-            pass
-    
+                print(f"[EmbeddingConfig] 读取用户 {user_id} 的嵌入配置: provider={config.provider}, model={config.model}")
+                return config
+        except (json.JSONDecodeError, AttributeError) as e:
+            print(f"[EmbeddingConfig] 解析用户 {user_id} 配置失败: {e}")
+
     # 返回默认配置
+    print(f"[EmbeddingConfig] 用户 {user_id} 无保存配置，返回默认值")
     return EmbeddingConfig(
         provider=settings.EMBEDDING_PROVIDER,
         model=settings.EMBEDDING_MODEL,
@@ -199,7 +203,7 @@ async def save_embedding_config_to_db(db: AsyncSession, user_id: str, config: Em
         select(UserConfig).where(UserConfig.user_id == user_id)
     )
     user_config = result.scalar_one_or_none()
-    
+
     # 准备嵌入配置数据
     embedding_data = {
         "provider": config.provider,
@@ -209,16 +213,18 @@ async def save_embedding_config_to_db(db: AsyncSession, user_id: str, config: Em
         "dimensions": config.dimensions,
         "batch_size": config.batch_size,
     }
-    
+
     if user_config:
         # 更新现有配置
         try:
             other_config = json.loads(user_config.other_config) if user_config.other_config else {}
         except (json.JSONDecodeError, TypeError):
             other_config = {}
-        
+
         other_config[EMBEDDING_CONFIG_KEY] = embedding_data
         user_config.other_config = json.dumps(other_config)
+        # 🔥 显式标记 other_config 字段已修改，确保 SQLAlchemy 检测到变化
+        flag_modified(user_config, "other_config")
     else:
         # 创建新配置
         user_config = UserConfig(
@@ -228,8 +234,9 @@ async def save_embedding_config_to_db(db: AsyncSession, user_id: str, config: Em
             other_config=json.dumps({EMBEDDING_CONFIG_KEY: embedding_data}),
         )
         db.add(user_config)
-    
+
     await db.commit()
+    print(f"[EmbeddingConfig] 已保存用户 {user_id} 的嵌入配置: provider={config.provider}, model={config.model}")
 
 
 # ============ API Endpoints ============
@@ -253,13 +260,14 @@ async def get_current_config(
     获取当前嵌入模型配置（从数据库读取）
     """
     config = await get_embedding_config_from_db(db, current_user.id)
-    
+
     # 获取维度
     dimensions = _get_model_dimensions(config.provider, config.model)
-    
+
     return EmbeddingConfigResponse(
         provider=config.provider,
         model=config.model,
+        api_key=config.api_key,
         base_url=config.base_url,
         dimensions=dimensions,
         batch_size=config.batch_size,
@@ -279,19 +287,18 @@ async def update_config(
     provider_ids = [p.id for p in EMBEDDING_PROVIDERS]
     if config.provider not in provider_ids:
         raise HTTPException(status_code=400, detail=f"不支持的提供商: {config.provider}")
-    
-    # 验证模型
+
+    # 获取提供商信息（用于检查 API Key 要求）
     provider = next((p for p in EMBEDDING_PROVIDERS if p.id == config.provider), None)
-    if provider and config.model not in provider.models:
-        raise HTTPException(status_code=400, detail=f"不支持的模型: {config.model}")
-    
+    # 注意：不再强制验证模型名称，允许用户输入自定义模型
+
     # 检查 API Key
     if provider and provider.requires_api_key and not config.api_key:
         raise HTTPException(status_code=400, detail=f"{config.provider} 需要 API Key")
-    
+
     # 保存到数据库
     await save_embedding_config_to_db(db, current_user.id, config)
-    
+
     return {"message": "配置已保存", "provider": config.provider, "model": config.model}
 
 

@@ -667,7 +667,8 @@ Action Input: {{"参数": "值"}}
                 try:
                     while not run_task.done():
                         if self.is_cancelled:
-                            # 传播取消到子 Agent
+                            # 🔥 传播取消到子 Agent
+                            logger.info(f"[{self.name}] Cancelling sub-agent {agent_name} due to parent cancel")
                             if hasattr(agent, 'cancel'):
                                 agent.cancel()
                             run_task.cancel()
@@ -678,17 +679,32 @@ Action Input: {{"参数": "值"}}
                             raise asyncio.CancelledError("任务已取消")
 
                         try:
+                            # 🔥 移除 asyncio.shield()，让取消信号可以直接传播
+                            # 使用较短的超时来更频繁地检查取消状态
                             return await asyncio.wait_for(
-                                asyncio.shield(run_task),
-                                timeout=1.0  # 每秒检查一次取消状态
+                                run_task,
+                                timeout=0.5  # 🔥 每0.5秒检查一次取消状态
                             )
                         except asyncio.TimeoutError:
                             continue
+                        except asyncio.CancelledError:
+                            # 🔥 捕获取消异常，确保子Agent也被取消
+                            logger.info(f"[{self.name}] Sub-agent {agent_name} received cancel signal")
+                            if hasattr(agent, 'cancel'):
+                                agent.cancel()
+                            raise
 
                     return await run_task
                 except asyncio.CancelledError:
+                    # 🔥 确保子任务被取消
                     if not run_task.done():
+                        if hasattr(agent, 'cancel'):
+                            agent.cancel()
                         run_task.cancel()
+                        try:
+                            await run_task
+                        except asyncio.CancelledError:
+                            pass
                     raise
 
             try:
