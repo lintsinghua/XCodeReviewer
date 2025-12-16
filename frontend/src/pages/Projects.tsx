@@ -1018,6 +1018,7 @@ export default function Projects() {
                       <SelectContent className="bg-[#0c0c12] border-gray-700">
                         <SelectItem value="github">GITHUB</SelectItem>
                         <SelectItem value="gitlab">GITLAB</SelectItem>
+                        <SelectItem value="gitea">GITEA</SelectItem>
                         <SelectItem value="other">OTHER</SelectItem>
                       </SelectContent>
                     </Select>
