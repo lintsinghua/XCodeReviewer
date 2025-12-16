@@ -187,3 +187,4 @@ examples/
 # ChromaDB data
 chroma/
 
+backend/data/vector_db/
