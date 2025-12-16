@@ -3,7 +3,7 @@
 # =============================================
 # 使用 Nginx 提供静态文件和反向代理 (支持 SSE 流式传输)
 
-FROM node:20-alpine AS builder
+FROM node:20-slim AS builder
 
 WORKDIR /app
 
