@@ -32,6 +32,13 @@ services:
   backend:
     build:
       context: ./backend
+      args:
+        - http_proxy=
+        - https_proxy=
+        - HTTP_PROXY=
+        - HTTPS_PROXY=
+        - all_proxy=
+        - ALL_PROXY=
     restart: unless-stopped
     volumes:
       - backend_uploads:/app/uploads
@@ -63,6 +70,13 @@ services:
   frontend:
     build:
       context: ./frontend
+      args:
+        - http_proxy=
+        - https_proxy=
+        - HTTP_PROXY=
+        - HTTPS_PROXY=
+        - all_proxy=
+        - ALL_PROXY=
     restart: unless-stopped
     ports:
       - "3000:80"  # Nginx 监听 80 端口

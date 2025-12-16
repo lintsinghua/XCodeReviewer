@@ -293,19 +293,56 @@ async def scan_repo_task(task_id: str, db_session_factory, user_config: dict = N
             user_other_config = (user_config or {}).get('otherConfig', {})
             github_token = user_other_config.get('githubToken') or settings.GITHUB_TOKEN
             gitlab_token = user_other_config.get('gitlabToken') or settings.GITLAB_TOKEN
-            
+
             files: List[Dict[str, str]] = []
             extracted_gitlab_token = None
-            
-            if repo_type == "github":
-                files = await get_github_files(repo_url, branch, github_token, task_exclude_patterns)
-            elif repo_type == "gitlab":
-                files = await get_gitlab_files(repo_url, branch, gitlab_token, task_exclude_patterns)
-                # GitLab文件可能带有token
-                if files and 'token' in files[0]:
-                    extracted_gitlab_token = files[0].get('token')
-            else:
-                raise Exception("不支持的仓库类型，仅支持 GitHub 和 GitLab 仓库")
+
+            # 构建分支尝试顺序（分支降级机制）
+            branches_to_try = [branch]
+            if project.default_branch and project.default_branch != branch:
+                branches_to_try.append(project.default_branch)
+            for common_branch in ["main", "master"]:
+                if common_branch not in branches_to_try:
+                    branches_to_try.append(common_branch)
+
+            actual_branch = branch  # 实际使用的分支
+            last_error = None
+
+            for try_branch in branches_to_try:
+                try:
+                    print(f"🔄 尝试获取分支 {try_branch} 的文件列表...")
+                    if repo_type == "github":
+                        files = await get_github_files(repo_url, try_branch, github_token, task_exclude_patterns)
+                    elif repo_type == "gitlab":
+                        files = await get_gitlab_files(repo_url, try_branch, gitlab_token, task_exclude_patterns)
+                        # GitLab文件可能带有token
+                        if files and 'token' in files[0]:
+                            extracted_gitlab_token = files[0].get('token')
+                    else:
+                        raise Exception("不支持的仓库类型，仅支持 GitHub 和 GitLab 仓库")
+
+                    if files:
+                        actual_branch = try_branch
+                        if try_branch != branch:
+                            print(f"⚠️ 分支 {branch} 不存在或无法访问，已降级到分支 {try_branch}")
+                        break
+                except Exception as e:
+                    last_error = str(e)
+                    print(f"⚠️ 获取分支 {try_branch} 失败: {last_error[:100]}")
+                    continue
+
+            if not files:
+                error_msg = f"无法获取仓库文件，所有分支尝试均失败"
+                if last_error:
+                    if "404" in last_error or "Not Found" in last_error:
+                        error_msg = f"仓库或分支不存在: {branch}"
+                    elif "401" in last_error or "403" in last_error:
+                        error_msg = "无访问权限，请检查 Token 配置"
+                    else:
+                        error_msg = f"获取文件失败: {last_error[:100]}"
+                raise Exception(error_msg)
+
+            print(f"✅ 成功获取分支 {actual_branch} 的文件列表")
 
             # 限制文件数量
             # 如果指定了特定文件，则只分析这些文件

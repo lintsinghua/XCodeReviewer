@@ -261,12 +261,23 @@ async def _execute_agent_task(task_id: str):
             if not project:
                 logger.error(f"Project not found for task {task_id}")
                 return
-            
-            # 获取项目根目录
-            project_root = await _get_project_root(project, task_id)
-            
-            # 获取用户配置
+
+            # 获取用户配置（需要在获取项目根目录之前，以便传递 token）
             user_config = await _get_user_config(db, task.created_by)
+
+            # 从用户配置中提取 token（用于私有仓库克隆）
+            other_config = (user_config or {}).get('otherConfig', {})
+            github_token = other_config.get('githubToken') or settings.GITHUB_TOKEN
+            gitlab_token = other_config.get('gitlabToken') or settings.GITLAB_TOKEN
+
+            # 获取项目根目录（传递任务指定的分支和认证 token）
+            project_root = await _get_project_root(
+                project,
+                task_id,
+                task.branch_name,
+                github_token=github_token,
+                gitlab_token=gitlab_token,
+            )
             
             # 更新状态为运行中
             task.status = AgentTaskStatus.RUNNING
@@ -1164,6 +1175,7 @@ async def create_agent_task(
         current_phase=AgentTaskPhase.PLANNING,
         target_vulnerabilities=request.target_vulnerabilities,
         verification_level=request.verification_level or "sandbox",
+        branch_name=request.branch_name,  # 保存用户选择的分支
         exclude_patterns=request.exclude_patterns,
         target_files=request.target_files,
         max_iterations=request.max_iterations or 50,
@@ -1835,29 +1847,52 @@ async def update_finding_status(
 
 # ============ Helper Functions ============
 
-async def _get_project_root(project: Project, task_id: str) -> str:
+async def _get_project_root(
+    project: Project,
+    task_id: str,
+    branch_name: Optional[str] = None,
+    github_token: Optional[str] = None,
+    gitlab_token: Optional[str] = None,
+) -> str:
     """
     获取项目根目录
-    
+
     支持两种项目类型：
     - ZIP 项目：解压 ZIP 文件到临时目录
     - 仓库项目：克隆仓库到临时目录
+
+    Args:
+        project: 项目对象
+        task_id: 任务ID
+        branch_name: 分支名称（仓库项目使用，优先于 project.default_branch）
+        github_token: GitHub 访问令牌（用于私有仓库）
+        gitlab_token: GitLab 访问令牌（用于私有仓库）
+
+    Returns:
+        项目根目录路径
+
+    Raises:
+        RuntimeError: 当项目文件获取失败时
     """
     import zipfile
     import subprocess
-    
+    import shutil
+    from urllib.parse import urlparse, urlunparse
+
     base_path = f"/tmp/deepaudit/{task_id}"
-    
-    # 确保目录存在
+
+    # 确保目录存在且为空
+    if os.path.exists(base_path):
+        shutil.rmtree(base_path)
     os.makedirs(base_path, exist_ok=True)
-    
+
     # 根据项目类型处理
     if project.source_type == "zip":
         # 🔥 ZIP 项目：解压 ZIP 文件
         from app.services.zip_storage import load_project_zip
-        
+
         zip_path = await load_project_zip(project.id)
-        
+
         if zip_path and os.path.exists(zip_path):
             try:
                 with zipfile.ZipFile(zip_path, 'r') as zip_ref:
@@ -1865,44 +1900,141 @@ async def _get_project_root(project: Project, task_id: str) -> str:
                 logger.info(f"✅ Extracted ZIP project {project.id} to {base_path}")
             except Exception as e:
                 logger.error(f"Failed to extract ZIP {zip_path}: {e}")
+                raise RuntimeError(f"无法解压项目文件: {e}")
         else:
             logger.warning(f"⚠️ ZIP file not found for project {project.id}")
-    
+            raise RuntimeError(f"项目 ZIP 文件不存在: {project.id}")
+
     elif project.source_type == "repository" and project.repository_url:
         # 🔥 仓库项目：克隆仓库
+        repo_url = project.repository_url
+        repo_type = project.repository_type or "other"
+
+        # 检查 git 是否可用（使用 git --version 更可靠）
         try:
-            branch = project.default_branch or "main"
-            repo_url = project.repository_url
-            
-            # 克隆仓库
-            result = subprocess.run(
-                ["git", "clone", "--depth", "1", "--branch", branch, repo_url, base_path],
+            git_check = subprocess.run(
+                ["git", "--version"],
                 capture_output=True,
                 text=True,
-                timeout=300,
+                timeout=10
             )
-            
-            if result.returncode == 0:
-                logger.info(f"✅ Cloned repository {repo_url} (branch: {branch}) to {base_path}")
-            else:
-                logger.warning(f"Failed to clone branch {branch}, trying default branch: {result.stderr}")
-                # 如果克隆失败，尝试使用默认分支
-                if branch != "main":
-                    result = subprocess.run(
-                        ["git", "clone", "--depth", "1", repo_url, base_path],
-                        capture_output=True,
-                        text=True,
-                        timeout=300,
-                    )
-                    if result.returncode == 0:
-                        logger.info(f"✅ Cloned repository {repo_url} (default branch) to {base_path}")
-                    else:
-                        logger.error(f"Failed to clone repository: {result.stderr}")
+            if git_check.returncode != 0:
+                raise RuntimeError("Git 未安装，无法克隆仓库。请在 Docker 容器中安装 git。")
+            logger.debug(f"Git version: {git_check.stdout.strip()}")
+        except FileNotFoundError:
+            raise RuntimeError("Git 未安装，无法克隆仓库。请在 Docker 容器中安装 git。")
         except subprocess.TimeoutExpired:
-            logger.error(f"Git clone timeout for {project.repository_url}")
-        except Exception as e:
-            logger.error(f"Failed to clone repository {project.repository_url}: {e}")
-    
+            raise RuntimeError("Git 检测超时")
+
+        # 构建带认证的 URL（用于私有仓库）
+        auth_url = repo_url
+        if repo_type == "github" and github_token:
+            parsed = urlparse(repo_url)
+            auth_url = urlunparse((
+                parsed.scheme,
+                f"{github_token}@{parsed.netloc}",
+                parsed.path,
+                parsed.params,
+                parsed.query,
+                parsed.fragment
+            ))
+            logger.info(f"🔐 Using GitHub token for authentication")
+        elif repo_type == "gitlab" and gitlab_token:
+            parsed = urlparse(repo_url)
+            auth_url = urlunparse((
+                parsed.scheme,
+                f"oauth2:{gitlab_token}@{parsed.netloc}",
+                parsed.path,
+                parsed.params,
+                parsed.query,
+                parsed.fragment
+            ))
+            logger.info(f"🔐 Using GitLab token for authentication")
+
+        # 构建分支尝试顺序
+        branches_to_try = []
+        if branch_name:
+            branches_to_try.append(branch_name)
+        if project.default_branch and project.default_branch not in branches_to_try:
+            branches_to_try.append(project.default_branch)
+        # 添加常见默认分支
+        for common_branch in ["main", "master"]:
+            if common_branch not in branches_to_try:
+                branches_to_try.append(common_branch)
+
+        clone_success = False
+        last_error = ""
+
+        for branch in branches_to_try:
+            # 清理目录（如果之前尝试失败）
+            if os.path.exists(base_path) and os.listdir(base_path):
+                shutil.rmtree(base_path)
+                os.makedirs(base_path, exist_ok=True)
+
+            logger.info(f"🔄 Trying to clone repository (branch: {branch})...")
+            try:
+                result = subprocess.run(
+                    ["git", "clone", "--depth", "1", "--branch", branch, auth_url, base_path],
+                    capture_output=True,
+                    text=True,
+                    timeout=120,  # 缩短超时时间
+                )
+
+                if result.returncode == 0:
+                    logger.info(f"✅ Cloned repository {repo_url} (branch: {branch}) to {base_path}")
+                    clone_success = True
+                    break
+                else:
+                    last_error = result.stderr
+                    logger.warning(f"Failed to clone branch {branch}: {last_error[:200]}")
+            except subprocess.TimeoutExpired:
+                last_error = f"克隆分支 {branch} 超时"
+                logger.warning(last_error)
+
+        # 如果所有分支都失败，尝试不指定分支克隆（使用仓库默认分支）
+        if not clone_success:
+            logger.info(f"🔄 Trying to clone without specifying branch...")
+            if os.path.exists(base_path) and os.listdir(base_path):
+                shutil.rmtree(base_path)
+                os.makedirs(base_path, exist_ok=True)
+
+            try:
+                result = subprocess.run(
+                    ["git", "clone", "--depth", "1", auth_url, base_path],
+                    capture_output=True,
+                    text=True,
+                    timeout=120,
+                )
+
+                if result.returncode == 0:
+                    logger.info(f"✅ Cloned repository {repo_url} (default branch) to {base_path}")
+                    clone_success = True
+                else:
+                    last_error = result.stderr
+            except subprocess.TimeoutExpired:
+                last_error = "克隆仓库超时"
+
+        if not clone_success:
+            # 分析错误原因
+            error_msg = "克隆仓库失败"
+            if "Authentication failed" in last_error or "401" in last_error:
+                error_msg = "认证失败，请检查 GitHub/GitLab Token 配置"
+            elif "not found" in last_error.lower() or "404" in last_error:
+                error_msg = "仓库不存在或无访问权限"
+            elif "Could not resolve host" in last_error:
+                error_msg = "无法解析主机名，请检查网络连接"
+            elif "Permission denied" in last_error or "403" in last_error:
+                error_msg = "无访问权限，请检查仓库权限或 Token"
+            else:
+                error_msg = f"克隆仓库失败: {last_error[:200]}"
+
+            logger.error(f"❌ {error_msg}")
+            raise RuntimeError(error_msg)
+
+    # 验证目录不为空
+    if not os.listdir(base_path):
+        raise RuntimeError(f"项目目录为空，可能是克隆/解压失败: {base_path}")
+
     return base_path
 
 

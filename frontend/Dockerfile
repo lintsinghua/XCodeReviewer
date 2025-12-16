@@ -7,20 +7,25 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# 清除代理设置
-ENV http_proxy=
-ENV https_proxy=
-ENV HTTP_PROXY=
-ENV HTTPS_PROXY=
+# 彻底清除代理设置
+ENV http_proxy=""
+ENV https_proxy=""
+ENV HTTP_PROXY=""
+ENV HTTPS_PROXY=""
+ENV all_proxy=""
+ENV ALL_PROXY=""
+ENV no_proxy="*"
+ENV NO_PROXY="*"
 
-RUN unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY all_proxy ALL_PROXY && \
-    npm install -g pnpm
+# 配置国内 npm 镜像源
+RUN npm config set registry https://registry.npmmirror.com && \
+    npm install -g pnpm && \
+    pnpm config set registry https://registry.npmmirror.com
 
 # 复制依赖文件
 COPY package.json pnpm-lock.yaml ./
 
-RUN unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY all_proxy ALL_PROXY && \
-    pnpm install --no-frozen-lockfile
+RUN pnpm install --no-frozen-lockfile
 
 # 复制源代码
 COPY . .
