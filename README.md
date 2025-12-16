@@ -167,7 +167,7 @@ DeepAudit/
 ```bash
 # 设置你的 LLM API Key，然后一键部署
 LLM_API_KEY=your-api-key-here \
-curl -fsSL https://raw.githubusercontent.com/lintsinghua/DeepAudit/main/docker-compose.prod.yml | docker compose -f - up -d
+curl -fsSL https://raw.githubusercontent.com/lintsinghua/DeepAudit/v3.0.0/docker-compose.prod.yml | docker compose -f - up -d
 ```
 
 > 🎉 **启动成功！** 访问 http://localhost:3000 开始体验。
