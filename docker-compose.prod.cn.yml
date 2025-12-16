@@ -1,8 +1,12 @@
 # =============================================
-# DeepAudit v3.0.0 生产环境一键部署配置
+# DeepAudit v3.0.0 生产环境一键部署配置（国内加速版）
 # =============================================
-# 使用预构建的 GHCR 镜像，无需本地构建
-# 部署命令: curl -fsSL https://raw.githubusercontent.com/lintsinghua/DeepAudit/main/docker-compose.prod.yml | docker compose -f - up -d
+# 使用南京大学镜像站加速拉取 GHCR 镜像
+# 部署命令: curl -fsSL https://raw.githubusercontent.com/lintsinghua/DeepAudit/main/docker-compose.prod.cn.yml | docker compose -f - up -d
+# 
+# 镜像加速说明：
+# - 原始地址：ghcr.io
+# - 加速地址：ghcr.nju.edu.cn（南京大学开源镜像站）
 
 services:
   db:
@@ -36,7 +40,7 @@ services:
       - deepaudit-network
 
   backend:
-    image: ghcr.io/lintsinghua/deepaudit-backend:latest
+    image: ghcr.nju.edu.cn/lintsinghua/deepaudit-backend:latest
     restart: unless-stopped
     volumes:
       - backend_uploads:/app/uploads
@@ -48,7 +52,7 @@ services:
       - REDIS_URL=redis://redis:6379/0
       - AGENT_ENABLED=true
       - SANDBOX_ENABLED=true
-      - SANDBOX_IMAGE=ghcr.io/lintsinghua/deepaudit-sandbox:latest
+      - SANDBOX_IMAGE=ghcr.nju.edu.cn/lintsinghua/deepaudit-sandbox:latest
       # LLM 配置 - 请根据需要修改
       - LLM_PROVIDER=${LLM_PROVIDER:-openai}
       - LLM_MODEL=${LLM_MODEL:-gpt-4o}
@@ -70,7 +74,7 @@ services:
 
   # 数据库迁移服务 - 在后端启动前自动执行
   db-migrate:
-    image: ghcr.io/lintsinghua/deepaudit-backend:latest
+    image: ghcr.nju.edu.cn/lintsinghua/deepaudit-backend:latest
     restart: "no"
     environment:
       - DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/deepaudit
@@ -82,7 +86,7 @@ services:
       - deepaudit-network
 
   frontend:
-    image: ghcr.io/lintsinghua/deepaudit-frontend:latest
+    image: ghcr.nju.edu.cn/lintsinghua/deepaudit-frontend:latest
     restart: unless-stopped
     ports:
       - "3000:80"
@@ -93,7 +97,7 @@ services:
 
   # 预拉取沙箱镜像（后端会按需调用）
   sandbox-pull:
-    image: ghcr.io/lintsinghua/deepaudit-sandbox:latest
+    image: ghcr.nju.edu.cn/lintsinghua/deepaudit-sandbox:latest
     restart: "no"
     command: echo "Sandbox image ready"
 
