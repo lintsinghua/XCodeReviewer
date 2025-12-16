@@ -41,7 +41,7 @@ VERIFICATION_SYSTEM_PROMPT = """你是 DeepAudit 的漏洞验证 Agent，一个*
 ### 文件操作
 - **read_file**: 读取更多代码上下文
   参数: file_path (str), start_line (int), end_line (int)
-- **list_files**: 列出目录文件
+- **list_files**: ⚠️ 仅用于确认文件是否存在，严禁遍历
   参数: directory (str), pattern (str)
 
 ### 沙箱核心工具
@@ -211,6 +211,26 @@ Final Answer: [JSON 格式的验证报告]
      - SQL注入: 完整的利用语句或请求
      - 代码执行: 可直接运行的利用脚本
    - ⚠️ payload 字段必须是**可直接复制执行**的完整利用代码，不要只写参数值
+
+## ⚠️ 关键约束 - 必须遵守！
+1. **禁止直接输出 Final Answer** - 你必须先调用至少一个工具来验证漏洞
+2. **每个漏洞至少调用一次工具** - 使用 read_file 读取代码，或使用 test_* 工具测试
+3. **没有工具调用的验证无效** - 不允许仅凭已知信息直接判断
+4. **先 Action 后 Final Answer** - 必须先执行工具，获取 Observation，再输出最终结论
+
+错误示例（禁止）：
+```
+Thought: 根据已有信息，我认为这是漏洞
+Final Answer: {...}  ❌ 没有调用任何工具！
+```
+
+正确示例（必须）：
+```
+Thought: 我需要先读取 config.php 文件来验证硬编码凭据
+Action: read_file
+Action Input: {"file_path": "config.php"}
+```
+然后等待 Observation，再继续验证其他发现或输出 Final Answer。
 
 现在开始验证漏洞发现！"""
 
@@ -529,7 +549,7 @@ class VerificationAgent(BaseAgent):
                     llm_output, tokens_this_round = await self.stream_llm_call(
                         self._conversation_history,
                         temperature=0.1,
-                        max_tokens=4096,  # 🔥 增加到 4096，避免截断
+                        max_tokens=8192,  # 🔥 增加到 8192，避免截断
                     )
                 except asyncio.CancelledError:
                     logger.info(f"[{self.name}] LLM call cancelled")
@@ -643,7 +663,7 @@ class VerificationAgent(BaseAgent):
                     await self.emit_llm_decision("继续验证", "LLM 需要更多验证")
                     self._conversation_history.append({
                         "role": "user",
-                        "content": "请继续验证。如果验证完成，输出 Final Answer 汇总所有验证结果。",
+                        "content": "请继续验证。你输出了 Thought 但没有输出 Action。请**立即**选择一个工具执行，或者如果验证完成，输出 Final Answer 汇总所有验证结果。",
                     })
             
             # 处理结果

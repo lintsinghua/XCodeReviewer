@@ -242,7 +242,7 @@ class OrchestratorAgent(BaseAgent):
                     llm_output, tokens_this_round = await self.stream_llm_call(
                         self._conversation_history,
                         temperature=0.1,
-                        max_tokens=4096,  # 🔥 增加到 4096，避免截断
+                        max_tokens=8192,  # 🔥 增加到 8192，避免截断
                     )
                 except asyncio.CancelledError:
                     logger.info(f"[{self.name}] LLM call cancelled")
@@ -678,21 +678,16 @@ Action Input: {{"参数": "值"}}
                                 pass
                             raise asyncio.CancelledError("任务已取消")
 
-                        try:
-                            # 🔥 移除 asyncio.shield()，让取消信号可以直接传播
-                            # 使用较短的超时来更频繁地检查取消状态
-                            return await asyncio.wait_for(
-                                run_task,
-                                timeout=0.5  # 🔥 每0.5秒检查一次取消状态
-                            )
-                        except asyncio.TimeoutError:
-                            continue
-                        except asyncio.CancelledError:
-                            # 🔥 捕获取消异常，确保子Agent也被取消
-                            logger.info(f"[{self.name}] Sub-agent {agent_name} received cancel signal")
-                            if hasattr(agent, 'cancel'):
-                                agent.cancel()
-                            raise
+                        # Use asyncio.wait to poll without cancelling the task
+                        done, pending = await asyncio.wait(
+                            [run_task], 
+                            timeout=0.5,
+                            return_when=asyncio.FIRST_COMPLETED
+                        )
+                        if run_task in done:
+                            return run_task.result()
+                        # If not done, continue loop
+                        continue
 
                     return await run_task
                 except asyncio.CancelledError:

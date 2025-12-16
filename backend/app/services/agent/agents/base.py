@@ -51,7 +51,7 @@ class AgentConfig:
     # LLM 配置
     model: Optional[str] = None
     temperature: float = 0.1
-    max_tokens: int = 4096
+    max_tokens: int = 8192
     
     # 执行限制
     max_iterations: int = 20

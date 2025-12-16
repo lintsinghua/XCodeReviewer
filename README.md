@@ -158,47 +158,89 @@ DeepAudit/
 
 ---
 
-## 🚀 快速开始 (Docker)
+## 🚀 快速开始
 
-### 1. 启动项目
+### 方式一：一行命令部署（推荐）
 
-复制一份 `backend/env.example` 为 `backend/.env`，并按需配置 LLM API Key。
-然后执行以下命令一键启动：
+使用预构建的 Docker 镜像，无需克隆代码，一行命令即可启动：
 
 ```bash
-# 1. 准备配置文件
-cp backend/env.example backend/.env
-
-# 2. 构建沙箱镜像 (首次运行必须)
-cd docker/sandbox && chmod +x build.sh && ./build.sh && cd ../..
-
-# 3. 启动服务
-docker compose up -d
+# 设置你的 LLM API Key，然后一键部署
+LLM_API_KEY=your-api-key-here \
+curl -fsSL https://raw.githubusercontent.com/lintsinghua/DeepAudit/main/docker-compose.prod.yml | docker compose -f - up -d
 ```
 
 > 🎉 **启动成功！** 访问 http://localhost:3000 开始体验。
 
+<details>
+<summary>💡 配置说明（点击展开）</summary>
+
+**环境变量配置：**
+
+| 变量 | 说明 | 默认值 |
+|------|------|--------|
+| `LLM_API_KEY` | LLM API 密钥（必填） | - |
+| `LLM_PROVIDER` | LLM 提供商 | `openai` |
+| `LLM_MODEL` | 模型名称 | `gpt-4o` |
+| `LLM_BASE_URL` | API 地址（用于中转站或本地模型） | - |
+
+**使用其他模型示例：**
+
+```bash
+# 使用 DeepSeek
+LLM_API_KEY=sk-xxx LLM_PROVIDER=deepseek LLM_MODEL=deepseek-chat \
+curl -fsSL https://raw.githubusercontent.com/lintsinghua/DeepAudit/main/docker-compose.prod.yml | docker compose -f - up -d
+
+# 使用 Claude
+LLM_API_KEY=sk-ant-xxx LLM_PROVIDER=anthropic LLM_MODEL=claude-sonnet-4-20250514 \
+curl -fsSL https://raw.githubusercontent.com/lintsinghua/DeepAudit/main/docker-compose.prod.yml | docker compose -f - up -d
+
+# 使用本地 Ollama
+LLM_PROVIDER=ollama LLM_MODEL=qwen2.5:14b LLM_BASE_URL=http://host.docker.internal:11434 \
+curl -fsSL https://raw.githubusercontent.com/lintsinghua/DeepAudit/main/docker-compose.prod.yml | docker compose -f - up -d
+```
+
+</details>
+
 ---
 
-## 🔧 源码启动指南
+### 方式二：克隆代码部署
+
+适合需要自定义配置或二次开发的用户：
+
+```bash
+# 1. 克隆项目
+git clone https://github.com/lintsinghua/DeepAudit.git && cd DeepAudit
+
+# 2. 配置环境变量
+cp backend/env.example backend/.env
+# 编辑 backend/.env 填入你的 LLM API Key
+
+# 3. 一键启动
+docker compose up -d
+```
+
+> 首次启动会自动构建沙箱镜像，可能需要几分钟。
+
+---
+
+## 🔧 源码开发指南
 
 适合开发者进行二次开发调试。
 
 ### 环境要求
-- Python 3.10+
-- Node.js 18+
-- PostgreSQL 14+
+- Python 3.11+
+- Node.js 20+
+- PostgreSQL 15+
 - Docker (用于沙箱)
 
 ### 1. 后端启动
 
 ```bash
 cd backend
-# 激活虚拟环境 (推荐 uv/poetry)
-source .venv/bin/activate 
-
-# 安装依赖
-pip install -r requirements.txt
+# 使用 uv 管理环境（推荐）
+uv sync
+source .venv/bin/activate
 
 # 启动 API 服务
 uvicorn app.main:app --reload
@@ -208,16 +250,16 @@ uvicorn app.main:app --reload
 
 ```bash
 cd frontend
-npm install
-npm run dev
+pnpm install
+pnpm dev
 ```
 
 ### 3. 沙箱环境
-开发模式下，仍需通过 Docker 启动沙箱服务。
+
+开发模式下需要本地 Docker 拉取沙箱镜像：
 
 ```bash
-cd docker/sandbox
-./build.sh
+docker pull ghcr.io/lintsinghua/deepaudit-sandbox:latest
 ```
 
 ---
