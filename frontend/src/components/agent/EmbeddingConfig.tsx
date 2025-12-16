@@ -258,22 +258,36 @@ export default function EmbeddingConfigPanel() {
           )}
         </div>
 
-        {/* 模型选择 */}
+        {/* 模型选择/输入 */}
         {selectedProviderInfo && (
           <div className="space-y-2">
             <Label className="text-xs font-bold text-gray-500 uppercase">模型</Label>
-            <Select value={selectedModel} onValueChange={setSelectedModel}>
-              <SelectTrigger className="h-10 cyber-input">
-                <SelectValue placeholder="选择模型" />
-              </SelectTrigger>
-              <SelectContent className="bg-[#0c0c12] border-gray-700">
+            <Input
+              type="text"
+              value={selectedModel}
+              onChange={(e) => setSelectedModel(e.target.value)}
+              placeholder="输入模型名称"
+              className="h-10 cyber-input"
+            />
+            {selectedProviderInfo.models.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-2">
+                <span className="text-xs text-gray-500">预设模型：</span>
                 {selectedProviderInfo.models.map((model) => (
-                  <SelectItem key={model} value={model} className="font-mono">
-                    <span className="text-sm">{model}</span>
-                  </SelectItem>
+                  <button
+                    key={model}
+                    type="button"
+                    onClick={() => setSelectedModel(model)}
+                    className={`px-2 py-1 text-xs font-mono rounded border transition-colors ${
+                      selectedModel === model
+                        ? "bg-primary/20 border-primary/50 text-primary"
+                        : "bg-gray-800/50 border-gray-700 text-gray-400 hover:border-gray-600 hover:text-gray-300"
+                    }`}
+                  >
+                    {model}
+                  </button>
                 ))}
-              </SelectContent>
-            </Select>
+              </div>
+            )}
           </div>
         )}
 
