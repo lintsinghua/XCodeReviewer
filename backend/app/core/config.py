@@ -65,6 +65,9 @@ class Settings(BaseSettings):
     # GitLab配置
     GITLAB_TOKEN: Optional[str] = None
     
+    # Gitea配置
+    GITEA_TOKEN: Optional[str] = None
+    
     # 扫描配置
     MAX_ANALYZE_FILES: int = 0  # 最大分析文件数，0表示无限制
     MAX_FILE_SIZE_BYTES: int = 200 * 1024  # 最大文件大小 200KB

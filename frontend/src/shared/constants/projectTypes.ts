@@ -10,17 +10,17 @@ export const PROJECT_SOURCE_TYPES: Array<{
   label: string;
   description: string;
 }> = [
-  {
-    value: 'repository',
-    label: '远程仓库',
-    description: '从 GitHub/GitLab 等远程仓库拉取代码'
-  },
-  {
-    value: 'zip',
-    label: 'ZIP上传',
-    description: '上传本地ZIP压缩包进行扫描'
-  }
-];
+    {
+      value: 'repository',
+      label: '远程仓库',
+      description: '从 GitHub/GitLab 等远程仓库拉取代码'
+    },
+    {
+      value: 'zip',
+      label: 'ZIP上传',
+      description: '上传本地ZIP压缩包进行扫描'
+    }
+  ];
 
 // 仓库平台选项
 export const REPOSITORY_PLATFORMS: Array<{
@@ -28,10 +28,11 @@ export const REPOSITORY_PLATFORMS: Array<{
   label: string;
   icon?: string;
 }> = [
-  { value: 'github', label: 'GitHub' },
-  { value: 'gitlab', label: 'GitLab' },
-  { value: 'other', label: '其他' }
-];
+    { value: 'github', label: 'GitHub' },
+    { value: 'gitlab', label: 'GitLab' },
+    { value: 'gitea', label: 'Gitea' },
+    { value: 'other', label: '其他' }
+  ];
 
 // 项目来源类型的颜色配置
 export const SOURCE_TYPE_COLORS: Record<ProjectSourceType, {
@@ -58,5 +59,6 @@ export const PLATFORM_COLORS: Record<RepositoryPlatform, {
 }> = {
   github: { bg: 'bg-gray-800', text: 'text-white' },
   gitlab: { bg: 'bg-orange-500', text: 'text-white' },
+  gitea: { bg: 'bg-green-600', text: 'text-white' },
   other: { bg: 'bg-gray-500', text: 'text-white' }
 };
