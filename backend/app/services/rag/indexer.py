@@ -1241,6 +1241,21 @@ class CodeIndexer:
         if not chunks:
             return
 
+        # 去重：确保没有重复的 ID
+        seen_ids: Set[str] = set()
+        unique_chunks: List[CodeChunk] = []
+        for chunk in chunks:
+            if chunk.id not in seen_ids:
+                seen_ids.add(chunk.id)
+                unique_chunks.append(chunk)
+            else:
+                logger.warning(f"跳过重复 ID 的代码块: {chunk.id} ({chunk.file_path}:{chunk.line_start})")
+
+        if len(unique_chunks) < len(chunks):
+            logger.info(f"🔄 去重: {len(chunks)} -> {len(unique_chunks)} 个代码块")
+
+        chunks = unique_chunks
+
         # 准备嵌入文本
         texts = [chunk.to_embedding_text() for chunk in chunks]
 

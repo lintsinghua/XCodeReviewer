@@ -78,7 +78,8 @@ class CodeChunk:
             self.estimated_tokens = self._estimate_tokens()
     
     def _generate_id(self) -> str:
-        content = f"{self.file_path}:{self.line_start}:{self.line_end}:{self.content[:100]}"
+        # 使用完整内容的 hash 确保唯一性
+        content = f"{self.file_path}:{self.line_start}:{self.line_end}:{self.content}"
         return hashlib.sha256(content.encode()).hexdigest()[:16]
     
     def _estimate_tokens(self) -> int:
