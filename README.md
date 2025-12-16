@@ -423,7 +423,7 @@ DeepSeek-Coder · Codestral<br/>
 
 ## 📖 详细安全政策
 
-有关代码隐私、API使用安全和漏洞报告的详细信息，请参阅 [SECURITY.md](SECURITY.md) 文件。
+有关安装政策、免责声明、代码隐私、API使用安全和漏洞报告的详细信息，请参阅 [SECURITY.md](SECURITY.md) 文件。
 
 ### 快速参考
 - 🔒 **代码隐私警告**: 您的代码将被发送到所选择的LLM服务商服务器
