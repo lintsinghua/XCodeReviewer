@@ -364,6 +364,17 @@ async def _execute_agent_task(task_id: str):
                 },
             )
 
+            # 🔥 设置外部取消检查回调
+            # 这确保即使 runner.cancel() 失败，Agent 也能通过 checking 全局标志感知取消
+            def check_global_cancel():
+                return is_task_cancelled(task_id)
+            
+            orchestrator.set_cancel_callback(check_global_cancel)
+            # 同时也为子 Agent 设置（虽然 Orchestrator 会传播）
+            recon_agent.set_cancel_callback(check_global_cancel)
+            analysis_agent.set_cancel_callback(check_global_cancel)
+            verification_agent.set_cancel_callback(check_global_cancel)
+
             # 注册到全局
             _running_orchestrators[task_id] = orchestrator
             _running_tasks[task_id] = orchestrator  # 兼容旧的取消逻辑
@@ -437,7 +448,13 @@ async def _execute_agent_task(task_id: str):
                 await _save_findings(db, task_id, findings)
 
                 # 更新任务统计
-                task.status = AgentTaskStatus.COMPLETED
+                # 🔥 CRITICAL FIX: 在设置完成前再次检查取消状态
+                # 避免 "取消后后端继续运行并最终标记为完成" 的问题
+                if is_task_cancelled(task_id):
+                    logger.info(f"[AgentTask] Task {task_id} was cancelled, overriding success result")
+                    task.status = AgentTaskStatus.CANCELLED
+                else:
+                    task.status = AgentTaskStatus.COMPLETED
                 task.completed_at = datetime.now(timezone.utc)
                 task.current_phase = AgentTaskPhase.REPORTING
                 task.findings_count = len(findings)

@@ -72,8 +72,7 @@ jobs:
       - name: 构建前端项目
         working-directory: ./frontend
         run: pnpm build
-        env:
-          VITE_USE_LOCAL_DB: 'true'
+
       
       # 8. 设置 Python 环境（用于后端）
       - name: 设置 Python
@@ -164,6 +163,7 @@ jobs:
           echo "- 🧠 **RAG 知识库增强**: 代码语义理解 + CWE/CVE 漏洞知识库" >> CHANGELOG.md
           echo "- 🔒 **沙箱漏洞验证**: Docker 安全容器自动执行 PoC" >> CHANGELOG.md
           echo "- 🛠️ **专业安全工具集成**: Semgrep, Bandit, Gitleaks, OSV-Scanner" >> CHANGELOG.md
+          echo "- 🐛 **稳定性增强**: 修复多智能体工具调用循环、UI 显示及 Docker 环境兼容性问题" >> CHANGELOG.md
           echo "" >> CHANGELOG.md
           echo "## 📦 下载说明" >> CHANGELOG.md
           echo "" >> CHANGELOG.md

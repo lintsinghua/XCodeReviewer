@@ -657,7 +657,7 @@ Action Input: {{"参数": "值"}}
             agent_timeouts = {
                 "recon": 300,        # 5 分钟
                 "analysis": 600,     # 10 分钟
-                "verification": 300,  # 5 分钟
+                "verification": 600, # 10 分钟
             }
             timeout = agent_timeouts.get(agent_name, 300)
 
