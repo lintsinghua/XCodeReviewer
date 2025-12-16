@@ -196,36 +196,6 @@ docker pull ghcr.nju.edu.cn/lintsinghua/deepaudit-sandbox:latest
 
 > 🎉 **启动成功！** 访问 http://localhost:3000 开始体验。
 
-<details>
-<summary>💡 配置说明（点击展开）</summary>
-
-**环境变量配置：**
-
-| 变量 | 说明 | 默认值 |
-|------|------|--------|
-| `LLM_API_KEY` | LLM API 密钥（必填） | - |
-| `LLM_PROVIDER` | LLM 提供商 | `openai` |
-| `LLM_MODEL` | 模型名称 | `gpt-4o` |
-| `LLM_BASE_URL` | API 地址（用于中转站或本地模型） | - |
-
-**使用其他模型示例：**
-
-```bash
-# 使用 DeepSeek
-LLM_API_KEY=sk-xxx LLM_PROVIDER=deepseek LLM_MODEL=deepseek-chat \
-curl -fsSL https://raw.githubusercontent.com/lintsinghua/DeepAudit/main/docker-compose.prod.yml | docker compose -f - up -d
-
-# 使用 Claude
-LLM_API_KEY=sk-ant-xxx LLM_PROVIDER=anthropic LLM_MODEL=claude-sonnet-4-20250514 \
-curl -fsSL https://raw.githubusercontent.com/lintsinghua/DeepAudit/main/docker-compose.prod.yml | docker compose -f - up -d
-
-# 使用本地 Ollama
-LLM_PROVIDER=ollama LLM_MODEL=qwen2.5:14b LLM_BASE_URL=http://host.docker.internal:11434 \
-curl -fsSL https://raw.githubusercontent.com/lintsinghua/DeepAudit/main/docker-compose.prod.yml | docker compose -f - up -d
-```
-
-</details>
-
 ---
 
 ### 方式二：克隆代码部署
