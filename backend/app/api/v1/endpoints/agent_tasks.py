@@ -726,14 +726,20 @@ async def _initialize_tools(
                 except Exception as e:
                     logger.warning(f"Failed to emit embedding progress: {e}")
 
+        # 🔥 创建取消检查函数，用于在嵌入批处理中检查取消状态
+        def check_cancelled() -> bool:
+            return task_id is not None and is_task_cancelled(task_id)
+
         async for progress in indexer.smart_index_directory(
             directory=project_root,
             exclude_patterns=exclude_patterns or [],
+            include_patterns=target_files,  # 🔥 传递 target_files 限制索引范围
             update_mode=IndexUpdateMode.SMART,
             embedding_progress_callback=on_embedding_progress,
+            cancel_check=check_cancelled,  # 🔥 传递取消检查函数
         ):
             # 🔥 在索引过程中检查取消状态
-            if task_id and is_task_cancelled(task_id):
+            if check_cancelled():
                 logger.info(f"[Cancel] RAG indexing cancelled for task {task_id}")
                 raise asyncio.CancelledError("任务已取消")
 

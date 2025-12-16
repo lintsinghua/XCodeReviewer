@@ -962,7 +962,7 @@ class CodeIndexer:
             progress.status_message = f"🔢 生成 {len(all_chunks)} 个代码块的嵌入向量..."
             yield progress
 
-            await self._index_chunks(all_chunks, progress, use_upsert=False, embedding_progress_callback=embedding_progress_callback)
+            await self._index_chunks(all_chunks, progress, use_upsert=False, embedding_progress_callback=embedding_progress_callback, cancel_check=cancel_check)
 
         # 更新 collection 元数据
         project_hash = hashlib.md5(json.dumps(sorted(file_hashes.items())).encode()).hexdigest()
@@ -983,6 +983,7 @@ class CodeIndexer:
         progress: IndexingProgress,
         progress_callback: Optional[Callable[[IndexingProgress], None]],
         embedding_progress_callback: Optional[Callable[[int, int], None]] = None,
+        cancel_check: Optional[Callable[[], bool]] = None,
     ) -> AsyncGenerator[IndexingProgress, None]:
         """增量索引"""
         logger.info("📝 开始增量索引...")
@@ -1099,7 +1100,7 @@ class CodeIndexer:
             progress.status_message = f"🔢 生成 {len(all_chunks)} 个代码块的嵌入向量..."
             yield progress
 
-            await self._index_chunks(all_chunks, progress, use_upsert=True, embedding_progress_callback=embedding_progress_callback)
+            await self._index_chunks(all_chunks, progress, use_upsert=True, embedding_progress_callback=embedding_progress_callback, cancel_check=cancel_check)
 
         # 更新 collection 元数据
         # 移除已删除文件的 hash
