@@ -304,6 +304,72 @@ async def _execute_agent_task(task_id: str):
                 event_emitter=event_emitter,  # 🔥 新增
             )
 
+            # 🔥 自动修正 target_files 路径
+            # 如果发生了目录调整（例如 ZIP 解压后只有一层目录，root 被下移），
+            # 原有的 target_files (如 "Prefix/file.php") 可能无法匹配。
+            # 我们需要检测并移除这些无效的前缀。
+            if task.target_files and len(task.target_files) > 0:
+                # 1. 检查是否存在不匹配的文件
+                all_exist = True
+                for tf in task.target_files:
+                    if not os.path.exists(os.path.join(project_root, tf)):
+                        all_exist = False
+                        break
+                
+                if not all_exist:
+                    logger.info(f"Target files path mismatch detected in {project_root}")
+                    # 尝试通过路径匹配来修复
+                    # 获取当前根目录的名称
+                    root_name = os.path.basename(project_root)
+                    
+                    new_target_files = []
+                    fixed_count = 0
+                    
+                    for tf in task.target_files:
+                        # 检查文件是否以 root_name 开头（例如 "PHP-Project/index.php" 而 root 是 ".../PHP-Project"）
+                        if tf.startswith(root_name + "/"):
+                            fixed_path = tf[len(root_name)+1:]
+                            if os.path.exists(os.path.join(project_root, fixed_path)):
+                                new_target_files.append(fixed_path)
+                                fixed_count += 1
+                                continue
+                        
+                        # 如果上面的没匹配，尝试暴力搜索（只针对未找到的文件）
+                        # 这种情况比较少见，先保留原样或标记为丢失
+                        if os.path.exists(os.path.join(project_root, tf)):
+                            new_target_files.append(tf)
+                        else:
+                            # 尝试查看 tf 的 basename 是否在根目录直接存在（针对常见的最简情况）
+                            basename = os.path.basename(tf)
+                            if os.path.exists(os.path.join(project_root, basename)):
+                                new_target_files.append(basename)
+                                fixed_count += 1
+                            else:
+                                # 实在找不到，保留原样，让后续流程报错或忽略
+                                new_target_files.append(tf)
+                    
+                    if fixed_count > 0:
+                        logger.info(f"🔧 Auto-fixed {fixed_count} target file paths")
+                        await event_emitter.emit_info(f"🔧 自动修正了 {fixed_count} 个目标文件的路径")
+                        task.target_files = new_target_files
+                        
+            # 🔥 重新验证修正后的文件
+            valid_target_files = []
+            if task.target_files:
+                for tf in task.target_files:
+                    if os.path.exists(os.path.join(project_root, tf)):
+                        valid_target_files.append(tf)
+                    else:
+                        logger.warning(f"⚠️ Target file not found: {tf}")
+                
+                if not valid_target_files:
+                    logger.warning("❌ No valid target files found after adjustment!")
+                    await event_emitter.emit_warning("⚠️ 警告：无法找到指定的目标文件，将扫描所有文件")
+                    task.target_files = None  # 回退到全量扫描
+                elif len(valid_target_files) < len(task.target_files):
+                    logger.warning(f"⚠️ Partial target files missing. Found {len(valid_target_files)}/{len(task.target_files)}")
+                    task.target_files = valid_target_files
+
             logger.info(f"🚀 Task {task_id} started with Dynamic Agent Tree architecture")
 
             # 🔥 获取项目根目录后检查取消
