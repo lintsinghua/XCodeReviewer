@@ -356,15 +356,14 @@ DeepSeek-Coder · Codestral<br/>
 
 我们正在持续演进，未来将支持更多语言和更强大的 Agent 能力。
 
-- [x] **v1.0**: 基础静态分析，集成 Semgrep
-- [x] **v2.0**: 引入 RAG 知识库，支持 Docker 安全沙箱
-- [x] **v3.0**: **Multi-Agent 协作架构** (Current)
-- [ ] 支持更多漏洞验证 PoC 模板
-- [ ] 支持更多语言
+- [x] 基础静态分析，集成 Semgrep
+- [x] 引入 RAG 知识库，支持 Docker 安全沙箱
+- [x] **Multi-Agent 协作架构** (Current)
+- [ ] 支持更真实的模拟服务环境，进行更真实漏洞验证流程
+- [ ] 沙箱从function_call优化集成为稳定MCP服务
 - [ ] **自动修复 (Auto-Fix)**: Agent 直接提交 PR 修复漏洞
 - [ ] **增量PR审计**: 持续跟踪 PR 变更，智能分析漏洞，并集成CI/CD流程
 - [ ] **优化RAG**: 支持自定义知识库
-- [ ] **优化Agent**: 支持自定义Agent
 
 ---
 
