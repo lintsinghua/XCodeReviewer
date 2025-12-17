@@ -14,6 +14,7 @@ from pydantic import BaseModel, Field
 from dataclasses import dataclass
 
 from .base import AgentTool, ToolResult
+from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -21,13 +22,17 @@ logger = logging.getLogger(__name__)
 @dataclass
 class SandboxConfig:
     """沙箱配置"""
-    image: str = "deepaudit/sandbox:latest"
+    image: str = None  # 默认从 settings.SANDBOX_IMAGE 读取
     memory_limit: str = "512m"
     cpu_limit: float = 1.0
     timeout: int = 60
     network_mode: str = "none"  # none, bridge, host
     read_only: bool = True
     user: str = "1000:1000"
+
+    def __post_init__(self):
+        if self.image is None:
+            self.image = settings.SANDBOX_IMAGE
 
 
 class SandboxManager:
