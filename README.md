@@ -175,7 +175,7 @@ curl -fsSL https://raw.githubusercontent.com/lintsinghua/DeepAudit/v3.0.0/docker
 
 ```bash
 # 国内加速版 - 使用南京大学 GHCR 镜像站
-curl -fsSL https://raw.githubusercontent.com/lintsinghua/DeepAudit/main/docker-compose.prod.cn.yml | docker compose -f - up -d
+curl -fsSL https://raw.githubusercontent.com/lintsinghua/DeepAudit/v3.0.0/docker-compose.prod.cn.yml | docker compose -f - up -d
 ```
 
 **手动拉取镜像（如需单独拉取）：**
