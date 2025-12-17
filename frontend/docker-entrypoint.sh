@@ -9,7 +9,8 @@ echo "Injecting API URL: $API_URL"
 
 # 在所有 JS 文件中替换占位符
 # 注意：这里路径必须是 nginx 实际存放文件的路径
-find /usr/share/nginx/html -name '*.js' -exec sed -i "s|__API_BASE_URL__|${API_URL}|g" {} \;
+ESCAPED_API_URL=$(echo "${API_URL}" | sed 's/[&/|]/\\&/g')
+find /usr/share/nginx/html -name '*.js' -exec sed -i "s|__API_BASE_URL__|${ESCAPED_API_URL}|g" {} \;
 
 # 执行原始命令
 exec "$@"

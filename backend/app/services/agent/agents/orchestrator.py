@@ -242,7 +242,7 @@ class OrchestratorAgent(BaseAgent):
                     llm_output, tokens_this_round = await self.stream_llm_call(
                         self._conversation_history,
                         temperature=0.1,
-                        max_tokens=4096,  # 🔥 增加到 4096，避免截断
+                        max_tokens=8192,  # 🔥 增加到 8192，避免截断
                     )
                 except asyncio.CancelledError:
                     logger.info(f"[{self.name}] LLM call cancelled")
@@ -657,7 +657,7 @@ Action Input: {{"参数": "值"}}
             agent_timeouts = {
                 "recon": 300,        # 5 分钟
                 "analysis": 600,     # 10 分钟
-                "verification": 300,  # 5 分钟
+                "verification": 600, # 10 分钟
             }
             timeout = agent_timeouts.get(agent_name, 300)
 
@@ -667,7 +667,8 @@ Action Input: {{"参数": "值"}}
                 try:
                     while not run_task.done():
                         if self.is_cancelled:
-                            # 传播取消到子 Agent
+                            # 🔥 传播取消到子 Agent
+                            logger.info(f"[{self.name}] Cancelling sub-agent {agent_name} due to parent cancel")
                             if hasattr(agent, 'cancel'):
                                 agent.cancel()
                             run_task.cancel()
@@ -677,18 +678,28 @@ Action Input: {{"参数": "值"}}
                                 pass
                             raise asyncio.CancelledError("任务已取消")
 
-                        try:
-                            return await asyncio.wait_for(
-                                asyncio.shield(run_task),
-                                timeout=1.0  # 每秒检查一次取消状态
-                            )
-                        except asyncio.TimeoutError:
-                            continue
+                        # Use asyncio.wait to poll without cancelling the task
+                        done, pending = await asyncio.wait(
+                            [run_task],
+                            timeout=0.5,
+                            return_when=asyncio.FIRST_COMPLETED
+                        )
+                        if run_task in done:
+                            return run_task.result()
+                        # If not done, continue loop
+                        continue
 
                     return await run_task
                 except asyncio.CancelledError:
+                    # 🔥 确保子任务被取消
                     if not run_task.done():
+                        if hasattr(agent, 'cancel'):
+                            agent.cancel()
                         run_task.cancel()
+                        try:
+                            await run_task
+                        except asyncio.CancelledError:
+                            pass
                     raise
 
             try:
@@ -877,17 +888,32 @@ Action Input: {{"参数": "值"}}
 
                             if same_file and (same_line or similar_desc or same_type):
                                 # Update existing with new info (e.g. verification results)
-                                # Prefer verified data over unverified
-                                merged = {**existing_f, **normalized_new}
+                                # 🔥 FIX: Smart merge - don't overwrite good data with empty values
+                                merged = dict(existing_f)  # Start with existing data
+                                for key, value in normalized_new.items():
+                                    # Only overwrite if new value is meaningful
+                                    if value is not None and value != "" and value != 0:
+                                        merged[key] = value
+                                    elif key not in merged or merged[key] is None:
+                                        # Fill in missing fields even with empty values
+                                        merged[key] = value
+
                                 # Keep the better title
                                 if normalized_new.get("title") and len(normalized_new.get("title", "")) > len(existing_f.get("title", "")):
                                     merged["title"] = normalized_new["title"]
                                 # Keep verified status if either is verified
                                 if existing_f.get("is_verified") or normalized_new.get("is_verified"):
                                     merged["is_verified"] = True
+                                # 🔥 FIX: Preserve non-zero line numbers
+                                if existing_f.get("line_start") and not normalized_new.get("line_start"):
+                                    merged["line_start"] = existing_f["line_start"]
+                                # 🔥 FIX: Preserve vulnerability_type
+                                if existing_f.get("vulnerability_type") and not normalized_new.get("vulnerability_type"):
+                                    merged["vulnerability_type"] = existing_f["vulnerability_type"]
+
                                 self._all_findings[i] = merged
                                 found = True
-                                logger.info(f"[Orchestrator] Merged finding: {new_file}:{new_line} ({new_type})")
+                                logger.info(f"[Orchestrator] Merged finding: {new_file}:{merged.get('line_start', 0)} ({merged.get('vulnerability_type', '')})")
                                 break
 
                         if not found:

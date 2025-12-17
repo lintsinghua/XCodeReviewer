@@ -21,6 +21,7 @@ export interface AgentTask {
   total_files: number;
   indexed_files: number;
   analyzed_files: number;
+  files_with_findings: number;  // 有漏洞发现的文件数
   total_chunks: number;
   findings_count: number;
   verified_count: number;
@@ -128,6 +129,7 @@ export interface AgentTaskSummary {
     total_files: number;
     indexed_files: number;
     analyzed_files: number;
+    files_with_findings: number;
     total_chunks: number;
     findings_count: number;
     verified_count: number;

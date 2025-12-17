@@ -1,6 +1,6 @@
 [project]
 name = "deepaudit-backend"
-version = "3.0.0"
+version = "3.0.1"
 description = "DeepAudit Backend API - AI-Powered Code Security Audit Platform"
 requires-python = ">=3.11"
 readme = "README.md"
@@ -202,7 +202,7 @@ exclude_lines = [
     "if TYPE_CHECKING:",
 ]
 
-# ============ UV Configuration ============
+# ============ Dependency Groups (PEP 735) ============
 
 [dependency-groups]
 dev = [

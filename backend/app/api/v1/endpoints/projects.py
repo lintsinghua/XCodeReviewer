@@ -659,7 +659,8 @@ async def get_project_branches(
     config = config.scalar_one_or_none()
     
     github_token = settings.GITHUB_TOKEN
-    projects_gitea_token = settings.GITEA_TOKEN
+    gitea_token = settings.GITEA_TOKEN
+    gitlab_token = settings.GITLAB_TOKEN
 
     SENSITIVE_OTHER_FIELDS = ['githubToken', 'gitlabToken', 'giteaToken']
     
@@ -674,13 +675,12 @@ async def get_project_branches(
                 elif field == 'gitlabToken':
                     gitlab_token = decrypted_val
                 elif field == 'giteaToken':
-                    projects_gitea_token = decrypted_val
+                    gitea_token = decrypted_val
     
     repo_type = project.repository_type or "other"
     
     # 详细日志
     print(f"[Branch] 项目: {project.name}, 类型: {repo_type}, URL: {project.repository_url}")
-    print(f"[Branch] GitHub Token: {'已配置' if github_token else '未配置'}, GitLab Token: {'已配置' if gitlab_token else '未配置'}, Gitea Token: {'已配置' if projects_gitea_token else '未配置'}")
     
     try:
         if repo_type == "github":
@@ -692,9 +692,9 @@ async def get_project_branches(
                 print("[Branch] 警告: GitLab Token 未配置，可能无法访问私有仓库")
             branches = await get_gitlab_branches(project.repository_url, gitlab_token)
         elif repo_type == "gitea":
-            if not projects_gitea_token:
+            if not gitea_token:
                 print("[Branch] 警告: Gitea Token 未配置，可能无法访问私有仓库")
-            branches = await get_gitea_branches(project.repository_url, projects_gitea_token)
+            branches = await get_gitea_branches(project.repository_url, gitea_token)
         else:
             # 对于其他类型，返回默认分支
             print(f"[Branch] 仓库类型 '{repo_type}' 不支持获取分支，返回默认分支")

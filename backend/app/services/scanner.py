@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 from urllib.parse import urlparse, quote
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.utils.repo_utils import parse_repository_url
 from app.models.audit import AuditTask, AuditIssue
 from app.models.project import Project
 from app.services.llm.service import LLMService
@@ -149,17 +150,8 @@ async def fetch_file_content(url: str, headers: Dict[str, str] = None) -> Option
 
 async def get_github_branches(repo_url: str, token: str = None) -> List[str]:
     """获取GitHub仓库分支列表"""
-    match = repo_url.rstrip('/')
-    if match.endswith('.git'):
-        match = match[:-4]
-    if 'github.com/' in match:
-        parts = match.split('github.com/')[-1].split('/')
-        if len(parts) >= 2:
-            owner, repo = parts[0], parts[1]
-        else:
-            raise Exception("GitHub 仓库 URL 格式错误")
-    else:
-        raise Exception("GitHub 仓库 URL 格式错误")
+    repo_info = parse_repository_url(repo_url, "github")
+    owner, repo = repo_info['owner'], repo_info['repo']
     
     branches_url = f"https://api.github.com/repos/{owner}/{repo}/branches?per_page=100"
     branches_data = await github_api(branches_url, token)
@@ -172,20 +164,11 @@ async def get_github_branches(repo_url: str, token: str = None) -> List[str]:
 
 async def get_gitea_branches(repo_url: str, token: str = None) -> List[str]:
     """获取Gitea仓库分支列表"""
-    parsed = urlparse(repo_url)
-    base = f"{parsed.scheme}://{parsed.netloc}"
+    repo_info = parse_repository_url(repo_url, "gitea")
+    base_url = repo_info['base_url'] # This is {base}/api/v1
+    owner, repo = repo_info['owner'], repo_info['repo']
     
-    # 提取Owner和Repo: path通常是 /owner/repo.git 或 /owner/repo
-    path = parsed.path.strip('/')
-    if path.endswith('.git'):
-        path = path[:-4]
-    parts = path.split('/')
-    if len(parts) < 2:
-         raise Exception("Gitea 仓库 URL 格式错误")
-    
-    owner, repo = parts[0], parts[1]
-    
-    branches_url = f"{base}/api/v1/repos/{owner}/{repo}/branches"
+    branches_url = f"{base_url}/repos/{owner}/{repo}/branches"
     branches_data = await gitea_api(branches_url, token)
     
     return [b["name"] for b in branches_data]
@@ -194,7 +177,6 @@ async def get_gitea_branches(repo_url: str, token: str = None) -> List[str]:
 async def get_gitlab_branches(repo_url: str, token: str = None) -> List[str]:
     """获取GitLab仓库分支列表"""
     parsed = urlparse(repo_url)
-    base = f"{parsed.scheme}://{parsed.netloc}"
     
     extracted_token = token
     if parsed.username:
@@ -203,14 +185,11 @@ async def get_gitlab_branches(repo_url: str, token: str = None) -> List[str]:
         elif parsed.username and not parsed.password:
             extracted_token = parsed.username
     
-    path = parsed.path.strip('/')
-    if path.endswith('.git'):
-        path = path[:-4]
-    if not path:
-        raise Exception("GitLab 仓库 URL 格式错误")
+    repo_info = parse_repository_url(repo_url, "gitlab")
+    base_url = repo_info['base_url']
+    project_path = quote(repo_info['project_path'], safe='')
     
-    project_path = quote(path, safe='')
-    branches_url = f"{base}/api/v4/projects/{project_path}/repository/branches?per_page=100"
+    branches_url = f"{base_url}/projects/{project_path}/repository/branches?per_page=100"
     branches_data = await gitlab_api(branches_url, extracted_token)
     
     return [b["name"] for b in branches_data]
@@ -219,17 +198,8 @@ async def get_gitlab_branches(repo_url: str, token: str = None) -> List[str]:
 async def get_github_files(repo_url: str, branch: str, token: str = None, exclude_patterns: List[str] = None) -> List[Dict[str, str]]:
     """获取GitHub仓库文件列表"""
     # 解析仓库URL
-    match = repo_url.rstrip('/')
-    if match.endswith('.git'):
-        match = match[:-4]
-    if 'github.com/' in match:
-        parts = match.split('github.com/')[-1].split('/')
-        if len(parts) >= 2:
-            owner, repo = parts[0], parts[1]
-        else:
-            raise Exception("GitHub 仓库 URL 格式错误")
-    else:
-        raise Exception("GitHub 仓库 URL 格式错误")
+    repo_info = parse_repository_url(repo_url, "github")
+    owner, repo = repo_info['owner'], repo_info['repo']
     
     # 获取仓库文件树
     tree_url = f"https://api.github.com/repos/{owner}/{repo}/git/trees/{quote(branch)}?recursive=1"
@@ -251,7 +221,6 @@ async def get_github_files(repo_url: str, branch: str, token: str = None, exclud
 async def get_gitlab_files(repo_url: str, branch: str, token: str = None, exclude_patterns: List[str] = None) -> List[Dict[str, str]]:
     """获取GitLab仓库文件列表"""
     parsed = urlparse(repo_url)
-    base = f"{parsed.scheme}://{parsed.netloc}"
     
     # 从URL中提取token（如果存在）
     extracted_token = token
@@ -262,16 +231,12 @@ async def get_gitlab_files(repo_url: str, branch: str, token: str = None, exclud
             extracted_token = parsed.username
     
     # 解析项目路径
-    path = parsed.path.strip('/')
-    if path.endswith('.git'):
-        path = path[:-4]
-    if not path:
-        raise Exception("GitLab 仓库 URL 格式错误")
-    
-    project_path = quote(path, safe='')
+    repo_info = parse_repository_url(repo_url, "gitlab")
+    base_url = repo_info['base_url'] # {base}/api/v4
+    project_path = quote(repo_info['project_path'], safe='')
     
     # 获取仓库文件树
-    tree_url = f"{base}/api/v4/projects/{project_path}/repository/tree?ref={quote(branch)}&recursive=true&per_page=100"
+    tree_url = f"{base_url}/projects/{project_path}/repository/tree?ref={quote(branch)}&recursive=true&per_page=100"
     tree_data = await gitlab_api(tree_url, extracted_token)
     
     files = []
@@ -279,7 +244,7 @@ async def get_gitlab_files(repo_url: str, branch: str, token: str = None, exclud
         if item.get("type") == "blob" and is_text_file(item["path"]) and not should_exclude(item["path"], exclude_patterns):
             files.append({
                 "path": item["path"],
-                "url": f"{base}/api/v4/projects/{project_path}/repository/files/{quote(item['path'], safe='')}/raw?ref={quote(branch)}",
+                "url": f"{base_url}/projects/{project_path}/repository/files/{quote(item['path'], safe='')}/raw?ref={quote(branch)}",
                 "token": extracted_token
             })
     
@@ -289,40 +254,23 @@ async def get_gitlab_files(repo_url: str, branch: str, token: str = None, exclud
 
 async def get_gitea_files(repo_url: str, branch: str, token: str = None, exclude_patterns: List[str] = None) -> List[Dict[str, str]]:
     """获取Gitea仓库文件列表"""
-    parsed = urlparse(repo_url)
-    base = f"{parsed.scheme}://{parsed.netloc}"
-    
-    path = parsed.path.strip('/')
-    if path.endswith('.git'):
-        path = path[:-4]
-    parts = path.split('/')
-    if len(parts) < 2:
-         raise Exception("Gitea 仓库 URL 格式错误")
-    
-    owner, repo = parts[0], parts[1]
+    repo_info = parse_repository_url(repo_url, "gitea")
+    base_url = repo_info['base_url']
+    owner, repo = repo_info['owner'], repo_info['repo']
     
     # Gitea tree API: GET /repos/{owner}/{repo}/git/trees/{sha}?recursive=1
     # 可以直接使用分支名作为sha
-    tree_url = f"{base}/api/v1/repos/{owner}/{repo}/git/trees/{quote(branch)}?recursive=1"
+    tree_url = f"{base_url}/repos/{owner}/{repo}/git/trees/{quote(branch)}?recursive=1"
     tree_data = await gitea_api(tree_url, token)
     
     files = []
     for item in tree_data.get("tree", []):
          # Gitea API returns 'type': 'blob' for files
         if item.get("type") == "blob" and is_text_file(item["path"]) and not should_exclude(item["path"], exclude_patterns):
-             # Gitea raw file URL: {base}/{owner}/{repo}/raw/branch/{branch}/{path}
-             # 或者 API: /repos/{owner}/{repo}/contents/{filepath}?ref={branch} (get content, base64)
-             # 这里使用 raw URL 可能会更方便，但要注意私有仓库可能需要token访问raw
-             # Gitea raw URL usually works with token in header or query param. 
-             # Standard Gitea: GET /repos/{owner}/{repo}/raw/{filepath}?ref={branch} (API) returns raw content? 
-             # Actually Gitea raw url: {base}/{owner}/{repo}/raw/branch/{branch}/{path} or /raw/tag or /raw/commit
-            
-            # 使用API raw endpoint: GET /repos/{owner}/{repo}/raw/{filepath}?ref={branch} ==> 实际是 /repos/{owner}/{repo}/raw/{path} (ref通过query param?)
-            # 查阅文档，Gitea API v1 /repos/{owner}/{repo}/raw/{filepath} 接受 ref query param
-            # URL: {base}/api/v1/repos/{owner}/{repo}/raw/{quote(item['path'])}?ref={branch}
+            # 使用API raw endpoint: GET /repos/{owner}/{repo}/raw/{filepath}?ref={branch}
              files.append({
                 "path": item["path"],
-                "url": f"{base}/api/v1/repos/{owner}/{repo}/raw/{quote(item['path'])}?ref={quote(branch)}",
+                "url": f"{base_url}/repos/{owner}/{repo}/raw/{quote(item['path'])}?ref={quote(branch)}",
                 "token": token # 传递token以便fetch_file_content使用
             })
     
@@ -482,11 +430,11 @@ async def scan_repo_task(task_id: str, db_session_factory, user_config: dict = N
                     # 使用提取的 token 或用户配置的 token
                     
                     if repo_type == "gitlab":
-                         token_to_use = extracted_token or gitlab_token
+                         token_to_use = file_info.get('token') or gitlab_token
                          if token_to_use:
                              headers["PRIVATE-TOKEN"] = token_to_use
                     elif repo_type == "gitea":
-                         token_to_use = extracted_token or gitea_token
+                         token_to_use = file_info.get('token') or gitea_token
                          if token_to_use:
                              headers["Authorization"] = f"token {token_to_use}"
                     elif repo_type == "github":

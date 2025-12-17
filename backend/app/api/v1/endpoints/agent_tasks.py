@@ -364,6 +364,17 @@ async def _execute_agent_task(task_id: str):
                 },
             )
 
+            # 🔥 设置外部取消检查回调
+            # 这确保即使 runner.cancel() 失败，Agent 也能通过 checking 全局标志感知取消
+            def check_global_cancel():
+                return is_task_cancelled(task_id)
+
+            orchestrator.set_cancel_callback(check_global_cancel)
+            # 同时也为子 Agent 设置（虽然 Orchestrator 会传播）
+            recon_agent.set_cancel_callback(check_global_cancel)
+            analysis_agent.set_cancel_callback(check_global_cancel)
+            verification_agent.set_cancel_callback(check_global_cancel)
+
             # 注册到全局
             _running_orchestrators[task_id] = orchestrator
             _running_tasks[task_id] = orchestrator  # 兼容旧的取消逻辑
@@ -437,7 +448,13 @@ async def _execute_agent_task(task_id: str):
                 await _save_findings(db, task_id, findings)
 
                 # 更新任务统计
-                task.status = AgentTaskStatus.COMPLETED
+                # 🔥 CRITICAL FIX: 在设置完成前再次检查取消状态
+                # 避免 "取消后后端继续运行并最终标记为完成" 的问题
+                if is_task_cancelled(task_id):
+                    logger.info(f"[AgentTask] Task {task_id} was cancelled, overriding success result")
+                    task.status = AgentTaskStatus.CANCELLED
+                else:
+                    task.status = AgentTaskStatus.COMPLETED
                 task.completed_at = datetime.now(timezone.utc)
                 task.current_phase = AgentTaskPhase.REPORTING
                 task.findings_count = len(findings)
@@ -445,14 +462,18 @@ async def _execute_agent_task(task_id: str):
                 task.tool_calls_count = result.tool_calls
                 task.tokens_used = result.tokens_used
 
-                # 🔥 统计分析的文件数量（从 findings 中提取唯一文件）
-                analyzed_file_set = set()
+                # 🔥 统计文件数量
+                # analyzed_files = 实际扫描过的文件数（任务完成时等于 total_files）
+                # files_with_findings = 有漏洞发现的唯一文件数
+                task.analyzed_files = task.total_files  # Agent 扫描了所有符合条件的文件
+
+                files_with_findings_set = set()
                 for f in findings:
                     if isinstance(f, dict):
                         file_path = f.get("file_path") or f.get("file") or f.get("location", "").split(":")[0]
                         if file_path:
-                            analyzed_file_set.add(file_path)
-                task.analyzed_files = len(analyzed_file_set) if analyzed_file_set else task.total_files
+                            files_with_findings_set.add(file_path)
+                task.files_with_findings = len(files_with_findings_set)
 
                 # 统计严重程度和验证状态
                 verified_count = 0
@@ -1583,18 +1604,28 @@ async def cancel_agent_task(
     if runner:
         runner.cancel()
         logger.info(f"[Cancel] Set cancel flag for task {task_id}")
-    
-    # 🔥 2. 强制取消 asyncio Task（立即中断 LLM 调用）
+
+    # 🔥 2. 通过 agent_registry 取消所有子 Agent
+    from app.services.agent.core import agent_registry
+    from app.services.agent.core.graph_controller import stop_all_agents
+    try:
+        # 停止所有 Agent（包括子 Agent）
+        stop_result = stop_all_agents(exclude_root=False)
+        logger.info(f"[Cancel] Stopped all agents: {stop_result}")
+    except Exception as e:
+        logger.warning(f"[Cancel] Failed to stop agents via registry: {e}")
+
+    # 🔥 3. 强制取消 asyncio Task（立即中断 LLM 调用）
     asyncio_task = _running_asyncio_tasks.get(task_id)
     if asyncio_task and not asyncio_task.done():
         asyncio_task.cancel()
         logger.info(f"[Cancel] Cancelled asyncio task for {task_id}")
-    
+
     # 更新状态
     task.status = AgentTaskStatus.CANCELLED
     task.completed_at = datetime.now(timezone.utc)
     await db.commit()
-    
+
     logger.info(f"[Cancel] Task {task_id} cancelled successfully")
     return {"message": "任务已取消", "task_id": task_id}
 

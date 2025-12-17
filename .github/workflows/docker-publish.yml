@@ -1,0 +1,129 @@
+name: Docker Publish
+
+# 只构建并推送 Docker 镜像，不创建 Release 或 Tag
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: '镜像标签 (例如: latest, dev, v3.0.0)'
+        required: true
+        default: 'latest'
+        type: string
+      build_frontend:
+        description: '构建前端镜像'
+        required: false
+        type: boolean
+        default: true
+      build_backend:
+        description: '构建后端镜像'
+        required: false
+        type: boolean
+        default: true
+      build_sandbox:
+        description: '构建沙箱镜像'
+        required: false
+        type: boolean
+        default: true
+
+jobs:
+  build-and-push:
+    name: 构建并推送镜像
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置 Node.js
+        if: ${{ github.event.inputs.build_frontend == 'true' }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 安装 pnpm
+        if: ${{ github.event.inputs.build_frontend == 'true' }}
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: 安装前端依赖
+        if: ${{ github.event.inputs.build_frontend == 'true' }}
+        working-directory: ./frontend
+        run: pnpm install --frozen-lockfile
+
+      - name: 构建前端项目
+        if: ${{ github.event.inputs.build_frontend == 'true' }}
+        working-directory: ./frontend
+        run: pnpm build
+        env:
+          VITE_USE_LOCAL_DB: 'true'
+
+      - name: 登录到 GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 设置 QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: 设置 Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 构建并推送前端 Docker 镜像
+        if: ${{ github.event.inputs.build_frontend == 'true' }}
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/deepaudit-frontend:${{ github.event.inputs.tag }}
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,mode=max,scope=frontend
+
+      - name: 构建并推送后端 Docker 镜像
+        if: ${{ github.event.inputs.build_backend == 'true' }}
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/deepaudit-backend:${{ github.event.inputs.tag }}
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,mode=max,scope=backend
+
+      - name: 构建并推送沙箱 Docker 镜像
+        if: ${{ github.event.inputs.build_sandbox == 'true' }}
+        uses: docker/build-push-action@v5
+        with:
+          context: ./docker/sandbox
+          file: ./docker/sandbox/Dockerfile
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/deepaudit-sandbox:${{ github.event.inputs.tag }}
+          cache-from: type=gha,scope=sandbox
+          cache-to: type=gha,mode=max,scope=sandbox
+
+      - name: 输出镜像信息
+        run: |
+          echo "## 镜像已推送到 GHCR" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ github.event.inputs.build_frontend }}" == "true" ]; then
+            echo "- \`ghcr.io/${{ github.repository_owner }}/deepaudit-frontend:${{ github.event.inputs.tag }}\`" >> $GITHUB_STEP_SUMMARY
+          fi
+          if [ "${{ github.event.inputs.build_backend }}" == "true" ]; then
+            echo "- \`ghcr.io/${{ github.repository_owner }}/deepaudit-backend:${{ github.event.inputs.tag }}\`" >> $GITHUB_STEP_SUMMARY
+          fi
+          if [ "${{ github.event.inputs.build_sandbox }}" == "true" ]; then
+            echo "- \`ghcr.io/${{ github.repository_owner }}/deepaudit-sandbox:${{ github.event.inputs.tag }}\`" >> $GITHUB_STEP_SUMMARY
+          fi

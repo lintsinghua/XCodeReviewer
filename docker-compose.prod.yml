@@ -1,0 +1,107 @@
+# =============================================
+# DeepAudit v3.0.0 生产环境一键部署配置
+# =============================================
+# 使用预构建的 GHCR 镜像，无需本地构建
+# 部署命令: curl -fsSL https://raw.githubusercontent.com/lintsinghua/DeepAudit/main/docker-compose.prod.yml | docker compose -f - up -d
+
+services:
+  db:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=deepaudit
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - deepaudit-network
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - deepaudit-network
+
+  backend:
+    image: ghcr.io/lintsinghua/deepaudit-backend:latest
+    restart: unless-stopped
+    volumes:
+      - backend_uploads:/app/uploads
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/deepaudit
+      - REDIS_URL=redis://redis:6379/0
+      - AGENT_ENABLED=true
+      - SANDBOX_ENABLED=true
+      - SANDBOX_IMAGE=ghcr.io/lintsinghua/deepaudit-sandbox:latest
+      # LLM 配置 - 请根据需要修改
+      - LLM_PROVIDER=${LLM_PROVIDER:-openai}
+      - LLM_MODEL=${LLM_MODEL:-gpt-4o}
+      - LLM_API_KEY=${LLM_API_KEY:-your-api-key-here}
+      - LLM_BASE_URL=${LLM_BASE_URL:-}
+      # 禁用代理
+      - HTTP_PROXY=
+      - HTTPS_PROXY=
+      - NO_PROXY=*
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      db-migrate:
+        condition: service_completed_successfully
+    networks:
+      - deepaudit-network
+
+  # 数据库迁移服务 - 在后端启动前自动执行
+  db-migrate:
+    image: ghcr.io/lintsinghua/deepaudit-backend:latest
+    restart: "no"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/deepaudit
+    command: [".venv/bin/alembic", "upgrade", "head"]
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - deepaudit-network
+
+  frontend:
+    image: ghcr.io/lintsinghua/deepaudit-frontend:latest
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - deepaudit-network
+
+  # 预拉取沙箱镜像（后端会按需调用）
+  sandbox-pull:
+    image: ghcr.io/lintsinghua/deepaudit-sandbox:latest
+    restart: "no"
+    command: echo "Sandbox image ready"
+
+networks:
+  deepaudit-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  backend_uploads:
+  redis_data:

@@ -41,7 +41,7 @@ VERIFICATION_SYSTEM_PROMPT = """你是 DeepAudit 的漏洞验证 Agent，一个*
 ### 文件操作
 - **read_file**: 读取更多代码上下文
   参数: file_path (str), start_line (int), end_line (int)
-- **list_files**: 列出目录文件
+- **list_files**: ⚠️ 仅用于确认文件是否存在，严禁遍历
   参数: directory (str), pattern (str)
 
 ### 沙箱核心工具
@@ -211,6 +211,26 @@ Final Answer: [JSON 格式的验证报告]
      - SQL注入: 完整的利用语句或请求
      - 代码执行: 可直接运行的利用脚本
    - ⚠️ payload 字段必须是**可直接复制执行**的完整利用代码，不要只写参数值
+
+## ⚠️ 关键约束 - 必须遵守！
+1. **禁止直接输出 Final Answer** - 你必须先调用至少一个工具来验证漏洞
+2. **每个漏洞至少调用一次工具** - 使用 read_file 读取代码，或使用 test_* 工具测试
+3. **没有工具调用的验证无效** - 不允许仅凭已知信息直接判断
+4. **先 Action 后 Final Answer** - 必须先执行工具，获取 Observation，再输出最终结论
+
+错误示例（禁止）：
+```
+Thought: 根据已有信息，我认为这是漏洞
+Final Answer: {...}  ❌ 没有调用任何工具！
+```
+
+正确示例（必须）：
+```
+Thought: 我需要先读取 config.php 文件来验证硬编码凭据
+Action: read_file
+Action Input: {"file_path": "config.php"}
+```
+然后等待 Observation，再继续验证其他发现或输出 Final Answer。
 
 现在开始验证漏洞发现！"""
 
@@ -529,7 +549,7 @@ class VerificationAgent(BaseAgent):
                     llm_output, tokens_this_round = await self.stream_llm_call(
                         self._conversation_history,
                         temperature=0.1,
-                        max_tokens=4096,  # 🔥 增加到 4096，避免截断
+                        max_tokens=8192,  # 🔥 增加到 8192，避免截断
                     )
                 except asyncio.CancelledError:
                     logger.info(f"[{self.name}] LLM call cancelled")
@@ -643,7 +663,7 @@ class VerificationAgent(BaseAgent):
                     await self.emit_llm_decision("继续验证", "LLM 需要更多验证")
                     self._conversation_history.append({
                         "role": "user",
-                        "content": "请继续验证。如果验证完成，输出 Final Answer 汇总所有验证结果。",
+                        "content": "请继续验证。你输出了 Thought 但没有输出 Action。请**立即**选择一个工具执行，或者如果验证完成，输出 Final Answer 汇总所有验证结果。",
                     })
             
             # 处理结果
@@ -667,31 +687,50 @@ class VerificationAgent(BaseAgent):
             
             # 处理最终结果
             verified_findings = []
-            
+
             # 🔥 Robustness: If LLM returns empty findings but we had input, fallback to original
             llm_findings = []
             if final_result and "findings" in final_result:
                 llm_findings = final_result["findings"]
-            
+
             if not llm_findings and findings_to_verify:
                 logger.warning(f"[{self.name}] LLM returned empty findings despite {len(findings_to_verify)} inputs. Falling back to originals.")
                 # Fallback to logic below (else branch)
-                final_result = None 
+                final_result = None
 
             if final_result and "findings" in final_result:
+                # 🔥 DEBUG: Log what LLM returned for verdict diagnosis
+                verdicts_debug = [(f.get("file_path", "?"), f.get("verdict"), f.get("confidence")) for f in final_result["findings"]]
+                logger.info(f"[{self.name}] LLM returned verdicts: {verdicts_debug}")
+
                 for f in final_result["findings"]:
+                    # 🔥 FIX: Normalize verdict - handle missing/empty verdict
+                    verdict = f.get("verdict")
+                    if not verdict or verdict not in ["confirmed", "likely", "uncertain", "false_positive"]:
+                        # Try to infer verdict from other fields
+                        if f.get("is_verified") is True:
+                            verdict = "confirmed"
+                        elif f.get("confidence", 0) >= 0.8:
+                            verdict = "likely"
+                        elif f.get("confidence", 0) <= 0.3:
+                            verdict = "false_positive"
+                        else:
+                            verdict = "uncertain"
+                        logger.warning(f"[{self.name}] Missing/invalid verdict for {f.get('file_path', '?')}, inferred as: {verdict}")
+
                     verified = {
                         **f,
-                        "is_verified": f.get("verdict") == "confirmed" or (
-                            f.get("verdict") == "likely" and f.get("confidence", 0) >= 0.8
+                        "verdict": verdict,  # 🔥 Ensure verdict is set
+                        "is_verified": verdict == "confirmed" or (
+                            verdict == "likely" and f.get("confidence", 0) >= 0.8
                         ),
-                        "verified_at": datetime.now(timezone.utc).isoformat() if f.get("verdict") in ["confirmed", "likely"] else None,
+                        "verified_at": datetime.now(timezone.utc).isoformat() if verdict in ["confirmed", "likely"] else None,
                     }
-                    
+
                     # 添加修复建议
                     if not verified.get("recommendation"):
                         verified["recommendation"] = self._get_recommendation(f.get("vulnerability_type", ""))
-                    
+
                     verified_findings.append(verified)
             else:
                 # 如果没有最终结果，使用原始发现
