@@ -46,6 +46,7 @@ interface EmbeddingProvider {
 interface EmbeddingConfig {
   provider: string;
   model: string;
+  api_key: string | null;
   base_url: string | null;
   dimensions: number;
   batch_size: number;
@@ -79,15 +80,15 @@ export default function EmbeddingConfigPanel() {
     loadData();
   }, []);
 
-  // 当 provider 改变时更新模型
-  useEffect(() => {
-    if (selectedProvider) {
-      const provider = providers.find((p) => p.id === selectedProvider);
-      if (provider) {
-        setSelectedModel(provider.default_model);
-      }
+  // 用户手动切换 provider 时更新为默认模型
+  const handleProviderChange = (newProvider: string) => {
+    setSelectedProvider(newProvider);
+    // 切换 provider 时重置为该 provider 的默认模型
+    const provider = providers.find((p) => p.id === newProvider);
+    if (provider) {
+      setSelectedModel(provider.default_model);
     }
-  }, [selectedProvider, providers]);
+  };
 
   const loadData = async () => {
     try {
@@ -104,6 +105,7 @@ export default function EmbeddingConfigPanel() {
       if (configRes.data) {
         setSelectedProvider(configRes.data.provider);
         setSelectedModel(configRes.data.model);
+        setApiKey(configRes.data.api_key || "");
         setBaseUrl(configRes.data.base_url || "");
         setBatchSize(configRes.data.batch_size);
       }
@@ -230,7 +232,7 @@ export default function EmbeddingConfigPanel() {
         {/* 提供商选择 */}
         <div className="space-y-2">
           <Label className="text-xs font-bold text-gray-500 uppercase">嵌入模型提供商</Label>
-          <Select value={selectedProvider} onValueChange={setSelectedProvider}>
+          <Select value={selectedProvider} onValueChange={handleProviderChange}>
             <SelectTrigger className="h-12 cyber-input">
               <SelectValue placeholder="选择提供商" />
             </SelectTrigger>

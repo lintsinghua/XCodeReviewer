@@ -1,6 +1,6 @@
-# DeepAudit - 开源的代码审计智能体平台 🦸‍♂️
+# DeepAudit - 人人拥有的 AI 审计战队，让漏洞挖掘触手可及 🦸‍♂️
 
-> 让代码漏洞挖掘像呼吸一样简单，小白也能当黑客挖洞
+> 让代码漏洞挖掘像呼吸一样简单，小白也能轻松挖洞
 
 <div style="width: 100%; max-width: 600px; margin: 0 auto;">
   <img src="frontend/public/images/logo.png" alt="DeepAudit Logo" style="width: 100%; height: auto; display: block; margin: 0 auto;">
@@ -12,7 +12,7 @@
 
 <div align="center">
 
-[![Version](https://img.shields.io/badge/version-3.0.0-blue.svg)](https://github.com/lintsinghua/DeepAudit/releases)
+[![Version](https://img.shields.io/badge/version-3.0.1-blue.svg)](https://github.com/lintsinghua/DeepAudit/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![React](https://img.shields.io/badge/React-18-61dafb.svg)](https://reactjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178c6.svg)](https://www.typescriptlang.org/)
@@ -158,36 +158,74 @@ DeepAudit/
 
 ---
 
-## 🚀 快速开始 (Docker)
+## 🚀 快速开始
 
-### 1. 启动项目
+### 方式一：一行命令部署（推荐）
 
-复制一份 `backend/env.example` 为 `backend/.env`，并按需配置 LLM API Key。
-然后执行以下命令一键启动：
+使用预构建的 Docker 镜像，无需克隆代码，一行命令即可启动：
 
 ```bash
-# 1. 准备配置文件
-cp backend/env.example backend/.env
-
-# 2. 构建沙箱镜像 (首次运行必须)
-cd docker/sandbox && chmod +x build.sh && ./build.sh && cd ../..
-
-# 3. 启动服务
-docker compose up -d
+curl -fsSL https://raw.githubusercontent.com/lintsinghua/DeepAudit/v3.0.0/docker-compose.prod.yml | docker compose -f - up -d
 ```
+
+<details>
+<summary>🇨🇳 国内加速部署（点击展开）</summary>
+
+使用南京大学镜像站加速拉取 Docker 镜像（将 `ghcr.io` 替换为 `ghcr.nju.edu.cn`）：
+
+```bash
+# 国内加速版 - 使用南京大学 GHCR 镜像站
+curl -fsSL https://raw.githubusercontent.com/lintsinghua/DeepAudit/main/docker-compose.prod.cn.yml | docker compose -f - up -d
+```
+
+**手动拉取镜像（如需单独拉取）：**
+```bash
+# 前端镜像
+docker pull ghcr.nju.edu.cn/lintsinghua/deepaudit-frontend:latest
+
+# 后端镜像
+docker pull ghcr.nju.edu.cn/lintsinghua/deepaudit-backend:latest
+
+# 沙箱镜像
+docker pull ghcr.nju.edu.cn/lintsinghua/deepaudit-sandbox:latest
+```
+
+> 💡 镜像源由 [南京大学开源镜像站](https://mirrors.nju.edu.cn/) 提供支持
+
+</details>
 
 > 🎉 **启动成功！** 访问 http://localhost:3000 开始体验。
 
 ---
 
-## 🔧 源码启动指南
+### 方式二：克隆代码部署
+
+适合需要自定义配置或二次开发的用户：
+
+```bash
+# 1. 克隆项目
+git clone https://github.com/lintsinghua/DeepAudit.git && cd DeepAudit
+
+# 2. 配置环境变量
+cp backend/env.example backend/.env
+# 编辑 backend/.env 填入你的 LLM API Key
+
+# 3. 一键启动
+docker compose up -d
+```
+
+> 首次启动会自动构建沙箱镜像，可能需要几分钟。
+
+---
+
+## 🔧 源码开发指南
 
 适合开发者进行二次开发调试。
 
 ### 环境要求
-- Python 3.10+
-- Node.js 18+
-- PostgreSQL 14+
+- Python 3.11+
+- Node.js 20+
+- PostgreSQL 15+
 - Docker (用于沙箱)
 
 
@@ -206,11 +244,9 @@ cd backend
 # 配置环境
 cp env.example .env
 
-# 激活虚拟环境 (推荐 uv/poetry)
-source .venv/bin/activate 
-
-# 安装依赖
-pip install -r requirements.txt
+# 使用 uv 管理环境（推荐）
+uv sync
+source .venv/bin/activate
 
 # 启动 API 服务
 uvicorn app.main:app --reload
@@ -223,16 +259,20 @@ cd frontend
 # 配置环境
 cp .env.example .env
 
-npm install
-npm run dev
+pnpm install
+pnpm dev
 ```
 
-### 4. 沙箱环境
-开发模式下，仍需通过 Docker 启动沙箱服务。
+### 3. 沙箱环境
+
+开发模式下需要本地 Docker 拉取沙箱镜像：
 
 ```bash
-cd docker/sandbox
-./build.sh
+# 标准拉取
+docker pull ghcr.io/lintsinghua/deepaudit-sandbox:latest
+
+# 国内加速（南京大学镜像站）
+docker pull ghcr.nju.edu.cn/lintsinghua/deepaudit-sandbox:latest
 ```
 
 ---
@@ -369,3 +409,37 @@ DeepSeek-Coder · Codestral<br/>
 <div align="center">
   <strong>Made with ❤️ by <a href="https://github.com/lintsinghua">lintsinghua</a></strong>
 </div>
+
+---
+
+## ⚠️ 重要安全声明
+
+### 法律合规声明
+1. 禁止**任何未经授权的漏洞测试、渗透测试或安全评估**
+2. 本项目仅供网络空间安全学术研究、教学和学习使用
+3. 严禁将本项目用于任何非法目的或未经授权的安全测试
+
+### 漏洞上报责任
+1. 发现任何安全漏洞时，请及时通过合法渠道上报
+2. 严禁利用发现的漏洞进行非法活动
+3. 遵守国家网络安全法律法规，维护网络空间安全
+
+### 使用限制
+- 仅限在授权环境下用于教育和研究目的
+- 禁止用于对未授权系统进行安全测试
+- 使用者需对自身行为承担全部法律责任
+
+### 免责声明
+作者不对任何因使用本项目而导致的直接或间接损失负责，使用者需对自身行为承担全部法律责任。
+
+---
+
+## 📖 详细安全政策
+
+有关安装政策、免责声明、代码隐私、API使用安全和漏洞报告的详细信息，请参阅 [DISCLAIMER.md](DISCLAIMER.md) 和 [SECURITY.md](SECURITY.md) 文件。
+
+### 快速参考
+- 🔒 **代码隐私警告**: 您的代码将被发送到所选择的LLM服务商服务器
+- 🛡️ **敏感代码处理**: 使用本地模型处理敏感代码
+- ⚠️ **合规要求**: 遵守数据保护和隐私法律法规
+- 📧 **漏洞报告**: 发现安全问题请通过合法渠道上报

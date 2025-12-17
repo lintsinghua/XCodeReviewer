@@ -133,11 +133,20 @@ export const StatsPanel = memo(function StatsPanel({ task, findings }: StatsPane
 
         {/* File progress */}
         <div className="flex items-center justify-between mt-2 text-[10px]">
-          <span className="text-slate-500">Files analyzed</span>
+          <span className="text-slate-500">Files scanned</span>
           <span className="text-slate-300 font-mono">
             {task.analyzed_files}<span className="text-slate-500">/{task.total_files}</span>
           </span>
         </div>
+        {/* Files with findings */}
+        {task.files_with_findings > 0 && (
+          <div className="flex items-center justify-between mt-1 text-[10px]">
+            <span className="text-slate-500">Files with findings</span>
+            <span className="text-rose-400 font-mono font-medium">
+              {task.files_with_findings}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Metrics Grid */}

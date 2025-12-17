@@ -473,10 +473,10 @@ class EventManager:
                 buffered_count += 1
                 yield buffered_event
 
-                # 🔥 为缓存事件添加小延迟，但比之前少很多（避免拖慢）
+                # 🔥 取消人为延迟，防止队列堆积
                 event_type = buffered_event.get("event_type")
-                if event_type == "thinking_token":
-                    await asyncio.sleep(0.005)  # 5ms for tokens (reduced from 15ms)
+                # if event_type == "thinking_token":
+                #     await asyncio.sleep(0.005)
                 # 其他事件不加延迟，快速发送
 
                 # 检查是否是结束事件
@@ -513,9 +513,9 @@ class EventManager:
 
                     yield event
 
-                    # 🔥 为 thinking_token 添加微延迟确保流式效果
-                    if event_type == "thinking_token":
-                        await asyncio.sleep(0.01)  # 10ms
+                    # 🔥 取消人为延迟，防止队列堆积
+                    # if event_type == "thinking_token":
+                    #     await asyncio.sleep(0.01)
 
                     # 检查是否是结束事件
                     if event.get("event_type") in ["task_complete", "task_error", "task_cancel"]:

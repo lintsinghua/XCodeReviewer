@@ -89,7 +89,8 @@ class AgentTask(Base):
     # 进度统计
     total_files = Column(Integer, default=0)
     indexed_files = Column(Integer, default=0)
-    analyzed_files = Column(Integer, default=0)
+    analyzed_files = Column(Integer, default=0)  # 实际扫描过的文件数
+    files_with_findings = Column(Integer, default=0)  # 有漏洞发现的文件数
     total_chunks = Column(Integer, default=0)  # 代码块总数
     
     # Agent 统计

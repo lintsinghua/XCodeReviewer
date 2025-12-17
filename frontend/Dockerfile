@@ -3,7 +3,7 @@
 # =============================================
 # 使用 Nginx 提供静态文件和反向代理 (支持 SSE 流式传输)
 
-FROM node:20-alpine AS builder
+FROM node:20-slim AS builder
 
 WORKDIR /app
 
@@ -25,7 +25,10 @@ RUN npm config set registry https://registry.npmmirror.com && \
 # 复制依赖文件
 COPY package.json pnpm-lock.yaml ./
 
-RUN pnpm install --no-frozen-lockfile
+# 增加网络超时设置和并发数限制，防止 ARM 架构构建卡死
+RUN pnpm config set network-timeout 300000 && \
+    pnpm config set fetch-retries 5 && \
+    pnpm install --no-frozen-lockfile --network-concurrency 1
 
 # 复制源代码
 COPY . .
