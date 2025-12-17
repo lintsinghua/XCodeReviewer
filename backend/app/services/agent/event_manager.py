@@ -313,7 +313,7 @@ class EventManager:
             try:
                 self._event_queues[task_id].put_nowait(event_data)
                 # 🔥 DEBUG: 记录重要事件被添加到队列
-                if event_type in ["thinking_start", "thinking_end", "dispatch", "task_complete", "task_error"]:
+                if event_type in ["thinking_start", "thinking_end", "dispatch", "task_complete", "task_error", "tool_call", "tool_result", "llm_action"]:
                     logger.info(f"[EventQueue] Added {event_type} to queue for task {task_id}, queue size: {self._event_queues[task_id].qsize()}")
                 elif event_type == "thinking_token":
                     # 每10个token记录一次
@@ -508,7 +508,7 @@ class EventManager:
 
                     # 🔥 DEBUG: 记录重要事件被发送
                     event_type = event.get("event_type")
-                    if event_type in ["thinking_start", "thinking_end", "dispatch", "task_complete", "task_error"]:
+                    if event_type in ["thinking_start", "thinking_end", "dispatch", "task_complete", "task_error", "tool_call", "tool_result", "llm_action"]:
                         logger.info(f"[StreamEvents] Yielding {event_type} (seq={event_sequence}) for task {task_id}")
 
                     yield event

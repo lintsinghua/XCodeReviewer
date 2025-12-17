@@ -604,8 +604,39 @@ class VerificationAgent(BaseAgent):
                     # 🔥 发射 LLM 动作决策事件
                     await self.emit_llm_action(step.action, step.action_input or {})
                     
-                    # 🔥 循环检测：追踪工具调用失败历史
+                    start_tool_time = time.time()
+                    
+                    # 🔥 智能循环检测: 追踪重复调用 (无论成功与否)
                     tool_call_key = f"{step.action}:{json.dumps(step.action_input or {}, sort_keys=True)}"
+                    
+                    if not hasattr(self, '_tool_call_counts'):
+                        self._tool_call_counts = {}
+                    
+                    self._tool_call_counts[tool_call_key] = self._tool_call_counts.get(tool_call_key, 0) + 1
+                    
+                    # 如果同一操作重复尝试超过3次，强制干预
+                    if self._tool_call_counts[tool_call_key] > 3:
+                        logger.warning(f"[{self.name}] Detected repetitive tool call loop: {tool_call_key}")
+                        observation = (
+                            f"⚠️ **系统干预**: 你已经使用完全相同的参数调用了工具 '{step.action}' 超过3次。\n"
+                            "请**不要**重复尝试相同的操作。这是无效的。\n"
+                            "请尝试：\n"
+                            "1. 修改参数 (例如改变 input payload)\n"
+                            "2. 使用不同的工具 (例如从 sandbox_exec 换到 php_test)\n"
+                            "3. 如果之前的尝试都失败了，请尝试 analyze_file 重新分析代码\n"
+                            "4. 如果无法验证，请输出 Final Answer 并标记为 uncertain"
+                        )
+                        
+                        # 模拟观察结果，跳过实际执行
+                        step.observation = observation
+                        await self.emit_llm_observation(observation)
+                        self._conversation_history.append({
+                            "role": "user",
+                            "content": f"Observation:\n{observation}",
+                        })
+                        continue
+
+                    # 🔥 循环检测：追踪工具调用失败历史 (保留原有逻辑用于错误追踪)
                     if not hasattr(self, '_failed_tool_calls'):
                         self._failed_tool_calls = {}
                     
