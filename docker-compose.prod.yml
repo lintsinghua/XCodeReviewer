@@ -54,10 +54,15 @@ services:
       - LLM_MODEL=${LLM_MODEL:-gpt-4o}
       - LLM_API_KEY=${LLM_API_KEY:-your-api-key-here}
       - LLM_BASE_URL=${LLM_BASE_URL:-}
-      # 禁用代理
+      # 禁用代理 - 必须同时设置大小写变量
       - HTTP_PROXY=
       - HTTPS_PROXY=
+      - http_proxy=
+      - https_proxy=
+      - all_proxy=
+      - ALL_PROXY=
       - NO_PROXY=*
+      - no_proxy=*
     depends_on:
       db:
         condition: service_healthy
