@@ -168,17 +168,17 @@ DeepAudit/
 curl -fsSL https://raw.githubusercontent.com/lintsinghua/DeepAudit/v3.0.0/docker-compose.prod.yml | docker compose -f - up -d
 ```
 
-<details>
-<summary>🇨🇳 国内加速部署（点击展开）</summary>
+## 🇨🇳 国内加速部署（作者亲测非常无敌之快）
 
 使用南京大学镜像站加速拉取 Docker 镜像（将 `ghcr.io` 替换为 `ghcr.nju.edu.cn`）：
 
 ```bash
 # 国内加速版 - 使用南京大学 GHCR 镜像站
-curl -fsSL https://raw.githubusercontent.com/lintsinghua/DeepAudit/main/docker-compose.prod.cn.yml | docker compose -f - up -d
+curl -fsSL https://raw.githubusercontent.com/lintsinghua/DeepAudit/v3.0.0/docker-compose.prod.cn.yml | docker compose -f - up -d
 ```
+<details>
+<summary>手动拉取镜像（如需单独拉取）（点击展开）</summary>
 
-**手动拉取镜像（如需单独拉取）：**
 ```bash
 # 前端镜像
 docker pull ghcr.nju.edu.cn/lintsinghua/deepaudit-frontend:latest
@@ -189,10 +189,9 @@ docker pull ghcr.nju.edu.cn/lintsinghua/deepaudit-backend:latest
 # 沙箱镜像
 docker pull ghcr.nju.edu.cn/lintsinghua/deepaudit-sandbox:latest
 ```
+</details>
 
 > 💡 镜像源由 [南京大学开源镜像站](https://mirrors.nju.edu.cn/) 提供支持
-
-</details>
 
 > 🎉 **启动成功！** 访问 http://localhost:3000 开始体验。
 
