@@ -3,7 +3,6 @@
 # =============================================
 # 使用南京大学镜像站加速拉取 GHCR 镜像
 # 部署命令: curl -fsSL https://raw.githubusercontent.com/lintsinghua/DeepAudit/main/docker-compose.prod.cn.yml | docker compose -f - up -d
-#
 # 镜像加速说明：
 # - 原始地址：ghcr.io
 # - 加速地址：ghcr.nju.edu.cn（南京大学开源镜像站）
