@@ -90,6 +90,13 @@ services:
     restart: unless-stopped
     ports:
       - "3000:80"
+    environment:
+      # 禁用代理 - nginx 需要直连后端
+      - HTTP_PROXY=
+      - HTTPS_PROXY=
+      - http_proxy=
+      - https_proxy=
+      - NO_PROXY=*
     depends_on:
       - backend
     networks:

@@ -108,7 +108,19 @@ class SandboxManager:
             }
         
         timeout = timeout or self.config.timeout
-        
+
+        # 禁用代理环境变量，防止 Docker 自动注入的代理干扰容器网络
+        no_proxy_env = {
+            "HTTP_PROXY": "",
+            "HTTPS_PROXY": "",
+            "http_proxy": "",
+            "https_proxy": "",
+            "NO_PROXY": "*",
+            "no_proxy": "*",
+        }
+        # 合并用户传入的环境变量（用户变量优先）
+        container_env = {**no_proxy_env, **(env or {})}
+
         try:
             # 创建临时目录
             with tempfile.TemporaryDirectory() as temp_dir:
@@ -131,7 +143,7 @@ class SandboxManager:
                             "/tmp": "rw,size=100m,mode=1777"
                         },
                     "working_dir": working_dir or "/workspace",
-                    "environment": env or {},
+                    "environment": container_env,
                     # 安全配置
                     "cap_drop": ["ALL"],
                     "security_opt": ["no-new-privileges:true"],
@@ -222,14 +234,22 @@ class SandboxManager:
         
         timeout = timeout or self.config.timeout
 
-        try:
-            # 🔥 清除代理环境变量的方式：在命令前添加 unset
-            # 因为设置空字符串会导致工具尝试解析空 URI 而出错
-            unset_proxy_prefix = "unset HTTP_PROXY HTTPS_PROXY http_proxy https_proxy; "
-            wrapped_command = unset_proxy_prefix + command
+        # 禁用代理环境变量，防止 Docker 自动注入的代理干扰容器网络
+        no_proxy_env = {
+            "HTTP_PROXY": "",
+            "HTTPS_PROXY": "",
+            "http_proxy": "",
+            "https_proxy": "",
+            "NO_PROXY": "*",
+            "no_proxy": "*",
+        }
+        # 合并用户传入的环境变量（用户变量优先）
+        container_env = {**no_proxy_env, **(env or {})}
 
-            # 用户传入的环境变量
-            container_env = env or {}
+        try:
+            # 清除代理环境变量：在命令前添加 unset（双重保险）
+            unset_proxy_prefix = "unset HTTP_PROXY HTTPS_PROXY http_proxy https_proxy ALL_PROXY all_proxy 2>/dev/null; "
+            wrapped_command = unset_proxy_prefix + command
 
             # 准备容器配置
             container_config = {
@@ -247,10 +267,10 @@ class SandboxManager:
                 },
                 "tmpfs": {
                     "/home/sandbox": "rw,size=100m,mode=1777",
-                    "/tmp": "rw,size=100m,mode=1777"  # 🔥 添加 /tmp 目录供工具写入临时文件
+                    "/tmp": "rw,size=100m,mode=1777"  # 添加 /tmp 目录供工具写入临时文件
                 },
                 "working_dir": "/workspace",
-                "environment": container_env,  # 🔥 用户传入的环境变量
+                "environment": container_env,
                 "cap_drop": ["ALL"],
                 "security_opt": ["no-new-privileges:true"],
             }

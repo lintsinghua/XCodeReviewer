@@ -85,6 +85,13 @@ services:
       - ./frontend/nginx.conf:/etc/nginx/conf.d/default.conf:ro  # 挂载 nginx 配置
     ports:
       - "3000:80"  # Nginx 监听 80 端口
+    environment:
+      # 禁用代理 - nginx 需要直连后端
+      - HTTP_PROXY=
+      - HTTPS_PROXY=
+      - http_proxy=
+      - https_proxy=
+      - NO_PROXY=*
     depends_on:
       - backend
     networks:
