@@ -2486,6 +2486,20 @@ async def _get_project_root(
         await emit(f"❌ 项目目录为空", "error")
         raise RuntimeError(f"项目目录为空，可能是克隆/解压失败: {base_path}")
 
+    # 🔥 智能检测：如果解压后只有一个子目录（常见于 ZIP 文件），
+    # 则使用那个子目录作为真正的项目根目录
+    # 例如：/tmp/deepaudit/UUID/PHP-Project/ -> 返回 /tmp/deepaudit/UUID/PHP-Project
+    items = os.listdir(base_path)
+    # 过滤掉 macOS 产生的 __MACOSX 目录和隐藏文件
+    real_items = [item for item in items if not item.startswith('__') and not item.startswith('.')]
+    
+    if len(real_items) == 1:
+        single_item_path = os.path.join(base_path, real_items[0])
+        if os.path.isdir(single_item_path):
+            logger.info(f"🔍 检测到单层嵌套目录，自动调整项目根目录: {base_path} -> {single_item_path}")
+            await emit(f"🔍 检测到嵌套目录，自动调整为: {real_items[0]}")
+            base_path = single_item_path
+
     await emit(f"📁 项目准备完成: {base_path}")
     return base_path
 

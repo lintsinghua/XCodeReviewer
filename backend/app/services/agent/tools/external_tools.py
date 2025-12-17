@@ -19,14 +19,74 @@ from .sandbox_tool import SandboxManager
 logger = logging.getLogger(__name__)
 
 
+# ============ 公共辅助函数 ============
+
+def _smart_resolve_target_path(
+    target_path: str, 
+    project_root: str, 
+    tool_name: str = "Tool"
+) -> tuple[str, str, Optional[str]]:
+    """
+    智能解析目标路径
+    
+    Args:
+        target_path: 用户/Agent 传入的目标路径
+        project_root: 项目根目录（绝对路径）
+        tool_name: 工具名称（用于日志）
+    
+    Returns:
+        (safe_target_path, host_check_path, error_msg)
+        - safe_target_path: 容器内使用的安全路径
+        - host_check_path: 宿主机上的检查路径
+        - error_msg: 如果有错误返回错误信息，否则为 None
+    """
+    # 获取项目根目录名
+    project_dir_name = os.path.basename(project_root.rstrip('/'))
+    
+    if target_path in (".", "", "./"):
+        # 扫描整个项目根目录，在容器内对应 /workspace
+        safe_target_path = "."
+        host_check_path = project_root
+    elif target_path == project_dir_name or target_path == f"./{project_dir_name}":
+        # 🔥 智能修复：Agent 可能把项目名当作子目录传入
+        logger.info(f"[{tool_name}] 智能路径修复: '{target_path}' -> '.' (项目根目录名: {project_dir_name})")
+        safe_target_path = "."
+        host_check_path = project_root
+    else:
+        # 相对路径，需要验证是否存在
+        safe_target_path = target_path.lstrip("/") if target_path.startswith("/") else target_path
+        host_check_path = os.path.join(project_root, safe_target_path)
+        
+        # 🔥 智能回退：如果路径不存在，尝试扫描整个项目
+        if not os.path.exists(host_check_path):
+            logger.warning(
+                f"[{tool_name}] 路径 '{target_path}' 不存在于项目中，自动回退到扫描整个项目 "
+                f"(project_root={project_root}, project_dir_name={project_dir_name})"
+            )
+            # 回退到扫描整个项目
+            safe_target_path = "."
+            host_check_path = project_root
+    
+    # 最终检查
+    if not os.path.exists(host_check_path):
+        error_msg = f"目标路径不存在: {target_path} (完整路径: {host_check_path})"
+        logger.error(f"[{tool_name}] {error_msg}")
+        return safe_target_path, host_check_path, error_msg
+    
+    return safe_target_path, host_check_path, None
+
+
 # ============ Semgrep 工具 ============
 
 class SemgrepInput(BaseModel):
     """Semgrep 扫描输入"""
-    target_path: str = Field(description="要扫描的目录或文件路径（相对于项目根目录）")
+    target_path: str = Field(
+        default=".",
+        description="要扫描的路径。⚠️ 重要：使用 '.' 扫描整个项目（推荐），或使用 'src/' 等子目录。不要使用项目目录名如 'PHP-Project'！"
+    )
     rules: Optional[str] = Field(
         default="p/security-audit",
-        description="规则集: p/security-audit, p/owasp-top-ten, p/r2c-security-audit, 或自定义规则文件路径"
+        description="规则集: p/security-audit, p/owasp-top-ten, p/r2c-security-audit"
     )
     severity: Optional[str] = Field(
         default=None,
@@ -83,19 +143,20 @@ class SemgrepTool(AgentTool):
         return """使用 Semgrep 进行静态安全分析。
 Semgrep 是业界领先的静态分析工具，支持 30+ 种编程语言。
 
+⚠️ 重要提示:
+- target_path 使用 '.' 扫描整个项目（推荐）
+- 或使用子目录如 'src/'、'app/' 等
+- 不要使用项目目录名（如 'PHP-Project'、'MyApp'）！
+
 可用规则集:
-- auto: 自动选择最佳规则
-- p/security-audit: 综合安全审计
+- p/security-audit: 综合安全审计（推荐）
 - p/owasp-top-ten: OWASP Top 10 漏洞检测
 - p/secrets: 密钥泄露检测
 - p/sql-injection: SQL 注入检测
-- p/xss: XSS 检测
-- p/command-injection: 命令注入检测
 
 使用场景:
 - 快速全面的代码安全扫描
-- 检测常见安全漏洞模式
-- 遵循行业安全标准审计"""
+- 检测常见安全漏洞模式"""
     
     @property
     def args_schema(self):
@@ -120,9 +181,12 @@ Semgrep 是业界领先的静态分析工具，支持 30+ 种编程语言。
                 error=error_msg
             )
 
-        # 构建命令 (相对于 /workspace)
-        # 注意: target_path 是相对于 project_root 的
-        safe_target_path = target_path if not target_path.startswith("/") else target_path.lstrip("/")
+        # 🔥 使用公共函数进行智能路径解析
+        safe_target_path, host_check_path, error_msg = _smart_resolve_target_path(
+            target_path, self.project_root, "Semgrep"
+        )
+        if error_msg:
+            return ToolResult(success=False, data=error_msg, error=error_msg)
         
         cmd = ["semgrep", "--json", "--quiet"]
         
@@ -159,11 +223,16 @@ Semgrep 是业界领先的静态分析工具，支持 30+ 种编程语言。
                 logger.warning(f"[Semgrep] stderr: {result['stderr'][:500]}")
 
             if not result["success"] and result["exit_code"] != 1:  # 1 means findings were found
-                error_msg = result['stderr'][:500] or result['error'] or "未知错误"
-                logger.error(f"[Semgrep] 执行失败: {error_msg}")
+                # 🔥 增强：优先使用 stderr，其次 stdout，最后用 error 字段
+                stdout_preview = result.get('stdout', '')[:500]
+                stderr_preview = result.get('stderr', '')[:500]
+                error_msg = stderr_preview or stdout_preview or result.get('error') or "未知错误"
+                logger.error(f"[Semgrep] 执行失败 (exit_code={result['exit_code']}): {error_msg}")
+                if stdout_preview:
+                    logger.error(f"[Semgrep] stdout: {stdout_preview}")
                 return ToolResult(
                     success=False,
-                    data=f"Semgrep 执行失败: {error_msg}",  # 🔥 修复：设置 data 字段避免 None
+                    data=f"Semgrep 执行失败 (exit_code={result['exit_code']}): {error_msg}",
                     error=f"Semgrep 执行失败: {error_msg}",
                 )
 
@@ -242,7 +311,10 @@ Semgrep 是业界领先的静态分析工具，支持 30+ 种编程语言。
 
 class BanditInput(BaseModel):
     """Bandit 扫描输入"""
-    target_path: str = Field(default=".", description="要扫描的 Python 目录或文件")
+    target_path: str = Field(
+        default=".",
+        description="要扫描的路径。使用 '.' 扫描整个项目（推荐），不要使用项目目录名！"
+    )
     severity: str = Field(default="medium", description="最低严重程度: low, medium, high")
     confidence: str = Field(default="medium", description="最低置信度: low, medium, high")
     max_results: int = Field(default=50, description="最大返回结果数")
@@ -275,16 +347,15 @@ class BanditTool(AgentTool):
     @property
     def description(self) -> str:
         return """使用 Bandit 扫描 Python 代码的安全问题。
-Bandit 是 Python 专用的安全分析工具，由 OpenStack 安全团队开发。
+Bandit 是 Python 专用的安全分析工具。
+
+⚠️ 重要提示: target_path 使用 '.' 扫描整个项目，不要使用项目目录名！
 
 检测项目:
-- B101: assert 使用
-- B102: exec 使用
-- B103-B108: 文件权限问题
-- B301-B312: pickle/yaml 反序列化
-- B501-B508: SSL/TLS 问题
-- B601-B608: shell/SQL 注入
-- B701-B703: Jinja2 模板问题
+- shell/SQL 注入
+- 硬编码密码
+- 不安全的反序列化
+- SSL/TLS 问题
 
 仅适用于 Python 项目。"""
     
@@ -307,7 +378,12 @@ Bandit 是 Python 专用的安全分析工具，由 OpenStack 安全团队开发
             error_msg = f"Bandit unavailable: {self.sandbox_manager.get_diagnosis()}"
             return ToolResult(success=False, data=error_msg, error=error_msg)
 
-        safe_target_path = target_path if not target_path.startswith("/") else target_path.lstrip("/")
+        # 🔥 使用公共函数进行智能路径解析
+        safe_target_path, host_check_path, error_msg = _smart_resolve_target_path(
+            target_path, self.project_root, "Bandit"
+        )
+        if error_msg:
+            return ToolResult(success=False, data=error_msg, error=error_msg)
 
         # 构建命令
         severity_map = {"low": "l", "medium": "m", "high": "h"}
@@ -378,7 +454,10 @@ Bandit 是 Python 专用的安全分析工具，由 OpenStack 安全团队开发
 
 class GitleaksInput(BaseModel):
     """Gitleaks 扫描输入"""
-    target_path: str = Field(default=".", description="要扫描的目录")
+    target_path: str = Field(
+        default=".",
+        description="要扫描的路径。使用 '.' 扫描整个项目（推荐），不要使用项目目录名！"
+    )
     no_git: bool = Field(default=True, description="不使用 git history，仅扫描文件")
     max_results: int = Field(default=50, description="最大返回结果数")
 
@@ -412,16 +491,14 @@ class GitleaksTool(AgentTool):
         return """使用 Gitleaks 检测代码中的密钥泄露。
 Gitleaks 是专业的密钥检测工具，支持 150+ 种密钥类型。
 
+⚠️ 重要提示: target_path 使用 '.' 扫描整个项目，不要使用项目目录名！
+
 检测类型:
-- AWS Access Keys / Secret Keys
-- GCP API Keys / Service Account Keys
-- Azure Credentials
-- GitHub / GitLab Tokens
-- Private Keys (RSA, SSH, PGP)
-- Database Connection Strings
+- AWS/GCP/Azure 凭据
+- GitHub/GitLab Tokens
+- 私钥 (RSA, SSH, PGP)
+- 数据库连接字符串
 - JWT Secrets
-- Slack / Discord Tokens
-- 等等...
 
 建议在代码审计早期使用此工具。"""
     
@@ -443,7 +520,12 @@ Gitleaks 是专业的密钥检测工具，支持 150+ 种密钥类型。
             error_msg = f"Gitleaks unavailable: {self.sandbox_manager.get_diagnosis()}"
             return ToolResult(success=False, data=error_msg, error=error_msg)
 
-        safe_target_path = target_path if not target_path.startswith("/") else target_path.lstrip("/")
+        # 🔥 使用公共函数进行智能路径解析
+        safe_target_path, host_check_path, error_msg = _smart_resolve_target_path(
+            target_path, self.project_root, "Gitleaks"
+        )
+        if error_msg:
+            return ToolResult(success=False, data=error_msg, error=error_msg)
 
         # 🔥 修复：新版 gitleaks 需要使用 --report-path 输出到文件
         # 使用 /tmp 目录（tmpfs 可写）
@@ -813,7 +895,10 @@ class SafetyTool(AgentTool):
 
 class TruffleHogInput(BaseModel):
     """TruffleHog 扫描输入"""
-    target_path: str = Field(default=".", description="要扫描的目录")
+    target_path: str = Field(
+        default=".",
+        description="要扫描的路径。使用 '.' 扫描整个项目（推荐），不要使用项目目录名！"
+    )
     only_verified: bool = Field(default=False, description="仅显示已验证的密钥")
 
 
@@ -839,15 +924,15 @@ class TruffleHogTool(AgentTool):
     @property
     def description(self) -> str:
         return """使用 TruffleHog 进行深度密钥扫描。
-TruffleHog 可以扫描代码和 Git 历史，并验证密钥是否有效。
+
+⚠️ 重要提示: target_path 使用 '.' 扫描整个项目，不要使用项目目录名！
 
 特点:
 - 支持 700+ 种密钥类型
 - 可以验证密钥是否仍然有效
-- 扫描 Git 历史记录
 - 高精度，低误报
 
-建议与 Gitleaks 配合使用以获得最佳效果。"""
+建议与 Gitleaks 配合使用。"""
     
     @property
     def args_schema(self):
@@ -866,7 +951,12 @@ TruffleHog 可以扫描代码和 Git 历史，并验证密钥是否有效。
             error_msg = f"TruffleHog unavailable: {self.sandbox_manager.get_diagnosis()}"
             return ToolResult(success=False, data=error_msg, error=error_msg)
 
-        safe_target_path = target_path if not target_path.startswith("/") else target_path.lstrip("/")
+        # 🔥 使用公共函数进行智能路径解析
+        safe_target_path, host_check_path, error_msg = _smart_resolve_target_path(
+            target_path, self.project_root, "TruffleHog"
+        )
+        if error_msg:
+            return ToolResult(success=False, data=error_msg, error=error_msg)
 
         cmd = ["trufflehog", "filesystem", safe_target_path, "--json"]
         if only_verified:
@@ -929,7 +1019,10 @@ TruffleHog 可以扫描代码和 Git 历史，并验证密钥是否有效。
 
 class OSVScannerInput(BaseModel):
     """OSV-Scanner 扫描输入"""
-    target_path: str = Field(default=".", description="要扫描的项目目录")
+    target_path: str = Field(
+        default=".",
+        description="要扫描的路径。使用 '.' 扫描整个项目（推荐），不要使用项目目录名！"
+    )
 
 
 class OSVScannerTool(AgentTool):
@@ -954,21 +1047,17 @@ class OSVScannerTool(AgentTool):
     @property
     def description(self) -> str:
         return """使用 OSV-Scanner 扫描开源依赖漏洞。
-Google 开源的漏洞扫描工具，使用 OSV (Open Source Vulnerabilities) 数据库。
+Google 开源的漏洞扫描工具。
+
+⚠️ 重要提示: target_path 使用 '.' 扫描整个项目，不要使用项目目录名！
 
 支持:
-- package.json / package-lock.json (npm)
-- requirements.txt / Pipfile.lock (Python)
-- go.mod / go.sum (Go)
+- package.json (npm)
+- requirements.txt (Python)
+- go.mod (Go)
 - Cargo.lock (Rust)
 - pom.xml (Maven)
-- Gemfile.lock (Ruby)
-- composer.lock (PHP)
-
-特点:
-- 覆盖多种语言和包管理器
-- 使用 Google 维护的漏洞数据库
-- 快速、准确"""
+- composer.lock (PHP)"""
     
     @property
     def args_schema(self):
@@ -986,7 +1075,12 @@ Google 开源的漏洞扫描工具，使用 OSV (Open Source Vulnerabilities) �
             error_msg = f"OSV-Scanner unavailable: {self.sandbox_manager.get_diagnosis()}"
             return ToolResult(success=False, data=error_msg, error=error_msg)
 
-        safe_target_path = target_path if not target_path.startswith("/") else target_path.lstrip("/")
+        # 🔥 使用公共函数进行智能路径解析
+        safe_target_path, host_check_path, error_msg = _smart_resolve_target_path(
+            target_path, self.project_root, "OSV-Scanner"
+        )
+        if error_msg:
+            return ToolResult(success=False, data=error_msg, error=error_msg)
 
         # OSV-Scanner
         cmd = ["osv-scanner", "--json", "-r", safe_target_path]

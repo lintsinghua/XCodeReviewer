@@ -53,6 +53,7 @@ services:
       - REDIS_URL=redis://redis:6379/0
       - AGENT_ENABLED=true
       - SANDBOX_ENABLED=true
+      - SANDBOX_IMAGE=deepaudit/sandbox:latest  # 使用本地构建的沙箱镜像
       # 禁用代理设置，防止容器内无法连接外部 API
       - HTTP_PROXY=
       - HTTPS_PROXY=
