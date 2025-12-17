@@ -216,7 +216,7 @@ class TreeSitterParser:
             return False
 
         try:
-            from tree_sitter_languages import get_parser
+            from tree_sitter_language_pack import get_parser
 
             parser = get_parser(language)
             self._parsers[language] = parser
