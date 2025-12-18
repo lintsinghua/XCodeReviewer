@@ -772,17 +772,6 @@ function AgentAuditPageContent() {
 
   return (
     <div className="h-screen bg-background flex flex-col overflow-hidden relative">
-      {/* Animated gradient background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-primary/5 pointer-events-none" />
-      {/* Subtle grid background with animation */}
-      <div className="absolute inset-0 cyber-grid-subtle opacity-30 pointer-events-none animate-grid-pulse" />
-      {/* Scanline effect */}
-      <div className="absolute inset-0 scanline-overlay pointer-events-none opacity-30" />
-      {/* Corner accent lines */}
-      <div className="absolute top-0 left-0 w-32 h-px bg-gradient-to-r from-primary/50 to-transparent pointer-events-none" />
-      <div className="absolute top-0 left-0 w-px h-32 bg-gradient-to-b from-primary/50 to-transparent pointer-events-none" />
-      <div className="absolute bottom-0 right-0 w-32 h-px bg-gradient-to-l from-primary/50 to-transparent pointer-events-none" />
-      <div className="absolute bottom-0 right-0 w-px h-32 bg-gradient-to-t from-primary/50 to-transparent pointer-events-none" />
 
       {/* Header */}
       <Header
@@ -797,33 +786,21 @@ function AgentAuditPageContent() {
       {/* Main content */}
       <div className="flex-1 flex overflow-hidden relative">
         {/* Left Panel - Activity Log */}
-        <div className="w-3/4 flex flex-col border-r border-border/50 relative">
-          {/* Panel glow effect */}
-          <div className="absolute inset-y-0 right-0 w-px bg-gradient-to-b from-transparent via-primary/20 to-transparent pointer-events-none" />
+        <div className="w-3/4 flex flex-col border-r border-border relative">
           {/* Log header */}
-          <div className="flex-shrink-0 h-12 border-b border-border/50 flex items-center justify-between px-5 bg-card/80 backdrop-blur-md relative overflow-hidden">
-            {/* Header accent line */}
-            <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-primary/30 via-transparent to-primary/30" />
-            <div className="flex items-center gap-4 text-xs text-muted-foreground relative z-10">
+          <div className="flex-shrink-0 h-12 border-b border-border flex items-center justify-between px-5 bg-card">
+            <div className="flex items-center gap-4 text-xs text-muted-foreground">
               <div className="flex items-center gap-2.5">
-                <div className="relative">
-                  <Terminal className="w-4 h-4 text-primary" />
-                  {isConnected && (
-                    <div className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
-                  )}
-                </div>
-                <span className="uppercase font-bold tracking-[0.12em] text-foreground text-sm">Activity Log</span>
+                <Terminal className="w-4 h-4 text-primary" />
+                <span className="uppercase font-bold tracking-wider text-foreground text-sm">Activity Log</span>
               </div>
               {isConnected && (
                 <div className="flex items-center gap-2 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30">
-                  <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.6)]"></span>
-                  </span>
-                  <span className="text-xs font-mono uppercase tracking-wider text-emerald-400 font-semibold">Live</span>
+                  <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                  <span className="text-xs font-mono uppercase tracking-wider text-emerald-600 dark:text-emerald-400 font-semibold">Live</span>
                 </div>
               )}
-              <Badge variant="outline" className="h-6 px-2 text-xs border-border/60 text-muted-foreground font-mono bg-muted/50 backdrop-blur-sm">
+              <Badge variant="outline" className="h-6 px-2 text-xs border-border text-muted-foreground font-mono bg-muted">
                 {filteredLogs.length}{!showAllLogs && logs.length !== filteredLogs.length ? ` / ${logs.length}` : ''} entries
               </Badge>
             </div>
@@ -831,36 +808,30 @@ function AgentAuditPageContent() {
             <button
               onClick={() => setAutoScroll(!isAutoScroll)}
               className={`
-                relative flex items-center gap-2 text-xs px-3 py-1.5 rounded-md font-mono uppercase tracking-wider
-                transition-all duration-300 ease-out overflow-hidden
+                flex items-center gap-2 text-xs px-3 py-1.5 rounded-md font-mono uppercase tracking-wider
                 ${isAutoScroll
-                  ? 'bg-primary/15 text-primary border border-primary/50 shadow-[0_0_15px_rgba(255,95,31,0.2)]'
-                  : 'text-muted-foreground hover:text-foreground border border-border/50 hover:border-border hover:bg-muted/30'
+                  ? 'bg-primary/15 text-primary border border-primary/50'
+                  : 'text-muted-foreground hover:text-foreground border border-border hover:bg-muted'
                 }
               `}
             >
-              {isAutoScroll && (
-                <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 animate-shimmer" />
-              )}
-              <ArrowDown className={`w-3.5 h-3.5 relative z-10 transition-transform duration-300 ${isAutoScroll ? 'animate-bounce' : ''}`} />
-              <span className="relative z-10">Auto-scroll</span>
+              <ArrowDown className="w-3.5 h-3.5" />
+              <span>Auto-scroll</span>
             </button>
           </div>
 
           {/* Log content */}
-          <div className="flex-1 overflow-y-auto p-5 custom-scrollbar bg-gradient-to-b from-background/80 to-background/40">
+          <div className="flex-1 overflow-y-auto p-5 custom-scrollbar bg-muted/30">
             {/* Filter indicator */}
             {selectedAgentId && !showAllLogs && (
-              <div className="mb-4 px-4 py-2.5 bg-primary/10 border border-primary/30 rounded-lg flex items-center justify-between backdrop-blur-sm shadow-[0_0_20px_rgba(255,107,44,0.1)]">
+              <div className="mb-4 px-4 py-2.5 bg-primary/10 border border-primary/30 rounded-lg flex items-center justify-between">
                 <div className="flex items-center gap-2.5 text-sm text-primary">
-                  <div className="p-1.5 rounded bg-primary/20">
-                    <Filter className="w-3.5 h-3.5" />
-                  </div>
-                  <span className="tracking-wide font-medium">Filtering logs for selected agent</span>
+                  <Filter className="w-3.5 h-3.5" />
+                  <span className="font-medium">Filtering logs for selected agent</span>
                 </div>
                 <button
                   onClick={() => selectAgent(null)}
-                  className="text-xs text-muted-foreground hover:text-primary transition-colors font-mono uppercase tracking-wider px-2 py-1 rounded hover:bg-primary/10"
+                  className="text-xs text-muted-foreground hover:text-primary font-mono uppercase px-2 py-1 rounded hover:bg-primary/10"
                 >
                   Clear Filter
                 </button>
@@ -890,7 +861,7 @@ function AgentAuditPageContent() {
                 </div>
               </div>
             ) : (
-              <div className="space-y-0.5">
+              <div className="space-y-3">
                 {filteredLogs.map(item => (
                   <LogEntry
                     key={item.id}
@@ -906,31 +877,26 @@ function AgentAuditPageContent() {
 
           {/* Status bar */}
           {task && (
-            <div className="flex-shrink-0 h-10 border-t border-border/50 flex items-center justify-between px-5 text-xs bg-card/80 backdrop-blur-md relative overflow-hidden">
+            <div className="flex-shrink-0 h-10 border-t border-border flex items-center justify-between px-5 text-xs bg-card relative overflow-hidden">
               {/* Progress bar background */}
               <div
-                className="absolute inset-0 bg-gradient-to-r from-primary/10 to-transparent transition-all duration-700 ease-out"
+                className="absolute inset-0 bg-primary/10"
                 style={{ width: `${task.progress_percentage || 0}%` }}
               />
-              {/* Top accent line */}
-              <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-primary/30 via-transparent to-primary/30" />
 
               <span className="relative z-10">
                 {isRunning ? (
-                  <span className="flex items-center gap-2.5 text-emerald-400">
-                    <span className="relative flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)]"></span>
-                    </span>
-                    <span className="font-mono tracking-wide font-semibold">{statusVerb}{'.'.repeat(statusDots)}</span>
+                  <span className="flex items-center gap-2.5 text-emerald-600 dark:text-emerald-400">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                    <span className="font-mono font-semibold">{statusVerb}{'.'.repeat(statusDots)}</span>
                   </span>
                 ) : isComplete ? (
-                  <span className="flex items-center gap-2 text-muted-foreground font-mono tracking-wide">
+                  <span className="flex items-center gap-2 text-muted-foreground font-mono">
                     <span className={`w-2 h-2 rounded-full ${task.status === 'completed' ? 'bg-emerald-500' : task.status === 'failed' ? 'bg-rose-500' : 'bg-amber-500'}`} />
                     AUDIT {task.status?.toUpperCase()}
                   </span>
                 ) : (
-                  <span className="text-muted-foreground font-mono tracking-wide">READY</span>
+                  <span className="text-muted-foreground font-mono">READY</span>
                 )}
               </span>
               <div className="flex items-center gap-5 font-mono text-muted-foreground relative z-10">
@@ -938,16 +904,16 @@ function AgentAuditPageContent() {
                   <span className="text-primary font-bold text-sm">{task.progress_percentage?.toFixed(0) || 0}</span>
                   <span className="text-muted-foreground text-xs">%</span>
                 </div>
-                <div className="w-px h-4 bg-border/50" />
+                <div className="w-px h-4 bg-border" />
                 <div className="flex items-center gap-1.5">
                   <span className="text-foreground font-semibold">{task.analyzed_files}</span>
                   <span className="text-muted-foreground">/ {task.total_files}</span>
-                  <span className="text-muted-foreground/70 text-xs">files</span>
+                  <span className="text-muted-foreground text-xs">files</span>
                 </div>
-                <div className="w-px h-4 bg-border/50" />
+                <div className="w-px h-4 bg-border" />
                 <div className="flex items-center gap-1.5">
                   <span className="text-foreground font-semibold">{task.tool_calls_count || 0}</span>
-                  <span className="text-muted-foreground/70 text-xs">tools</span>
+                  <span className="text-muted-foreground text-xs">tools</span>
                 </div>
               </div>
             </div>
@@ -955,55 +921,50 @@ function AgentAuditPageContent() {
         </div>
 
         {/* Right Panel - Agent Tree + Stats */}
-        <div className="w-1/4 flex flex-col bg-gradient-to-b from-background to-background/95 relative">
-          {/* Panel left glow */}
-          <div className="absolute inset-y-0 left-0 w-px bg-gradient-to-b from-transparent via-primary/10 to-transparent pointer-events-none" />
-
+        <div className="w-1/4 flex flex-col bg-background relative">
           {/* Agent Tree section */}
-          <div className="flex-1 flex flex-col border-b border-border/50 overflow-hidden">
+          <div className="flex-1 flex flex-col border-b border-border overflow-hidden">
             {/* Tree header */}
-            <div className="flex-shrink-0 h-12 border-b border-border/50 flex items-center justify-between px-4 bg-card/80 backdrop-blur-md relative overflow-hidden">
-              {/* Header accent */}
-              <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-violet-500/30 via-transparent to-violet-500/30" />
-
-              <div className="flex items-center gap-2.5 text-xs text-muted-foreground relative z-10">
-                <div className="relative">
-                  <Bot className="w-4 h-4 text-violet-500" />
-                  {agentTree && agentTree.running_agents > 0 && (
-                    <div className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
-                  )}
-                </div>
-                <span className="uppercase font-bold tracking-[0.12em] text-foreground text-sm">Agent Tree</span>
-                {agentTree && (
-                  <Badge variant="outline" className="h-5 px-2 text-xs border-violet-500/30 text-violet-500 font-mono bg-violet-500/10">
+            <div className="flex-shrink-0 h-12 border-b border-border flex items-center justify-between px-4 bg-card">
+              <div className="flex items-center gap-2.5 text-xs text-muted-foreground">
+                <Bot className="w-4 h-4 text-violet-600 dark:text-violet-500" />
+                <span className="uppercase font-bold tracking-wider text-foreground text-sm">
+                  {selectedAgentId && !showAllLogs ? 'Agent Detail' : 'Agent Tree'}
+                </span>
+                {!selectedAgentId && agentTree && (
+                  <Badge variant="outline" className="h-5 px-2 text-xs border-violet-500/30 text-violet-600 dark:text-violet-500 font-mono bg-violet-500/10">
                     {agentTree.total_agents}
                   </Badge>
                 )}
               </div>
-              <div className="flex items-center gap-2 relative z-10">
+              <div className="flex items-center gap-2">
                 {selectedAgentId && !showAllLogs && (
                   <button
                     onClick={() => selectAgent(null)}
-                    className="text-xs text-primary hover:text-primary/80 transition-colors font-mono uppercase tracking-wider px-2 py-1 rounded hover:bg-primary/10"
+                    className="text-xs text-primary hover:text-primary/80 font-mono uppercase px-2 py-1 rounded hover:bg-primary/10"
                   >
-                    Show All
+                    Back
                   </button>
                 )}
-                {agentTree && agentTree.running_agents > 0 && (
+                {!selectedAgentId && agentTree && agentTree.running_agents > 0 && (
                   <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30">
-                    <span className="relative flex h-1.5 w-1.5">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.5)]"></span>
-                    </span>
-                    <span className="text-xs font-mono text-emerald-400 font-semibold">{agentTree.running_agents}</span>
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                    <span className="text-xs font-mono text-emerald-600 dark:text-emerald-400 font-semibold">{agentTree.running_agents}</span>
                   </div>
                 )}
               </div>
             </div>
 
-            {/* Tree content */}
-            <div className="flex-1 overflow-y-auto p-3 custom-scrollbar bg-gradient-to-b from-background/60 to-background/30">
-              {treeNodes.length > 0 ? (
+            {/* Tree content or Agent Detail */}
+            <div className="flex-1 overflow-y-auto p-3 custom-scrollbar bg-muted/20">
+              {selectedAgentId && !showAllLogs ? (
+                /* Agent Detail Panel - 覆盖整个内容区域 */
+                <AgentDetailPanel
+                  agentId={selectedAgentId}
+                  treeNodes={treeNodes}
+                  onClose={() => selectAgent(null)}
+                />
+              ) : treeNodes.length > 0 ? (
                 <div className="space-y-0.5">
                   {treeNodes.map(node => (
                     <AgentTreeNodeItem
@@ -1018,18 +979,13 @@ function AgentAuditPageContent() {
                 <div className="h-full flex items-center justify-center text-muted-foreground text-xs">
                   {isRunning ? (
                     <div className="flex flex-col items-center gap-3 p-6">
-                      <div className="relative">
-                        <Loader2 className="w-6 h-6 animate-spin text-violet-500" />
-                        <div className="absolute inset-0 blur-md opacity-50">
-                          <Loader2 className="w-6 h-6 animate-spin text-violet-500" />
-                        </div>
-                      </div>
-                      <span className="font-mono tracking-wide text-center">INITIALIZING<br/>AGENTS...</span>
+                      <Loader2 className="w-6 h-6 animate-spin text-violet-600 dark:text-violet-500" />
+                      <span className="font-mono text-center">INITIALIZING<br/>AGENTS...</span>
                     </div>
                   ) : (
                     <div className="flex flex-col items-center gap-2 p-6 text-center">
                       <Bot className="w-8 h-8 text-muted-foreground/50" />
-                      <span className="font-mono tracking-wide">NO AGENTS YET</span>
+                      <span className="font-mono">NO AGENTS YET</span>
                     </div>
                   )}
                 </div>
@@ -1037,18 +993,8 @@ function AgentAuditPageContent() {
             </div>
           </div>
 
-          {/* Bottom section - Details + Stats */}
-          <div className="flex-shrink-0 p-4 space-y-3 bg-card/50 backdrop-blur-sm">
-            {/* Agent detail panel */}
-            {selectedAgentId && !showAllLogs && (
-              <AgentDetailPanel
-                agentId={selectedAgentId}
-                treeNodes={treeNodes}
-                onClose={() => selectAgent(null)}
-              />
-            )}
-
-            {/* Stats panel */}
+          {/* Bottom section - Stats */}
+          <div className="flex-shrink-0 p-4 bg-card">
             <StatsPanel task={task} findings={findings} />
           </div>
         </div>

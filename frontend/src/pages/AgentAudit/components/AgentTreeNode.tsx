@@ -1,8 +1,6 @@
 /**
  * Agent Tree Node Component
- * Elegant tree visualization with enhanced visual design
- * Features: Animated connection lines, status indicators, smooth transitions
- * Premium visual effects with depth and hierarchy
+ * Clean tree visualization with simple connection lines
  */
 
 import { useState, memo } from "react";
@@ -11,37 +9,29 @@ import { Badge } from "@/components/ui/badge";
 import { AGENT_STATUS_CONFIG } from "../constants";
 import type { AgentTreeNodeItemProps } from "../types";
 
-// Agent type icons with enhanced colors and styling
+// Agent type icons
 const AGENT_TYPE_ICONS: Record<string, React.ReactNode> = {
-  orchestrator: <Cpu className="w-4 h-4 text-violet-500" />,
-  recon: <Scan className="w-4 h-4 text-teal-500" />,
-  analysis: <FileSearch className="w-4 h-4 text-amber-500" />,
-  verification: <ShieldCheck className="w-4 h-4 text-emerald-500" />,
+  orchestrator: <Cpu className="w-4 h-4 text-violet-600 dark:text-violet-500" />,
+  recon: <Scan className="w-4 h-4 text-teal-600 dark:text-teal-500" />,
+  analysis: <FileSearch className="w-4 h-4 text-amber-600 dark:text-amber-500" />,
+  verification: <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-500" />,
 };
 
-// Agent type background colors for icon container
+// Agent type background colors
 const AGENT_TYPE_BG: Record<string, string> = {
-  orchestrator: 'bg-violet-500/15 border-violet-500/30',
-  recon: 'bg-teal-500/15 border-teal-500/30',
-  analysis: 'bg-amber-500/15 border-amber-500/30',
-  verification: 'bg-emerald-500/15 border-emerald-500/30',
-};
-
-// Status colors for the glow effect
-const STATUS_GLOW_COLORS: Record<string, string> = {
-  running: 'shadow-[0_0_15px_rgba(52,211,153,0.3)]',
-  completed: 'shadow-[0_0_10px_rgba(52,211,153,0.15)]',
-  failed: 'shadow-[0_0_12px_rgba(244,63,94,0.25)]',
-  waiting: 'shadow-[0_0_8px_rgba(251,191,36,0.2)]',
-  created: '',
+  orchestrator: 'bg-violet-100 dark:bg-violet-500/15 border-violet-300 dark:border-violet-500/30',
+  recon: 'bg-teal-100 dark:bg-teal-500/15 border-teal-300 dark:border-teal-500/30',
+  analysis: 'bg-amber-100 dark:bg-amber-500/15 border-amber-300 dark:border-amber-500/30',
+  verification: 'bg-emerald-100 dark:bg-emerald-500/15 border-emerald-300 dark:border-emerald-500/30',
 };
 
 export const AgentTreeNodeItem = memo(function AgentTreeNodeItem({
   node,
   depth = 0,
   selectedId,
-  onSelect
-}: AgentTreeNodeItemProps) {
+  onSelect,
+  isLast = false
+}: AgentTreeNodeItemProps & { isLast?: boolean }) {
   const [expanded, setExpanded] = useState(true);
   const hasChildren = node.children && node.children.length > 0;
   const isSelected = selectedId === node.agent_id;
@@ -49,65 +39,62 @@ export const AgentTreeNodeItem = memo(function AgentTreeNodeItem({
   const isCompleted = node.status === 'completed';
   const isFailed = node.status === 'failed';
 
-  const statusConfig = AGENT_STATUS_CONFIG[node.status] || AGENT_STATUS_CONFIG.created;
   const typeIcon = AGENT_TYPE_ICONS[node.agent_type] || <Bot className="w-3.5 h-3.5 text-muted-foreground" />;
-  const typeBg = AGENT_TYPE_BG[node.agent_type] || 'bg-muted/50 border-border/50';
+  const typeBg = AGENT_TYPE_BG[node.agent_type] || 'bg-muted border-border';
+
+  const indent = depth * 24;
 
   return (
     <div className="relative">
-      {/* Connection line to parent - vertical line with gradient */}
-      {depth > 0 && (
-        <div
-          className="absolute top-0 w-px bg-gradient-to-b from-border/80 via-border/50 to-border/30"
-          style={{
-            left: `${depth * 20 - 10}px`,
-            height: '22px',
-          }}
-        />
-      )}
-
-      {/* Horizontal connector line with dot */}
+      {/* 树形连接线 */}
       {depth > 0 && (
         <>
+          {/* 垂直线 - 从父节点延伸下来 */}
           <div
-            className="absolute top-[22px] h-px bg-gradient-to-r from-border/60 to-border/30"
+            className="absolute border-l-2 border-slate-300 dark:border-slate-600"
             style={{
-              left: `${depth * 20 - 10}px`,
-              width: '10px',
+              left: `${indent - 12}px`,
+              top: 0,
+              height: isLast ? '20px' : '100%',
             }}
           />
+          {/* 水平线 - 连接到当前节点 */}
           <div
-            className="absolute top-[20px] w-1.5 h-1.5 rounded-full bg-border/60"
+            className="absolute border-t-2 border-slate-300 dark:border-slate-600"
             style={{
-              left: `${depth * 20 - 11}px`,
+              left: `${indent - 12}px`,
+              top: '20px',
+              width: '12px',
             }}
           />
         </>
       )}
 
-      {/* Node item with enhanced styling */}
+      {/* Node item */}
       <div
         className={`
-          group relative flex items-center gap-2.5 py-2.5 px-3 cursor-pointer rounded-lg
-          transition-all duration-300 ease-out backdrop-blur-sm
+          relative flex items-center gap-2 py-2 px-2 cursor-pointer rounded-md
           ${isSelected
-            ? 'bg-primary/15 border border-primary/50 shadow-[0_0_20px_rgba(255,107,44,0.15)]'
-            : 'border border-transparent hover:bg-card/60 hover:border-border/50'
+            ? 'bg-primary/15 border-2 border-primary shadow-[0_0_12px_rgba(255,95,31,0.4)]'
+            : isRunning
+              ? 'bg-emerald-50 dark:bg-emerald-950/30 border-2 border-emerald-400 dark:border-emerald-500 shadow-[0_0_10px_rgba(52,211,153,0.3)]'
+              : isCompleted
+                ? 'bg-slate-50 dark:bg-card border border-emerald-300 dark:border-emerald-600'
+                : isFailed
+                  ? 'bg-rose-50 dark:bg-rose-950/20 border border-rose-300 dark:border-rose-500'
+                  : node.status === 'waiting'
+                    ? 'bg-amber-50 dark:bg-amber-950/20 border border-amber-300 dark:border-amber-500'
+                    : 'bg-slate-50 dark:bg-card border border-slate-300 dark:border-slate-600 hover:border-slate-400 dark:hover:border-slate-500'
           }
-          ${STATUS_GLOW_COLORS[node.status] || ''}
         `}
-        style={{ marginLeft: `${depth * 20}px` }}
+        style={{ marginLeft: `${indent}px` }}
         onClick={() => onSelect(node.agent_id)}
       >
-        {/* Expand/collapse button with enhanced styling */}
+        {/* Expand/collapse button */}
         {hasChildren ? (
           <button
             onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}
-            className={`
-              flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-md
-              transition-all duration-300
-              ${expanded ? 'bg-muted/80 border border-border/50' : 'hover:bg-muted/50'}
-            `}
+            className="flex-shrink-0 w-5 h-5 flex items-center justify-center rounded hover:bg-muted"
           >
             {expanded ? (
               <ChevronDown className="w-4 h-4 text-muted-foreground" />
@@ -116,81 +103,65 @@ export const AgentTreeNodeItem = memo(function AgentTreeNodeItem({
             )}
           </button>
         ) : (
-          <span className="w-6" />
+          <span className="w-5" />
         )}
 
-        {/* Status indicator with enhanced glow */}
+        {/* Status indicator */}
         <div className="relative flex-shrink-0">
           <div className={`
-            w-3 h-3 rounded-full transition-all duration-300
-            ${isRunning ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)]' : ''}
-            ${isCompleted ? 'bg-emerald-500 shadow-[0_0_6px_rgba(52,211,153,0.4)]' : ''}
-            ${isFailed ? 'bg-rose-400 shadow-[0_0_6px_rgba(244,63,94,0.4)]' : ''}
-            ${node.status === 'waiting' ? 'bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.4)]' : ''}
-            ${node.status === 'created' ? 'bg-muted-foreground/50' : ''}
+            w-2.5 h-2.5 rounded-full
+            ${isRunning ? 'bg-emerald-500' : ''}
+            ${isCompleted ? 'bg-emerald-500' : ''}
+            ${isFailed ? 'bg-rose-500' : ''}
+            ${node.status === 'waiting' ? 'bg-amber-500' : ''}
+            ${node.status === 'created' ? 'bg-slate-400' : ''}
           `} />
           {isRunning && (
-            <>
-              <div className="absolute inset-0 w-3 h-3 rounded-full bg-emerald-400 animate-ping opacity-40" />
-              <div className="absolute inset-[-2px] w-[calc(100%+4px)] h-[calc(100%+4px)] rounded-full border border-emerald-400/30 animate-pulse" />
-            </>
+            <div className="absolute inset-0 w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping opacity-50" />
           )}
         </div>
 
-        {/* Agent type icon with background */}
-        <div className={`flex-shrink-0 p-1.5 rounded-md border ${typeBg} transition-all duration-300 group-hover:scale-105`}>
+        {/* Agent type icon */}
+        <div className={`flex-shrink-0 p-1 rounded border ${typeBg}`}>
           {typeIcon}
         </div>
 
-        {/* Agent name with enhanced styling */}
+        {/* Agent name */}
         <span className={`
-          text-sm font-mono truncate flex-1 transition-all duration-300
-          ${isSelected ? 'text-foreground font-semibold' : 'text-foreground/90 group-hover:text-foreground'}
+          text-sm font-mono truncate flex-1
+          ${isSelected ? 'text-foreground font-semibold' : 'text-foreground'}
         `}>
           {node.agent_name}
         </span>
 
-        {/* Metrics badges with enhanced styling */}
-        <div className="flex items-center gap-2 flex-shrink-0">
-          {/* Iterations with icon */}
+        {/* Metrics */}
+        <div className="flex items-center gap-1.5 flex-shrink-0">
           {(node.iterations ?? 0) > 0 && (
-            <div className="flex items-center gap-1 text-xs text-muted-foreground font-mono bg-muted/80 px-2 py-1 rounded-md border border-border/50">
+            <div className="flex items-center gap-1 text-xs text-muted-foreground font-mono bg-muted px-1.5 py-0.5 rounded border border-border">
               <Zap className="w-3 h-3" />
               <span>{node.iterations}</span>
             </div>
           )}
 
-          {/* Findings count - Only show for Orchestrator (root agent) */}
           {!node.parent_agent_id && node.findings_count > 0 && (
-            <Badge className="h-6 px-2.5 text-xs bg-rose-500/20 text-rose-600 dark:text-rose-300 border border-rose-500/40 font-mono font-bold shadow-[0_0_10px_rgba(244,63,94,0.15)]">
-              {node.findings_count} findings
+            <Badge className="h-5 px-2 text-xs bg-rose-100 dark:bg-rose-500/20 text-rose-600 dark:text-rose-300 border border-rose-300 dark:border-rose-500/40 font-mono font-bold">
+              {node.findings_count}
             </Badge>
           )}
         </div>
       </div>
 
-      {/* Children with animated reveal */}
+      {/* Children */}
       {expanded && hasChildren && (
-        <div
-          className="relative animate-in slide-in-from-top-1 duration-300"
-        >
-          {/* Vertical connection line for children with gradient */}
-          <div
-            className="absolute w-px bg-gradient-to-b from-border/60 via-border/40 to-transparent"
-            style={{
-              left: `${(depth + 1) * 20 - 10}px`,
-              top: '0',
-              height: `calc(100% - 24px)`,
-            }}
-          />
-
-          {node.children.map((child) => (
+        <div className="relative">
+          {node.children.map((child, index) => (
             <AgentTreeNodeItem
               key={child.agent_id}
               node={child}
               depth={depth + 1}
               selectedId={selectedId}
               onSelect={onSelect}
+              isLast={index === node.children.length - 1}
             />
           ))}
         </div>

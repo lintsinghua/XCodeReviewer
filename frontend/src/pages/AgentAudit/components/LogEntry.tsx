@@ -85,45 +85,36 @@ export const LogEntry = memo(function LogEntry({ item, isExpanded, onToggle }: L
   return (
     <div
       className={`
-        group relative mb-2 transition-all duration-300 ease-out
+        group relative transition-all duration-300 ease-out
         ${isCollapsible ? 'cursor-pointer' : ''}
       `}
       onClick={isCollapsible ? onToggle : undefined}
     >
-      {/* Main card with enhanced styling */}
+      {/* Main card */}
       <div className={`
-        relative rounded-lg border-l-3 overflow-hidden backdrop-blur-sm
+        relative rounded-lg border-l-3 overflow-hidden
         ${config.borderColor}
-        ${isExpanded ? 'bg-card/80 shadow-lg' : 'bg-card/40'}
-        ${isCollapsible ? 'hover:bg-card/60 hover:shadow-md' : ''}
-        ${isFinding ? 'border border-rose-500/20 shadow-[0_0_15px_rgba(244,63,94,0.1)]' : 'border border-transparent'}
-        ${isError ? 'border border-red-500/20 shadow-[0_0_15px_rgba(239,68,68,0.1)]' : ''}
-        ${isDispatch ? 'border border-sky-500/20' : ''}
-        transition-all duration-300
+        ${isExpanded ? 'bg-slate-100 dark:bg-card/80' : 'bg-slate-50 dark:bg-card/40'}
+        ${isCollapsible ? 'hover:bg-slate-100 dark:hover:bg-card/60' : ''}
+        ${isFinding ? 'border border-rose-500/30 dark:border-rose-500/20 !bg-rose-50 dark:!bg-rose-950/20' : 'border border-slate-200 dark:border-transparent'}
+        ${isError ? 'border border-red-500/30 dark:border-red-500/20 !bg-red-50 dark:!bg-red-950/20' : ''}
+        ${isDispatch ? 'border-sky-500/30 dark:border-sky-500/20 !bg-sky-50 dark:!bg-sky-950/20' : ''}
+        ${isThinking ? '!bg-violet-50 dark:!bg-violet-950/20 border-violet-500/30 dark:border-violet-500/20' : ''}
+        ${isTool ? '!bg-amber-50 dark:!bg-amber-950/20 border-amber-500/30 dark:border-amber-500/20' : ''}
       `}>
-        {/* Enhanced gradient overlay */}
-        <div className={`absolute inset-0 opacity-30 pointer-events-none bg-gradient-to-r ${config.bgColor} to-transparent`} />
 
         {/* Content */}
         <div className="relative px-4 py-3">
           {/* Header row */}
           <div className="flex items-center gap-2.5">
-            {/* Type icon with glow effect */}
-            <div className="relative flex-shrink-0">
-              <div className={`${item.isStreaming ? 'animate-pulse' : ''} transition-transform duration-300 group-hover:scale-110`}>
-                {config.icon}
-              </div>
-              {item.isStreaming && (
-                <div className="absolute inset-0 blur-md opacity-60">
-                  {config.icon}
-                </div>
-              )}
+            {/* Type icon */}
+            <div className="flex-shrink-0">
+              {config.icon}
             </div>
 
-            {/* Type label with enhanced styling */}
+            {/* Type label */}
             <span className={`
-              text-xs font-mono font-bold uppercase tracking-wider px-2 py-1 rounded-md
-              border transition-all duration-300
+              text-xs font-mono font-bold uppercase tracking-wider px-2 py-1 rounded-md border
               ${isThinking ? 'bg-violet-500/20 text-violet-600 dark:text-violet-300 border-violet-500/30' : ''}
               ${isTool ? 'bg-amber-500/20 text-amber-600 dark:text-amber-300 border-amber-500/30' : ''}
               ${isFinding ? 'bg-rose-500/20 text-rose-600 dark:text-rose-300 border-rose-500/30' : ''}
@@ -138,12 +129,12 @@ export const LogEntry = memo(function LogEntry({ item, isExpanded, onToggle }: L
               {LOG_TYPE_LABELS[item.type] || 'LOG'}
             </span>
 
-            {/* Timestamp with subtle styling */}
-            <span className="text-xs text-muted-foreground/80 font-mono flex-shrink-0 tabular-nums">
+            {/* Timestamp */}
+            <span className="text-xs text-muted-foreground font-mono flex-shrink-0 tabular-nums">
               {item.time}
             </span>
 
-            {/* Separator with animation */}
+            {/* Separator */}
             <Zap className="w-3 h-3 text-muted-foreground/50 flex-shrink-0" />
 
             {/* Status icon for info messages */}
@@ -151,36 +142,36 @@ export const LogEntry = memo(function LogEntry({ item, isExpanded, onToggle }: L
 
             {/* Title - for non-thinking types */}
             {!isThinking && (
-              <span className="text-sm text-foreground font-medium truncate flex-1 leading-relaxed">
+              <span className="text-sm text-foreground font-medium truncate flex-1">
                 {formattedTitle}
               </span>
             )}
 
-            {/* Streaming cursor with enhanced animation */}
+            {/* Streaming cursor */}
             {item.isStreaming && (
-              <span className="w-2 h-5 bg-gradient-to-b from-violet-400 to-violet-600 animate-[blink_1s_ease-in-out_infinite] rounded-sm flex-shrink-0 shadow-[0_0_8px_rgba(139,92,246,0.5)]" />
+              <span className="w-2 h-5 bg-violet-500 rounded-sm flex-shrink-0" />
             )}
 
-            {/* Tool status with enhanced styling */}
+            {/* Tool status */}
             {item.tool?.status === 'running' && (
               <div className="flex items-center gap-2 flex-shrink-0 bg-amber-500/15 px-2.5 py-1 rounded-md border border-amber-500/30">
-                <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-400" />
-                <span className="text-xs text-amber-400 font-mono uppercase font-semibold">Running</span>
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-600 dark:text-amber-400" />
+                <span className="text-xs text-amber-600 dark:text-amber-400 font-mono uppercase font-semibold">Running</span>
               </div>
             )}
 
             {item.tool?.status === 'completed' && (
               <div className="flex items-center gap-1.5 flex-shrink-0 px-2 py-1 rounded-md bg-emerald-500/10 border border-emerald-500/30">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                <span className="text-xs text-emerald-500 font-mono uppercase">Done</span>
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-500" />
+                <span className="text-xs text-emerald-600 dark:text-emerald-500 font-mono uppercase">Done</span>
               </div>
             )}
 
-            {/* Agent badge with enhanced styling */}
+            {/* Agent badge */}
             {item.agentName && (
               <Badge
                 variant="outline"
-                className="h-6 px-2.5 text-xs uppercase tracking-wider border-primary/40 text-primary bg-primary/10 flex-shrink-0 font-semibold shadow-[0_0_10px_rgba(255,107,44,0.1)]"
+                className="h-6 px-2.5 text-xs uppercase tracking-wider border-primary/40 text-primary bg-primary/10 flex-shrink-0 font-semibold"
               >
                 {item.agentName}
               </Badge>
@@ -188,14 +179,14 @@ export const LogEntry = memo(function LogEntry({ item, isExpanded, onToggle }: L
 
             {/* Right side info */}
             <div className="flex items-center gap-2.5 flex-shrink-0 ml-auto">
-              {/* Duration badge with enhanced styling */}
+              {/* Duration badge */}
               {item.tool?.duration !== undefined && (
-                <span className="text-xs text-muted-foreground font-mono bg-muted/80 px-2 py-1 rounded-md border border-border/50 tabular-nums">
+                <span className="text-xs text-muted-foreground font-mono bg-muted px-2 py-1 rounded-md border border-border tabular-nums">
                   {item.tool.duration}ms
                 </span>
               )}
 
-              {/* Severity badge with enhanced styling */}
+              {/* Severity badge */}
               {item.severity && (
                 <Badge
                   className={`
@@ -207,53 +198,53 @@ export const LogEntry = memo(function LogEntry({ item, isExpanded, onToggle }: L
                 </Badge>
               )}
 
-              {/* Expand indicator with enhanced styling */}
+              {/* Expand indicator */}
               {isCollapsible && (
                 <div className={`
-                  w-6 h-6 flex items-center justify-center rounded-md transition-all duration-300
-                  ${isExpanded ? 'bg-primary/20 border border-primary/30' : 'bg-muted/50 border border-transparent group-hover:border-border/50'}
+                  w-6 h-6 flex items-center justify-center rounded-md
+                  ${isExpanded ? 'bg-primary/20 border border-primary/30' : 'bg-muted border border-border'}
                 `}>
                   {isExpanded ? (
                     <ChevronUp className="w-4 h-4 text-primary" />
                   ) : (
-                    <ChevronDown className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+                    <ChevronDown className="w-4 h-4 text-muted-foreground" />
                   )}
                 </div>
               )}
             </div>
           </div>
 
-          {/* Thinking content - always visible with enhanced styling */}
+          {/* Thinking content - always visible */}
           {isThinking && item.content && (
             <div className="mt-3 relative">
-              <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-gradient-to-b from-violet-500/60 via-violet-500/30 to-transparent rounded-full" />
-              <div className="pl-4 text-sm text-foreground/90 leading-relaxed whitespace-pre-wrap break-words">
+              <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-violet-500/50 rounded-full" />
+              <div className="pl-4 text-sm text-foreground/90 whitespace-pre-wrap break-words">
                 {item.content}
               </div>
             </div>
           )}
 
-          {/* Collapsible content with enhanced styling */}
+          {/* Collapsible content */}
           {!isThinking && showContent && item.content && (
-            <div className="mt-3 overflow-hidden animate-in slide-in-from-top-2 duration-300">
-              <div className="bg-card/80 rounded-lg border border-border/50 overflow-hidden backdrop-blur-sm shadow-inner">
-                {/* Mini header with enhanced styling */}
-                <div className="flex items-center justify-between px-3 py-2 border-b border-border/50 bg-muted/50">
+            <div className="mt-3 overflow-hidden">
+              <div className="bg-card rounded-lg border border-border overflow-hidden">
+                {/* Mini header */}
+                <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-muted/50">
                   <div className="flex items-center gap-2">
                     <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50" />
-                    <span className="text-xs text-muted-foreground font-mono uppercase tracking-wider">
+                    <span className="text-xs text-muted-foreground font-mono uppercase">
                       {isTool ? 'Output' : 'Details'}
                     </span>
                   </div>
                   {item.tool?.status === 'completed' && (
                     <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20">
-                      <CheckCircle2 className="w-3 h-3 text-emerald-500" />
-                      <span className="text-xs text-emerald-500 font-mono">Complete</span>
+                      <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-500" />
+                      <span className="text-xs text-emerald-600 dark:text-emerald-500 font-mono">Complete</span>
                     </div>
                   )}
                 </div>
-                {/* Content with enhanced styling */}
-                <pre className="p-4 text-sm font-mono text-foreground/85 max-h-64 overflow-y-auto custom-scrollbar whitespace-pre-wrap break-words leading-relaxed bg-gradient-to-b from-transparent to-muted/20">
+                {/* Content */}
+                <pre className="p-4 text-sm font-mono text-foreground/85 max-h-64 overflow-y-auto custom-scrollbar whitespace-pre-wrap break-words">
                   {item.content}
                 </pre>
               </div>
@@ -262,13 +253,6 @@ export const LogEntry = memo(function LogEntry({ item, isExpanded, onToggle }: L
         </div>
       </div>
 
-      {/* Inline styles for cursor blink */}
-      <style>{`
-        @keyframes blink {
-          0%, 50% { opacity: 1; }
-          51%, 100% { opacity: 0; }
-        }
-      `}</style>
     </div>
   );
 });
