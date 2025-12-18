@@ -514,12 +514,24 @@ class SandboxTool(AgentTool):
     在安全隔离的环境中执行代码和命令
     """
 
-    # 允许的命令前缀
+    # 允许的命令前缀 - 放宽限制以支持更灵活的测试
     ALLOWED_COMMANDS = [
-        "python", "python3", "node", "curl", "wget",
-        "cat", "head", "tail", "grep", "find", "ls",
-        "echo", "printf", "test", "id", "whoami",
-        "php",  # 🔥 添加 PHP 支持
+        # 编程语言解释器
+        "python", "python3", "node", "php", "ruby", "perl",
+        "go", "java", "javac", "bash", "sh",
+        # 网络工具
+        "curl", "wget", "nc", "netcat",
+        # 文件操作
+        "cat", "head", "tail", "grep", "find", "ls", "wc",
+        "sed", "awk", "cut", "sort", "uniq", "tr", "xargs",
+        # 系统信息（用于验证命令执行）
+        "echo", "printf", "test", "id", "whoami", "uname",
+        "env", "printenv", "pwd", "hostname",
+        # 编码/解码工具
+        "base64", "xxd", "od", "hexdump",
+        # 其他实用工具
+        "timeout", "time", "sleep", "true", "false",
+        "md5sum", "sha256sum", "strings",
     ]
     
     def __init__(self, sandbox_manager: Optional[SandboxManager] = None):

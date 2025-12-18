@@ -948,6 +948,8 @@ async def _initialize_tools(
         CommandInjectionTestTool, SqlInjectionTestTool, XssTestTool,
         PathTraversalTestTool, SstiTestTool, DeserializationTestTool,
         UniversalVulnTestTool,
+        # 🔥 新增：通用代码执行工具 (LLM 驱动的 Fuzzing Harness)
+        RunCodeTool, ExtractFunctionTool,
     )
 
     verification_tools = {
@@ -975,6 +977,10 @@ async def _initialize_tools(
         "test_ssti": SstiTestTool(sandbox_manager, project_root),
         "test_deserialization": DeserializationTestTool(sandbox_manager, project_root),
         "universal_vuln_test": UniversalVulnTestTool(sandbox_manager, project_root),
+
+        # 🔥 新增：通用代码执行工具 (LLM 驱动的 Fuzzing Harness)
+        "run_code": RunCodeTool(sandbox_manager, project_root),
+        "extract_function": ExtractFunctionTool(project_root),
 
         # 报告工具
         "create_vulnerability_report": CreateVulnerabilityReportTool(),
