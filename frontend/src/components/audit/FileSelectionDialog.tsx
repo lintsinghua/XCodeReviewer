@@ -31,6 +31,8 @@ import {
     RotateCcw,
     RefreshCw,
     Terminal,
+    ChevronsUpDown,
+    ChevronsDownUp,
 } from "lucide-react";
 import { api } from "@/shared/config/database";
 import { toast } from "sonner";
@@ -249,6 +251,21 @@ export default function FileSelectionDialog({
             }
             return newExpanded;
         });
+    }, []);
+
+    const handleExpandAll = useCallback(() => {
+        const folders = new Set<string>();
+        filteredFiles.forEach((f) => {
+            const parts = f.path.split("/");
+            for (let i = 1; i < parts.length; i++) {
+                folders.add(parts.slice(0, i).join("/"));
+            }
+        });
+        setExpandedFolders(folders);
+    }, [filteredFiles]);
+
+    const handleCollapseAll = useCallback(() => {
+        setExpandedFolders(new Set());
     }, []);
 
     const handleSelectAll = () => {
@@ -485,7 +502,7 @@ export default function FileSelectionDialog({
                                 <select
                                     value={filterType}
                                     onChange={(e) => setFilterType(e.target.value)}
-                                    className="h-9 px-2 cyber-input font-mono text-sm cyber-bg-elevated"
+                                    className="h-9 px-2 py-1 border border-border rounded font-mono text-xs cyber-bg-elevated text-foreground"
                                 >
                                     <option value="">全部类型</option>
                                     {fileTypes.slice(0, 10).map(([ext, count]) => (
@@ -512,6 +529,7 @@ export default function FileSelectionDialog({
                                 列表
                             </button>
                         </div>
+
                     </div>
 
                     {/* 操作按钮 */}
@@ -544,6 +562,28 @@ export default function FileSelectionDialog({
                                 <RefreshCw className="w-3 h-3 mr-1" />
                                 反选
                             </Button>
+                            {viewMode === "tree" && (
+                                <>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={handleExpandAll}
+                                        className="h-8 px-3 cyber-btn-outline font-mono text-xs"
+                                    >
+                                        <ChevronDown className="w-3 h-3 mr-1" />
+                                        展开
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={handleCollapseAll}
+                                        className="h-8 px-3 cyber-btn-outline font-mono text-xs"
+                                    >
+                                        <ChevronRight className="w-3 h-3 mr-1" />
+                                        折叠
+                                    </Button>
+                                </>
+                            )}
                             {(searchTerm || filterType) && (
                                 <Button
                                     variant="outline"
