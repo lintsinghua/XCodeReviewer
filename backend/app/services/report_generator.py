@@ -344,7 +344,9 @@ class ReportGenerator:
                 </div>
                 {% endif %}
                 
+                {% if issue.description %}
                 <div class="issue-desc">{{ issue.description }}</div>
+                {% endif %}
                 
                 {% if issue.code_snippet %}
                 <div class="code-snippet mono">{{ issue.code_snippet }}</div>
@@ -413,13 +415,24 @@ class ReportGenerator:
             item['severity'] = item.get('severity', 'low')
             item['severity_label'] = sev_labels.get(item['severity'], 'UNKNOWN')
             item['line'] = item.get('line_number') or item.get('line')
-            
+
             # 确保代码片段存在 (处理可能的字段名差异)
             code = item.get('code_snippet') or item.get('code') or item.get('context')
             if isinstance(code, list):
                 code = '\n'.join(code)
-            item['code_snippet'] = code
-            
+            item['code_snippet'] = code if code else None
+
+            # 确保 description 不为 None
+            desc = item.get('description')
+            if not desc or desc == 'None':
+                desc = item.get('title', '')  # 如果没有描述，使用标题
+            item['description'] = desc
+
+            # 确保 suggestion 不为 None
+            suggestion = item.get('suggestion')
+            if suggestion == 'None' or suggestion is None:
+                item['suggestion'] = None
+
             processed.append(item)
         return processed
 

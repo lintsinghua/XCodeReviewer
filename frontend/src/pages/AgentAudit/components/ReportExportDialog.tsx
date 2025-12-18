@@ -91,8 +91,8 @@ const FORMAT_CONFIG: Record<ReportFormat, {
     icon: <FileText className="w-5 h-5" />,
     extension: ".md",
     mime: "text/markdown",
-    color: "text-sky-400",
-    bgColor: "bg-sky-500/10 border-sky-500/30",
+    color: "text-sky-600 dark:text-sky-400",
+    bgColor: "bg-sky-100 dark:bg-sky-500/10 border-sky-300 dark:border-sky-500/30",
   },
   json: {
     label: "JSON",
@@ -100,8 +100,8 @@ const FORMAT_CONFIG: Record<ReportFormat, {
     icon: <FileJson className="w-5 h-5" />,
     extension: ".json",
     mime: "application/json",
-    color: "text-amber-400",
-    bgColor: "bg-amber-500/10 border-amber-500/30",
+    color: "text-amber-600 dark:text-amber-400",
+    bgColor: "bg-amber-100 dark:bg-amber-500/10 border-amber-300 dark:border-amber-500/30",
   },
   html: {
     label: "HTML",
@@ -109,8 +109,8 @@ const FORMAT_CONFIG: Record<ReportFormat, {
     icon: <FileCode className="w-5 h-5" />,
     extension: ".html",
     mime: "text/html",
-    color: "text-emerald-400",
-    bgColor: "bg-emerald-500/10 border-emerald-500/30",
+    color: "text-emerald-600 dark:text-emerald-400",
+    bgColor: "bg-emerald-100 dark:bg-emerald-500/10 border-emerald-300 dark:border-emerald-500/30",
   },
 };
 
@@ -126,10 +126,10 @@ const DEFAULT_EXPORT_OPTIONS: ExportOptions = {
 
 function getSeverityColor(severity: string): string {
   const colors: Record<string, string> = {
-    critical: "text-rose-400",
-    high: "text-orange-400",
-    medium: "text-amber-400",
-    low: "text-sky-400",
+    critical: "text-rose-600 dark:text-rose-400",
+    high: "text-orange-600 dark:text-orange-400",
+    medium: "text-amber-600 dark:text-amber-400",
+    low: "text-sky-600 dark:text-sky-400",
     info: "text-muted-foreground",
   };
   return colors[severity.toLowerCase()] || colors.info;
@@ -145,10 +145,10 @@ function formatBytes(bytes: number): string {
 
 // 获取安全评分颜色
 function getScoreColor(score: number): { text: string; bg: string; glow: string } {
-  if (score >= 80) return { text: "text-emerald-400", bg: "stroke-emerald-500", glow: "drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]" };
-  if (score >= 60) return { text: "text-amber-400", bg: "stroke-amber-500", glow: "drop-shadow-[0_0_8px_rgba(245,158,11,0.5)]" };
-  if (score >= 40) return { text: "text-orange-400", bg: "stroke-orange-500", glow: "drop-shadow-[0_0_8px_rgba(249,115,22,0.5)]" };
-  return { text: "text-rose-400", bg: "stroke-rose-500", glow: "drop-shadow-[0_0_8px_rgba(244,63,94,0.5)]" };
+  if (score >= 80) return { text: "text-emerald-600 dark:text-emerald-400", bg: "stroke-emerald-500", glow: "" };
+  if (score >= 60) return { text: "text-amber-600 dark:text-amber-400", bg: "stroke-amber-500", glow: "" };
+  if (score >= 40) return { text: "text-orange-600 dark:text-orange-400", bg: "stroke-orange-500", glow: "" };
+  return { text: "text-rose-600 dark:text-rose-400", bg: "stroke-rose-500", glow: "" };
 }
 
 // ============ Sub Components ============
@@ -181,7 +181,7 @@ const CircularProgress = memo(function CircularProgress({
           fill="none"
           stroke="currentColor"
           strokeWidth={strokeWidth}
-          className="text-foreground/50"
+          className="text-slate-300 dark:text-slate-700"
         />
         {/* Progress circle */}
         <circle
@@ -224,23 +224,23 @@ const EnhancedStatsPanel = memo(function EnhancedStatsPanel({
       label: "漏洞总数",
       value: totalFindings,
       color: "text-foreground",
-      iconColor: "text-rose-400",
+      iconColor: "text-rose-600 dark:text-rose-400",
       trend: totalFindings > 0 ? "up" : null,
     },
     {
       icon: <AlertTriangle className="w-4 h-4" />,
       label: "高危问题",
       value: criticalAndHigh,
-      color: criticalAndHigh > 0 ? "text-rose-400" : "text-muted-foreground",
-      iconColor: "text-orange-400",
+      color: criticalAndHigh > 0 ? "text-rose-600 dark:text-rose-400" : "text-muted-foreground",
+      iconColor: "text-orange-600 dark:text-orange-400",
       trend: criticalAndHigh > 0 ? "critical" : null,
     },
     {
       icon: <CheckCircle2 className="w-4 h-4" />,
       label: "已验证",
       value: verified,
-      color: "text-emerald-400",
-      iconColor: "text-emerald-400",
+      color: "text-emerald-600 dark:text-emerald-400",
+      iconColor: "text-emerald-600 dark:text-emerald-400",
       trend: null,
     },
   ];
@@ -272,7 +272,7 @@ const EnhancedStatsPanel = memo(function EnhancedStatsPanel({
                 {stat.value}
               </span>
               {stat.trend === "critical" && stat.value > 0 && (
-                <Zap className="w-3 h-3 text-rose-400 animate-pulse" />
+                <Zap className="w-3 h-3 text-rose-600 dark:text-rose-400" />
               )}
             </div>
 
@@ -1622,21 +1622,14 @@ export const ReportExportDialog = memo(function ReportExportDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl h-[90vh] bg-gradient-to-b from-[#0a0a0f] to-[#0d0d14] border-border/50 p-0 gap-0 overflow-hidden shadow-2xl shadow-black/50">
-        {/* Header - 增强设计 */}
-        <div className="relative px-6 py-5 border-b border-border/50 bg-gradient-to-r from-[#0d0d12] via-[#0f0f16] to-[#0d0d12]">
-          {/* 装饰性背景元素 */}
-          <div className="absolute inset-0 overflow-hidden">
-            <div className="absolute -top-20 -right-20 w-40 h-40 bg-primary/5 rounded-full blur-3xl" />
-            <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-sky-500/5 rounded-full blur-2xl" />
-          </div>
-
+      <DialogContent className="max-w-5xl h-[90vh] bg-background border-border p-0 gap-0 overflow-hidden shadow-2xl">
+        {/* Header */}
+        <div className="relative px-6 py-5 border-b border-border bg-card">
           <DialogHeader className="relative">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <div className="relative p-3 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/30 shadow-lg shadow-primary/10">
+                <div className="relative p-3 rounded-xl bg-primary/10 border border-primary/30">
                   <FileDown className="w-6 h-6 text-primary" />
-                  <div className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-emerald-500 border-2 border-background animate-pulse" />
                 </div>
                 <div>
                   <DialogTitle className="text-xl font-bold text-foreground flex items-center gap-2">
@@ -1824,7 +1817,7 @@ export const ReportExportDialog = memo(function ReportExportDialog({
         </div>
 
         {/* Footer - 增强设计 */}
-        <div className="px-6 py-4 border-t border-border/50 bg-gradient-to-r from-[#0d0d12] via-[#0f0f16] to-[#0d0d12]">
+        <div className="px-6 py-4 border-t border-border bg-card">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3 text-xs text-muted-foreground">
               <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border ${FORMAT_CONFIG[activeFormat].bgColor}`}>
