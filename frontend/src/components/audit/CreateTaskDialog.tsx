@@ -389,15 +389,15 @@ export default function CreateTaskDialog({
                 </span>
 
                 {isRepositoryProject(selectedProject) ? (
-                  <div className="flex items-center gap-3 p-3 border border-border rounded bg-blue-950/20">
-                    <GitBranch className="w-5 h-5 text-blue-400" />
+                  <div className="flex items-center gap-3 p-3 border border-border rounded bg-blue-50 dark:bg-blue-950/20">
+                    <GitBranch className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                     <span className="font-mono text-base text-muted-foreground w-12">
                       分支
                     </span>
                     {loadingBranches ? (
                       <div className="flex items-center gap-2 flex-1">
-                        <Loader2 className="w-4 h-4 animate-spin text-blue-400" />
-                        <span className="text-sm text-blue-400 font-mono">加载中...</span>
+                        <Loader2 className="w-4 h-4 animate-spin text-blue-600 dark:text-blue-400" />
+                        <span className="text-sm text-blue-600 dark:text-blue-400 font-mono">加载中...</span>
                       </div>
                     ) : (
                       <Select value={branch} onValueChange={setBranch}>
@@ -438,10 +438,10 @@ export default function CreateTaskDialog({
 
                 {/* 规则集和提示词选择 - 仅快速扫描模式显示 */}
                 {auditMode !== "agent" && (
-                  <div className="p-3 border border-border rounded bg-violet-950/20 space-y-3">
+                  <div className="p-3 border border-border rounded bg-violet-50 dark:bg-violet-950/20 space-y-3">
                     <div className="flex items-center gap-2 mb-2">
-                      <Zap className="w-4 h-4 text-violet-400" />
-                      <span className="font-mono text-sm font-bold text-violet-300 uppercase">审计配置</span>
+                      <Zap className="w-4 h-4 text-violet-600 dark:text-violet-400" />
+                      <span className="font-mono text-sm font-bold text-violet-700 dark:text-violet-300 uppercase">审计配置</span>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
@@ -507,7 +507,7 @@ export default function CreateTaskDialog({
                         {excludePatterns.map((p) => (
                           <Badge
                             key={p}
-                            className="bg-muted text-foreground border-0 font-mono text-xs cursor-pointer hover:bg-rose-900/50 hover:text-rose-400"
+                            className="bg-muted text-foreground border-0 font-mono text-xs cursor-pointer hover:bg-rose-100 dark:hover:bg-rose-900/50 hover:text-rose-600 dark:hover:text-rose-400"
                             onClick={() =>
                               setExcludePatterns((prev) =>
                                 prev.filter((x) => x !== p)
@@ -582,7 +582,7 @@ export default function CreateTaskDialog({
                                 size="sm"
                                 variant="ghost"
                                 onClick={() => setSelectedFiles(undefined)}
-                                className="h-8 text-xs text-rose-400 hover:bg-rose-900/30 hover:text-rose-300"
+                                className="h-8 text-xs text-rose-600 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/30 hover:text-rose-700 dark:hover:text-rose-300"
                               >
                                 重置
                               </Button>
@@ -681,9 +681,9 @@ function ProjectCard({
 
       <div className={`p-1.5 rounded ${isRepo ? "bg-blue-500/20" : "bg-amber-500/20"}`}>
         {isRepo ? (
-          <Globe className="w-4 h-4 text-blue-400" />
+          <Globe className="w-4 h-4 text-blue-600 dark:text-blue-400" />
         ) : (
-          <Package className="w-4 h-4 text-amber-400" />
+          <Package className="w-4 h-4 text-amber-600 dark:text-amber-400" />
         )}
       </div>
 
@@ -694,8 +694,8 @@ function ProjectCard({
           </span>
           <Badge
             className={`text-xs px-1 py-0 font-mono ${isRepo
-                ? "bg-blue-500/20 text-blue-400 border-blue-500/30"
-                : "bg-amber-500/20 text-amber-400 border-amber-500/30"
+                ? "bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/30"
+                : "bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/30"
               }`}
           >
             {isRepo ? "REPO" : "ZIP"}
@@ -722,9 +722,9 @@ function ZipUploadCard({
 }) {
   if (zipState.loading) {
     return (
-      <div className="flex items-center gap-3 p-3 border border-border rounded bg-blue-950/20">
-        <Loader2 className="w-5 h-5 animate-spin text-blue-400" />
-        <span className="text-sm font-mono text-blue-400">
+      <div className="flex items-center gap-3 p-3 border border-border rounded bg-blue-50 dark:bg-blue-950/20">
+        <Loader2 className="w-5 h-5 animate-spin text-blue-600 dark:text-blue-400" />
+        <span className="text-sm font-mono text-blue-600 dark:text-blue-400">
           检查文件中...
         </span>
       </div>
@@ -733,16 +733,16 @@ function ZipUploadCard({
 
   if (zipState.storedZipInfo?.has_file) {
     return (
-      <div className="p-3 border border-border rounded bg-emerald-950/20 space-y-3">
+      <div className="p-3 border border-border rounded bg-emerald-50 dark:bg-emerald-950/20 space-y-3">
         <div className="flex items-center gap-3">
           <div className="p-1.5 bg-emerald-500/20 rounded">
-            <Package className="w-4 h-4 text-emerald-400" />
+            <Package className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
           </div>
           <div className="flex-1">
-            <p className="text-sm font-bold text-emerald-300 font-mono">
+            <p className="text-sm font-bold text-emerald-700 dark:text-emerald-300 font-mono">
               {zipState.storedZipInfo.original_filename}
             </p>
-            <p className="text-xs text-emerald-500 font-mono">
+            <p className="text-xs text-emerald-600 dark:text-emerald-500 font-mono">
               {zipState.storedZipInfo.file_size &&
                 formatFileSize(zipState.storedZipInfo.file_size)}
               {zipState.storedZipInfo.uploaded_at &&
@@ -759,7 +759,7 @@ function ZipUploadCard({
               onChange={() => zipState.switchToStored()}
               className="w-4 h-4 accent-emerald-500"
             />
-            <span className="text-emerald-300">使用此文件</span>
+            <span className="text-emerald-700 dark:text-emerald-300">使用此文件</span>
           </label>
           <label className="flex items-center gap-2 cursor-pointer font-mono text-sm">
             <input
@@ -768,7 +768,7 @@ function ZipUploadCard({
               onChange={() => zipState.switchToUpload()}
               className="w-4 h-4 accent-emerald-500"
             />
-            <span className="text-emerald-300">上传新文件</span>
+            <span className="text-emerald-700 dark:text-emerald-300">上传新文件</span>
           </label>
         </div>
 
@@ -812,13 +812,13 @@ function ZipUploadCard({
   }
 
   return (
-    <div className="p-3 border border-dashed border-amber-500/50 rounded bg-amber-950/20">
+    <div className="p-3 border border-dashed border-amber-500/50 rounded bg-amber-50 dark:bg-amber-950/20">
       <div className="flex items-start gap-3">
         <div className="p-1.5 bg-amber-500/20 rounded">
-          <Upload className="w-4 h-4 text-amber-400" />
+          <Upload className="w-4 h-4 text-amber-600 dark:text-amber-400" />
         </div>
         <div className="flex-1">
-          <p className="text-sm font-bold text-amber-300 font-mono uppercase">
+          <p className="text-sm font-bold text-amber-700 dark:text-amber-300 font-mono uppercase">
             上传 ZIP 文件
           </p>
           <div className="flex gap-2 items-center mt-2">
@@ -855,7 +855,7 @@ function ZipUploadCard({
             )}
           </div>
           {zipState.zipFile && (
-            <p className="text-xs text-amber-400 mt-2 font-mono">
+            <p className="text-xs text-amber-600 dark:text-amber-400 mt-2 font-mono">
               已选: {zipState.zipFile.name} (
               {formatFileSize(zipState.zipFile.size)})
             </p>

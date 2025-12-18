@@ -22,7 +22,7 @@ export default function AgentModeSelector({
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2 mb-2">
-        <Shield className="w-4 h-4 text-violet-400" />
+        <Shield className="w-4 h-4 text-violet-600 dark:text-violet-400" />
         <span className="font-mono text-xs font-bold text-muted-foreground uppercase tracking-wider">
           审计模式
         </span>
@@ -34,7 +34,7 @@ export default function AgentModeSelector({
           className={cn(
             "relative flex flex-col p-4 border cursor-pointer transition-all rounded",
             value === "fast"
-              ? "border-amber-500/50 bg-amber-950/30"
+              ? "border-amber-500/50 bg-amber-50 dark:bg-amber-950/30"
               : "border-border hover:border-border bg-muted/50",
             disabled && "opacity-50 cursor-not-allowed"
           )}
@@ -58,17 +58,17 @@ export default function AgentModeSelector({
             )}>
               <Zap className={cn(
                 "w-4 h-4",
-                value === "fast" ? "text-amber-400" : "text-muted-foreground"
+                value === "fast" ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground"
               )} />
             </div>
             <span className={cn(
               "font-bold text-sm font-mono uppercase",
-              value === "fast" ? "text-amber-300" : "text-muted-foreground"
+              value === "fast" ? "text-amber-700 dark:text-amber-300" : "text-muted-foreground"
             )}>
               快速审计
             </span>
             {value === "fast" && (
-              <CheckCircle2 className="w-4 h-4 text-amber-400 ml-auto" />
+              <CheckCircle2 className="w-4 h-4 text-amber-600 dark:text-amber-400 ml-auto" />
             )}
           </div>
 
@@ -99,7 +99,7 @@ export default function AgentModeSelector({
           className={cn(
             "relative flex flex-col p-4 border cursor-pointer transition-all rounded",
             value === "agent"
-              ? "border-violet-500/50 bg-violet-950/30"
+              ? "border-violet-500/50 bg-violet-50 dark:bg-violet-950/30"
               : "border-border hover:border-border bg-muted/50",
             disabled && "opacity-50 cursor-not-allowed"
           )}
@@ -115,7 +115,7 @@ export default function AgentModeSelector({
           />
 
           {/* 推荐标签 */}
-          <div className="absolute -top-2 -right-2 px-2 py-0.5 bg-violet-600 text-foreground text-xs font-bold uppercase font-mono rounded shadow-[0_0_10px_rgba(139,92,246,0.5)]">
+          <div className="absolute -top-2 -right-2 px-2 py-0.5 bg-violet-600 text-white text-xs font-bold uppercase font-mono rounded shadow-[0_0_10px_rgba(139,92,246,0.5)]">
             推荐
           </div>
 
@@ -128,17 +128,17 @@ export default function AgentModeSelector({
             )}>
               <Bot className={cn(
                 "w-4 h-4",
-                value === "agent" ? "text-violet-400" : "text-muted-foreground"
+                value === "agent" ? "text-violet-600 dark:text-violet-400" : "text-muted-foreground"
               )} />
             </div>
             <span className={cn(
               "font-bold text-sm font-mono uppercase",
-              value === "agent" ? "text-violet-300" : "text-muted-foreground"
+              value === "agent" ? "text-violet-700 dark:text-violet-300" : "text-muted-foreground"
             )}>
               Agent 审计
             </span>
             {value === "agent" && (
-              <CheckCircle2 className="w-4 h-4 text-violet-400 ml-auto" />
+              <CheckCircle2 className="w-4 h-4 text-violet-600 dark:text-violet-400 ml-auto" />
             )}
           </div>
 
@@ -153,7 +153,7 @@ export default function AgentModeSelector({
             </li>
             <li className={cn(
               "flex items-center gap-1",
-              value === "agent" ? "text-violet-400 font-medium" : "text-muted-foreground"
+              value === "agent" ? "text-violet-600 dark:text-violet-400 font-medium" : "text-muted-foreground"
             )}>
               <Shield className="w-3 h-3" />
               沙箱漏洞验证
@@ -170,9 +170,9 @@ export default function AgentModeSelector({
 
       {/* 模式说明 */}
       {value === "agent" && (
-        <div className="p-3 bg-violet-950/30 border border-violet-500/30 text-xs text-violet-300 rounded font-mono">
-          <p className="font-bold mb-1 uppercase text-violet-400">Agent 审计模式说明：</p>
-          <ul className="list-disc list-inside space-y-0.5 text-violet-300/80">
+        <div className="p-3 bg-violet-50 dark:bg-violet-950/30 border border-violet-500/30 text-xs text-violet-700 dark:text-violet-300 rounded font-mono">
+          <p className="font-bold mb-1 uppercase text-violet-700 dark:text-violet-400">Agent 审计模式说明：</p>
+          <ul className="list-disc list-inside space-y-0.5 text-violet-600 dark:text-violet-300/80">
             <li>AI Agent 会自主规划审计策略</li>
             <li>使用 RAG 技术进行代码语义检索</li>
             <li>在 Docker 沙箱中验证发现的漏洞</li>
