@@ -60,7 +60,7 @@ export default function Login() {
         localStorage.removeItem("remembered_email");
       }
 
-      await login(response.data.access_token);
+      await login(response.data.access_token, rememberMe);
       toast.success("登录成功");
     } catch (error: any) {
       const detail = error.response?.data?.detail;

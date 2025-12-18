@@ -1,30 +1,30 @@
 /**
  * Log Entry Component
- * Terminal-style log entry with cassette futurism aesthetic
- * Professional log formatting without emojis
+ * Terminal-style log entry with enhanced visual design
+ * Professional log formatting with improved readability
  */
 
 import { memo } from "react";
 import {
-  ChevronDown, ChevronUp, Loader2, Clock,
+  ChevronDown, ChevronUp, Loader2,
   CheckCircle2, Wifi, XOctagon, AlertTriangle,
-  Play, Square, ArrowRight
+  Play, ArrowRight, Zap
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { LOG_TYPE_CONFIG, SEVERITY_COLORS } from "../constants";
 import type { LogEntryProps } from "../types";
 
-// Log type labels for display
+// Log type labels for display with enhanced styling
 const LOG_TYPE_LABELS: Record<string, string> = {
   thinking: 'THINK',
   tool: 'TOOL',
   phase: 'PHASE',
   finding: 'VULN',
-  dispatch: 'DISPATCH',
+  dispatch: 'AGENT',
   info: 'INFO',
   error: 'ERROR',
   user: 'USER',
-  progress: 'PROGRESS',
+  progress: 'PROG',
 };
 
 // Helper to format title (remove emojis and clean up)
@@ -75,6 +75,7 @@ export const LogEntry = memo(function LogEntry({ item, isExpanded, onToggle }: L
   const isError = item.type === 'error';
   const isInfo = item.type === 'info';
   const isProgress = item.type === 'progress';
+  const isDispatch = item.type === 'dispatch';
   const showContent = isThinking || isExpanded;
   const isCollapsible = !isThinking && item.content;
 
@@ -84,118 +85,121 @@ export const LogEntry = memo(function LogEntry({ item, isExpanded, onToggle }: L
   return (
     <div
       className={`
-        group relative mb-1.5 transition-all duration-200 ease-out
+        group relative mb-2 transition-all duration-300 ease-out
         ${isCollapsible ? 'cursor-pointer' : ''}
       `}
       onClick={isCollapsible ? onToggle : undefined}
     >
-      {/* Main card */}
+      {/* Main card with enhanced styling */}
       <div className={`
-        relative rounded border-l-2 overflow-hidden
+        relative rounded-lg border-l-3 overflow-hidden backdrop-blur-sm
         ${config.borderColor}
-        ${isExpanded ? 'bg-card/60' : 'bg-muted/50'}
-        ${isCollapsible ? 'hover:bg-muted' : ''}
-        ${isFinding ? 'border-r border-r-red-900/30' : ''}
-        ${isError ? 'border-r border-r-red-900/30' : ''}
-        transition-all duration-200
+        ${isExpanded ? 'bg-card/80 shadow-lg' : 'bg-card/40'}
+        ${isCollapsible ? 'hover:bg-card/60 hover:shadow-md' : ''}
+        ${isFinding ? 'border border-rose-500/20 shadow-[0_0_15px_rgba(244,63,94,0.1)]' : 'border border-transparent'}
+        ${isError ? 'border border-red-500/20 shadow-[0_0_15px_rgba(239,68,68,0.1)]' : ''}
+        ${isDispatch ? 'border border-sky-500/20' : ''}
+        transition-all duration-300
       `}>
-        {/* Subtle gradient overlay */}
-        <div className={`absolute inset-0 opacity-20 pointer-events-none ${config.bgColor}`} />
+        {/* Enhanced gradient overlay */}
+        <div className={`absolute inset-0 opacity-30 pointer-events-none bg-gradient-to-r ${config.bgColor} to-transparent`} />
 
         {/* Content */}
-        <div className="relative px-3 py-2.5">
+        <div className="relative px-4 py-3">
           {/* Header row */}
-          <div className="flex items-center gap-2">
-            {/* Type icon */}
+          <div className="flex items-center gap-2.5">
+            {/* Type icon with glow effect */}
             <div className="relative flex-shrink-0">
-              <div className={`${item.isStreaming ? 'animate-pulse' : ''}`}>
+              <div className={`${item.isStreaming ? 'animate-pulse' : ''} transition-transform duration-300 group-hover:scale-110`}>
                 {config.icon}
               </div>
               {item.isStreaming && (
-                <div className="absolute inset-0 blur-sm opacity-50">
+                <div className="absolute inset-0 blur-md opacity-60">
                   {config.icon}
                 </div>
               )}
             </div>
 
-            {/* Type label */}
+            {/* Type label with enhanced styling */}
             <span className={`
-              text-sm font-mono font-bold uppercase tracking-wider px-2.5 py-1 rounded
-              ${isThinking ? 'bg-violet-500/30 text-violet-700 dark:text-violet-300' : ''}
-              ${isTool ? 'bg-amber-500/30 text-amber-700 dark:text-amber-300' : ''}
-              ${isFinding ? 'bg-rose-500/30 text-rose-700 dark:text-rose-300' : ''}
-              ${isError ? 'bg-red-500/30 text-red-700 dark:text-red-300' : ''}
-              ${isInfo ? 'bg-muted text-foreground' : ''}
-              ${isProgress ? 'bg-cyan-500/30 text-cyan-700 dark:text-cyan-300' : ''}
-              ${item.type === 'dispatch' ? 'bg-sky-500/30 text-sky-700 dark:text-sky-300' : ''}
-              ${item.type === 'phase' ? 'bg-teal-500/30 text-teal-700 dark:text-teal-300' : ''}
-              ${item.type === 'user' ? 'bg-indigo-500/30 text-indigo-700 dark:text-indigo-300' : ''}
+              text-xs font-mono font-bold uppercase tracking-wider px-2 py-1 rounded-md
+              border transition-all duration-300
+              ${isThinking ? 'bg-violet-500/20 text-violet-600 dark:text-violet-300 border-violet-500/30' : ''}
+              ${isTool ? 'bg-amber-500/20 text-amber-600 dark:text-amber-300 border-amber-500/30' : ''}
+              ${isFinding ? 'bg-rose-500/20 text-rose-600 dark:text-rose-300 border-rose-500/30' : ''}
+              ${isError ? 'bg-red-500/20 text-red-600 dark:text-red-300 border-red-500/30' : ''}
+              ${isInfo ? 'bg-muted/80 text-foreground border-border/50' : ''}
+              ${isProgress ? 'bg-cyan-500/20 text-cyan-600 dark:text-cyan-300 border-cyan-500/30' : ''}
+              ${isDispatch ? 'bg-sky-500/20 text-sky-600 dark:text-sky-300 border-sky-500/30' : ''}
+              ${item.type === 'phase' ? 'bg-teal-500/20 text-teal-600 dark:text-teal-300 border-teal-500/30' : ''}
+              ${item.type === 'user' ? 'bg-indigo-500/20 text-indigo-600 dark:text-indigo-300 border-indigo-500/30' : ''}
               flex-shrink-0
             `}>
               {LOG_TYPE_LABELS[item.type] || 'LOG'}
             </span>
 
-            {/* Timestamp */}
-            <span className="text-xs text-muted-foreground font-mono flex-shrink-0">
+            {/* Timestamp with subtle styling */}
+            <span className="text-xs text-muted-foreground/80 font-mono flex-shrink-0 tabular-nums">
               {item.time}
             </span>
 
-            {/* Separator */}
-            <ArrowRight className="w-3 h-3 text-muted-foreground flex-shrink-0" />
+            {/* Separator with animation */}
+            <Zap className="w-3 h-3 text-muted-foreground/50 flex-shrink-0" />
 
             {/* Status icon for info messages */}
             {statusIcon && <span className="flex-shrink-0">{statusIcon}</span>}
 
             {/* Title - for non-thinking types */}
             {!isThinking && (
-              <span className="text-base text-foreground font-medium truncate flex-1">
+              <span className="text-sm text-foreground font-medium truncate flex-1 leading-relaxed">
                 {formattedTitle}
               </span>
             )}
 
-            {/* Streaming cursor */}
+            {/* Streaming cursor with enhanced animation */}
             {item.isStreaming && (
-              <span className="w-1.5 h-4 bg-purple-400 animate-[blink_1s_ease-in-out_infinite] rounded-sm flex-shrink-0" />
+              <span className="w-2 h-5 bg-gradient-to-b from-violet-400 to-violet-600 animate-[blink_1s_ease-in-out_infinite] rounded-sm flex-shrink-0 shadow-[0_0_8px_rgba(139,92,246,0.5)]" />
             )}
 
-            {/* Tool status */}
+            {/* Tool status with enhanced styling */}
             {item.tool?.status === 'running' && (
-              <div className="flex items-center gap-1.5 flex-shrink-0 bg-amber-500/10 px-2 py-0.5 rounded">
-                <Loader2 className="w-3 h-3 animate-spin text-amber-400" />
-                <span className="text-xs text-amber-400 font-mono uppercase">Running</span>
+              <div className="flex items-center gap-2 flex-shrink-0 bg-amber-500/15 px-2.5 py-1 rounded-md border border-amber-500/30">
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-400" />
+                <span className="text-xs text-amber-400 font-mono uppercase font-semibold">Running</span>
               </div>
             )}
 
             {item.tool?.status === 'completed' && (
-              <div className="flex items-center gap-1 flex-shrink-0">
-                <CheckCircle2 className="w-3 h-3 text-green-500" />
+              <div className="flex items-center gap-1.5 flex-shrink-0 px-2 py-1 rounded-md bg-emerald-500/10 border border-emerald-500/30">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                <span className="text-xs text-emerald-500 font-mono uppercase">Done</span>
               </div>
             )}
 
-            {/* Agent badge */}
+            {/* Agent badge with enhanced styling */}
             {item.agentName && (
               <Badge
                 variant="outline"
-                className="h-5 px-2 text-xs uppercase tracking-wider border-primary/40 text-primary bg-primary/10 flex-shrink-0 font-semibold"
+                className="h-6 px-2.5 text-xs uppercase tracking-wider border-primary/40 text-primary bg-primary/10 flex-shrink-0 font-semibold shadow-[0_0_10px_rgba(255,107,44,0.1)]"
               >
                 {item.agentName}
               </Badge>
             )}
 
             {/* Right side info */}
-            <div className="flex items-center gap-2 flex-shrink-0 ml-auto">
-              {/* Duration badge */}
+            <div className="flex items-center gap-2.5 flex-shrink-0 ml-auto">
+              {/* Duration badge with enhanced styling */}
               {item.tool?.duration !== undefined && (
-                <span className="text-xs text-muted-foreground font-mono bg-muted px-1.5 py-0.5 rounded">
+                <span className="text-xs text-muted-foreground font-mono bg-muted/80 px-2 py-1 rounded-md border border-border/50 tabular-nums">
                   {item.tool.duration}ms
                 </span>
               )}
 
-              {/* Severity badge */}
+              {/* Severity badge with enhanced styling */}
               {item.severity && (
                 <Badge
                   className={`
-                    text-xs uppercase tracking-wider font-bold px-1.5 py-0
+                    text-xs uppercase tracking-wider font-bold px-2 py-0.5 rounded-md
                     ${SEVERITY_COLORS[item.severity] || SEVERITY_COLORS.info}
                   `}
                 >
@@ -203,50 +207,53 @@ export const LogEntry = memo(function LogEntry({ item, isExpanded, onToggle }: L
                 </Badge>
               )}
 
-              {/* Expand indicator */}
+              {/* Expand indicator with enhanced styling */}
               {isCollapsible && (
-                <div className="w-5 h-5 flex items-center justify-center rounded bg-muted/50 group-hover:bg-muted/50 transition-colors">
+                <div className={`
+                  w-6 h-6 flex items-center justify-center rounded-md transition-all duration-300
+                  ${isExpanded ? 'bg-primary/20 border border-primary/30' : 'bg-muted/50 border border-transparent group-hover:border-border/50'}
+                `}>
                   {isExpanded ? (
-                    <ChevronUp className="w-3.5 h-3.5 text-muted-foreground" />
+                    <ChevronUp className="w-4 h-4 text-primary" />
                   ) : (
-                    <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
+                    <ChevronDown className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
                   )}
                 </div>
               )}
             </div>
           </div>
 
-          {/* Thinking content - always visible with special styling */}
+          {/* Thinking content - always visible with enhanced styling */}
           {isThinking && item.content && (
-            <div className="mt-2.5 relative">
-              <div className="absolute left-0 top-0 bottom-0 w-px bg-gradient-to-b from-purple-500/50 via-purple-500/20 to-transparent" />
-              <div className="pl-3 text-base text-foreground/90 leading-relaxed whitespace-pre-wrap break-words">
+            <div className="mt-3 relative">
+              <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-gradient-to-b from-violet-500/60 via-violet-500/30 to-transparent rounded-full" />
+              <div className="pl-4 text-sm text-foreground/90 leading-relaxed whitespace-pre-wrap break-words">
                 {item.content}
               </div>
             </div>
           )}
 
-          {/* Collapsible content */}
+          {/* Collapsible content with enhanced styling */}
           {!isThinking && showContent && item.content && (
-            <div className="mt-2.5 overflow-hidden">
-              <div className="bg-card rounded border border-border overflow-hidden">
-                {/* Mini header */}
-                <div className="flex items-center justify-between px-2.5 py-1.5 border-b border-border bg-muted">
+            <div className="mt-3 overflow-hidden animate-in slide-in-from-top-2 duration-300">
+              <div className="bg-card/80 rounded-lg border border-border/50 overflow-hidden backdrop-blur-sm shadow-inner">
+                {/* Mini header with enhanced styling */}
+                <div className="flex items-center justify-between px-3 py-2 border-b border-border/50 bg-muted/50">
                   <div className="flex items-center gap-2">
-                    <Square className="w-2.5 h-2.5 text-muted-foreground" />
+                    <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50" />
                     <span className="text-xs text-muted-foreground font-mono uppercase tracking-wider">
                       {isTool ? 'Output' : 'Details'}
                     </span>
                   </div>
                   {item.tool?.status === 'completed' && (
-                    <div className="flex items-center gap-1">
-                      <CheckCircle2 className="w-3 h-3 text-green-500/70" />
-                      <span className="text-xs text-green-500/70 font-mono">Complete</span>
+                    <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20">
+                      <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                      <span className="text-xs text-emerald-500 font-mono">Complete</span>
                     </div>
                   )}
                 </div>
-                {/* Content */}
-                <pre className="p-3 text-base font-mono text-foreground/80 max-h-56 overflow-y-auto custom-scrollbar whitespace-pre-wrap break-words leading-relaxed">
+                {/* Content with enhanced styling */}
+                <pre className="p-4 text-sm font-mono text-foreground/85 max-h-64 overflow-y-auto custom-scrollbar whitespace-pre-wrap break-words leading-relaxed bg-gradient-to-b from-transparent to-muted/20">
                   {item.content}
                 </pre>
               </div>

@@ -20,8 +20,8 @@ export default {
     extend: {
       // Typography - Pixel-perfect monospace for terminal aesthetic
       fontFamily: {
-        mono: ['"ArkPixel"', '"JetBrains Mono"', '"Roboto Mono"', '"Courier New"', 'monospace'],
-        sans: ['"Inter"', 'system-ui', 'sans-serif'],
+        mono: ['"ArkPixel"', '"CJK Fallback"', '"Noto Sans SC"', '"PingFang SC"', '"Microsoft YaHei"', '"JetBrains Mono"', '"Roboto Mono"', '"Courier New"', 'monospace'],
+        sans: ['"Inter"', '"Noto Sans SC"', '"PingFang SC"', '"Microsoft YaHei"', 'system-ui', 'sans-serif'],
         display: ['"Orbitron"', '"Rajdhani"', 'sans-serif'],
       },
       fontSize: {

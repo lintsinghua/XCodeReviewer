@@ -13,7 +13,8 @@ export const apiClient = axios.create({
 // Request interceptor to add token
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    const token = localStorage.getItem('access_token');
+    // Check both localStorage (remember me) and sessionStorage (session only)
+    const token = localStorage.getItem('access_token') || sessionStorage.getItem('access_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -29,8 +30,9 @@ apiClient.interceptors.response.use(
     if (error.response?.status === 401) {
       // Auto logout if token is invalid or expired
       localStorage.removeItem('access_token');
+      sessionStorage.removeItem('access_token');
       // Redirect to login
-      window.location.href = '/login'; 
+      window.location.href = '/login';
     }
     return Promise.reject(error);
   }
