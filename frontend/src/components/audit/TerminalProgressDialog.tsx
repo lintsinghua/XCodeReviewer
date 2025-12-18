@@ -425,7 +425,7 @@ export default function TerminalProgressDialog({
             case "warning":
                 return "text-amber-400";
             default:
-                return "text-gray-400";
+                return "text-muted-foreground";
         }
     };
 
@@ -462,13 +462,13 @@ export default function TerminalProgressDialog({
                     />
 
                     {/* Header */}
-                    <div className="flex items-center justify-between px-4 py-3 bg-[#0a0c10] border-b border-[#1a2535]"
+                    <div className="flex items-center justify-between px-4 py-3 cyber-bg-elevated border-b border-[#1a2535]"
                         style={{ backgroundImage: "linear-gradient(90deg, rgba(255, 95, 31, 0.05) 0%, transparent 50%, rgba(14, 181, 196, 0.05) 100%)" }}>
                         <div className="flex items-center gap-3">
                             <Terminal className="w-5 h-5 text-primary" style={{ filter: "drop-shadow(0 0 8px rgba(255, 95, 31, 0.5))" }} />
                             <div>
                                 <span className="text-lg font-bold uppercase tracking-[0.15em] text-[#f0e6d3]" style={{ textShadow: "0 0 20px rgba(255, 95, 31, 0.3)" }}>AUDIT_TERMINAL</span>
-                                <span className="text-[10px] text-[#5a6577] ml-2 tracking-wider">v3.0</span>
+                                <span className="text-xs text-[#5a6577] ml-2 tracking-wider">v3.0</span>
                             </div>
                         </div>
 
@@ -501,16 +501,16 @@ export default function TerminalProgressDialog({
                         {/* Left Sidebar - Task Info */}
                         <div className="w-48 p-4 border-r border-[#1a2535] bg-[#060810] flex flex-col gap-4">
                             <div className="space-y-1.5">
-                                <div className="text-[9px] font-bold text-[#5a6577] uppercase tracking-[0.15em]">Task ID</div>
-                                <div className="text-xs font-mono text-primary truncate bg-[#0a0c10] p-2.5 rounded border border-[#1a2535]"
+                                <div className="text-xs font-bold text-[#5a6577] uppercase tracking-[0.15em]">Task ID</div>
+                                <div className="text-xs font-mono text-primary truncate cyber-bg-elevated p-2.5 rounded border border-[#1a2535]"
                                     style={{ textShadow: "0 0 10px rgba(255, 95, 31, 0.3)" }}>
                                     {taskId?.slice(0, 8)}...
                                 </div>
                             </div>
 
                             <div className="space-y-1.5">
-                                <div className="text-[9px] font-bold text-[#5a6577] uppercase tracking-[0.15em]">Type</div>
-                                <div className="flex items-center gap-2 bg-[#0a0c10] p-2.5 rounded border border-[#1a2535]">
+                                <div className="text-xs font-bold text-[#5a6577] uppercase tracking-[0.15em]">Type</div>
+                                <div className="flex items-center gap-2 cyber-bg-elevated p-2.5 rounded border border-[#1a2535]">
                                     {taskType === 'repository'
                                         ? <Cpu className="w-3.5 h-3.5 text-[#22d3ee]" style={{ filter: "drop-shadow(0 0 6px rgba(34, 211, 238, 0.5))" }} />
                                         : <HardDrive className="w-3.5 h-3.5 text-[#fbbf24]" style={{ filter: "drop-shadow(0 0 6px rgba(251, 191, 36, 0.5))" }} />}
@@ -522,7 +522,7 @@ export default function TerminalProgressDialog({
 
                             {/* Status Badge */}
                             <div className="space-y-2">
-                                <div className="text-[9px] font-bold text-[#5a6577] uppercase tracking-[0.15em]">Status</div>
+                                <div className="text-xs font-bold text-[#5a6577] uppercase tracking-[0.15em]">Status</div>
                                 {isCancelled ? (
                                     <Badge className="w-full justify-center cyber-badge-warning">CANCELLED</Badge>
                                 ) : isCompleted ? (
@@ -566,7 +566,7 @@ export default function TerminalProgressDialog({
                             </div>
 
                             {/* Bottom Controls */}
-                            <div className="h-14 px-4 border-t border-[#1a2535] bg-[#0a0c10]/90 flex items-center justify-between">
+                            <div className="h-14 px-4 border-t border-[#1a2535] cyber-bg-elevated/90 flex items-center justify-between">
                                 <div className="flex items-center gap-2 text-xs text-[#6a7587] font-mono tracking-wide">
                                     <Activity className="w-3.5 h-3.5" />
                                     <span>
@@ -580,7 +580,7 @@ export default function TerminalProgressDialog({
                                             size="sm"
                                             variant="outline"
                                             onClick={handleCancel}
-                                            className="h-8 bg-transparent border-[#fbbf24]/40 text-[#fbbf24] hover:bg-[#fbbf24]/10 hover:border-[#fbbf24]/60 font-mono uppercase tracking-wider text-[10px]"
+                                            className="h-8 bg-transparent border-[#fbbf24]/40 text-[#fbbf24] hover:bg-[#fbbf24]/10 hover:border-[#fbbf24]/60 font-mono uppercase tracking-wider text-xs"
                                         >
                                             <AlertTriangle className="w-3 h-3 mr-1.5" />
                                             取消任务
@@ -592,7 +592,7 @@ export default function TerminalProgressDialog({
                                             size="sm"
                                             variant="outline"
                                             onClick={() => window.open('/logs', '_blank')}
-                                            className="h-8 bg-transparent border-[#6a7587]/40 text-[#a8b0c0] hover:bg-[#1a2030]/50 hover:border-[#6a7587]/60 font-mono uppercase tracking-wider text-[10px]"
+                                            className="h-8 bg-transparent border-[#6a7587]/40 text-[#a8b0c0] hover:bg-[#1a2030]/50 hover:border-[#6a7587]/60 font-mono uppercase tracking-wider text-xs"
                                         >
                                             <Activity className="w-3 h-3 mr-1.5" />
                                             查看日志
@@ -603,7 +603,7 @@ export default function TerminalProgressDialog({
                                         <Button
                                             size="sm"
                                             onClick={() => onOpenChange(false)}
-                                            className="h-8 cyber-btn-primary font-mono uppercase tracking-wider text-[10px]"
+                                            className="h-8 cyber-btn-primary font-mono uppercase tracking-wider text-xs"
                                         >
                                             <CheckCircle2 className="w-3 h-3 mr-1.5" />
                                             确认

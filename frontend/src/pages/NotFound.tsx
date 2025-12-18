@@ -12,7 +12,7 @@ export default function NotFound() {
   return (
     <>
       <PageMeta title="页面未找到" description="" />
-      <div className="relative flex flex-col items-center justify-center min-h-screen p-6 bg-[#0a0a0f] font-mono overflow-hidden">
+      <div className="relative flex flex-col items-center justify-center min-h-screen p-6 cyber-bg-elevated font-mono overflow-hidden">
         {/* Grid background */}
         <div className="absolute inset-0 cyber-grid-subtle pointer-events-none" />
 
@@ -43,26 +43,26 @@ export default function NotFound() {
           <div className="cyber-card p-0 mb-8">
             <div className="cyber-card-header">
               <Terminal className="w-4 h-4 text-primary" />
-              <span className="text-sm font-bold uppercase tracking-wider text-gray-300">ERROR_LOG</span>
+              <span className="text-sm font-bold uppercase tracking-wider text-foreground">ERROR_LOG</span>
             </div>
             <div className="p-4 text-left">
               <div className="text-emerald-400 text-sm">
-                <span className="text-gray-500">[{new Date().toISOString()}]</span>
+                <span className="text-muted-foreground">[{new Date().toISOString()}]</span>
               </div>
               <div className="text-rose-400 text-sm mt-1">
-                <span className="text-gray-500">ERROR:</span> PAGE_NOT_FOUND
+                <span className="text-muted-foreground">ERROR:</span> PAGE_NOT_FOUND
               </div>
               <div className="text-amber-400 text-sm mt-1">
-                <span className="text-gray-500">STATUS:</span> 404
+                <span className="text-muted-foreground">STATUS:</span> 404
               </div>
-              <div className="text-gray-400 text-sm mt-1">
-                <span className="text-gray-500">MESSAGE:</span> 请求的页面不存在或已被移除
+              <div className="text-muted-foreground text-sm mt-1">
+                <span className="text-muted-foreground">MESSAGE:</span> 请求的页面不存在或已被移除
               </div>
             </div>
           </div>
 
           {/* Description */}
-          <p className="text-gray-400 mb-8 text-sm">
+          <p className="text-muted-foreground mb-8 text-sm">
             页面可能已被删除或不存在，请检查网址是否正确。
           </p>
 
@@ -76,7 +76,7 @@ export default function NotFound() {
         </div>
 
         {/* Footer */}
-        <p className="absolute bottom-6 left-1/2 -translate-x-1/2 text-xs text-gray-600 font-mono uppercase">
+        <p className="absolute bottom-6 left-1/2 -translate-x-1/2 text-xs text-muted-foreground font-mono uppercase">
           &copy; {new Date().getFullYear()} DeepAudit
         </p>
       </div>

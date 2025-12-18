@@ -60,7 +60,7 @@ function CircularProgress({ value, size = 48, strokeWidth = 3, color = "primary"
 }
 
 // Metric card component with enhanced colors
-function MetricCard({ icon, label, value, suffix = "", colorClass = "text-slate-400" }: {
+function MetricCard({ icon, label, value, suffix = "", colorClass = "text-muted-foreground" }: {
   icon: React.ReactNode;
   label: string;
   value: string | number;
@@ -68,14 +68,14 @@ function MetricCard({ icon, label, value, suffix = "", colorClass = "text-slate-
   colorClass?: string;
 }) {
   return (
-    <div className="flex items-center gap-2.5 p-2.5 rounded bg-slate-900/40 border border-slate-700/30">
+    <div className="flex items-center gap-2.5 p-3 rounded bg-card border border-border">
       <div className={colorClass}>
         {icon}
       </div>
       <div className="flex-1 min-w-0">
-        <div className="text-[9px] text-slate-500 uppercase tracking-wider truncate">{label}</div>
-        <div className="text-sm text-white font-mono font-medium">
-          {value}<span className="text-slate-500 text-xs">{suffix}</span>
+        <div className="text-sm text-muted-foreground uppercase tracking-wider truncate font-medium">{label}</div>
+        <div className="text-lg text-foreground font-mono font-bold">
+          {value}<span className="text-muted-foreground text-base">{suffix}</span>
         </div>
       </div>
     </div>
@@ -106,17 +106,17 @@ export const StatsPanel = memo(function StatsPanel({ task, findings }: StatsPane
   return (
     <div className="space-y-3">
       {/* Progress Section */}
-      <div className="p-3 rounded border border-slate-700/40 bg-gradient-to-br from-slate-900/60 to-slate-900/30">
+      <div className="p-4 rounded border border-border bg-card">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <Activity className="w-3.5 h-3.5 text-primary" />
-            <span className="text-[10px] text-slate-400 uppercase tracking-wider font-medium">Progress</span>
+            <span className="text-sm text-muted-foreground uppercase tracking-wider font-medium">Progress</span>
           </div>
           <span className="text-xs text-primary font-mono font-bold">{progressPercent.toFixed(0)}%</span>
         </div>
 
         {/* Progress bar */}
-        <div className="relative h-2 bg-slate-800 rounded-full overflow-hidden">
+        <div className="relative h-2 bg-muted rounded-full overflow-hidden">
           <div
             className="absolute inset-y-0 left-0 bg-gradient-to-r from-primary to-primary/80 rounded-full transition-all duration-700 ease-out"
             style={{ width: `${progressPercent}%` }}
@@ -132,17 +132,17 @@ export const StatsPanel = memo(function StatsPanel({ task, findings }: StatsPane
         </div>
 
         {/* File progress */}
-        <div className="flex items-center justify-between mt-2 text-[10px]">
-          <span className="text-slate-500">Files scanned</span>
-          <span className="text-slate-300 font-mono">
-            {task.analyzed_files}<span className="text-slate-500">/{task.total_files}</span>
+        <div className="flex items-center justify-between mt-3 text-base">
+          <span className="text-muted-foreground font-medium">Files scanned</span>
+          <span className="text-foreground font-mono font-bold">
+            {task.analyzed_files}<span className="text-muted-foreground font-normal">/{task.total_files}</span>
           </span>
         </div>
         {/* Files with findings */}
         {task.files_with_findings > 0 && (
-          <div className="flex items-center justify-between mt-1 text-[10px]">
-            <span className="text-slate-500">Files with findings</span>
-            <span className="text-rose-400 font-mono font-medium">
+          <div className="flex items-center justify-between mt-2 text-base">
+            <span className="text-muted-foreground font-medium">Files with findings</span>
+            <span className="text-rose-500 dark:text-rose-400 font-mono font-bold">
               {task.files_with_findings}
             </span>
           </div>
@@ -152,58 +152,58 @@ export const StatsPanel = memo(function StatsPanel({ task, findings }: StatsPane
       {/* Metrics Grid */}
       <div className="grid grid-cols-2 gap-2">
         <MetricCard
-          icon={<Repeat className="w-3.5 h-3.5" />}
+          icon={<Repeat className="w-4 h-4" />}
           label="Iterations"
           value={task.total_iterations || 0}
-          colorClass="text-teal-400"
+          colorClass="text-teal-600 dark:text-teal-400"
         />
         <MetricCard
-          icon={<Zap className="w-3.5 h-3.5" />}
+          icon={<Zap className="w-4 h-4" />}
           label="Tool Calls"
           value={task.tool_calls_count || 0}
-          colorClass="text-amber-400"
+          colorClass="text-amber-600 dark:text-amber-400"
         />
         <MetricCard
-          icon={<FileCode className="w-3.5 h-3.5" />}
+          icon={<FileCode className="w-4 h-4" />}
           label="Tokens"
           value={((task.tokens_used || 0) / 1000).toFixed(1)}
           suffix="k"
-          colorClass="text-violet-400"
+          colorClass="text-violet-600 dark:text-violet-400"
         />
         <MetricCard
-          icon={<Bug className="w-3.5 h-3.5" />}
+          icon={<Bug className="w-4 h-4" />}
           label="Findings"
           value={totalFindings}
-          colorClass={totalFindings > 0 ? "text-rose-400" : "text-slate-400"}
+          colorClass={totalFindings > 0 ? "text-rose-600 dark:text-rose-400" : "text-muted-foreground"}
         />
       </div>
 
       {/* Findings breakdown */}
       {totalFindings > 0 && (
-        <div className="p-3 rounded border border-slate-700/40 bg-slate-900/40">
+        <div className="p-4 rounded border border-border bg-card">
           <div className="flex items-center gap-2 mb-2">
             <AlertTriangle className="w-3.5 h-3.5 text-rose-400" />
-            <span className="text-[10px] text-slate-400 uppercase tracking-wider font-medium">Severity Breakdown</span>
+            <span className="text-sm text-muted-foreground uppercase tracking-wider font-medium">Severity Breakdown</span>
           </div>
 
           <div className="flex flex-wrap gap-1.5">
             {severityCounts.critical > 0 && (
-              <Badge className="bg-rose-500/25 text-rose-300 border border-rose-500/40 text-[10px] font-mono font-semibold">
+              <Badge className="bg-rose-500/25 text-rose-700 dark:text-rose-300 border border-rose-500/40 text-sm font-mono font-semibold">
                 CRIT: {severityCounts.critical}
               </Badge>
             )}
             {severityCounts.high > 0 && (
-              <Badge className="bg-orange-500/25 text-orange-300 border border-orange-500/40 text-[10px] font-mono font-semibold">
+              <Badge className="bg-orange-500/25 text-orange-700 dark:text-orange-300 border border-orange-500/40 text-sm font-mono font-semibold">
                 HIGH: {severityCounts.high}
               </Badge>
             )}
             {severityCounts.medium > 0 && (
-              <Badge className="bg-amber-500/25 text-amber-300 border border-amber-500/40 text-[10px] font-mono font-semibold">
+              <Badge className="bg-amber-500/25 text-amber-700 dark:text-amber-300 border border-amber-500/40 text-sm font-mono font-semibold">
                 MED: {severityCounts.medium}
               </Badge>
             )}
             {severityCounts.low > 0 && (
-              <Badge className="bg-sky-500/25 text-sky-300 border border-sky-500/40 text-[10px] font-mono font-semibold">
+              <Badge className="bg-sky-500/25 text-sky-700 dark:text-sky-300 border border-sky-500/40 text-sm font-mono font-semibold">
                 LOW: {severityCounts.low}
               </Badge>
             )}
@@ -213,11 +213,11 @@ export const StatsPanel = memo(function StatsPanel({ task, findings }: StatsPane
 
       {/* Security Score */}
       {task.security_score !== null && task.security_score !== undefined && (
-        <div className="p-3 rounded border border-slate-700/40 bg-gradient-to-br from-slate-900/60 to-slate-900/30">
+        <div className="p-4 rounded border border-border bg-card">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Shield className="w-3.5 h-3.5 text-emerald-400" />
-              <span className="text-[10px] text-slate-400 uppercase tracking-wider font-medium">Security Score</span>
+              <span className="text-sm text-muted-foreground uppercase tracking-wider font-medium">Security Score</span>
             </div>
             <div className="relative">
               <CircularProgress
@@ -227,9 +227,9 @@ export const StatsPanel = memo(function StatsPanel({ task, findings }: StatsPane
                 color={getScoreColor(task.security_score)}
               />
               <div className="absolute inset-0 flex items-center justify-center">
-                <span className={`text-sm font-bold font-mono ${task.security_score >= 80 ? 'text-emerald-400' :
-                  task.security_score >= 60 ? 'text-amber-400' :
-                    'text-rose-400'
+                <span className={`text-sm font-bold font-mono ${task.security_score >= 80 ? 'text-emerald-600 dark:text-emerald-400' :
+                  task.security_score >= 60 ? 'text-amber-600 dark:text-amber-400' :
+                    'text-rose-600 dark:text-rose-400'
                   }`}>
                   {task.security_score.toFixed(0)}
                 </span>

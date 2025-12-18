@@ -23,7 +23,7 @@ export default function AgentModeSelector({
     <div className="space-y-3">
       <div className="flex items-center gap-2 mb-2">
         <Shield className="w-4 h-4 text-violet-400" />
-        <span className="font-mono text-xs font-bold text-gray-400 uppercase tracking-wider">
+        <span className="font-mono text-xs font-bold text-muted-foreground uppercase tracking-wider">
           审计模式
         </span>
       </div>
@@ -35,7 +35,7 @@ export default function AgentModeSelector({
             "relative flex flex-col p-4 border cursor-pointer transition-all rounded",
             value === "fast"
               ? "border-amber-500/50 bg-amber-950/30"
-              : "border-gray-700 hover:border-gray-600 bg-gray-900/30",
+              : "border-border hover:border-border bg-muted/50",
             disabled && "opacity-50 cursor-not-allowed"
           )}
         >
@@ -54,16 +54,16 @@ export default function AgentModeSelector({
               "p-1.5 rounded border",
               value === "fast"
                 ? "bg-amber-500/20 border-amber-500/50"
-                : "bg-gray-800 border-gray-700"
+                : "bg-muted border-border"
             )}>
               <Zap className={cn(
                 "w-4 h-4",
-                value === "fast" ? "text-amber-400" : "text-gray-500"
+                value === "fast" ? "text-amber-400" : "text-muted-foreground"
               )} />
             </div>
             <span className={cn(
               "font-bold text-sm font-mono uppercase",
-              value === "fast" ? "text-amber-300" : "text-gray-400"
+              value === "fast" ? "text-amber-300" : "text-muted-foreground"
             )}>
               快速审计
             </span>
@@ -72,7 +72,7 @@ export default function AgentModeSelector({
             )}
           </div>
 
-          <ul className="text-xs text-gray-500 space-y-1 mb-3 font-mono">
+          <ul className="text-xs text-muted-foreground space-y-1 mb-3 font-mono">
             <li className="flex items-center gap-1">
               <Clock className="w-3 h-3" />
               速度快（分钟级）
@@ -81,14 +81,14 @@ export default function AgentModeSelector({
               <Code className="w-3 h-3" />
               逐文件 LLM 分析
             </li>
-            <li className="flex items-center gap-1 text-gray-600">
+            <li className="flex items-center gap-1 text-muted-foreground">
               <Shield className="w-3 h-3" />
               无漏洞验证
             </li>
           </ul>
 
-          <div className="mt-auto pt-2 border-t border-gray-800">
-            <span className="text-[10px] uppercase tracking-wider text-gray-600 font-bold font-mono">
+          <div className="mt-auto pt-2 border-t border-border">
+            <span className="text-xs uppercase tracking-wider text-muted-foreground font-bold font-mono">
               适合: CI/CD 集成、日常检查
             </span>
           </div>
@@ -100,7 +100,7 @@ export default function AgentModeSelector({
             "relative flex flex-col p-4 border cursor-pointer transition-all rounded",
             value === "agent"
               ? "border-violet-500/50 bg-violet-950/30"
-              : "border-gray-700 hover:border-gray-600 bg-gray-900/30",
+              : "border-border hover:border-border bg-muted/50",
             disabled && "opacity-50 cursor-not-allowed"
           )}
         >
@@ -115,7 +115,7 @@ export default function AgentModeSelector({
           />
 
           {/* 推荐标签 */}
-          <div className="absolute -top-2 -right-2 px-2 py-0.5 bg-violet-600 text-white text-[10px] font-bold uppercase font-mono rounded shadow-[0_0_10px_rgba(139,92,246,0.5)]">
+          <div className="absolute -top-2 -right-2 px-2 py-0.5 bg-violet-600 text-foreground text-xs font-bold uppercase font-mono rounded shadow-[0_0_10px_rgba(139,92,246,0.5)]">
             推荐
           </div>
 
@@ -124,16 +124,16 @@ export default function AgentModeSelector({
               "p-1.5 rounded border",
               value === "agent"
                 ? "bg-violet-500/20 border-violet-500/50"
-                : "bg-gray-800 border-gray-700"
+                : "bg-muted border-border"
             )}>
               <Bot className={cn(
                 "w-4 h-4",
-                value === "agent" ? "text-violet-400" : "text-gray-500"
+                value === "agent" ? "text-violet-400" : "text-muted-foreground"
               )} />
             </div>
             <span className={cn(
               "font-bold text-sm font-mono uppercase",
-              value === "agent" ? "text-violet-300" : "text-gray-400"
+              value === "agent" ? "text-violet-300" : "text-muted-foreground"
             )}>
               Agent 审计
             </span>
@@ -142,7 +142,7 @@ export default function AgentModeSelector({
             )}
           </div>
 
-          <ul className="text-xs text-gray-500 space-y-1 mb-3 font-mono">
+          <ul className="text-xs text-muted-foreground space-y-1 mb-3 font-mono">
             <li className="flex items-center gap-1">
               <Bot className="w-3 h-3" />
               AI Agent 自主分析
@@ -153,15 +153,15 @@ export default function AgentModeSelector({
             </li>
             <li className={cn(
               "flex items-center gap-1",
-              value === "agent" ? "text-violet-400 font-medium" : "text-gray-500"
+              value === "agent" ? "text-violet-400 font-medium" : "text-muted-foreground"
             )}>
               <Shield className="w-3 h-3" />
               沙箱漏洞验证
             </li>
           </ul>
 
-          <div className="mt-auto pt-2 border-t border-gray-800">
-            <span className="text-[10px] uppercase tracking-wider text-gray-600 font-bold font-mono">
+          <div className="mt-auto pt-2 border-t border-border">
+            <span className="text-xs uppercase tracking-wider text-muted-foreground font-bold font-mono">
               适合: 发版前审计、深度安全评估
             </span>
           </div>

@@ -25,13 +25,14 @@ export default {
         display: ['"Orbitron"', '"Rajdhani"', 'sans-serif'],
       },
       fontSize: {
-        'xs': ['0.75rem', { lineHeight: '1rem', letterSpacing: '0.01em' }],
-        'sm': ['0.875rem', { lineHeight: '1.25rem', letterSpacing: '0.01em' }],
-        'base': ['1rem', { lineHeight: '1.5rem', letterSpacing: '0' }],
-        'lg': ['1.125rem', { lineHeight: '1.75rem', letterSpacing: '-0.01em' }],
-        'xl': ['1.25rem', { lineHeight: '1.75rem', letterSpacing: '-0.01em' }],
-        '2xl': ['1.5rem', { lineHeight: '2rem', letterSpacing: '-0.02em' }],
-        '3xl': ['1.875rem', { lineHeight: '2.25rem', letterSpacing: '-0.02em' }],
+        'xs': ['0.8125rem', { lineHeight: '1.125rem', letterSpacing: '0.01em' }],  // 13px
+        'sm': ['0.9375rem', { lineHeight: '1.375rem', letterSpacing: '0.01em' }],  // 15px
+        'base': ['1rem', { lineHeight: '1.5rem', letterSpacing: '0' }],            // 16px
+        'lg': ['1.125rem', { lineHeight: '1.75rem', letterSpacing: '-0.01em' }],   // 18px
+        'xl': ['1.375rem', { lineHeight: '1.875rem', letterSpacing: '-0.01em' }],  // 22px
+        '2xl': ['1.625rem', { lineHeight: '2.125rem', letterSpacing: '-0.02em' }], // 26px
+        '3xl': ['2rem', { lineHeight: '2.5rem', letterSpacing: '-0.02em' }],       // 32px
+        '4xl': ['2.5rem', { lineHeight: '3rem', letterSpacing: '-0.02em' }],       // 40px
       },
       // Extended Color System
       colors: {

@@ -151,7 +151,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
   };
 
   return (
-    <div className="h-screen bg-[#0a0a0f] flex flex-col overflow-hidden relative">
+    <div className="h-screen cyber-bg-elevated flex flex-col overflow-hidden relative">
       {/* Scanline overlay */}
       <div className="absolute inset-0 pointer-events-none z-20">
         <div
@@ -192,26 +192,26 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
               style={{ textShadow: "0 0 30px rgba(255,107,44,0.5), 0 0 60px rgba(255,107,44,0.3)" }}
             >
               <span className="text-primary">DEEP</span>
-              <span className="text-white">AUDIT</span>
+              <span className="text-foreground">AUDIT</span>
             </div>
-            <div className="text-gray-500 text-xs sm:text-sm tracking-[0.3em] uppercase">
+            <div className="text-muted-foreground text-xs sm:text-sm tracking-[0.3em] uppercase">
               Autonomous Security Agent
             </div>
           </div>
 
           {/* Terminal window */}
           <div
-            className="bg-[#0c0c12] border border-gray-800/60 rounded-lg overflow-hidden shadow-2xl"
+            className="cyber-dialog border border-border rounded-lg overflow-hidden shadow-2xl"
             onClick={handleTerminalClick}
           >
             {/* Terminal header */}
-            <div className="flex items-center gap-2 px-4 py-2.5 bg-[#0a0a0f] border-b border-gray-800/50">
+            <div className="flex items-center gap-2 px-4 py-2.5 cyber-bg-elevated border-b border-border">
               <div className="flex items-center gap-1.5">
                 <div className="w-3 h-3 rounded-full bg-red-500/80" />
                 <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
                 <div className="w-3 h-3 rounded-full bg-green-500/80" />
               </div>
-              <span className="text-[11px] text-gray-500 ml-3 font-mono tracking-wider">
+              <span className="text-xs text-muted-foreground ml-3 font-mono tracking-wider">
                 deepaudit@terminal
               </span>
             </div>
@@ -228,7 +228,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
                   className={`mb-1 ${
                     log.includes("[READY]") ? "text-green-400" :
                     log.includes("[INIT]") ? "text-primary" :
-                    "text-gray-500"
+                    "text-muted-foreground"
                   }`}
                   style={{
                     animation: "fadeSlideIn 0.2s ease-out",
@@ -236,17 +236,17 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
                     animationDelay: `${i * 0.05}s`
                   }}
                 >
-                  <span className="text-gray-600 mr-2">&gt;</span>
+                  <span className="text-muted-foreground mr-2">&gt;</span>
                   {log}
                 </div>
               ))}
 
               {/* Welcome message */}
               {bootComplete && (
-                <div className="mt-4 mb-4 pt-3 border-t border-gray-800/50">
+                <div className="mt-4 mb-4 pt-3 border-t border-border">
                   <div className="text-primary mb-1">Welcome to DeepAudit Agent Terminal</div>
-                  <div className="text-gray-500 text-xs">
-                    Type <span className="text-emerald-400 font-semibold">'audit'</span> to start a new security audit, or <span className="text-gray-400">'help'</span> for commands.
+                  <div className="text-muted-foreground text-xs">
+                    Type <span className="text-emerald-400 font-semibold">'audit'</span> to start a new security audit, or <span className="text-muted-foreground">'help'</span> for commands.
                   </div>
                 </div>
               )}
@@ -254,13 +254,13 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
               {/* Command history */}
               {commandHistory.map((entry, i) => (
                 <div key={`cmd-${i}`} className="mb-2">
-                  <div className="flex items-center gap-2 text-gray-300">
+                  <div className="flex items-center gap-2 text-foreground">
                     <span className="text-emerald-500">$</span>
                     <span>{entry.input}</span>
                   </div>
                   {entry.output && (
                     <div className={`ml-4 mt-1 whitespace-pre-wrap text-xs ${
-                      entry.isError ? "text-red-400" : "text-gray-500"
+                      entry.isError ? "text-red-400" : "text-muted-foreground"
                     }`}>
                       {entry.output}
                     </div>
@@ -270,7 +270,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
 
               {/* Current input line */}
               {bootComplete && (
-                <div className="flex items-center gap-2 text-gray-300">
+                <div className="flex items-center gap-2 text-foreground">
                   <span className="text-emerald-500">$</span>
                   <div className="flex-1 relative">
                     <input
@@ -285,7 +285,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
                       autoComplete="off"
                       autoFocus
                     />
-                    <span className="text-gray-200">{currentInput}</span>
+                    <span className="text-foreground">{currentInput}</span>
                     <span
                       className={`inline-block w-2 h-4 bg-emerald-400 ml-0.5 align-middle transition-opacity ${
                         cursorBlink ? "opacity-100" : "opacity-0"
@@ -301,7 +301,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
           <div className={`mt-4 text-center transition-all duration-500 ${bootComplete ? "opacity-100" : "opacity-0"}`}>
             <div className="flex items-center justify-center gap-3">
               <div className="h-px w-8 bg-gradient-to-r from-transparent to-gray-700" />
-              <span className="text-gray-600 text-[10px] font-mono tracking-wider">PRESS ENTER TO EXECUTE</span>
+              <span className="text-muted-foreground text-xs font-mono tracking-wider">PRESS ENTER TO EXECUTE</span>
               <div className="h-px w-8 bg-gradient-to-l from-transparent to-gray-700" />
             </div>
           </div>
@@ -309,18 +309,18 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
       </div>
 
       {/* Corner decorations */}
-      <div className="absolute top-4 left-4 text-[10px] font-mono text-gray-700 z-30">
+      <div className="absolute top-4 left-4 text-xs font-mono text-muted-foreground z-30">
         <div>SYS.VERSION: 3.0.0</div>
         <div>MODE: INTERACTIVE</div>
       </div>
-      <div className="absolute top-4 right-4 text-[10px] font-mono text-gray-700 text-right z-30">
+      <div className="absolute top-4 right-4 text-xs font-mono text-muted-foreground text-right z-30">
         <div>MEM: 16384MB</div>
         <div>STATUS: READY</div>
       </div>
-      <div className="absolute bottom-4 left-4 text-[10px] font-mono text-gray-700 z-30">
+      <div className="absolute bottom-4 left-4 text-xs font-mono text-muted-foreground z-30">
         DEEPAUDIT_AGENT_v3
       </div>
-      <div className="absolute bottom-4 right-4 text-[10px] font-mono text-gray-700 z-30">
+      <div className="absolute bottom-4 right-4 text-xs font-mono text-muted-foreground z-30">
         {new Date().toISOString().split("T")[0]}
       </div>
 

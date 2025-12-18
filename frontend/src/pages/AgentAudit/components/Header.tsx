@@ -18,21 +18,21 @@ export function Header({
   onNewAudit
 }: HeaderProps) {
   return (
-    <header className="flex-shrink-0 h-14 border-b border-gray-800/80 flex items-center justify-between px-5 bg-gradient-to-r from-[#0d0d12] via-[#0e0e14] to-[#0d0d12] relative overflow-hidden">
+    <header className="flex-shrink-0 h-14 border-b border-border flex items-center justify-between px-5 bg-card relative overflow-hidden">
       {/* Subtle animated line at top */}
       <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
 
       {/* Left side - Brand and task info */}
       <div className="flex items-center gap-4">
         {/* Logo section */}
-        <div className="flex items-center gap-2.5 pr-4 border-r border-gray-800/50">
+        <div className="flex items-center gap-2.5 pr-4 border-r border-border">
           <div className="relative">
             <Cpu className="w-5 h-5 text-primary" />
             {isRunning && (
               <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-green-400 rounded-full animate-pulse" />
             )}
           </div>
-          <span className="font-bold text-white tracking-wide text-sm">
+          <span className="font-bold text-foreground tracking-wide text-sm">
             DEEP<span className="text-primary">AUDIT</span>
           </span>
         </div>
@@ -40,11 +40,11 @@ export function Header({
         {/* Task info */}
         {task && (
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 text-gray-400">
+            <div className="flex items-center gap-2 text-muted-foreground">
               <Radio className="w-3 h-3" />
               <span className="text-xs font-mono uppercase tracking-wider">Task</span>
             </div>
-            <span className="text-gray-300 text-sm font-mono truncate max-w-[180px]">
+            <span className="text-foreground text-sm font-mono truncate max-w-[180px]">
               {task.name || task.id.slice(0, 8)}
             </span>
             <StatusBadge status={task.status} />
@@ -76,7 +76,7 @@ export function Header({
           </Button>
         )}
 
-        <div className="h-6 w-px bg-gray-800/50 mx-1" />
+        <div className="h-6 w-px bg-muted mx-1" />
 
         <Button
           variant="ghost"

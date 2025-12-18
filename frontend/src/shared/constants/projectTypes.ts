@@ -56,7 +56,7 @@ export const PLATFORM_COLORS: Record<RepositoryPlatform, {
   bg: string;
   text: string;
 }> = {
-  github: { bg: 'bg-gray-800', text: 'text-white' },
+  github: { bg: 'bg-foreground', text: 'text-background' },
   gitlab: { bg: 'bg-orange-500', text: 'text-white' },
-  other: { bg: 'bg-gray-500', text: 'text-white' }
+  other: { bg: 'bg-muted-foreground', text: 'text-background' }
 };

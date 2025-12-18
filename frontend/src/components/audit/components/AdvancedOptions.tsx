@@ -30,7 +30,7 @@ export default function AdvancedOptions({
     <div className="space-y-6">
       <div>
         <Label className="text-base font-bold uppercase">扫描配置</Label>
-        <p className="text-sm text-gray-500 mt-1 font-bold">
+        <p className="text-sm text-muted-foreground mt-1 font-bold">
           配置代码扫描的详细参数
         </p>
       </div>
@@ -83,11 +83,11 @@ export default function AdvancedOptions({
             >
               <SelectTrigger
                 id="analysis_depth"
-                className="retro-input h-10 rounded-none border-2 border-black shadow-none focus:ring-0"
+                className="retro-input h-10 rounded-none border-2 border-border shadow-none focus:ring-0"
               >
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="rounded-none border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+              <SelectContent className="rounded-none border-2 border-border shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
                 <SelectItem value="basic" className="font-mono">
                   基础 (快速)
                 </SelectItem>
@@ -104,16 +104,16 @@ export default function AdvancedOptions({
       </div>
 
       {/* 分析范围 */}
-      <div className="space-y-2 border-t-2 border-dashed border-gray-300 pt-4">
+      <div className="space-y-2 border-t-2 border-dashed border-border pt-4">
         <Label className="font-bold uppercase">分析范围</Label>
-        <div className="flex items-center justify-between p-3 border-2 border-black bg-white">
+        <div className="flex items-center justify-between p-3 border-2 border-border bg-background">
           <div>
             <p className="text-sm font-bold uppercase">
               {hasSelectedFiles
                 ? `已选择 ${scanConfig.file_paths!.length} 个文件`
                 : "全量扫描 (所有文件)"}
             </p>
-            <p className="text-xs text-gray-500 font-bold">
+            <p className="text-xs text-muted-foreground font-bold">
               {hasSelectedFiles
                 ? "仅分析选中的文件"
                 : "分析项目中的所有代码文件"}
@@ -126,7 +126,7 @@ export default function AdvancedOptions({
                 variant="outline"
                 size="sm"
                 onClick={() => onUpdate({ file_paths: undefined })}
-                className="retro-btn bg-white text-red-600 hover:bg-red-50 h-8"
+                className="retro-btn bg-background text-red-600 hover:bg-red-50 h-8"
               >
                 重置
               </Button>
@@ -136,7 +136,7 @@ export default function AdvancedOptions({
               variant="outline"
               size="sm"
               onClick={onOpenFileSelection}
-              className="retro-btn bg-white text-black hover:bg-gray-50 h-8"
+              className="retro-btn bg-background text-foreground hover:bg-background h-8"
             >
               {hasSelectedFiles ? "修改选择" : "选择文件"}
             </Button>
@@ -162,15 +162,15 @@ function CheckboxOption({
   description: string;
 }) {
   return (
-    <div className="flex items-center space-x-3 p-3 border-2 border-black bg-white">
+    <div className="flex items-center space-x-3 p-3 border-2 border-border bg-background">
       <Checkbox
         checked={checked}
         onCheckedChange={(c) => onChange(!!c)}
-        className="rounded-none border-2 border-black data-[state=checked]:bg-primary data-[state=checked]:text-white"
+        className="rounded-none border-2 border-border data-[state=checked]:bg-primary data-[state=checked]:text-foreground"
       />
       <div>
         <p className="text-sm font-bold uppercase">{label}</p>
-        <p className="text-xs text-gray-500 font-bold">{description}</p>
+        <p className="text-xs text-muted-foreground font-bold">{description}</p>
       </div>
     </div>
   );
@@ -178,7 +178,7 @@ function CheckboxOption({
 
 function DepthExplanation() {
   return (
-    <div className="bg-amber-50 border-2 border-black p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+    <div className="bg-amber-50 border-2 border-border p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
       <div className="flex items-start space-x-3">
         <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5" />
         <div className="text-sm font-mono">

@@ -24,8 +24,8 @@ const STATUS_CONFIG: Record<ConnectionState, {
   disconnected: {
     icon: WifiOff,
     label: 'Disconnected',
-    color: 'text-gray-400',
-    bgColor: 'bg-gray-400/10',
+    color: 'text-muted-foreground',
+    bgColor: 'bg-muted/30',
   },
   connecting: {
     icon: RefreshCw,
@@ -67,7 +67,7 @@ export function ConnectionStatus({
   return (
     <div className={cn('flex items-center gap-1.5', className)}>
       <div className={cn(
-        'flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium',
+        'flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium',
         config.bgColor,
         config.color
       )}>

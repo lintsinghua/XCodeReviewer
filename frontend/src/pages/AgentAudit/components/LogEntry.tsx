@@ -93,8 +93,8 @@ export const LogEntry = memo(function LogEntry({ item, isExpanded, onToggle }: L
       <div className={`
         relative rounded border-l-2 overflow-hidden
         ${config.borderColor}
-        ${isExpanded ? 'bg-gray-900/60' : 'bg-gray-900/30'}
-        ${isCollapsible ? 'hover:bg-gray-900/50' : ''}
+        ${isExpanded ? 'bg-card/60' : 'bg-muted/50'}
+        ${isCollapsible ? 'hover:bg-muted' : ''}
         ${isFinding ? 'border-r border-r-red-900/30' : ''}
         ${isError ? 'border-r border-r-red-900/30' : ''}
         transition-all duration-200
@@ -120,35 +120,35 @@ export const LogEntry = memo(function LogEntry({ item, isExpanded, onToggle }: L
 
             {/* Type label */}
             <span className={`
-              text-[9px] font-mono font-bold uppercase tracking-wider px-1.5 py-0.5 rounded
-              ${isThinking ? 'bg-violet-500/25 text-violet-300' : ''}
-              ${isTool ? 'bg-amber-500/25 text-amber-300' : ''}
-              ${isFinding ? 'bg-rose-500/25 text-rose-300' : ''}
-              ${isError ? 'bg-red-500/25 text-red-300' : ''}
-              ${isInfo ? 'bg-slate-500/25 text-slate-300' : ''}
-              ${isProgress ? 'bg-cyan-500/25 text-cyan-300' : ''}
-              ${item.type === 'dispatch' ? 'bg-sky-500/25 text-sky-300' : ''}
-              ${item.type === 'phase' ? 'bg-teal-500/25 text-teal-300' : ''}
-              ${item.type === 'user' ? 'bg-indigo-500/25 text-indigo-300' : ''}
+              text-sm font-mono font-bold uppercase tracking-wider px-2.5 py-1 rounded
+              ${isThinking ? 'bg-violet-500/30 text-violet-700 dark:text-violet-300' : ''}
+              ${isTool ? 'bg-amber-500/30 text-amber-700 dark:text-amber-300' : ''}
+              ${isFinding ? 'bg-rose-500/30 text-rose-700 dark:text-rose-300' : ''}
+              ${isError ? 'bg-red-500/30 text-red-700 dark:text-red-300' : ''}
+              ${isInfo ? 'bg-muted text-foreground' : ''}
+              ${isProgress ? 'bg-cyan-500/30 text-cyan-700 dark:text-cyan-300' : ''}
+              ${item.type === 'dispatch' ? 'bg-sky-500/30 text-sky-700 dark:text-sky-300' : ''}
+              ${item.type === 'phase' ? 'bg-teal-500/30 text-teal-700 dark:text-teal-300' : ''}
+              ${item.type === 'user' ? 'bg-indigo-500/30 text-indigo-700 dark:text-indigo-300' : ''}
               flex-shrink-0
             `}>
               {LOG_TYPE_LABELS[item.type] || 'LOG'}
             </span>
 
             {/* Timestamp */}
-            <span className="text-[10px] text-gray-600 font-mono flex-shrink-0">
+            <span className="text-xs text-muted-foreground font-mono flex-shrink-0">
               {item.time}
             </span>
 
             {/* Separator */}
-            <ArrowRight className="w-3 h-3 text-gray-700 flex-shrink-0" />
+            <ArrowRight className="w-3 h-3 text-muted-foreground flex-shrink-0" />
 
             {/* Status icon for info messages */}
             {statusIcon && <span className="flex-shrink-0">{statusIcon}</span>}
 
             {/* Title - for non-thinking types */}
             {!isThinking && (
-              <span className="text-sm text-gray-300 truncate flex-1">
+              <span className="text-base text-foreground font-medium truncate flex-1">
                 {formattedTitle}
               </span>
             )}
@@ -162,7 +162,7 @@ export const LogEntry = memo(function LogEntry({ item, isExpanded, onToggle }: L
             {item.tool?.status === 'running' && (
               <div className="flex items-center gap-1.5 flex-shrink-0 bg-amber-500/10 px-2 py-0.5 rounded">
                 <Loader2 className="w-3 h-3 animate-spin text-amber-400" />
-                <span className="text-[9px] text-amber-400 font-mono uppercase">Running</span>
+                <span className="text-xs text-amber-400 font-mono uppercase">Running</span>
               </div>
             )}
 
@@ -176,7 +176,7 @@ export const LogEntry = memo(function LogEntry({ item, isExpanded, onToggle }: L
             {item.agentName && (
               <Badge
                 variant="outline"
-                className="h-5 px-2 text-[9px] uppercase tracking-wider border-primary/40 text-primary bg-primary/10 flex-shrink-0 font-semibold"
+                className="h-5 px-2 text-xs uppercase tracking-wider border-primary/40 text-primary bg-primary/10 flex-shrink-0 font-semibold"
               >
                 {item.agentName}
               </Badge>
@@ -186,7 +186,7 @@ export const LogEntry = memo(function LogEntry({ item, isExpanded, onToggle }: L
             <div className="flex items-center gap-2 flex-shrink-0 ml-auto">
               {/* Duration badge */}
               {item.tool?.duration !== undefined && (
-                <span className="text-[10px] text-gray-500 font-mono bg-gray-800/50 px-1.5 py-0.5 rounded">
+                <span className="text-xs text-muted-foreground font-mono bg-muted px-1.5 py-0.5 rounded">
                   {item.tool.duration}ms
                 </span>
               )}
@@ -195,7 +195,7 @@ export const LogEntry = memo(function LogEntry({ item, isExpanded, onToggle }: L
               {item.severity && (
                 <Badge
                   className={`
-                    text-[9px] uppercase tracking-wider font-bold px-1.5 py-0
+                    text-xs uppercase tracking-wider font-bold px-1.5 py-0
                     ${SEVERITY_COLORS[item.severity] || SEVERITY_COLORS.info}
                   `}
                 >
@@ -205,11 +205,11 @@ export const LogEntry = memo(function LogEntry({ item, isExpanded, onToggle }: L
 
               {/* Expand indicator */}
               {isCollapsible && (
-                <div className="w-5 h-5 flex items-center justify-center rounded bg-gray-800/30 group-hover:bg-gray-800/50 transition-colors">
+                <div className="w-5 h-5 flex items-center justify-center rounded bg-muted/50 group-hover:bg-muted/50 transition-colors">
                   {isExpanded ? (
-                    <ChevronUp className="w-3.5 h-3.5 text-gray-500" />
+                    <ChevronUp className="w-3.5 h-3.5 text-muted-foreground" />
                   ) : (
-                    <ChevronDown className="w-3.5 h-3.5 text-gray-500" />
+                    <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
                   )}
                 </div>
               )}
@@ -220,7 +220,7 @@ export const LogEntry = memo(function LogEntry({ item, isExpanded, onToggle }: L
           {isThinking && item.content && (
             <div className="mt-2.5 relative">
               <div className="absolute left-0 top-0 bottom-0 w-px bg-gradient-to-b from-purple-500/50 via-purple-500/20 to-transparent" />
-              <div className="pl-3 text-sm text-purple-200/90 leading-relaxed whitespace-pre-wrap break-words">
+              <div className="pl-3 text-base text-foreground/90 leading-relaxed whitespace-pre-wrap break-words">
                 {item.content}
               </div>
             </div>
@@ -229,24 +229,24 @@ export const LogEntry = memo(function LogEntry({ item, isExpanded, onToggle }: L
           {/* Collapsible content */}
           {!isThinking && showContent && item.content && (
             <div className="mt-2.5 overflow-hidden">
-              <div className="bg-[#08080c] rounded border border-gray-800/50 overflow-hidden">
+              <div className="bg-card rounded border border-border overflow-hidden">
                 {/* Mini header */}
-                <div className="flex items-center justify-between px-2.5 py-1.5 border-b border-gray-800/50 bg-gray-900/50">
+                <div className="flex items-center justify-between px-2.5 py-1.5 border-b border-border bg-muted">
                   <div className="flex items-center gap-2">
-                    <Square className="w-2.5 h-2.5 text-gray-600" />
-                    <span className="text-[9px] text-gray-500 font-mono uppercase tracking-wider">
+                    <Square className="w-2.5 h-2.5 text-muted-foreground" />
+                    <span className="text-xs text-muted-foreground font-mono uppercase tracking-wider">
                       {isTool ? 'Output' : 'Details'}
                     </span>
                   </div>
                   {item.tool?.status === 'completed' && (
                     <div className="flex items-center gap-1">
                       <CheckCircle2 className="w-3 h-3 text-green-500/70" />
-                      <span className="text-[9px] text-green-500/70 font-mono">Complete</span>
+                      <span className="text-xs text-green-500/70 font-mono">Complete</span>
                     </div>
                   )}
                 </div>
                 {/* Content */}
-                <pre className="p-3 text-xs font-mono text-gray-400 max-h-56 overflow-y-auto custom-scrollbar whitespace-pre-wrap break-words leading-relaxed">
+                <pre className="p-3 text-base font-mono text-foreground/80 max-h-56 overflow-y-auto custom-scrollbar whitespace-pre-wrap break-words leading-relaxed">
                   {item.content}
                 </pre>
               </div>

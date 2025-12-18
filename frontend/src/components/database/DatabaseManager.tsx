@@ -208,7 +208,7 @@ export function DatabaseManager() {
       <div className="cyber-card p-0">
         <div className="cyber-card-header">
           <Activity className="w-5 h-5 text-emerald-400" />
-          <h3 className="text-lg font-bold uppercase tracking-wider text-white">数据库健康检查</h3>
+          <h3 className="text-lg font-bold uppercase tracking-wider text-foreground">数据库健康检查</h3>
           <div className="ml-auto">
             <Button
               variant="outline"
@@ -238,16 +238,16 @@ export function DatabaseManager() {
                   <AlertCircle className="h-5 w-5 text-rose-400" />
                 )}
                 <div className="flex items-center gap-2">
-                  <span className="font-bold uppercase text-sm text-gray-400">状态：</span>
+                  <span className="font-bold uppercase text-sm text-muted-foreground">状态：</span>
                   {getHealthStatusBadge(health.status)}
                 </div>
-                <span className="text-sm text-gray-400">
+                <span className="text-sm text-muted-foreground">
                   数据库连接：
                   <span className={health.database_connected ? 'text-emerald-400' : 'text-rose-400'}>
                     {health.database_connected ? '正常' : '异常'}
                   </span>
                   <span className="mx-2">|</span>
-                  总记录数：<span className="text-white">{health.total_records.toLocaleString()}</span>
+                  总记录数：<span className="text-foreground">{health.total_records.toLocaleString()}</span>
                 </span>
               </div>
 
@@ -292,7 +292,7 @@ export function DatabaseManager() {
       <div className="cyber-card p-0">
         <div className="cyber-card-header">
           <Database className="w-5 h-5 text-violet-400" />
-          <h3 className="text-lg font-bold uppercase tracking-wider text-white">详细数据统计</h3>
+          <h3 className="text-lg font-bold uppercase tracking-wider text-foreground">详细数据统计</h3>
           <div className="ml-auto">
             <Button
               variant="outline"
@@ -321,17 +321,17 @@ export function DatabaseManager() {
               <div className="cyber-card p-4">
                 <p className="stat-label">任务</p>
                 <p className="stat-value text-emerald-400">{stats.total_tasks}</p>
-                <p className="text-xs text-gray-500 mt-1">完成: {stats.completed_tasks} | 进行中: {stats.running_tasks}</p>
+                <p className="text-xs text-muted-foreground mt-1">完成: {stats.completed_tasks} | 进行中: {stats.running_tasks}</p>
               </div>
               <div className="cyber-card p-4">
                 <p className="stat-label">问题</p>
                 <p className="stat-value text-amber-400">{stats.total_issues}</p>
-                <p className="text-xs text-gray-500 mt-1">未解决: {stats.open_issues} | 已解决: {stats.resolved_issues}</p>
+                <p className="text-xs text-muted-foreground mt-1">未解决: {stats.open_issues} | 已解决: {stats.resolved_issues}</p>
               </div>
               <div className="cyber-card p-4">
                 <p className="stat-label">分析记录</p>
                 <p className="stat-value text-violet-400">{stats.total_analyses}</p>
-                <p className="text-xs text-gray-500 mt-1">即时分析</p>
+                <p className="text-xs text-muted-foreground mt-1">即时分析</p>
               </div>
             </div>
           ) : (
@@ -347,7 +347,7 @@ export function DatabaseManager() {
       <div className="cyber-card p-0">
         <div className="cyber-card-header">
           <Database className="w-5 h-5 text-primary" />
-          <h3 className="text-lg font-bold uppercase tracking-wider text-white">数据操作</h3>
+          <h3 className="text-lg font-bold uppercase tracking-wider text-foreground">数据操作</h3>
         </div>
         <div className="p-6 space-y-6">
           {message && (
@@ -369,11 +369,11 @@ export function DatabaseManager() {
 
           <div className="grid gap-6 md:grid-cols-3">
             <div className="space-y-3">
-              <h4 className="text-sm font-bold uppercase text-gray-300 flex items-center gap-2">
+              <h4 className="text-sm font-bold uppercase text-foreground flex items-center gap-2">
                 <Download className="h-4 w-4 text-sky-400" />
                 导出数据
               </h4>
-              <p className="text-xs text-gray-500">将数据导出为 JSON 文件，用于备份或迁移</p>
+              <p className="text-xs text-muted-foreground">将数据导出为 JSON 文件，用于备份或迁移</p>
               <Button
                 onClick={handleExport}
                 disabled={loading}
@@ -385,11 +385,11 @@ export function DatabaseManager() {
             </div>
 
             <div className="space-y-3">
-              <h4 className="text-sm font-bold uppercase text-gray-300 flex items-center gap-2">
+              <h4 className="text-sm font-bold uppercase text-foreground flex items-center gap-2">
                 <Upload className="h-4 w-4 text-emerald-400" />
                 导入数据
               </h4>
-              <p className="text-xs text-gray-500">从 JSON 文件恢复数据（最大 50MB）</p>
+              <p className="text-xs text-muted-foreground">从 JSON 文件恢复数据（最大 50MB）</p>
               <Button
                 onClick={() => document.getElementById('import-file')?.click()}
                 disabled={loading}
@@ -412,7 +412,7 @@ export function DatabaseManager() {
                 <Trash2 className="h-4 w-4" />
                 清空数据
               </h4>
-              <p className="text-xs text-gray-500">删除所有数据（不可恢复）</p>
+              <p className="text-xs text-muted-foreground">删除所有数据（不可恢复）</p>
               <Button
                 onClick={handleClear}
                 disabled={loading}
@@ -424,7 +424,7 @@ export function DatabaseManager() {
             </div>
           </div>
 
-          <div className="pt-6 border-t border-gray-800 border-dashed">
+          <div className="pt-6 border-t border-border border-dashed">
             <div className="bg-sky-500/10 border border-sky-500/30 p-4 flex items-start gap-3 rounded-lg">
               <Info className="h-5 w-5 text-sky-400 mt-0.5 flex-shrink-0" />
               <p className="text-sm text-sky-300/80">

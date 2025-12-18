@@ -11,12 +11,12 @@ import { Badge } from "@/components/ui/badge";
 import { AGENT_STATUS_CONFIG } from "../constants";
 import type { AgentTreeNodeItemProps } from "../types";
 
-// Agent type icons with enhanced colors
+// Agent type icons with enhanced colors (light/dark mode compatible)
 const AGENT_TYPE_ICONS: Record<string, React.ReactNode> = {
-  orchestrator: <Cpu className="w-3.5 h-3.5 text-violet-400" />,
-  recon: <Scan className="w-3.5 h-3.5 text-teal-400" />,
-  analysis: <FileSearch className="w-3.5 h-3.5 text-amber-400" />,
-  verification: <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />,
+  orchestrator: <Cpu className="w-4 h-4 text-violet-600 dark:text-violet-400" />,
+  recon: <Scan className="w-4 h-4 text-teal-600 dark:text-teal-400" />,
+  analysis: <FileSearch className="w-4 h-4 text-amber-600 dark:text-amber-400" />,
+  verification: <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />,
 };
 
 // Status colors for the glow effect
@@ -40,14 +40,14 @@ export const AgentTreeNodeItem = memo(function AgentTreeNodeItem({
   const isRunning = node.status === 'running';
 
   const statusConfig = AGENT_STATUS_CONFIG[node.status] || AGENT_STATUS_CONFIG.created;
-  const typeIcon = AGENT_TYPE_ICONS[node.agent_type] || <Bot className="w-3.5 h-3.5 text-slate-400" />;
+  const typeIcon = AGENT_TYPE_ICONS[node.agent_type] || <Bot className="w-3.5 h-3.5 text-muted-foreground" />;
 
   return (
     <div className="relative">
       {/* Connection line to parent - vertical line */}
       {depth > 0 && (
         <div
-          className="absolute top-0 w-px bg-gradient-to-b from-slate-600 to-slate-700"
+          className="absolute top-0 w-px bg-gradient-to-b from-border to-border"
           style={{
             left: `${depth * 16 - 8}px`,
             height: '20px',
@@ -58,7 +58,7 @@ export const AgentTreeNodeItem = memo(function AgentTreeNodeItem({
       {/* Horizontal connector line */}
       {depth > 0 && (
         <div
-          className="absolute top-[20px] h-px bg-slate-600"
+          className="absolute top-[20px] h-px bg-muted-foreground"
           style={{
             left: `${depth * 16 - 8}px`,
             width: '8px',
@@ -73,7 +73,7 @@ export const AgentTreeNodeItem = memo(function AgentTreeNodeItem({
           transition-all duration-200 ease-out
           ${isSelected
             ? 'bg-primary/15 border border-primary/40'
-            : 'border border-transparent hover:bg-white/5 hover:border-slate-700/50'
+            : 'border border-transparent hover:bg-white/5 hover:border-border/50'
           }
           ${STATUS_GLOW_COLORS[node.status] || ''}
         `}
@@ -87,9 +87,9 @@ export const AgentTreeNodeItem = memo(function AgentTreeNodeItem({
             className="flex-shrink-0 w-5 h-5 flex items-center justify-center rounded hover:bg-white/10 transition-colors"
           >
             {expanded ? (
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+              <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
             ) : (
-              <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+              <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
             )}
           </button>
         ) : (
@@ -104,7 +104,7 @@ export const AgentTreeNodeItem = memo(function AgentTreeNodeItem({
             ${node.status === 'completed' ? 'bg-emerald-500' : ''}
             ${node.status === 'failed' ? 'bg-rose-400' : ''}
             ${node.status === 'waiting' ? 'bg-amber-400' : ''}
-            ${node.status === 'created' ? 'bg-slate-500' : ''}
+            ${node.status === 'created' ? 'bg-muted' : ''}
           `} />
           {isRunning && (
             <div className="absolute inset-0 w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping opacity-30" />
@@ -118,8 +118,8 @@ export const AgentTreeNodeItem = memo(function AgentTreeNodeItem({
 
         {/* Agent name */}
         <span className={`
-          text-xs font-mono truncate flex-1 transition-colors duration-200
-          ${isSelected ? 'text-white font-medium' : 'text-slate-300 group-hover:text-white'}
+          text-sm font-mono truncate flex-1 transition-colors duration-200
+          ${isSelected ? 'text-foreground font-medium' : 'text-foreground group-hover:text-foreground'}
         `}>
           {node.agent_name}
         </span>
@@ -128,14 +128,14 @@ export const AgentTreeNodeItem = memo(function AgentTreeNodeItem({
         <div className="flex items-center gap-1.5 flex-shrink-0">
           {/* Iterations */}
           {(node.iterations ?? 0) > 0 && (
-            <span className="text-[9px] text-slate-400 font-mono bg-slate-800/60 px-1.5 py-0.5 rounded">
+            <span className="text-xs text-muted-foreground font-mono bg-muted px-1.5 py-0.5 rounded">
               {node.iterations}x
             </span>
           )}
 
           {/* Findings count - Only show for Orchestrator (root agent) */}
           {!node.parent_agent_id && node.findings_count > 0 && (
-            <Badge className="h-4 px-1.5 text-[9px] bg-rose-500/25 text-rose-300 border border-rose-500/40 font-mono font-semibold">
+            <Badge className="h-5 px-2 text-sm bg-rose-500/25 text-rose-700 dark:text-rose-300 border border-rose-500/40 font-mono font-semibold">
               {node.findings_count}
             </Badge>
           )}
@@ -152,7 +152,7 @@ export const AgentTreeNodeItem = memo(function AgentTreeNodeItem({
         >
           {/* Vertical connection line for children */}
           <div
-            className="absolute w-px bg-gradient-to-b from-slate-600 via-slate-700 to-transparent"
+            className="absolute w-px bg-gradient-to-b from-border via-border to-transparent"
             style={{
               left: `${(depth + 1) * 16 - 8}px`,
               top: '0',

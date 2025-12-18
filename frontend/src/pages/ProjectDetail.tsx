@@ -280,7 +280,7 @@ export default function ProjectDetail() {
       case 'completed': return <CheckCircle className="w-4 h-4 text-emerald-400" />;
       case 'running': return <Activity className="w-4 h-4 text-sky-400" />;
       case 'failed': return <AlertTriangle className="w-4 h-4 text-rose-400" />;
-      default: return <Clock className="w-4 h-4 text-gray-400" />;
+      default: return <Clock className="w-4 h-4 text-muted-foreground" />;
     }
   };
 
@@ -316,7 +316,7 @@ export default function ProjectDetail() {
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center space-y-4">
           <div className="loading-spinner mx-auto" />
-          <p className="text-gray-500 font-mono text-sm uppercase tracking-wider">加载项目数据...</p>
+          <p className="text-muted-foreground font-mono text-sm uppercase tracking-wider">加载项目数据...</p>
         </div>
       </div>
     );
@@ -327,8 +327,8 @@ export default function ProjectDetail() {
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="cyber-card p-8 text-center">
           <AlertTriangle className="w-16 h-16 text-rose-400 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-white mb-2 uppercase">项目未找到</h2>
-          <p className="text-gray-400 mb-4 font-mono">请检查项目ID是否正确</p>
+          <h2 className="text-2xl font-bold text-foreground mb-2 uppercase">项目未找到</h2>
+          <p className="text-muted-foreground mb-4 font-mono">请检查项目ID是否正确</p>
           <Link to="/projects">
             <Button className="cyber-btn-primary">
               <ArrowLeft className="w-4 h-4 mr-2" />
@@ -341,7 +341,7 @@ export default function ProjectDetail() {
   }
 
   return (
-    <div className="space-y-6 p-6 bg-[#0a0a0f] min-h-screen font-mono relative">
+    <div className="space-y-6 p-6 cyber-bg-elevated min-h-screen font-mono relative">
       {/* Grid background */}
       <div className="absolute inset-0 cyber-grid-subtle pointer-events-none" />
 
@@ -354,7 +354,7 @@ export default function ProjectDetail() {
             </Button>
           </Link>
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-white uppercase tracking-wider">{project.name}</h1>
+            <h1 className="text-2xl font-bold text-foreground uppercase tracking-wider">{project.name}</h1>
             <Badge className={`${project.is_active ? 'cyber-badge-success' : 'cyber-badge-muted'}`}>
               {project.is_active ? '活跃' : '暂停'}
             </Badge>
@@ -431,11 +431,11 @@ export default function ProjectDetail() {
 
       {/* 主要内容 */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full relative z-10">
-        <TabsList className="grid w-full grid-cols-4 bg-gray-900/50 border border-gray-800 p-1 h-auto gap-1 rounded">
-          <TabsTrigger value="overview" className="data-[state=active]:bg-primary data-[state=active]:text-white font-mono font-bold uppercase py-2 text-gray-400 transition-all rounded-sm">项目概览</TabsTrigger>
-          <TabsTrigger value="tasks" className="data-[state=active]:bg-primary data-[state=active]:text-white font-mono font-bold uppercase py-2 text-gray-400 transition-all rounded-sm">审计任务</TabsTrigger>
-          <TabsTrigger value="issues" className="data-[state=active]:bg-primary data-[state=active]:text-white font-mono font-bold uppercase py-2 text-gray-400 transition-all rounded-sm">问题管理</TabsTrigger>
-          <TabsTrigger value="settings" className="data-[state=active]:bg-primary data-[state=active]:text-white font-mono font-bold uppercase py-2 text-gray-400 transition-all rounded-sm">项目设置</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-4 bg-muted border border-border p-1 h-auto gap-1 rounded">
+          <TabsTrigger value="overview" className="data-[state=active]:bg-primary data-[state=active]:text-foreground font-mono font-bold uppercase py-2 text-muted-foreground transition-all rounded-sm">项目概览</TabsTrigger>
+          <TabsTrigger value="tasks" className="data-[state=active]:bg-primary data-[state=active]:text-foreground font-mono font-bold uppercase py-2 text-muted-foreground transition-all rounded-sm">审计任务</TabsTrigger>
+          <TabsTrigger value="issues" className="data-[state=active]:bg-primary data-[state=active]:text-foreground font-mono font-bold uppercase py-2 text-muted-foreground transition-all rounded-sm">问题管理</TabsTrigger>
+          <TabsTrigger value="settings" className="data-[state=active]:bg-primary data-[state=active]:text-foreground font-mono font-bold uppercase py-2 text-muted-foreground transition-all rounded-sm">项目设置</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="flex flex-col gap-6 mt-6">
@@ -450,7 +450,7 @@ export default function ProjectDetail() {
                 <div className="space-y-3">
                   {project.repository_url && (
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-500 uppercase">仓库地址</span>
+                      <span className="text-sm text-muted-foreground uppercase">仓库地址</span>
                       <a
                         href={project.repository_url}
                         target="_blank"
@@ -464,7 +464,7 @@ export default function ProjectDetail() {
                   )}
 
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-500 uppercase">项目类型</span>
+                    <span className="text-sm text-muted-foreground uppercase">项目类型</span>
                     <Badge className={`${isRepositoryProject(project) ? 'cyber-badge-info' : 'cyber-badge-warning'}`}>
                       {getSourceTypeLabel(project.source_type)}
                     </Badge>
@@ -473,7 +473,7 @@ export default function ProjectDetail() {
                   {isRepositoryProject(project) && (
                     <>
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-500 uppercase">仓库平台</span>
+                        <span className="text-sm text-muted-foreground uppercase">仓库平台</span>
                         <Badge className="cyber-badge-muted">
                           {project.repository_type === 'github' ? 'GitHub' :
                             project.repository_type === 'gitlab' ? 'GitLab' : '其他'}
@@ -481,26 +481,26 @@ export default function ProjectDetail() {
                       </div>
 
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-500 uppercase">默认分支</span>
-                        <span className="text-sm font-bold text-gray-200 bg-gray-800 px-2 py-0.5 rounded border border-gray-700">{project.default_branch}</span>
+                        <span className="text-sm text-muted-foreground uppercase">默认分支</span>
+                        <span className="text-sm font-bold text-foreground bg-muted px-2 py-0.5 rounded border border-border">{project.default_branch}</span>
                       </div>
                     </>
                   )}
 
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-500 uppercase">创建时间</span>
-                    <span className="text-sm text-gray-300">{formatDate(project.created_at)}</span>
+                    <span className="text-sm text-muted-foreground uppercase">创建时间</span>
+                    <span className="text-sm text-foreground">{formatDate(project.created_at)}</span>
                   </div>
 
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-500 uppercase">所有者</span>
-                    <span className="text-sm text-gray-300">{project.owner?.full_name || project.owner?.phone || '未知'}</span>
+                    <span className="text-sm text-muted-foreground uppercase">所有者</span>
+                    <span className="text-sm text-foreground">{project.owner?.full_name || project.owner?.phone || '未知'}</span>
                   </div>
                 </div>
 
                 {project.programming_languages && (
-                  <div className="pt-4 border-t border-gray-800">
-                    <h4 className="text-sm font-bold mb-2 uppercase text-gray-500">支持的编程语言</h4>
+                  <div className="pt-4 border-t border-border">
+                    <h4 className="text-sm font-bold mb-2 uppercase text-muted-foreground">支持的编程语言</h4>
                     <div className="flex flex-wrap gap-2">
                       {JSON.parse(project.programming_languages).map((lang: string) => (
                         <Badge key={lang} className="cyber-badge-primary">
@@ -526,22 +526,22 @@ export default function ProjectDetail() {
                       <Link
                         key={task.id}
                         to={`/tasks/${task.id}`}
-                        className="flex items-center justify-between p-3 bg-gray-900/30 rounded-lg hover:bg-gray-800/50 transition-all group"
+                        className="flex items-center justify-between p-3 bg-muted/50 rounded-lg hover:bg-muted transition-all group"
                       >
                         <div className="flex items-center space-x-3">
                           <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
                             task.status === 'completed' ? 'bg-emerald-500/20' :
                             task.status === 'running' ? 'bg-sky-500/20' :
                             task.status === 'failed' ? 'bg-rose-500/20' :
-                            'bg-gray-800/50'
+                            'bg-muted'
                           }`}>
                             {getStatusIcon(task.status)}
                           </div>
                           <div>
-                            <p className="text-sm font-bold text-gray-200 group-hover:text-primary transition-colors uppercase">
+                            <p className="text-sm font-bold text-foreground group-hover:text-primary transition-colors uppercase">
                               {task.task_type === 'repository' ? '仓库审计' : '即时分析'}
                             </p>
-                            <p className="text-xs text-gray-500 font-mono">
+                            <p className="text-xs text-muted-foreground font-mono">
                               {formatDate(task.created_at)}
                             </p>
                           </div>
@@ -577,21 +577,21 @@ export default function ProjectDetail() {
             <div className="space-y-4">
               {tasks.map((task) => (
                 <div key={task.id} className="cyber-card p-6">
-                  <div className="flex items-center justify-between mb-4 pb-4 border-b border-gray-800">
+                  <div className="flex items-center justify-between mb-4 pb-4 border-b border-border">
                     <div className="flex items-center space-x-3">
                       <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
                         task.status === 'completed' ? 'bg-emerald-500/20' :
                         task.status === 'running' ? 'bg-sky-500/20' :
                         task.status === 'failed' ? 'bg-rose-500/20' :
-                        'bg-gray-800/50'
+                        'bg-muted'
                       }`}>
                         {getStatusIcon(task.status)}
                       </div>
                       <div>
-                        <h4 className="font-bold text-gray-200 uppercase">
+                        <h4 className="font-bold text-foreground uppercase">
                           {task.task_type === 'repository' ? '仓库审计任务' : '即时分析任务'}
                         </h4>
-                        <p className="text-sm text-gray-500 font-mono">
+                        <p className="text-sm text-muted-foreground font-mono">
                           创建于 {formatDate(task.created_at)}
                         </p>
                       </div>
@@ -600,35 +600,35 @@ export default function ProjectDetail() {
                   </div>
 
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4 font-mono">
-                    <div className="text-center p-3 bg-gray-900/50 rounded-lg border border-gray-800">
-                      <p className="text-2xl font-bold text-white">{task.total_files}</p>
-                      <p className="text-xs text-gray-500 uppercase">总文件数</p>
+                    <div className="text-center p-3 bg-muted rounded-lg border border-border">
+                      <p className="text-2xl font-bold text-foreground">{task.total_files}</p>
+                      <p className="text-xs text-muted-foreground uppercase">总文件数</p>
                     </div>
-                    <div className="text-center p-3 bg-gray-900/50 rounded-lg border border-gray-800">
-                      <p className="text-2xl font-bold text-white">{task.total_lines}</p>
-                      <p className="text-xs text-gray-500 uppercase">代码行数</p>
+                    <div className="text-center p-3 bg-muted rounded-lg border border-border">
+                      <p className="text-2xl font-bold text-foreground">{task.total_lines}</p>
+                      <p className="text-xs text-muted-foreground uppercase">代码行数</p>
                     </div>
-                    <div className="text-center p-3 bg-gray-900/50 rounded-lg border border-gray-800">
+                    <div className="text-center p-3 bg-muted rounded-lg border border-border">
                       <p className="text-2xl font-bold text-amber-400">{task.issues_count}</p>
-                      <p className="text-xs text-gray-500 uppercase">发现问题</p>
+                      <p className="text-xs text-muted-foreground uppercase">发现问题</p>
                     </div>
-                    <div className="text-center p-3 bg-gray-900/50 rounded-lg border border-gray-800">
+                    <div className="text-center p-3 bg-muted rounded-lg border border-border">
                       <p className="text-2xl font-bold text-primary">{task.quality_score.toFixed(1)}</p>
-                      <p className="text-xs text-gray-500 uppercase">质量评分</p>
+                      <p className="text-xs text-muted-foreground uppercase">质量评分</p>
                     </div>
                   </div>
 
                   {task.status === 'completed' && (
                     <div className="space-y-2 mb-4">
                       <div className="flex items-center justify-between text-sm font-mono">
-                        <span className="text-gray-400">质量评分</span>
-                        <span className="text-white font-bold">{task.quality_score.toFixed(1)}/100</span>
+                        <span className="text-muted-foreground">质量评分</span>
+                        <span className="text-foreground font-bold">{task.quality_score.toFixed(1)}/100</span>
                       </div>
-                      <Progress value={task.quality_score} className="h-2 bg-gray-800 [&>div]:bg-primary" />
+                      <Progress value={task.quality_score} className="h-2 bg-muted [&>div]:bg-primary" />
                     </div>
                   )}
 
-                  <div className="flex justify-end space-x-2 pt-4 border-t border-gray-800">
+                  <div className="flex justify-end space-x-2 pt-4 border-t border-border">
                     <Link to={`/tasks/${task.id}`}>
                       <Button variant="outline" size="sm" className="cyber-btn-outline">
                         <FileText className="w-4 h-4 mr-2" />
@@ -641,9 +641,9 @@ export default function ProjectDetail() {
             </div>
           ) : (
             <div className="cyber-card p-12 text-center">
-              <Activity className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-              <h3 className="text-lg font-bold text-gray-300 mb-2 uppercase">暂无审计任务</h3>
-              <p className="text-sm text-gray-500 mb-6 font-mono">创建第一个审计任务开始代码质量分析</p>
+              <Activity className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-bold text-foreground mb-2 uppercase">暂无审计任务</h3>
+              <p className="text-sm text-muted-foreground mb-6 font-mono">创建第一个审计任务开始代码质量分析</p>
               <Button onClick={handleCreateTask} className="cyber-btn-primary">
                 <Play className="w-4 h-4 mr-2" />
                 创建任务
@@ -659,7 +659,7 @@ export default function ProjectDetail() {
               <h3 className="section-title">最新发现的问题</h3>
             </div>
             {tasks.length > 0 && (
-              <p className="text-sm text-gray-500 font-mono">
+              <p className="text-sm text-muted-foreground font-mono">
                 来自最近一次审计 ({formatDate(tasks[0].created_at)})
               </p>
             )}
@@ -668,12 +668,12 @@ export default function ProjectDetail() {
           {loadingIssues ? (
             <div className="text-center py-12">
               <div className="loading-spinner mx-auto mb-4"></div>
-              <p className="text-gray-500 font-mono">正在加载问题列表...</p>
+              <p className="text-muted-foreground font-mono">正在加载问题列表...</p>
             </div>
           ) : latestIssues.length > 0 ? (
             <div className="space-y-4">
               {latestIssues.map((issue, index) => (
-                <div key={index} className="cyber-card p-4 hover:border-gray-700 transition-all">
+                <div key={index} className="cyber-card p-4 hover:border-border transition-all">
                   <div className="flex items-start justify-between">
                     <div className="flex items-start space-x-3">
                       <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
@@ -685,9 +685,9 @@ export default function ProjectDetail() {
                         <AlertTriangle className="w-4 h-4" />
                       </div>
                       <div>
-                        <h4 className="font-bold text-base text-gray-200 mb-1 uppercase">{issue.title}</h4>
-                        <div className="flex items-center space-x-2 text-xs text-gray-500 font-mono">
-                          <span className="bg-gray-800 px-2 py-0.5 rounded border border-gray-700">{issue.file_path}:{issue.line_number}</span>
+                        <h4 className="font-bold text-base text-foreground mb-1 uppercase">{issue.title}</h4>
+                        <div className="flex items-center space-x-2 text-xs text-muted-foreground font-mono">
+                          <span className="bg-muted px-2 py-0.5 rounded border border-border">{issue.file_path}:{issue.line_number}</span>
                           <span>{issue.category}</span>
                         </div>
                       </div>
@@ -697,14 +697,14 @@ export default function ProjectDetail() {
                         issue.severity === 'high' ? 'severity-high' :
                         issue.severity === 'medium' ? 'severity-medium' :
                         'severity-low'}
-                      font-bold uppercase px-2 py-1 rounded text-[10px]
+                      font-bold uppercase px-2 py-1 rounded text-xs
                     `}>
                       {issue.severity === 'critical' ? '严重' :
                         issue.severity === 'high' ? '高' :
                         issue.severity === 'medium' ? '中等' : '低'}
                     </Badge>
                   </div>
-                  <p className="mt-3 text-sm text-gray-400 font-mono border-t border-gray-800 pt-3">
+                  <p className="mt-3 text-sm text-muted-foreground font-mono border-t border-border pt-3">
                     {issue.description}
                   </p>
                 </div>
@@ -713,8 +713,8 @@ export default function ProjectDetail() {
           ) : (
             <div className="cyber-card p-12 text-center">
               <CheckCircle className="w-16 h-16 text-emerald-500 mx-auto mb-4" />
-              <h3 className="text-lg font-bold text-gray-300 mb-2 uppercase">未发现问题</h3>
-              <p className="text-sm text-gray-500 font-mono">最近一次审计未发现明显问题，或尚未进行审计。</p>
+              <h3 className="text-lg font-bold text-foreground mb-2 uppercase">未发现问题</h3>
+              <p className="text-sm text-muted-foreground font-mono">最近一次审计未发现明显问题，或尚未进行审计。</p>
             </div>
           )}
         </TabsContent>
@@ -730,7 +730,7 @@ export default function ProjectDetail() {
               {/* 基本信息 */}
               <div className="space-y-4">
                 <div>
-                  <Label htmlFor="edit-name" className="font-mono font-bold uppercase text-xs text-gray-400">项目名称 *</Label>
+                  <Label htmlFor="edit-name" className="font-mono font-bold uppercase text-xs text-muted-foreground">项目名称 *</Label>
                   <Input
                     id="edit-name"
                     value={editForm.name}
@@ -741,7 +741,7 @@ export default function ProjectDetail() {
                 </div>
 
                 <div>
-                  <Label htmlFor="edit-description" className="font-mono font-bold uppercase text-xs text-gray-400">项目描述</Label>
+                  <Label htmlFor="edit-description" className="font-mono font-bold uppercase text-xs text-muted-foreground">项目描述</Label>
                   <Textarea
                     id="edit-description"
                     value={editForm.description}
@@ -755,14 +755,14 @@ export default function ProjectDetail() {
 
               {/* 仓库信息 - 仅远程仓库类型显示 */}
               {editForm.source_type === 'repository' && (
-                <div className="space-y-4 border-t border-gray-800 pt-4">
-                  <h3 className="font-mono font-bold uppercase text-sm text-gray-400 flex items-center gap-2">
+                <div className="space-y-4 border-t border-border pt-4">
+                  <h3 className="font-mono font-bold uppercase text-sm text-muted-foreground flex items-center gap-2">
                     <GitBranch className="w-4 h-4" />
                     仓库信息
                   </h3>
 
                   <div>
-                    <Label htmlFor="edit-repo-url" className="font-mono font-bold uppercase text-xs text-gray-400">仓库地址</Label>
+                    <Label htmlFor="edit-repo-url" className="font-mono font-bold uppercase text-xs text-muted-foreground">仓库地址</Label>
                     <Input
                       id="edit-repo-url"
                       value={editForm.repository_url}
@@ -774,7 +774,7 @@ export default function ProjectDetail() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="edit-repo-type" className="font-mono font-bold uppercase text-xs text-gray-400">仓库平台</Label>
+                      <Label htmlFor="edit-repo-type" className="font-mono font-bold uppercase text-xs text-muted-foreground">仓库平台</Label>
                       <Select
                         value={editForm.repository_type}
                         onValueChange={(value: any) => setEditForm({ ...editForm, repository_type: value })}
@@ -782,7 +782,7 @@ export default function ProjectDetail() {
                         <SelectTrigger id="edit-repo-type" className="cyber-input mt-1">
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent className="bg-[#0c0c12] border-gray-700">
+                        <SelectContent className="cyber-dialog border-border">
                           <SelectItem value="github">GitHub</SelectItem>
                           <SelectItem value="gitlab">GitLab</SelectItem>
                           <SelectItem value="other">其他</SelectItem>
@@ -791,7 +791,7 @@ export default function ProjectDetail() {
                     </div>
 
                     <div>
-                      <Label htmlFor="edit-branch" className="font-mono font-bold uppercase text-xs text-gray-400">默认分支</Label>
+                      <Label htmlFor="edit-branch" className="font-mono font-bold uppercase text-xs text-muted-foreground">默认分支</Label>
                       <Input
                         id="edit-branch"
                         value={editForm.default_branch}
@@ -806,7 +806,7 @@ export default function ProjectDetail() {
 
               {/* ZIP项目提示 */}
               {editForm.source_type === 'zip' && (
-                <div className="border-t border-gray-800 pt-4">
+                <div className="border-t border-border pt-4">
                   <div className="bg-amber-500/10 border border-amber-500/30 p-4 rounded">
                     <div className="flex items-start space-x-3">
                       <Upload className="w-5 h-5 text-amber-400 mt-0.5" />
@@ -822,26 +822,26 @@ export default function ProjectDetail() {
               )}
 
               {/* 编程语言 */}
-              <div className="space-y-4 border-t border-gray-800 pt-4">
-                <h3 className="font-mono font-bold uppercase text-sm text-gray-400">编程语言</h3>
+              <div className="space-y-4 border-t border-border pt-4">
+                <h3 className="font-mono font-bold uppercase text-sm text-muted-foreground">编程语言</h3>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   {supportedLanguages.map((lang) => (
                     <div
                       key={lang}
                       className={`flex items-center space-x-2 p-3 border cursor-pointer transition-all rounded ${editForm.programming_languages?.includes(lang)
                         ? 'border-primary bg-primary/10 text-primary'
-                        : 'border-gray-700 hover:border-gray-600 text-gray-400'
+                        : 'border-border hover:border-border text-muted-foreground'
                       }`}
                       onClick={() => handleToggleLanguage(lang)}
                     >
                       <div
                         className={`w-4 h-4 border-2 rounded-sm flex items-center justify-center ${editForm.programming_languages?.includes(lang)
                           ? 'bg-primary border-primary'
-                          : 'border-gray-600'
+                          : 'border-border'
                         }`}
                       >
                         {editForm.programming_languages?.includes(lang) && (
-                          <CheckCircle className="w-3 h-3 text-white" />
+                          <CheckCircle className="w-3 h-3 text-foreground" />
                         )}
                       </div>
                       <span className="text-sm font-bold font-mono">{lang}</span>
@@ -850,7 +850,7 @@ export default function ProjectDetail() {
                 </div>
               </div>
 
-              <div className="flex justify-end space-x-3 pt-6 border-t border-gray-800">
+              <div className="flex justify-end space-x-3 pt-6 border-t border-border">
                 <Button onClick={handleSaveSettings} className="cyber-btn-primary">
                   <Edit className="w-4 h-4 mr-2" />
                   保存修改
@@ -880,21 +880,21 @@ export default function ProjectDetail() {
 
       {/* 审计选项对话框 */}
       <Dialog open={showAuditOptionsDialog} onOpenChange={setShowAuditOptionsDialog}>
-        <DialogContent className="max-w-md cyber-card border-gray-700 bg-[#0c0c12] p-0">
+        <DialogContent className="max-w-md cyber-card border-border cyber-dialog p-0">
           {/* Terminal Header */}
-          <div className="flex items-center gap-2 px-4 py-3 bg-[#0a0a0f] border-b border-gray-800/50">
+          <div className="flex items-center gap-2 px-4 py-3 cyber-bg-elevated border-b border-border">
             <div className="flex items-center gap-1.5">
               <div className="w-3 h-3 rounded-full bg-red-500/80" />
               <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
               <div className="w-3 h-3 rounded-full bg-green-500/80" />
             </div>
-            <span className="ml-2 font-mono text-[11px] text-gray-500 tracking-wider">
+            <span className="ml-2 font-mono text-xs text-muted-foreground tracking-wider">
               audit_options@deepaudit
             </span>
           </div>
 
           <DialogHeader className="px-6 pt-4">
-            <DialogTitle className="font-mono text-lg uppercase tracking-wider flex items-center gap-2 text-white">
+            <DialogTitle className="font-mono text-lg uppercase tracking-wider flex items-center gap-2 text-foreground">
               <Shield className="w-5 h-5 text-primary" />
               选择审计方式
             </DialogTitle>
@@ -903,28 +903,28 @@ export default function ProjectDetail() {
           <div className="p-6 space-y-4">
             <Button
               onClick={handleStartFullAudit}
-              className="w-full h-auto py-4 flex flex-col items-center justify-center space-y-2 cyber-btn-outline hover:bg-gray-800/50"
+              className="w-full h-auto py-4 flex flex-col items-center justify-center space-y-2 cyber-btn-outline hover:bg-muted"
             >
               <div className="flex items-center space-x-2">
                 <Activity className="w-5 h-5" />
                 <span className="text-lg font-bold uppercase">全量审计</span>
               </div>
-              <span className="text-xs text-gray-500 font-mono">扫描项目中的所有文件</span>
+              <span className="text-xs text-muted-foreground font-mono">扫描项目中的所有文件</span>
             </Button>
 
             <Button
               onClick={handleOpenCustomAudit}
-              className="w-full h-auto py-4 flex flex-col items-center justify-center space-y-2 cyber-btn-outline hover:bg-gray-800/50"
+              className="w-full h-auto py-4 flex flex-col items-center justify-center space-y-2 cyber-btn-outline hover:bg-muted"
             >
               <div className="flex items-center space-x-2">
                 <FileText className="w-5 h-5" />
                 <span className="text-lg font-bold uppercase">自定义审计</span>
               </div>
-              <span className="text-xs text-gray-500 font-mono">选择特定文件进行扫描</span>
+              <span className="text-xs text-muted-foreground font-mono">选择特定文件进行扫描</span>
             </Button>
           </div>
 
-          <DialogFooter className="p-4 border-t border-gray-800 bg-gray-900/30">
+          <DialogFooter className="p-4 border-t border-border bg-muted/50">
             <Button variant="outline" onClick={() => setShowAuditOptionsDialog(false)} className="w-full cyber-btn-outline">
               取消
             </Button>

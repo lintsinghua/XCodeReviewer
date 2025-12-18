@@ -36,7 +36,7 @@ export default function ExcludePatterns({
     <div className="space-y-4">
       <div>
         <Label className="text-base font-bold uppercase">排除模式</Label>
-        <p className="text-sm text-gray-500 mt-1 font-bold">
+        <p className="text-sm text-muted-foreground mt-1 font-bold">
           选择要从审计中排除的文件和目录模式
         </p>
       </div>
@@ -46,16 +46,16 @@ export default function ExcludePatterns({
         {COMMON_EXCLUDE_PATTERNS.map((pattern) => (
           <div
             key={pattern.value}
-            className="flex items-center space-x-3 p-3 border-2 border-black bg-white hover:bg-gray-50 transition-all"
+            className="flex items-center space-x-3 p-3 border-2 border-border bg-background hover:bg-background transition-all"
           >
             <Checkbox
               checked={patterns.includes(pattern.value)}
               onCheckedChange={() => onToggle(pattern.value)}
-              className="rounded-none border-2 border-black data-[state=checked]:bg-primary data-[state=checked]:text-white"
+              className="rounded-none border-2 border-border data-[state=checked]:bg-primary data-[state=checked]:text-foreground"
             />
             <div className="flex-1">
               <p className="text-sm font-bold uppercase">{pattern.label}</p>
-              <p className="text-xs text-gray-500 font-bold">
+              <p className="text-xs text-muted-foreground font-bold">
                 {pattern.description}
               </p>
             </div>
@@ -103,7 +103,7 @@ function CustomPatternInput({ onAdd }: { onAdd: (pattern: string) => void }) {
               .previousElementSibling as HTMLInputElement;
             handleAdd(input);
           }}
-          className="retro-btn bg-white text-black h-10"
+          className="retro-btn bg-background text-foreground h-10"
         >
           添加
         </Button>
@@ -127,7 +127,7 @@ function SelectedPatterns({
           <Badge
             key={pattern}
             variant="secondary"
-            className="cursor-pointer hover:bg-red-100 hover:text-red-800 rounded-none border-2 border-black bg-gray-100 text-black font-mono font-bold"
+            className="cursor-pointer hover:bg-red-100 hover:text-red-800 rounded-none border-2 border-border bg-muted text-foreground font-mono font-bold"
             onClick={() => onRemove(pattern)}
           >
             {pattern} ×

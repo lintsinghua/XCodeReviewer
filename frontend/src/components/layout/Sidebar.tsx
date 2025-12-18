@@ -6,6 +6,7 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import {
     Menu,
     X,
@@ -22,22 +23,21 @@ import {
     Shield,
     MessageSquare,
     Bot,
-    Terminal
 } from "lucide-react";
 import routes from "@/app/routes";
 import { version } from "../../../package.json";
 
 // Icon mapping for routes
 const routeIcons: Record<string, React.ReactNode> = {
-    "/": <Bot className="w-5 h-5" />,
-    "/dashboard": <LayoutDashboard className="w-5 h-5" />,
-    "/projects": <FolderGit2 className="w-5 h-5" />,
-    "/instant-analysis": <Zap className="w-5 h-5" />,
-    "/audit-tasks": <ListTodo className="w-5 h-5" />,
-    "/audit-rules": <Shield className="w-5 h-5" />,
-    "/prompts": <MessageSquare className="w-5 h-5" />,
-    "/admin": <Settings className="w-5 h-5" />,
-    "/recycle-bin": <Trash2 className="w-5 h-5" />,
+    "/": <Bot className="w-6 h-6" />,
+    "/dashboard": <LayoutDashboard className="w-6 h-6" />,
+    "/projects": <FolderGit2 className="w-6 h-6" />,
+    "/instant-analysis": <Zap className="w-6 h-6" />,
+    "/audit-tasks": <ListTodo className="w-6 h-6" />,
+    "/audit-rules": <Shield className="w-6 h-6" />,
+    "/prompts": <MessageSquare className="w-6 h-6" />,
+    "/admin": <Settings className="w-6 h-6" />,
+    "/recycle-bin": <Trash2 className="w-6 h-6" />,
 };
 
 interface SidebarProps {
@@ -57,7 +57,12 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
             <Button
                 variant="ghost"
                 size="sm"
-                className="fixed top-4 left-4 z-50 md:hidden bg-[#0c0c12] border border-gray-800 text-gray-300 hover:bg-gray-800 hover:text-white"
+                className="fixed top-4 left-4 z-50 md:hidden"
+                style={{
+                    background: 'var(--cyber-bg)',
+                    border: '1px solid var(--cyber-border)',
+                    color: 'var(--cyber-text-muted)'
+                }}
                 onClick={() => setMobileOpen(!mobileOpen)}
             >
                 {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -74,12 +79,14 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
             {/* Sidebar */}
             <aside
                 className={`
-                    fixed top-0 left-0 h-screen
-                    bg-[#0a0a0f] border-r border-gray-800/60
-                    z-40 transition-all duration-300 ease-in-out
+                    fixed top-0 left-0 h-screen z-40 transition-all duration-300 ease-in-out
                     ${collapsed ? "w-20" : "w-64"}
                     ${mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
                 `}
+                style={{
+                    background: 'var(--cyber-bg)',
+                    borderRight: '1px solid var(--cyber-border)'
+                }}
             >
                 <div className="flex flex-col h-full relative">
                     {/* Subtle grid background */}
@@ -87,30 +94,35 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
                         className="absolute inset-0 opacity-30 pointer-events-none"
                         style={{
                             backgroundImage: `
-                                linear-gradient(rgba(255,107,44,0.03) 1px, transparent 1px),
-                                linear-gradient(90deg, rgba(255,107,44,0.03) 1px, transparent 1px)
+                                linear-gradient(var(--cyber-border-accent) 1px, transparent 1px),
+                                linear-gradient(90deg, var(--cyber-border-accent) 1px, transparent 1px)
                             `,
                             backgroundSize: '24px 24px',
                         }}
                     />
 
                     {/* Logo Section */}
-                    <div className={`
-                        relative flex items-center h-[72px]
-                        border-b border-gray-800/60 bg-[#0c0c12]
-                        ${collapsed ? 'px-3 justify-center' : 'px-4 pr-6'}
-                    `}>
+                    <div
+                        className={`relative flex items-center h-[72px] ${collapsed ? 'px-3 justify-center' : 'px-4 pr-6'}`}
+                        style={{
+                            background: 'var(--cyber-bg-elevated)',
+                            borderBottom: '1px solid var(--cyber-border)'
+                        }}
+                    >
                         <Link
                             to="/"
-                            className={`
-                                flex items-center gap-3 group transition-all duration-300
-                                ${collapsed ? 'justify-center' : 'flex-1 min-w-0'}
-                            `}
+                            className={`flex items-center gap-3 group transition-all duration-300 ${collapsed ? 'justify-center' : 'flex-1 min-w-0'}`}
                             onClick={() => setMobileOpen(false)}
                         >
                             {/* Logo Icon */}
                             <div className="relative flex-shrink-0">
-                                <div className="w-10 h-10 bg-[#0a0a0f] border border-primary/30 rounded-lg flex items-center justify-center overflow-hidden group-hover:border-primary/60 transition-colors">
+                                <div
+                                    className="w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden group-hover:border-primary/60 transition-colors"
+                                    style={{
+                                        background: 'var(--cyber-bg)',
+                                        border: '1px solid hsl(var(--primary) / 0.3)'
+                                    }}
+                                >
                                     <img
                                         src="/logo_deepaudit.png"
                                         alt="DeepAudit"
@@ -122,31 +134,27 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
                             </div>
 
                             {/* Logo Text */}
-                            <div className={`
-                                transition-all duration-300
-                                ${collapsed ? 'w-0 opacity-0 overflow-hidden' : 'flex-1 min-w-0 opacity-100'}
-                            `}>
+                            <div className={`transition-all duration-300 ${collapsed ? 'w-0 opacity-0 overflow-hidden' : 'flex-1 min-w-0 opacity-100'}`}>
                                 <div
                                     className="text-xl font-bold tracking-wider font-mono"
                                     style={{ textShadow: '0 0 20px rgba(255,107,44,0.3)' }}
                                 >
                                     <span className="text-primary">DEEP</span>
-                                    <span className="text-white">AUDIT</span>
+                                    <span style={{ color: 'var(--cyber-text)' }}>AUDIT</span>
                                 </div>
                             </div>
                         </Link>
 
                         {/* Collapse button */}
                         <button
-                            className={`
-                                hidden md:flex absolute -right-3 top-1/2 -translate-y-1/2
-                                w-6 h-6 bg-[#0c0c12] border border-gray-700 rounded
-                                items-center justify-center text-gray-500
-                                hover:bg-primary hover:border-primary hover:text-white
-                                transition-all duration-200
-                            `}
+                            className="hidden md:flex absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded items-center justify-center hover:bg-primary hover:border-primary hover:text-foreground transition-all duration-200"
+                            style={{
+                                background: 'var(--cyber-bg)',
+                                border: '1px solid var(--cyber-border)',
+                                color: 'var(--cyber-text-muted)',
+                                zIndex: 100
+                            }}
                             onClick={() => setCollapsed(!collapsed)}
-                            style={{ zIndex: 100 }}
                         >
                             {collapsed ? (
                                 <ChevronRight className="w-3 h-3" />
@@ -165,16 +173,26 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
                                     <Link
                                         key={route.path}
                                         to={route.path}
-                                        className={`
-                                            flex items-center gap-3 px-3 py-2.5
-                                            transition-all duration-200 group relative rounded-lg
-                                            ${isActive
-                                                ? "bg-primary/15 text-primary border border-primary/30"
-                                                : "text-gray-400 hover:text-gray-200 hover:bg-gray-800/50 border border-transparent"
-                                            }
-                                        `}
+                                        className="flex items-center gap-3 px-3 py-2.5 transition-all duration-200 group relative rounded-lg"
+                                        style={{
+                                            background: isActive ? 'hsl(var(--primary) / 0.15)' : 'transparent',
+                                            border: isActive ? '1px solid hsl(var(--primary) / 0.3)' : '1px solid transparent',
+                                            color: isActive ? 'hsl(var(--primary))' : 'var(--cyber-text-muted)'
+                                        }}
                                         onClick={() => setMobileOpen(false)}
                                         title={collapsed ? route.name : undefined}
+                                        onMouseEnter={(e) => {
+                                            if (!isActive) {
+                                                e.currentTarget.style.background = 'var(--cyber-hover-bg)';
+                                                e.currentTarget.style.color = 'var(--cyber-text)';
+                                            }
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            if (!isActive) {
+                                                e.currentTarget.style.background = 'transparent';
+                                                e.currentTarget.style.color = 'var(--cyber-text-muted)';
+                                            }
+                                        }}
                                     >
                                         {/* Active indicator */}
                                         {isActive && (
@@ -182,19 +200,13 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
                                         )}
 
                                         {/* Icon */}
-                                        <span className={`
-                                            flex-shrink-0 transition-colors duration-200
-                                            ${isActive ? "text-primary" : "text-gray-500 group-hover:text-gray-300"}
-                                        `}>
-                                            {routeIcons[route.path] || <LayoutDashboard className="w-5 h-5" />}
+                                        <span className="flex-shrink-0 transition-colors duration-200">
+                                            {routeIcons[route.path] || <LayoutDashboard className="w-6 h-6" />}
                                         </span>
 
                                         {/* Label */}
                                         {!collapsed && (
-                                            <span className={`
-                                                font-mono text-sm tracking-wide
-                                                ${isActive ? 'font-semibold' : 'font-medium'}
-                                            `}>
+                                            <span className={`font-mono text-base tracking-wide ${isActive ? 'font-semibold' : 'font-medium'}`}>
                                                 {route.name}
                                             </span>
                                         )}
@@ -212,26 +224,31 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
                     </nav>
 
                     {/* Footer */}
-                    <div className="p-3 border-t border-gray-800/60 bg-[#0c0c12] space-y-1">
+                    <div
+                        className="p-3 space-y-1"
+                        style={{
+                            background: 'var(--cyber-bg-elevated)',
+                            borderTop: '1px solid var(--cyber-border)'
+                        }}
+                    >
+                        {/* Theme Toggle */}
+                        <ThemeToggle collapsed={collapsed} />
+
                         {/* Account Link */}
                         <Link
                             to="/account"
-                            className={`
-                                flex items-center gap-3 px-3 py-2.5 rounded-lg
-                                transition-all duration-200 group
-                                ${location.pathname === '/account'
-                                    ? "bg-primary/15 text-primary border border-primary/30"
-                                    : "text-gray-400 hover:text-gray-200 hover:bg-gray-800/50 border border-transparent"
-                                }
-                            `}
+                            className="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 group"
+                            style={{
+                                background: location.pathname === '/account' ? 'hsl(var(--primary) / 0.15)' : 'transparent',
+                                border: location.pathname === '/account' ? '1px solid hsl(var(--primary) / 0.3)' : '1px solid transparent',
+                                color: location.pathname === '/account' ? 'hsl(var(--primary))' : 'var(--cyber-text-muted)'
+                            }}
                             onClick={() => setMobileOpen(false)}
                             title={collapsed ? "账号管理" : undefined}
                         >
-                            <UserCircle className={`w-5 h-5 flex-shrink-0 ${
-                                location.pathname === '/account' ? 'text-primary' : 'text-gray-500 group-hover:text-gray-300'
-                            }`} />
+                            <UserCircle className="w-6 h-6 flex-shrink-0" />
                             {!collapsed && (
-                                <span className="font-mono text-sm">账号管理</span>
+                                <span className="font-mono text-base">账号管理</span>
                             )}
                         </Link>
 
@@ -240,29 +257,31 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
                             href="https://github.com/lintsinghua/DeepAudit"
                             target="_blank"
                             rel="noopener noreferrer"
-                            className={`
-                                flex items-center gap-3 px-3 py-2.5 rounded-lg
-                                text-gray-400 hover:text-gray-200 hover:bg-gray-800/50
-                                transition-all duration-200 group border border-transparent
-                            `}
+                            className="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 group"
+                            style={{ color: 'var(--cyber-text-muted)' }}
                             title={collapsed ? "GitHub" : undefined}
                         >
-                            <Github className="w-5 h-5 flex-shrink-0 text-gray-500 group-hover:text-gray-300" />
+                            <Github className="w-6 h-6 flex-shrink-0" />
                             {!collapsed && (
                                 <div className="flex flex-col">
-                                    <span className="font-mono text-sm">GitHub</span>
-                                    <span className="text-[10px] text-gray-600 font-mono">v{version}</span>
+                                    <span className="font-mono text-base">GitHub</span>
+                                    <span className="text-sm font-mono" style={{ color: 'var(--cyber-text-muted)' }}>v{version}</span>
                                 </div>
                             )}
                         </a>
 
                         {/* System Status */}
                         {!collapsed && (
-                            <div className="mt-3 pt-3 border-t border-gray-800/50">
+                            <div className="mt-3 pt-3" style={{ borderTop: '1px solid var(--cyber-border)' }}>
                                 <div className="flex items-center gap-2 px-3 py-2">
-                                    <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"
-                                         style={{ boxShadow: '0 0 8px rgba(52, 211, 153, 0.5)' }} />
-                                    <span className="text-[10px] text-gray-600 font-mono uppercase tracking-wider">
+                                    <div
+                                        className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"
+                                        style={{ boxShadow: '0 0 8px rgba(52, 211, 153, 0.5)' }}
+                                    />
+                                    <span
+                                        className="text-sm font-mono uppercase tracking-wider"
+                                        style={{ color: 'var(--cyber-text-muted)' }}
+                                    >
                                         System Online
                                     </span>
                                 </div>
