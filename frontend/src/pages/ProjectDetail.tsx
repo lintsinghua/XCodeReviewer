@@ -677,10 +677,10 @@ export default function ProjectDetail() {
                   <div className="flex items-start justify-between">
                     <div className="flex items-start space-x-3">
                       <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                        issue.severity === 'critical' ? 'bg-rose-500/20 text-rose-400' :
-                        issue.severity === 'high' ? 'bg-orange-500/20 text-orange-400' :
-                        issue.severity === 'medium' ? 'bg-amber-500/20 text-amber-400' :
-                        'bg-sky-500/20 text-sky-400'
+                        issue.severity === 'critical' ? 'bg-rose-500/20 text-rose-600 dark:text-rose-400' :
+                        issue.severity === 'high' ? 'bg-orange-500/20 text-orange-600 dark:text-orange-400' :
+                        issue.severity === 'medium' ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400' :
+                        'bg-sky-500/20 text-sky-600 dark:text-sky-400'
                       }`}>
                         <AlertTriangle className="w-4 h-4" />
                       </div>
@@ -712,7 +712,7 @@ export default function ProjectDetail() {
             </div>
           ) : (
             <div className="cyber-card p-12 text-center">
-              <CheckCircle className="w-16 h-16 text-emerald-500 mx-auto mb-4" />
+              <CheckCircle className="w-16 h-16 text-emerald-600 dark:text-emerald-500 mx-auto mb-4" />
               <h3 className="text-lg font-bold text-foreground mb-2 uppercase">未发现问题</h3>
               <p className="text-sm text-muted-foreground font-mono">最近一次审计未发现明显问题，或尚未进行审计。</p>
             </div>

@@ -390,12 +390,12 @@ public class Example {
               <div className="w-4 h-4 bg-primary rounded flex items-center justify-center">
                 <Code className="w-2 h-2 text-foreground" />
               </div>
-              <span className="text-emerald-400 text-xs font-bold font-mono uppercase">CODE_SNIPPET</span>
+              <span className="text-emerald-600 dark:text-emerald-400 text-xs font-bold font-mono uppercase">CODE_SNIPPET</span>
             </div>
             <span className="text-muted-foreground text-xs font-mono">LINE: {issue.line}</span>
           </div>
-          <div className="bg-black/40 p-2 border border-border rounded">
-            <pre className="text-xs text-emerald-400 font-mono overflow-x-auto">
+          <div className="bg-slate-100 dark:bg-black/40 p-2 border border-border rounded">
+            <pre className="text-xs text-emerald-700 dark:text-emerald-400 font-mono overflow-x-auto">
               <code>{issue.code_snippet}</code>
             </pre>
           </div>
@@ -407,11 +407,11 @@ public class Example {
           <div className="bg-sky-500/10 border border-sky-500/30 p-3 rounded">
             <div className="flex items-center mb-2 border-b border-sky-500/20 pb-1">
               <div className="w-5 h-5 bg-sky-500/20 border border-sky-500/40 rounded flex items-center justify-center mr-2">
-                <Lightbulb className="w-3 h-3 text-sky-400" />
+                <Lightbulb className="w-3 h-3 text-sky-600 dark:text-sky-400" />
               </div>
-              <span className="font-bold text-sky-300 text-sm uppercase">修复建议</span>
+              <span className="font-bold text-sky-700 dark:text-sky-300 text-sm uppercase">修复建议</span>
             </div>
-            <p className="text-sky-200/80 text-xs leading-relaxed font-mono">{issue.suggestion}</p>
+            <p className="text-sky-800 dark:text-sky-200/80 text-xs leading-relaxed font-mono">{issue.suggestion}</p>
           </div>
         )}
 
@@ -423,37 +423,37 @@ public class Example {
               <div className="bg-violet-500/10 border border-violet-500/30 p-3 rounded">
                 <div className="flex items-center mb-2 border-b border-violet-500/20 pb-1">
                   <div className="w-5 h-5 bg-violet-500/20 border border-violet-500/40 rounded flex items-center justify-center mr-2">
-                    <Zap className="w-3 h-3 text-violet-400" />
+                    <Zap className="w-3 h-3 text-violet-600 dark:text-violet-400" />
                   </div>
-                  <span className="font-bold text-violet-300 text-sm uppercase">AI 解释</span>
+                  <span className="font-bold text-violet-700 dark:text-violet-300 text-sm uppercase">AI 解释</span>
                 </div>
                 <div className="space-y-2 text-xs font-mono">
                   {parsedExplanation.what && (
                     <div className="border-l-2 border-rose-500 pl-2">
-                      <span className="font-bold text-rose-400 uppercase">问题：</span>
+                      <span className="font-bold text-rose-600 dark:text-rose-400 uppercase">问题：</span>
                       <span className="text-foreground ml-1">{parsedExplanation.what}</span>
                     </div>
                   )}
                   {parsedExplanation.why && (
                     <div className="border-l-2 border-amber-500 pl-2">
-                      <span className="font-bold text-amber-400 uppercase">原因：</span>
+                      <span className="font-bold text-amber-600 dark:text-amber-400 uppercase">原因：</span>
                       <span className="text-foreground ml-1">{parsedExplanation.why}</span>
                     </div>
                   )}
                   {parsedExplanation.how && (
                     <div className="border-l-2 border-emerald-500 pl-2">
-                      <span className="font-bold text-emerald-400 uppercase">方案：</span>
+                      <span className="font-bold text-emerald-600 dark:text-emerald-400 uppercase">方案：</span>
                       <span className="text-foreground ml-1">{parsedExplanation.how}</span>
                     </div>
                   )}
                   {parsedExplanation.learn_more && (
                     <div className="border-l-2 border-sky-500 pl-2">
-                      <span className="font-bold text-sky-400 uppercase">链接：</span>
+                      <span className="font-bold text-sky-600 dark:text-sky-400 uppercase">链接：</span>
                       <a
                         href={parsedExplanation.learn_more}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-sky-400 hover:text-sky-300 hover:underline ml-1 font-bold"
+                        className="text-sky-600 dark:text-sky-400 hover:text-sky-500 dark:hover:text-sky-300 hover:underline ml-1 font-bold"
                       >
                         {parsedExplanation.learn_more}
                       </a>
@@ -466,8 +466,8 @@ public class Example {
             return (
               <div className="bg-violet-500/10 border border-violet-500/30 p-3 rounded">
                 <div className="flex items-center mb-2 border-b border-violet-500/20 pb-1">
-                  <Zap className="w-4 h-4 text-violet-400 mr-2" />
-                  <span className="font-bold text-violet-300 text-sm uppercase">AI 解释</span>
+                  <Zap className="w-4 h-4 text-violet-600 dark:text-violet-400 mr-2" />
+                  <span className="font-bold text-violet-700 dark:text-violet-300 text-sm uppercase">AI 解释</span>
                 </div>
                 <p className="text-foreground text-xs leading-relaxed font-mono">{issue.ai_explanation}</p>
               </div>
@@ -855,11 +855,11 @@ public class Example {
                 </Tabs>
               ) : (
                 <div className="cyber-card p-16 text-center border-dashed">
-                  <CheckCircle className="w-16 h-16 text-emerald-400 mx-auto mb-4" />
-                  <h3 className="text-xl font-bold text-emerald-300 mb-2 uppercase">代码质量优秀！</h3>
-                  <p className="text-emerald-400/80 mb-4 font-mono">恭喜！没有发现任何问题</p>
+                  <CheckCircle className="w-16 h-16 text-emerald-600 dark:text-emerald-400 mx-auto mb-4" />
+                  <h3 className="text-xl font-bold text-emerald-700 dark:text-emerald-300 mb-2 uppercase">代码质量优秀！</h3>
+                  <p className="text-emerald-600 dark:text-emerald-400/80 mb-4 font-mono">恭喜！没有发现任何问题</p>
                   <div className="bg-emerald-500/10 border border-emerald-500/30 p-4 max-w-md mx-auto rounded">
-                    <p className="text-emerald-300/80 text-sm font-mono">
+                    <p className="text-emerald-700 dark:text-emerald-300/80 text-sm font-mono">
                       您的代码通过了所有质量检查，包括安全性、性能、可维护性等各个方面的评估。
                     </p>
                   </div>

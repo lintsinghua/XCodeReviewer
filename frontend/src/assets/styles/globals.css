@@ -453,6 +453,12 @@
 
   /* ============ Severity Badges ============ */
   .severity-critical {
+    background: rgba(220, 38, 38, 0.15);
+    color: #b91c1c;
+    border: 1px solid rgba(220, 38, 38, 0.4);
+  }
+
+  .dark .severity-critical {
     background: rgba(220, 38, 38, 0.2);
     color: #fca5a5;
     border: 1px solid rgba(220, 38, 38, 0.5);
@@ -460,6 +466,12 @@
   }
 
   .severity-high {
+    background: rgba(234, 88, 12, 0.15);
+    color: #c2410c;
+    border: 1px solid rgba(234, 88, 12, 0.4);
+  }
+
+  .dark .severity-high {
     background: rgba(234, 88, 12, 0.2);
     color: #fdba74;
     border: 1px solid rgba(234, 88, 12, 0.5);
@@ -467,6 +479,12 @@
   }
 
   .severity-medium {
+    background: rgba(245, 158, 11, 0.15);
+    color: #b45309;
+    border: 1px solid rgba(245, 158, 11, 0.4);
+  }
+
+  .dark .severity-medium {
     background: rgba(245, 158, 11, 0.2);
     color: #fcd34d;
     border: 1px solid rgba(245, 158, 11, 0.5);
@@ -474,6 +492,12 @@
   }
 
   .severity-low {
+    background: rgba(14, 181, 196, 0.15);
+    color: #0e7490;
+    border: 1px solid rgba(14, 181, 196, 0.4);
+  }
+
+  .dark .severity-low {
     background: rgba(14, 181, 196, 0.2);
     color: #67e8f9;
     border: 1px solid rgba(14, 181, 196, 0.5);
@@ -481,6 +505,12 @@
   }
 
   .severity-info {
+    background: rgba(100, 116, 139, 0.15);
+    color: #475569;
+    border: 1px solid rgba(100, 116, 139, 0.4);
+  }
+
+  .dark .severity-info {
     background: rgba(100, 116, 139, 0.2);
     color: #cbd5e1;
     border: 1px solid rgba(100, 116, 139, 0.5);
