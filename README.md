@@ -13,7 +13,7 @@
 <div align="center">
 
 [![Version](https://img.shields.io/badge/version-3.0.2-blue.svg)](https://github.com/lintsinghua/DeepAudit/releases)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 [![React](https://img.shields.io/badge/React-18-61dafb.svg)](https://reactjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178c6.svg)](https://www.typescriptlang.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688.svg)](https://fastapi.tiangolo.com/)
@@ -373,13 +373,22 @@ DeepSeek-Coder · Codestral<br/>
 我们非常欢迎您的贡献！无论是提交 Issue、PR 还是完善文档。
 请查看 [CONTRIBUTING.md](./CONTRIBUTING.md) 了解详情。
 
-### 联系作者
-- 邮箱: lintsinghua@qq.com
-- GitHub: [@lintsinghua](https://github.com/lintsinghua)
+### 📬 联系作者
+
+<div align="center">
+
+**欢迎大家来和我交流探讨！无论是技术问题、功能建议还是合作意向，都期待与你沟通~**
+
+| 联系方式 | |
+|:---:|:---:|
+| 📧 **邮箱** | **lintsinghua@qq.com** |
+| 🐙 **GitHub** | [@lintsinghua](https://github.com/lintsinghua) |
+
+</div>
 
 ## 📄 许可证
 
-本项目采用 [MIT License](LICENSE) 开源。
+本项目采用 [AGPL-3.0 License](LICENSE) 开源。
 
 ## 📈 项目热度
 
