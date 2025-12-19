@@ -109,6 +109,45 @@ class LiteLLMAdapter(BaseLLMAdapter):
         
         return f"{prefix}/{model}"
 
+    def _extract_api_response(self, error: Exception) -> Optional[str]:
+        """从异常中提取 API 服务器返回的原始响应信息"""
+        error_str = str(error)
+
+        # 尝试提取 JSON 格式的错误信息
+        import re
+        import json
+
+        # 匹配 {'error': {...}} 或 {"error": {...}} 格式
+        json_pattern = r"\{['\"]error['\"]:\s*\{[^}]+\}\}"
+        match = re.search(json_pattern, error_str)
+        if match:
+            try:
+                # 将单引号替换为双引号以便 JSON 解析
+                json_str = match.group().replace("'", '"')
+                error_obj = json.loads(json_str)
+                if 'error' in error_obj:
+                    err = error_obj['error']
+                    code = err.get('code', '')
+                    message = err.get('message', '')
+                    return f"[{code}] {message}" if code else message
+            except:
+                pass
+
+        # 尝试提取 message 字段
+        message_pattern = r"['\"]message['\"]:\s*['\"]([^'\"]+)['\"]"
+        match = re.search(message_pattern, error_str)
+        if match:
+            return match.group(1)
+
+        # 尝试从 litellm 异常中获取原始消息
+        if hasattr(error, 'message'):
+            return error.message
+        if hasattr(error, 'llm_provider'):
+            # litellm 异常通常包含原始错误信息
+            return error_str.split(' - ')[-1] if ' - ' in error_str else None
+
+        return None
+
     def _get_api_base(self) -> Optional[str]:
         """获取 API 基础 URL"""
         # 优先使用用户配置的 base_url
@@ -200,20 +239,31 @@ class LiteLLMAdapter(BaseLLMAdapter):
             # 调用 LiteLLM
             response = await litellm.acompletion(**kwargs)
         except litellm.exceptions.AuthenticationError as e:
-            raise LLMError(f"API Key 无效或已过期: {str(e)}", self.config.provider, 401)
+            api_response = self._extract_api_response(e)
+            raise LLMError(f"API Key 无效或已过期", self.config.provider, 401, api_response=api_response)
         except litellm.exceptions.RateLimitError as e:
-            raise LLMError(f"API 调用频率超限: {str(e)}", self.config.provider, 429)
+            error_msg = str(e)
+            api_response = self._extract_api_response(e)
+            # 区分"余额不足"和"频率超限"
+            if any(keyword in error_msg for keyword in ["余额不足", "资源包", "充值", "quota", "insufficient", "balance"]):
+                raise LLMError(f"账户余额不足或配额已用尽，请充值后重试", self.config.provider, 402, api_response=api_response)
+            raise LLMError(f"API 调用频率超限，请稍后重试", self.config.provider, 429, api_response=api_response)
         except litellm.exceptions.APIConnectionError as e:
-            raise LLMError(f"无法连接到 API 服务: {str(e)}", self.config.provider)
+            api_response = self._extract_api_response(e)
+            raise LLMError(f"无法连接到 API 服务", self.config.provider, api_response=api_response)
         except litellm.exceptions.APIError as e:
-            raise LLMError(f"API 错误: {str(e)}", self.config.provider, getattr(e, 'status_code', None))
+            api_response = self._extract_api_response(e)
+            raise LLMError(f"API 错误", self.config.provider, getattr(e, 'status_code', None), api_response=api_response)
         except Exception as e:
             # 捕获其他异常并重新抛出
             error_msg = str(e)
+            api_response = self._extract_api_response(e)
             if "invalid_api_key" in error_msg.lower() or "incorrect api key" in error_msg.lower():
-                raise LLMError(f"API Key 无效: {error_msg}", self.config.provider, 401)
+                raise LLMError(f"API Key 无效", self.config.provider, 401, api_response=api_response)
             elif "authentication" in error_msg.lower():
-                raise LLMError(f"认证失败: {error_msg}", self.config.provider, 401)
+                raise LLMError(f"认证失败", self.config.provider, 401, api_response=api_response)
+            elif any(keyword in error_msg for keyword in ["余额不足", "资源包", "充值", "quota", "insufficient", "balance"]):
+                raise LLMError(f"账户余额不足或配额已用尽", self.config.provider, 402, api_response=api_response)
             raise
 
         # 解析响应

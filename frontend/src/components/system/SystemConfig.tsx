@@ -51,7 +51,8 @@ export function SystemConfig() {
   const [showApiKey, setShowApiKey] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [testingLLM, setTestingLLM] = useState(false);
-  const [llmTestResult, setLlmTestResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [llmTestResult, setLlmTestResult] = useState<{ success: boolean; message: string; debug?: Record<string, unknown> } | null>(null);
+  const [showDebugInfo, setShowDebugInfo] = useState(false);
 
   useEffect(() => { loadConfig(); }, []);
 
@@ -372,16 +373,72 @@ export function SystemConfig() {
             </div>
             {llmTestResult && (
               <div className={`p-3 rounded-lg ${llmTestResult.success ? 'bg-emerald-500/10 border border-emerald-500/30' : 'bg-rose-500/10 border border-rose-500/30'}`}>
-                <div className="flex items-center gap-2 text-sm">
-                  {llmTestResult.success ? (
-                    <CheckCircle2 className="h-4 w-4 text-emerald-400" />
-                  ) : (
-                    <AlertCircle className="h-4 w-4 text-rose-400" />
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-sm">
+                    {llmTestResult.success ? (
+                      <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+                    ) : (
+                      <AlertCircle className="h-4 w-4 text-rose-400" />
+                    )}
+                    <span className={llmTestResult.success ? 'text-emerald-300/80' : 'text-rose-300/80'}>
+                      {llmTestResult.message}
+                    </span>
+                  </div>
+                  {llmTestResult.debug && (
+                    <button
+                      onClick={() => setShowDebugInfo(!showDebugInfo)}
+                      className="text-xs text-muted-foreground hover:text-foreground underline"
+                    >
+                      {showDebugInfo ? '隐藏调试信息' : '显示调试信息'}
+                    </button>
                   )}
-                  <span className={llmTestResult.success ? 'text-emerald-300/80' : 'text-rose-300/80'}>
-                    {llmTestResult.message}
-                  </span>
                 </div>
+                {showDebugInfo && llmTestResult.debug && (
+                  <div className="mt-3 pt-3 border-t border-border/50">
+                    <div className="text-xs font-mono space-y-1 text-muted-foreground">
+                      <div className="font-bold text-foreground mb-2">调试信息:</div>
+                      <div>Provider: <span className="text-foreground">{String(llmTestResult.debug.provider)}</span></div>
+                      <div>Model: <span className="text-foreground">{String(llmTestResult.debug.model_used || llmTestResult.debug.model_requested || 'N/A')}</span></div>
+                      <div>Base URL: <span className="text-foreground">{String(llmTestResult.debug.base_url_used || llmTestResult.debug.base_url_requested || '(default)')}</span></div>
+                      <div>Adapter: <span className="text-foreground">{String(llmTestResult.debug.adapter_type || 'N/A')}</span></div>
+                      <div>API Key: <span className="text-foreground">{String(llmTestResult.debug.api_key_prefix)} (长度: {String(llmTestResult.debug.api_key_length)})</span></div>
+                      <div>耗时: <span className="text-foreground">{String(llmTestResult.debug.elapsed_time_ms || 'N/A')} ms</span></div>
+                      {llmTestResult.debug.error_category && (
+                        <div>错误类型: <span className="text-rose-400">{String(llmTestResult.debug.error_category)}</span></div>
+                      )}
+                      {llmTestResult.debug.error_type && (
+                        <div>异常类型: <span className="text-rose-400">{String(llmTestResult.debug.error_type)}</span></div>
+                      )}
+                      {llmTestResult.debug.status_code && (
+                        <div>HTTP 状态码: <span className="text-rose-400">{String(llmTestResult.debug.status_code)}</span></div>
+                      )}
+                      {llmTestResult.debug.api_response && (
+                        <div className="mt-2">
+                          <div className="font-bold text-amber-400">API 服务器返回:</div>
+                          <pre className="mt-1 p-2 bg-amber-500/10 border border-amber-500/30 rounded text-xs overflow-x-auto">
+                            {String(llmTestResult.debug.api_response)}
+                          </pre>
+                        </div>
+                      )}
+                      {llmTestResult.debug.error_message && (
+                        <div className="mt-2">
+                          <div className="font-bold text-foreground">完整错误信息:</div>
+                          <pre className="mt-1 p-2 bg-background/50 rounded text-xs overflow-x-auto max-h-32 overflow-y-auto">
+                            {String(llmTestResult.debug.error_message)}
+                          </pre>
+                        </div>
+                      )}
+                      {llmTestResult.debug.traceback && (
+                        <details className="mt-2">
+                          <summary className="cursor-pointer text-muted-foreground hover:text-foreground">完整堆栈跟踪</summary>
+                          <pre className="mt-1 p-2 bg-background/50 rounded text-xs overflow-x-auto max-h-48 overflow-y-auto whitespace-pre-wrap">
+                            {String(llmTestResult.debug.traceback)}
+                          </pre>
+                        </details>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
