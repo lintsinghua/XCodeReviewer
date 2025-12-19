@@ -838,25 +838,24 @@ class BaseAgent(ABC):
         Args:
             messages: 消息列表
             tools: 可用工具描述
-            
+
         Returns:
             LLM 响应
         """
         self._iteration += 1
-        
+
         try:
+            # 🔥 不传递 temperature 和 max_tokens，让 LLMService 使用用户配置
             response = await self.llm_service.chat_completion(
                 messages=messages,
-                temperature=self.config.temperature,
-                max_tokens=self.config.max_tokens,
                 tools=tools,
             )
-            
+
             if response.get("usage"):
                 self._total_tokens += response["usage"].get("total_tokens", 0)
-            
+
             return response
-            
+
         except Exception as e:
             logger.error(f"LLM call failed: {e}")
             raise
@@ -925,46 +924,46 @@ class BaseAgent(ABC):
         return messages
     
     # ============ 统一的流式 LLM 调用 ============
-    
+
     async def stream_llm_call(
         self,
         messages: List[Dict[str, str]],
-        temperature: float = 0.1,
-        max_tokens: int = 2048,
+        temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None,
         auto_compress: bool = True,
     ) -> Tuple[str, int]:
         """
         统一的流式 LLM 调用方法
-        
+
         所有 Agent 共用此方法，避免重复代码
-        
+
         Args:
             messages: 消息列表
-            temperature: 温度
-            max_tokens: 最大 token 数
+            temperature: 温度（None 时使用用户配置）
+            max_tokens: 最大 token 数（None 时使用用户配置）
             auto_compress: 是否自动压缩过长的消息历史
-            
+
         Returns:
             (完整响应内容, token数量)
         """
         # 🔥 自动压缩过长的消息历史
         if auto_compress:
             messages = self.compress_messages_if_needed(messages)
-        
+
         accumulated = ""
         total_tokens = 0
-        
+
         # 🔥 在开始 LLM 调用前检查取消
         if self.is_cancelled:
             logger.info(f"[{self.name}] Cancelled before LLM call")
             return "", 0
-        
+
         logger.info(f"[{self.name}] 🚀 Starting stream_llm_call, emitting thinking_start...")
         await self.emit_thinking_start()
         logger.info(f"[{self.name}] ✅ thinking_start emitted, starting LLM stream...")
-        
+
         try:
-            # 获取流式迭代器
+            # 获取流式迭代器（传入 None 时使用用户配置）
             stream = self.llm_service.chat_completion_stream(
                 messages=messages,
                 temperature=temperature,

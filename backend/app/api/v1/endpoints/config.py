@@ -299,6 +299,7 @@ class LLMTestResponse(BaseModel):
 @router.post("/test-llm", response_model=LLMTestResponse)
 async def test_llm_connection(
     request: LLMTestRequest,
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(deps.get_current_user),
 ) -> Any:
     """测试LLM连接是否正常"""
@@ -309,12 +310,53 @@ async def test_llm_connection(
     import time
 
     start_time = time.time()
+
+    # 获取用户保存的配置
+    result = await db.execute(
+        select(UserConfig).where(UserConfig.user_id == current_user.id)
+    )
+    user_config_record = result.scalar_one_or_none()
+
+    # 解析用户配置
+    saved_llm_config = {}
+    saved_other_config = {}
+    if user_config_record:
+        if user_config_record.llm_config:
+            saved_llm_config = decrypt_config(
+                json.loads(user_config_record.llm_config),
+                SENSITIVE_LLM_FIELDS
+            )
+        if user_config_record.other_config:
+            saved_other_config = decrypt_config(
+                json.loads(user_config_record.other_config),
+                SENSITIVE_OTHER_FIELDS
+            )
+
+    # 从保存的配置中获取参数（用于调试显示）
+    saved_timeout_ms = saved_llm_config.get('llmTimeout', settings.LLM_TIMEOUT * 1000)
+    saved_temperature = saved_llm_config.get('llmTemperature', settings.LLM_TEMPERATURE)
+    saved_max_tokens = saved_llm_config.get('llmMaxTokens', settings.LLM_MAX_TOKENS)
+    saved_concurrency = saved_other_config.get('llmConcurrency', settings.LLM_CONCURRENCY)
+    saved_gap_ms = saved_other_config.get('llmGapMs', settings.LLM_GAP_MS)
+    saved_max_files = saved_other_config.get('maxAnalyzeFiles', settings.MAX_ANALYZE_FILES)
+    saved_output_lang = saved_other_config.get('outputLanguage', settings.OUTPUT_LANGUAGE)
+
     debug_info = {
         "provider": request.provider,
         "model_requested": request.model,
         "base_url_requested": request.baseUrl,
         "api_key_length": len(request.apiKey) if request.apiKey else 0,
         "api_key_prefix": request.apiKey[:8] + "..." if request.apiKey and len(request.apiKey) > 8 else "(empty)",
+        # 用户保存的配置参数
+        "saved_config": {
+            "timeout_ms": saved_timeout_ms,
+            "temperature": saved_temperature,
+            "max_tokens": saved_max_tokens,
+            "concurrency": saved_concurrency,
+            "gap_ms": saved_gap_ms,
+            "max_analyze_files": saved_max_files,
+            "output_language": saved_output_lang,
+        },
     }
 
     try:
@@ -346,11 +388,21 @@ async def test_llm_connection(
         model = request.model or DEFAULT_MODELS.get(provider)
         base_url = request.baseUrl or DEFAULT_BASE_URLS.get(provider, "")
 
+        # 测试时使用用户保存的所有配置参数
+        test_timeout = int(saved_timeout_ms / 1000) if saved_timeout_ms else settings.LLM_TIMEOUT
+        test_temperature = saved_temperature if saved_temperature is not None else settings.LLM_TEMPERATURE
+        test_max_tokens = saved_max_tokens if saved_max_tokens else settings.LLM_MAX_TOKENS
+
         debug_info["model_used"] = model
         debug_info["base_url_used"] = base_url
         debug_info["is_native_adapter"] = provider in NATIVE_ONLY_PROVIDERS
+        debug_info["test_params"] = {
+            "timeout": test_timeout,
+            "temperature": test_temperature,
+            "max_tokens": test_max_tokens,
+        }
 
-        print(f"[LLM Test] 开始测试: provider={provider.value}, model={model}, base_url={base_url}")
+        print(f"[LLM Test] 开始测试: provider={provider.value}, model={model}, base_url={base_url}, temperature={test_temperature}, timeout={test_timeout}s, max_tokens={test_max_tokens}")
 
         # 创建配置
         config = LLMConfig(
@@ -358,8 +410,9 @@ async def test_llm_connection(
             api_key=request.apiKey,
             model=model,
             base_url=request.baseUrl,
-            timeout=30,  # 测试使用较短的超时时间
-            max_tokens=50,  # 测试使用较少的token
+            timeout=test_timeout,
+            temperature=test_temperature,
+            max_tokens=test_max_tokens,
         )
 
         # 直接创建新的适配器实例（不使用缓存），确保使用最新的配置
@@ -375,13 +428,14 @@ async def test_llm_connection(
             adapter = LiteLLMAdapter(config)
             debug_info["adapter_type"] = "LiteLLMAdapter"
             # 获取 LiteLLM 实际使用的模型名
-            debug_info["litellm_model"] = getattr(adapter, '_get_model_name', lambda: model)() if hasattr(adapter, '_get_model_name') else model
+            debug_info["litellm_model"] = getattr(adapter, '_get_litellm_model', lambda: model)() if hasattr(adapter, '_get_litellm_model') else model
 
         test_request = LLMRequest(
             messages=[
                 LLMMessage(role="user", content="Say 'Hello' in one word.")
             ],
-            max_tokens=50,
+            temperature=test_temperature,
+            max_tokens=test_max_tokens,
         )
 
         print(f"[LLM Test] 发送测试请求...")

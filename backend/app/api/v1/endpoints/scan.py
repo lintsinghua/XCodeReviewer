@@ -20,7 +20,7 @@ from app.models.project import Project
 from app.models.analysis import InstantAnalysis
 from app.models.user_config import UserConfig
 from app.services.llm.service import LLMService
-from app.services.scanner import task_control, is_text_file, should_exclude, get_language_from_path
+from app.services.scanner import task_control, is_text_file, should_exclude, get_language_from_path, get_analysis_config
 from app.services.zip_storage import load_project_zip, save_project_zip, has_project_zip
 from app.core.config import settings
 
@@ -93,6 +93,11 @@ async def process_zip_task(task_id: str, file_path: str, db_session_factory, use
                         except:
                             pass
 
+            # 获取分析配置（优先使用用户配置）
+            analysis_config = get_analysis_config(user_config)
+            max_analyze_files = analysis_config['max_analyze_files']
+            llm_gap_ms = analysis_config['llm_gap_ms']
+
             # 限制文件数量
             # 如果指定了特定文件，则只分析这些文件
             target_files = scan_config.get('file_paths', [])
@@ -101,13 +106,13 @@ async def process_zip_task(task_id: str, file_path: str, db_session_factory, use
                 normalized_targets = {normalize_path(p) for p in target_files}
                 print(f"🎯 ZIP任务: 指定分析 {len(normalized_targets)} 个文件")
                 files_to_scan = [f for f in files_to_scan if f['path'] in normalized_targets]
-            elif settings.MAX_ANALYZE_FILES > 0:
-                files_to_scan = files_to_scan[:settings.MAX_ANALYZE_FILES]
-            
+            elif max_analyze_files > 0:
+                files_to_scan = files_to_scan[:max_analyze_files]
+
             task.total_files = len(files_to_scan)
             await db.commit()
 
-            print(f"📊 ZIP任务 {task_id}: 找到 {len(files_to_scan)} 个文件")
+            print(f"📊 ZIP任务 {task_id}: 找到 {len(files_to_scan)} 个文件 (最大文件数: {max_analyze_files}, 请求间隔: {llm_gap_ms}ms)")
 
             total_issues = 0
             total_lines = 0
@@ -178,12 +183,12 @@ async def process_zip_task(task_id: str, file_path: str, db_session_factory, use
                     print(f"📈 ZIP任务 {task_id}: 进度 {scanned_files}/{len(files_to_scan)}")
                     
                     # 请求间隔
-                    await asyncio.sleep(settings.LLM_GAP_MS / 1000)
-                    
+                    await asyncio.sleep(llm_gap_ms / 1000)
+
                 except Exception as file_error:
                     failed_files += 1
                     print(f"❌ ZIP任务分析文件失败 ({file_info['path']}): {file_error}")
-                    await asyncio.sleep(settings.LLM_GAP_MS / 1000)
+                    await asyncio.sleep(llm_gap_ms / 1000)
 
             # 完成任务
             avg_quality_score = sum(quality_scores) / len(quality_scores) if quality_scores else 100.0

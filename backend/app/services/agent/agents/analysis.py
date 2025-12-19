@@ -452,12 +452,11 @@ class AnalysisAgent(BaseAgent):
                     break
                 
                 # 调用 LLM 进行思考和决策（流式输出）
-                # 🔥 增加 max_tokens 到 4096，避免长输出被截断
+                # 🔥 使用用户配置的 temperature 和 max_tokens
                 try:
                     llm_output, tokens_this_round = await self.stream_llm_call(
                         self._conversation_history,
-                        temperature=0.1,
-                        max_tokens=8192,
+                        # 🔥 不传递 temperature 和 max_tokens，使用用户配置
                     )
                 except asyncio.CancelledError:
                     logger.info(f"[{self.name}] LLM call cancelled")
@@ -653,8 +652,7 @@ Final Answer:""",
                 try:
                     summary_output, _ = await self.stream_llm_call(
                         self._conversation_history,
-                        temperature=0.1,
-                        max_tokens=4096,
+                        # 🔥 不传递 temperature 和 max_tokens，使用用户配置
                     )
                     
                     if summary_output and summary_output.strip():

@@ -241,8 +241,7 @@ class OrchestratorAgent(BaseAgent):
                 try:
                     llm_output, tokens_this_round = await self.stream_llm_call(
                         self._conversation_history,
-                        temperature=0.1,
-                        max_tokens=8192,  # 🔥 增加到 8192，避免截断
+                        # 🔥 不传递 temperature 和 max_tokens，使用用户配置
                     )
                 except asyncio.CancelledError:
                     logger.info(f"[{self.name}] LLM call cancelled")

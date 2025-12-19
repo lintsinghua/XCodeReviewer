@@ -15,6 +15,25 @@ from app.services.llm.service import LLMService
 from app.core.config import settings
 
 
+def get_analysis_config(user_config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    """
+    获取分析配置参数（优先使用用户配置，然后使用系统配置）
+
+    Returns:
+        包含以下字段的字典:
+        - max_analyze_files: 最大分析文件数
+        - llm_concurrency: LLM 并发数
+        - llm_gap_ms: LLM 请求间隔（毫秒）
+    """
+    other_config = (user_config or {}).get('otherConfig', {})
+
+    return {
+        'max_analyze_files': other_config.get('maxAnalyzeFiles') or settings.MAX_ANALYZE_FILES,
+        'llm_concurrency': other_config.get('llmConcurrency') or settings.LLM_CONCURRENCY,
+        'llm_gap_ms': other_config.get('llmGapMs') or settings.LLM_GAP_MS,
+    }
+
+
 # 支持的文本文件扩展名
 TEXT_EXTENSIONS = [
     ".js", ".ts", ".tsx", ".jsx", ".py", ".java", ".go", ".rs", 
@@ -344,19 +363,24 @@ async def scan_repo_task(task_id: str, db_session_factory, user_config: dict = N
 
             print(f"✅ 成功获取分支 {actual_branch} 的文件列表")
 
+            # 获取分析配置（优先使用用户配置）
+            analysis_config = get_analysis_config(user_config)
+            max_analyze_files = analysis_config['max_analyze_files']
+            llm_gap_ms = analysis_config['llm_gap_ms']
+
             # 限制文件数量
             # 如果指定了特定文件，则只分析这些文件
             target_files = (user_config or {}).get('scan_config', {}).get('file_paths', [])
             if target_files:
                 print(f"🎯 指定分析 {len(target_files)} 个文件")
                 files = [f for f in files if f['path'] in target_files]
-            elif settings.MAX_ANALYZE_FILES > 0:
-                files = files[:settings.MAX_ANALYZE_FILES]
-            
+            elif max_analyze_files > 0:
+                files = files[:max_analyze_files]
+
             task.total_files = len(files)
             await db.commit()
 
-            print(f"📊 获取到 {len(files)} 个文件，开始分析")
+            print(f"📊 获取到 {len(files)} 个文件，开始分析 (最大文件数: {max_analyze_files}, 请求间隔: {llm_gap_ms}ms)")
 
             # 4. 分析文件
             total_issues = 0
@@ -484,7 +508,7 @@ async def scan_repo_task(task_id: str, db_session_factory, user_config: dict = N
                     print(f"📈 任务 {task_id}: 进度 {scanned_files}/{len(files)} ({int(scanned_files/len(files)*100)}%)")
                     
                     # 请求间隔
-                    await asyncio.sleep(settings.LLM_GAP_MS / 1000)
+                    await asyncio.sleep(llm_gap_ms / 1000)
                     
                 except Exception as file_error:
                     failed_files += 1
@@ -494,7 +518,7 @@ async def scan_repo_task(task_id: str, db_session_factory, user_config: dict = N
                     print(f"❌ 分析文件失败 ({file_info['path']}): {file_error}")
                     print(f"   错误类型: {type(file_error).__name__}")
                     print(f"   详细信息: {traceback.format_exc()}")
-                    await asyncio.sleep(settings.LLM_GAP_MS / 1000)
+                    await asyncio.sleep(llm_gap_ms / 1000)
 
             # 5. 完成任务
             avg_quality_score = sum(quality_scores) / len(quality_scores) if quality_scores else 100.0

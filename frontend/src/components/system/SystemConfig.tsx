@@ -52,7 +52,7 @@ export function SystemConfig() {
   const [hasChanges, setHasChanges] = useState(false);
   const [testingLLM, setTestingLLM] = useState(false);
   const [llmTestResult, setLlmTestResult] = useState<{ success: boolean; message: string; debug?: Record<string, unknown> } | null>(null);
-  const [showDebugInfo, setShowDebugInfo] = useState(false);
+  const [showDebugInfo, setShowDebugInfo] = useState(true);
 
   useEffect(() => { loadConfig(); }, []);
 
@@ -396,15 +396,44 @@ export function SystemConfig() {
                 {showDebugInfo && llmTestResult.debug && (
                   <div className="mt-3 pt-3 border-t border-border/50">
                     <div className="text-xs font-mono space-y-1 text-muted-foreground">
-                      <div className="font-bold text-foreground mb-2">调试信息:</div>
+                      <div className="font-bold text-foreground mb-2">连接信息:</div>
                       <div>Provider: <span className="text-foreground">{String(llmTestResult.debug.provider)}</span></div>
                       <div>Model: <span className="text-foreground">{String(llmTestResult.debug.model_used || llmTestResult.debug.model_requested || 'N/A')}</span></div>
                       <div>Base URL: <span className="text-foreground">{String(llmTestResult.debug.base_url_used || llmTestResult.debug.base_url_requested || '(default)')}</span></div>
                       <div>Adapter: <span className="text-foreground">{String(llmTestResult.debug.adapter_type || 'N/A')}</span></div>
                       <div>API Key: <span className="text-foreground">{String(llmTestResult.debug.api_key_prefix)} (长度: {String(llmTestResult.debug.api_key_length)})</span></div>
                       <div>耗时: <span className="text-foreground">{String(llmTestResult.debug.elapsed_time_ms || 'N/A')} ms</span></div>
+
+                      {/* 用户保存的配置参数 */}
+                      {llmTestResult.debug.saved_config && (
+                        <div className="mt-3 pt-2 border-t border-border/30">
+                          <div className="font-bold text-cyan-400 mb-2">已保存的配置参数:</div>
+                          <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                            <div>温度: <span className="text-foreground">{String((llmTestResult.debug.saved_config as Record<string, unknown>).temperature ?? 'N/A')}</span></div>
+                            <div>最大Tokens: <span className="text-foreground">{String((llmTestResult.debug.saved_config as Record<string, unknown>).max_tokens ?? 'N/A')}</span></div>
+                            <div>超时: <span className="text-foreground">{String((llmTestResult.debug.saved_config as Record<string, unknown>).timeout_ms ?? 'N/A')} ms</span></div>
+                            <div>请求间隔: <span className="text-foreground">{String((llmTestResult.debug.saved_config as Record<string, unknown>).gap_ms ?? 'N/A')} ms</span></div>
+                            <div>并发数: <span className="text-foreground">{String((llmTestResult.debug.saved_config as Record<string, unknown>).concurrency ?? 'N/A')}</span></div>
+                            <div>最大文件数: <span className="text-foreground">{String((llmTestResult.debug.saved_config as Record<string, unknown>).max_analyze_files ?? 'N/A')}</span></div>
+                            <div>输出语言: <span className="text-foreground">{String((llmTestResult.debug.saved_config as Record<string, unknown>).output_language ?? 'N/A')}</span></div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 测试时实际使用的参数 */}
+                      {llmTestResult.debug.test_params && (
+                        <div className="mt-2 pt-2 border-t border-border/30">
+                          <div className="font-bold text-emerald-400 mb-2">测试时使用的参数:</div>
+                          <div className="grid grid-cols-3 gap-x-4">
+                            <div>温度: <span className="text-foreground">{String((llmTestResult.debug.test_params as Record<string, unknown>).temperature ?? 'N/A')}</span></div>
+                            <div>超时: <span className="text-foreground">{String((llmTestResult.debug.test_params as Record<string, unknown>).timeout ?? 'N/A')}s</span></div>
+                            <div>MaxTokens: <span className="text-foreground">{String((llmTestResult.debug.test_params as Record<string, unknown>).max_tokens ?? 'N/A')}</span></div>
+                          </div>
+                        </div>
+                      )}
+
                       {llmTestResult.debug.error_category && (
-                        <div>错误类型: <span className="text-rose-400">{String(llmTestResult.debug.error_category)}</span></div>
+                        <div className="mt-2">错误类型: <span className="text-rose-400">{String(llmTestResult.debug.error_category)}</span></div>
                       )}
                       {llmTestResult.debug.error_type && (
                         <div>异常类型: <span className="text-rose-400">{String(llmTestResult.debug.error_type)}</span></div>

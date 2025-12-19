@@ -125,8 +125,7 @@ class LLMRouter:
                     {"role": "system", "content": "你是安全审计流程的决策者，负责决定下一步行动。"},
                     {"role": "user", "content": prompt},
                 ],
-                temperature=0.1,
-                max_tokens=200,
+                # 🔥 不传递 temperature 和 max_tokens，使用用户配置
             )
             
             content = response.get("content", "")
@@ -180,8 +179,7 @@ class LLMRouter:
                     {"role": "system", "content": "你是安全审计流程的决策者，负责决定下一步行动。"},
                     {"role": "user", "content": prompt},
                 ],
-                temperature=0.1,
-                max_tokens=200,
+                # 🔥 不传递 temperature 和 max_tokens，使用用户配置
             )
             
             content = response.get("content", "")
@@ -227,8 +225,7 @@ class LLMRouter:
                     {"role": "system", "content": "你是安全审计流程的决策者，负责决定下一步行动。"},
                     {"role": "user", "content": prompt},
                 ],
-                temperature=0.1,
-                max_tokens=200,
+                # 🔥 不传递 temperature 和 max_tokens，使用用户配置
             )
             
             content = response.get("content", "")

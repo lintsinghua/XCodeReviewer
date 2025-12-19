@@ -358,8 +358,7 @@ class ReconAgent(BaseAgent):
                 try:
                     llm_output, tokens_this_round = await self.stream_llm_call(
                         self._conversation_history,
-                        temperature=0.1,
-                        max_tokens=8192,  # 🔥 增加到 8192，避免截断
+                        # 🔥 不传递 temperature 和 max_tokens，使用用户配置
                     )
                 except asyncio.CancelledError:
                     logger.info(f"[{self.name}] LLM call cancelled")
@@ -525,8 +524,7 @@ Final Answer:""",
                 try:
                     summary_output, _ = await self.stream_llm_call(
                         self._conversation_history,
-                        temperature=0.1,
-                        max_tokens=2048,
+                        # 🔥 不传递 temperature 和 max_tokens，使用用户配置
                     )
                     
                     if summary_output and summary_output.strip():
