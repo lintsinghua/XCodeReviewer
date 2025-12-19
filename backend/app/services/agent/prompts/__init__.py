@@ -216,6 +216,7 @@ def build_specialized_prompt(
 # 导入系统提示词
 from .system_prompts import (
     CORE_SECURITY_PRINCIPLES,
+    FILE_VALIDATION_RULES,  # 🔥 v2.1
     VULNERABILITY_PRIORITIES,
     TOOL_USAGE_GUIDE,
     MULTI_AGENT_RULES,
@@ -234,6 +235,7 @@ __all__ = [
     "build_specialized_prompt",
     # 系统提示词
     "CORE_SECURITY_PRINCIPLES",
+    "FILE_VALIDATION_RULES",  # 🔥 v2.1
     "VULNERABILITY_PRIORITIES",
     "TOOL_USAGE_GUIDE",
     "MULTI_AGENT_RULES",

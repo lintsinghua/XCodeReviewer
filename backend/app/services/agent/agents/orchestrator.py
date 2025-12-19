@@ -13,6 +13,7 @@ LLM 是真正的大脑，全程参与决策！
 import asyncio
 import json
 import logging
+import os
 import re
 from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
@@ -534,32 +535,39 @@ Action Input: {{"参数": "值"}}
     
     def _parse_llm_response(self, response: str) -> Optional[AgentStep]:
         """解析 LLM 响应"""
+        # 🔥 v2.1: 预处理 - 移除 Markdown 格式标记（LLM 有时会输出 **Action:** 而非 Action:）
+        cleaned_response = response
+        cleaned_response = re.sub(r'\*\*Action:\*\*', 'Action:', cleaned_response)
+        cleaned_response = re.sub(r'\*\*Action Input:\*\*', 'Action Input:', cleaned_response)
+        cleaned_response = re.sub(r'\*\*Thought:\*\*', 'Thought:', cleaned_response)
+        cleaned_response = re.sub(r'\*\*Observation:\*\*', 'Observation:', cleaned_response)
+
         # 提取 Thought
-        thought_match = re.search(r'Thought:\s*(.*?)(?=Action:|$)', response, re.DOTALL)
+        thought_match = re.search(r'Thought:\s*(.*?)(?=Action:|$)', cleaned_response, re.DOTALL)
         thought = thought_match.group(1).strip() if thought_match else ""
-        
+
         # 提取 Action
-        action_match = re.search(r'Action:\s*(\w+)', response)
+        action_match = re.search(r'Action:\s*(\w+)', cleaned_response)
         if not action_match:
             return None
         action = action_match.group(1).strip()
-        
+
         # 提取 Action Input
-        input_match = re.search(r'Action Input:\s*(.*?)(?=Thought:|Observation:|$)', response, re.DOTALL)
+        input_match = re.search(r'Action Input:\s*(.*?)(?=Thought:|Observation:|$)', cleaned_response, re.DOTALL)
         if not input_match:
             return None
-        
+
         input_text = input_match.group(1).strip()
         # 移除 markdown 代码块
         input_text = re.sub(r'```json\s*', '', input_text)
         input_text = re.sub(r'```\s*', '', input_text)
-        
+
         # 使用增强的 JSON 解析器
         action_input = AgentJsonParser.parse(
             input_text,
             default={"raw": input_text}
         )
-        
+
         return AgentStep(
             thought=thought,
             action=action,
@@ -999,12 +1007,47 @@ Action Input: {{"参数": "值"}}
         except Exception as e:
             logger.error(f"Sub-agent dispatch failed: {e}", exc_info=True)
             return f"## 调度失败\n\n错误: {str(e)}"
-    
-    def _normalize_finding(self, finding: Dict[str, Any]) -> Dict[str, Any]:
+
+    def _validate_file_path(self, file_path: str) -> bool:
+        """
+        🔥 v2.1: 验证文件路径是否真实存在
+
+        Args:
+            file_path: 相对或绝对文件路径（可能包含行号，如 "app.py:36"）
+
+        Returns:
+            bool: 文件是否存在
+        """
+        if not file_path or not file_path.strip():
+            return False
+
+        # 获取项目根目录
+        project_root = self._runtime_context.get("project_root", "")
+        if not project_root:
+            # 没有项目根目录时，无法验证，返回 True 以避免误判
+            return True
+
+        # 清理路径（移除可能的行号）
+        clean_path = file_path.split(":")[0].strip() if ":" in file_path else file_path.strip()
+
+        # 尝试相对路径
+        full_path = os.path.join(project_root, clean_path)
+        if os.path.isfile(full_path):
+            return True
+
+        # 尝试绝对路径
+        if os.path.isabs(clean_path) and os.path.isfile(clean_path):
+            return True
+
+        return False
+
+    def _normalize_finding(self, finding: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """
         标准化发现格式
 
         不同 Agent 可能返回不同格式的发现，这个方法将它们标准化为统一格式
+
+        🔥 v2.1: 添加文件路径验证，返回 None 表示发现无效（幻觉）
         """
         normalized = dict(finding)  # 复制原始数据
 
@@ -1085,6 +1128,15 @@ Action Input: {{"参数": "值"}}
         if "impact" in normalized and normalized.get("description"):
             if "impact" not in normalized["description"].lower():
                 normalized["description"] += f"\n\nImpact: {normalized['impact']}"
+
+        # 🔥 v2.1: 验证文件路径存在性
+        file_path = normalized.get("file_path", "")
+        if file_path and not self._validate_file_path(file_path):
+            logger.warning(
+                f"[Orchestrator] 🚫 过滤幻觉发现: 文件不存在 '{file_path}' "
+                f"(title: {normalized.get('title', 'N/A')[:50]})"
+            )
+            return None  # 返回 None 表示发现无效
 
         return normalized
 

@@ -80,6 +80,29 @@ Thought: [总结收集到的所有信息]
 Final Answer: [JSON 格式的结果]
 ```
 
+## ⚠️ 输出格式要求（严格遵守）
+
+**禁止使用 Markdown 格式标记！** 你的输出必须是纯文本格式：
+
+✅ 正确格式：
+```
+Thought: 我需要查看项目结构来了解项目组成
+Action: list_files
+Action Input: {"directory": "."}
+```
+
+❌ 错误格式（禁止使用）：
+```
+**Thought:** 我需要查看项目结构
+**Action:** list_files
+**Action Input:** {"directory": "."}
+```
+
+规则：
+1. 不要在 Thought:、Action:、Action Input:、Final Answer: 前后添加 `**`
+2. 不要使用其他 Markdown 格式（如 `###`、`*斜体*` 等）
+3. Action Input 必须是完整的 JSON 对象，不能为空或截断
+
 ## 输出格式
 
 ```
@@ -208,13 +231,21 @@ class ReconAgent(BaseAgent):
         """解析 LLM 响应 - 增强版，更健壮地提取思考内容"""
         step = ReconStep(thought="")
 
+        # 🔥 v2.1: 预处理 - 移除 Markdown 格式标记（LLM 有时会输出 **Action:** 而非 Action:）
+        cleaned_response = response
+        cleaned_response = re.sub(r'\*\*Action:\*\*', 'Action:', cleaned_response)
+        cleaned_response = re.sub(r'\*\*Action Input:\*\*', 'Action Input:', cleaned_response)
+        cleaned_response = re.sub(r'\*\*Thought:\*\*', 'Thought:', cleaned_response)
+        cleaned_response = re.sub(r'\*\*Final Answer:\*\*', 'Final Answer:', cleaned_response)
+        cleaned_response = re.sub(r'\*\*Observation:\*\*', 'Observation:', cleaned_response)
+
         # 🔥 首先尝试提取明确的 Thought 标记
-        thought_match = re.search(r'Thought:\s*(.*?)(?=Action:|Final Answer:|$)', response, re.DOTALL)
+        thought_match = re.search(r'Thought:\s*(.*?)(?=Action:|Final Answer:|$)', cleaned_response, re.DOTALL)
         if thought_match:
             step.thought = thought_match.group(1).strip()
 
         # 🔥 检查是否是最终答案
-        final_match = re.search(r'Final Answer:\s*(.*?)$', response, re.DOTALL)
+        final_match = re.search(r'Final Answer:\s*(.*?)$', cleaned_response, re.DOTALL)
         if final_match:
             step.is_final = True
             answer_text = final_match.group(1).strip()
@@ -234,7 +265,7 @@ class ReconAgent(BaseAgent):
 
             # 🔥 如果没有提取到 thought，使用 Final Answer 前的内容作为思考
             if not step.thought:
-                before_final = response[:response.find('Final Answer:')].strip()
+                before_final = cleaned_response[:cleaned_response.find('Final Answer:')].strip()
                 if before_final:
                     # 移除可能的 Thought: 前缀
                     before_final = re.sub(r'^Thought:\s*', '', before_final)
@@ -243,22 +274,22 @@ class ReconAgent(BaseAgent):
             return step
 
         # 🔥 提取 Action
-        action_match = re.search(r'Action:\s*(\w+)', response)
+        action_match = re.search(r'Action:\s*(\w+)', cleaned_response)
         if action_match:
             step.action = action_match.group(1).strip()
 
             # 🔥 如果没有提取到 thought，提取 Action 之前的内容作为思考
             if not step.thought:
-                action_pos = response.find('Action:')
+                action_pos = cleaned_response.find('Action:')
                 if action_pos > 0:
-                    before_action = response[:action_pos].strip()
+                    before_action = cleaned_response[:action_pos].strip()
                     # 移除可能的 Thought: 前缀
                     before_action = re.sub(r'^Thought:\s*', '', before_action)
                     if before_action:
                         step.thought = before_action[:500] if len(before_action) > 500 else before_action
 
         # 🔥 提取 Action Input
-        input_match = re.search(r'Action Input:\s*(.*?)(?=Thought:|Action:|Observation:|$)', response, re.DOTALL)
+        input_match = re.search(r'Action Input:\s*(.*?)(?=Thought:|Action:|Observation:|$)', cleaned_response, re.DOTALL)
         if input_match:
             input_text = input_match.group(1).strip()
             input_text = re.sub(r'```json\s*', '', input_text)
