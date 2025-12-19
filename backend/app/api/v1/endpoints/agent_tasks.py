@@ -511,7 +511,9 @@ async def _execute_agent_task(task_id: str):
                     if isinstance(f, dict):
                         logger.debug(f"[AgentTask] Finding {i+1}: {f.get('title', 'N/A')[:50]} - {f.get('severity', 'N/A')}")
 
-                await _save_findings(db, task_id, findings)
+                # 🔥 v2.1: 传递 project_root 用于文件路径验证
+                saved_count = await _save_findings(db, task_id, findings, project_root=project_root)
+                logger.info(f"[AgentTask] Saved {saved_count}/{len(findings)} findings (filtered {len(findings) - saved_count} hallucinations)")
 
                 # 更新任务统计
                 # 🔥 CRITICAL FIX: 在设置完成前再次检查取消状态
@@ -523,7 +525,7 @@ async def _execute_agent_task(task_id: str):
                     task.status = AgentTaskStatus.COMPLETED
                 task.completed_at = datetime.now(timezone.utc)
                 task.current_phase = AgentTaskPhase.REPORTING
-                task.findings_count = len(findings)
+                task.findings_count = saved_count  # 🔥 v2.1: 使用实际保存的数量（排除幻觉）
                 task.total_iterations = result.iterations
                 task.tool_calls_count = result.tool_calls
                 task.tokens_used = result.tokens_used
@@ -982,8 +984,8 @@ async def _initialize_tools(
         "run_code": RunCodeTool(sandbox_manager, project_root),
         "extract_function": ExtractFunctionTool(project_root),
 
-        # 报告工具
-        "create_vulnerability_report": CreateVulnerabilityReportTool(),
+        # 报告工具 - 🔥 v2.1: 传递 project_root 用于文件验证
+        "create_vulnerability_report": CreateVulnerabilityReportTool(project_root),
     }
     
     # Orchestrator 工具（主要是思考工具）
@@ -1117,11 +1119,26 @@ async def _collect_project_info(
     return info
 
 
-async def _save_findings(db: AsyncSession, task_id: str, findings: List[Dict]) -> None:
+async def _save_findings(
+    db: AsyncSession,
+    task_id: str,
+    findings: List[Dict],
+    project_root: Optional[str] = None,
+) -> int:
     """
     保存发现到数据库
 
     🔥 增强版：支持多种 Agent 输出格式，健壮的字段映射
+    🔥 v2.1: 添加文件路径验证，过滤幻觉发现
+
+    Args:
+        db: 数据库会话
+        task_id: 任务ID
+        findings: 发现列表
+        project_root: 项目根目录（用于验证文件路径）
+
+    Returns:
+        int: 实际保存的发现数量
     """
     from app.models.agent_task import VulnerabilityType
 
@@ -1129,7 +1146,7 @@ async def _save_findings(db: AsyncSession, task_id: str, findings: List[Dict]) -
 
     if not findings:
         logger.warning(f"[SaveFindings] No findings to save for task {task_id}")
-        return
+        return 0
 
     # 🔥 Case-insensitive mapping preparation
     severity_map = {
@@ -1215,6 +1232,21 @@ async def _save_findings(db: AsyncSession, task_id: str, findings: List[Dict]) -
                 finding.get("file") or
                 finding.get("location", "").split(":")[0] if ":" in finding.get("location", "") else finding.get("location")
             )
+
+            # 🔥 v2.1: 文件路径验证 - 过滤幻觉发现
+            if project_root and file_path:
+                # 清理路径（移除可能的行号）
+                clean_path = file_path.split(":")[0].strip() if ":" in file_path else file_path.strip()
+                full_path = os.path.join(project_root, clean_path)
+
+                if not os.path.isfile(full_path):
+                    # 尝试作为绝对路径
+                    if not (os.path.isabs(clean_path) and os.path.isfile(clean_path)):
+                        logger.warning(
+                            f"[SaveFindings] 🚫 跳过幻觉发现: 文件不存在 '{file_path}' "
+                            f"(title: {finding.get('title', 'N/A')[:50]})"
+                        )
+                        continue  # 跳过这个发现
 
             # 🔥 Handle line numbers (support multiple formats)
             line_start = finding.get("line_start") or finding.get("line")
@@ -1345,6 +1377,8 @@ async def _save_findings(db: AsyncSession, task_id: str, findings: List[Dict]) -
     except Exception as e:
         logger.error(f"Failed to commit findings: {e}")
         await db.rollback()
+
+    return saved_count
 
 
 def _calculate_security_score(findings: List[Dict]) -> float:
@@ -3154,15 +3188,53 @@ async def generate_audit_report(
                     md_lines.append("")
 
                 if f.code_snippet:
-                    # Detect language from file extension
-                    lang = "python"
+                    # 🔥 v2.1: 增强语言检测，避免默认 python 标记错误
+                    lang = "text"  # 默认使用 text 而非 python
                     if f.file_path:
                         ext = f.file_path.split('.')[-1].lower()
                         lang_map = {
-                            'py': 'python', 'js': 'javascript', 'ts': 'typescript',
-                            'jsx': 'jsx', 'tsx': 'tsx', 'java': 'java', 'go': 'go',
-                            'rs': 'rust', 'rb': 'ruby', 'php': 'php', 'c': 'c',
-                            'cpp': 'cpp', 'cs': 'csharp', 'sol': 'solidity'
+                            # Python
+                            'py': 'python', 'pyw': 'python', 'pyi': 'python',
+                            # JavaScript/TypeScript
+                            'js': 'javascript', 'mjs': 'javascript', 'cjs': 'javascript',
+                            'ts': 'typescript', 'mts': 'typescript',
+                            'jsx': 'jsx', 'tsx': 'tsx',
+                            # Web
+                            'html': 'html', 'htm': 'html',
+                            'css': 'css', 'scss': 'scss', 'sass': 'sass', 'less': 'less',
+                            'vue': 'vue', 'svelte': 'svelte',
+                            # Backend
+                            'java': 'java', 'kt': 'kotlin', 'kts': 'kotlin',
+                            'go': 'go', 'rs': 'rust',
+                            'rb': 'ruby', 'erb': 'erb',
+                            'php': 'php', 'phtml': 'php',
+                            # C-family
+                            'c': 'c', 'h': 'c',
+                            'cpp': 'cpp', 'cc': 'cpp', 'cxx': 'cpp', 'hpp': 'cpp',
+                            'cs': 'csharp',
+                            # Shell/Script
+                            'sh': 'bash', 'bash': 'bash', 'zsh': 'zsh',
+                            'ps1': 'powershell', 'psm1': 'powershell',
+                            # Config
+                            'json': 'json', 'yaml': 'yaml', 'yml': 'yaml',
+                            'toml': 'toml', 'ini': 'ini', 'cfg': 'ini',
+                            'xml': 'xml', 'xhtml': 'xml',
+                            # Database
+                            'sql': 'sql',
+                            # Other
+                            'md': 'markdown', 'markdown': 'markdown',
+                            'sol': 'solidity',
+                            'swift': 'swift',
+                            'r': 'r', 'R': 'r',
+                            'lua': 'lua',
+                            'pl': 'perl', 'pm': 'perl',
+                            'ex': 'elixir', 'exs': 'elixir',
+                            'erl': 'erlang',
+                            'hs': 'haskell',
+                            'scala': 'scala', 'sc': 'scala',
+                            'clj': 'clojure', 'cljs': 'clojure',
+                            'dart': 'dart',
+                            'groovy': 'groovy', 'gradle': 'groovy',
                         }
                         lang = lang_map.get(ext, 'text')
                     md_lines.append("**漏洞代码:**")

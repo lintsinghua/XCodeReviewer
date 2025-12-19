@@ -155,6 +155,24 @@ Thought: [总结所有发现]
 Final Answer: [JSON 格式的漏洞报告]
 ```
 
+## ⚠️ 输出格式要求（严格遵守）
+
+**禁止使用 Markdown 格式标记！** 你的输出必须是纯文本格式：
+
+✅ 正确：
+```
+Thought: 我需要使用 semgrep 扫描代码。
+Action: semgrep_scan
+Action Input: {"target_path": ".", "rules": "auto"}
+```
+
+❌ 错误（禁止）：
+```
+**Thought:** 我需要扫描
+**Action:** semgrep_scan
+**Action Input:** {...}
+```
+
 ## Final Answer 格式
 ```json
 {
@@ -192,6 +210,31 @@ Final Answer: [JSON 格式的漏洞报告]
 2. **质量优先** - 宁可深入分析几个真实漏洞，不要浅尝辄止报告大量误报
 3. **上下文分析** - 看到可疑代码要读取上下文，理解完整逻辑
 4. **自主判断** - 不要机械相信工具输出，要用你的专业知识判断
+
+## 🚨 知识工具使用警告（防止幻觉！）
+
+**知识库中的代码示例仅供概念参考，不是实际代码！**
+
+当你使用 `get_vulnerability_knowledge` 或 `query_security_knowledge` 时：
+1. **知识示例 ≠ 项目代码** - 知识库的代码示例是通用示例，不是目标项目的代码
+2. **语言可能不匹配** - 知识库可能返回 Python 示例，但项目可能是 PHP/Rust/Go
+3. **必须在实际代码中验证** - 你只能报告你在 read_file 中**实际看到**的漏洞
+4. **禁止推测** - 不要因为知识库说"这种模式常见"就假设项目中存在
+
+❌ 错误做法（幻觉来源）：
+```
+1. 查询 auth_bypass 知识 -> 看到 JWT 示例
+2. 没有在项目中找到 JWT 代码
+3. 仍然报告 "JWT 认证绕过漏洞"  <- 这是幻觉！
+```
+
+✅ 正确做法：
+```
+1. 查询 auth_bypass 知识 -> 了解认证绕过的概念
+2. 使用 read_file 读取项目的认证代码
+3. 只有**实际看到**有问题的代码才报告漏洞
+4. file_path 必须是你**实际读取过**的文件
+```
 
 ## ⚠️ 关键约束 - 必须遵守！
 1. **禁止直接输出 Final Answer** - 你必须先调用工具来分析代码
@@ -265,13 +308,21 @@ class AnalysisAgent(BaseAgent):
         """解析 LLM 响应 - 增强版，更健壮地提取思考内容"""
         step = AnalysisStep(thought="")
 
+        # 🔥 v2.1: 预处理 - 移除 Markdown 格式标记（LLM 有时会输出 **Action:** 而非 Action:）
+        cleaned_response = response
+        cleaned_response = re.sub(r'\*\*Action:\*\*', 'Action:', cleaned_response)
+        cleaned_response = re.sub(r'\*\*Action Input:\*\*', 'Action Input:', cleaned_response)
+        cleaned_response = re.sub(r'\*\*Thought:\*\*', 'Thought:', cleaned_response)
+        cleaned_response = re.sub(r'\*\*Final Answer:\*\*', 'Final Answer:', cleaned_response)
+        cleaned_response = re.sub(r'\*\*Observation:\*\*', 'Observation:', cleaned_response)
+
         # 🔥 首先尝试提取明确的 Thought 标记
-        thought_match = re.search(r'Thought:\s*(.*?)(?=Action:|Final Answer:|$)', response, re.DOTALL)
+        thought_match = re.search(r'Thought:\s*(.*?)(?=Action:|Final Answer:|$)', cleaned_response, re.DOTALL)
         if thought_match:
             step.thought = thought_match.group(1).strip()
 
         # 🔥 检查是否是最终答案
-        final_match = re.search(r'Final Answer:\s*(.*?)$', response, re.DOTALL)
+        final_match = re.search(r'Final Answer:\s*(.*?)$', cleaned_response, re.DOTALL)
         if final_match:
             step.is_final = True
             answer_text = final_match.group(1).strip()
@@ -291,7 +342,7 @@ class AnalysisAgent(BaseAgent):
 
             # 🔥 如果没有提取到 thought，使用 Final Answer 前的内容作为思考
             if not step.thought:
-                before_final = response[:response.find('Final Answer:')].strip()
+                before_final = cleaned_response[:cleaned_response.find('Final Answer:')].strip()
                 if before_final:
                     before_final = re.sub(r'^Thought:\s*', '', before_final)
                     step.thought = before_final[:500] if len(before_final) > 500 else before_final
@@ -299,21 +350,21 @@ class AnalysisAgent(BaseAgent):
             return step
 
         # 🔥 提取 Action
-        action_match = re.search(r'Action:\s*(\w+)', response)
+        action_match = re.search(r'Action:\s*(\w+)', cleaned_response)
         if action_match:
             step.action = action_match.group(1).strip()
 
             # 🔥 如果没有提取到 thought，提取 Action 之前的内容作为思考
             if not step.thought:
-                action_pos = response.find('Action:')
+                action_pos = cleaned_response.find('Action:')
                 if action_pos > 0:
-                    before_action = response[:action_pos].strip()
+                    before_action = cleaned_response[:action_pos].strip()
                     before_action = re.sub(r'^Thought:\s*', '', before_action)
                     if before_action:
                         step.thought = before_action[:500] if len(before_action) > 500 else before_action
 
         # 🔥 提取 Action Input
-        input_match = re.search(r'Action Input:\s*(.*?)(?=Thought:|Action:|Observation:|$)', response, re.DOTALL)
+        input_match = re.search(r'Action Input:\s*(.*?)(?=Thought:|Action:|Observation:|$)', cleaned_response, re.DOTALL)
         if input_match:
             input_text = input_match.group(1).strip()
             input_text = re.sub(r'```json\s*', '', input_text)

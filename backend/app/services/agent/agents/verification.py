@@ -223,6 +223,29 @@ Thought: [总结验证结果]
 Final Answer: [JSON 格式的验证报告]
 ```
 
+## ⚠️ 输出格式要求（严格遵守）
+
+**禁止使用 Markdown 格式标记！** 你的输出必须是纯文本格式：
+
+✅ 正确格式：
+```
+Thought: 我需要读取 search.php 文件来验证 SQL 注入漏洞。
+Action: read_file
+Action Input: {"file_path": "search.php"}
+```
+
+❌ 错误格式（禁止使用）：
+```
+**Thought:** 我需要读取文件
+**Action:** read_file
+**Action Input:** {"file_path": "search.php"}
+```
+
+规则：
+1. 不要在 Thought:、Action:、Action Input:、Final Answer: 前后添加 `**`
+2. 不要使用其他 Markdown 格式（如 `###`、`*斜体*` 等）
+3. Action Input 必须是完整的 JSON 对象，不能为空或截断
+
 ## Final Answer 格式
 ```json
 {
@@ -258,6 +281,33 @@ Final Answer: [JSON 格式的验证报告]
 - **likely**: 高度可能存在漏洞，代码分析明确但无法动态验证
 - **uncertain**: 需要更多信息才能判断
 - **false_positive**: 确认是误报，有明确理由
+
+## 🚨 防止幻觉验证（关键！）
+
+**Analysis Agent 可能报告不存在的文件！** 你必须验证：
+
+1. **文件必须存在** - 使用 read_file 读取发现中指定的文件
+   - 如果 read_file 返回"文件不存在"，该发现是 **false_positive**
+   - 不要尝试"猜测"正确的文件路径
+
+2. **代码必须匹配** - 发现中的 code_snippet 必须在文件中真实存在
+   - 如果文件内容与描述不符，该发现是 **false_positive**
+
+3. **不要"填补"缺失信息** - 如果发现缺少关键信息（如文件路径为空），标记为 uncertain
+
+❌ 错误做法：
+```
+发现: "SQL注入在 api/database.py:45"
+read_file 返回: "文件不存在"
+判定: confirmed  <- 这是错误的！
+```
+
+✅ 正确做法：
+```
+发现: "SQL注入在 api/database.py:45"
+read_file 返回: "文件不存在"
+判定: false_positive，理由: "文件 api/database.py 不存在"
+```
 
 ## ⚠️ 关键约束
 1. **必须先调用工具验证** - 不允许仅凭已知信息直接判断
@@ -323,13 +373,21 @@ class VerificationAgent(BaseAgent):
         """解析 LLM 响应 - 增强版，更健壮地提取思考内容"""
         step = VerificationStep(thought="")
 
+        # 🔥 v2.1: 预处理 - 移除 Markdown 格式标记（LLM 有时会输出 **Action:** 而非 Action:）
+        cleaned_response = response
+        cleaned_response = re.sub(r'\*\*Action:\*\*', 'Action:', cleaned_response)
+        cleaned_response = re.sub(r'\*\*Action Input:\*\*', 'Action Input:', cleaned_response)
+        cleaned_response = re.sub(r'\*\*Thought:\*\*', 'Thought:', cleaned_response)
+        cleaned_response = re.sub(r'\*\*Final Answer:\*\*', 'Final Answer:', cleaned_response)
+        cleaned_response = re.sub(r'\*\*Observation:\*\*', 'Observation:', cleaned_response)
+
         # 🔥 首先尝试提取明确的 Thought 标记
-        thought_match = re.search(r'Thought:\s*(.*?)(?=Action:|Final Answer:|$)', response, re.DOTALL)
+        thought_match = re.search(r'Thought:\s*(.*?)(?=Action:|Final Answer:|$)', cleaned_response, re.DOTALL)
         if thought_match:
             step.thought = thought_match.group(1).strip()
 
         # 🔥 检查是否是最终答案
-        final_match = re.search(r'Final Answer:\s*(.*?)$', response, re.DOTALL)
+        final_match = re.search(r'Final Answer:\s*(.*?)$', cleaned_response, re.DOTALL)
         if final_match:
             step.is_final = True
             answer_text = final_match.group(1).strip()
@@ -349,7 +407,7 @@ class VerificationAgent(BaseAgent):
 
             # 🔥 如果没有提取到 thought，使用 Final Answer 前的内容作为思考
             if not step.thought:
-                before_final = response[:response.find('Final Answer:')].strip()
+                before_final = cleaned_response[:cleaned_response.find('Final Answer:')].strip()
                 if before_final:
                     before_final = re.sub(r'^Thought:\s*', '', before_final)
                     step.thought = before_final[:500] if len(before_final) > 500 else before_final
@@ -357,30 +415,40 @@ class VerificationAgent(BaseAgent):
             return step
 
         # 🔥 提取 Action
-        action_match = re.search(r'Action:\s*(\w+)', response)
+        action_match = re.search(r'Action:\s*(\w+)', cleaned_response)
         if action_match:
             step.action = action_match.group(1).strip()
 
             # 🔥 如果没有提取到 thought，提取 Action 之前的内容作为思考
             if not step.thought:
-                action_pos = response.find('Action:')
+                action_pos = cleaned_response.find('Action:')
                 if action_pos > 0:
-                    before_action = response[:action_pos].strip()
+                    before_action = cleaned_response[:action_pos].strip()
                     before_action = re.sub(r'^Thought:\s*', '', before_action)
                     if before_action:
                         step.thought = before_action[:500] if len(before_action) > 500 else before_action
 
-        # 🔥 提取 Action Input
-        input_match = re.search(r'Action Input:\s*(.*?)(?=Thought:|Action:|Observation:|$)', response, re.DOTALL)
+        # 🔥 提取 Action Input - 增强版，处理多种格式
+        input_match = re.search(r'Action Input:\s*(.*?)(?=Thought:|Action:|Observation:|$)', cleaned_response, re.DOTALL)
         if input_match:
             input_text = input_match.group(1).strip()
             input_text = re.sub(r'```json\s*', '', input_text)
             input_text = re.sub(r'```\s*', '', input_text)
-            # 使用增强的 JSON 解析器
-            step.action_input = AgentJsonParser.parse(
-                input_text,
-                default={"raw_input": input_text}
-            )
+
+            # 🔥 v2.1: 如果 Action Input 为空或只有 **，记录警告
+            if not input_text or input_text == '**' or input_text.strip() == '':
+                logger.warning(f"[Verification] Action Input is empty or malformed: '{input_text}'")
+                step.action_input = {}
+            else:
+                # 使用增强的 JSON 解析器
+                step.action_input = AgentJsonParser.parse(
+                    input_text,
+                    default={"raw_input": input_text}
+                )
+        elif step.action:
+            # 🔥 v2.1: 有 Action 但没有 Action Input，记录警告
+            logger.warning(f"[Verification] Action '{step.action}' found but no Action Input")
+            step.action_input = {}
 
         # 🔥 最后的 fallback：如果整个响应没有任何标记，整体作为思考
         if not step.thought and not step.action and not step.is_final:

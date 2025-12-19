@@ -5,6 +5,7 @@
 """
 
 import logging
+import os
 import uuid
 from datetime import datetime, timezone
 from typing import Optional, List, Dict, Any
@@ -44,20 +45,23 @@ class VulnerabilityReportInput(BaseModel):
 class CreateVulnerabilityReportTool(AgentTool):
     """
     创建漏洞报告工具
-    
+
     这是正式记录漏洞的唯一方式。只有通过这个工具创建的漏洞才会被计入最终报告。
     这个设计确保了漏洞报告的规范性和完整性。
-    
+
     通常只有专门的报告Agent或验证Agent才会调用这个工具，
     确保漏洞在被正式报告之前已经经过了充分的验证。
+
+    🔥 v2.1: 添加文件路径验证，拒绝报告不存在的文件
     """
-    
+
     # 存储所有报告的漏洞
     _vulnerability_reports: List[Dict[str, Any]] = []
-    
-    def __init__(self):
+
+    def __init__(self, project_root: Optional[str] = None):
         super().__init__()
         self._reports: List[Dict[str, Any]] = []
+        self.project_root = project_root  # 🔥 v2.1: 用于文件验证
     
     @property
     def name(self) -> str:
@@ -125,7 +129,23 @@ class CreateVulnerabilityReportTool(AgentTool):
         
         if not file_path or not file_path.strip():
             return ToolResult(success=False, error="文件路径不能为空")
-        
+
+        # 🔥 v2.1: 验证文件路径存在性 - 防止幻觉
+        if self.project_root:
+            # 清理路径（移除可能的行号，如 "app.py:36"）
+            clean_path = file_path.split(":")[0].strip() if ":" in file_path else file_path.strip()
+            full_path = os.path.join(self.project_root, clean_path)
+
+            if not os.path.isfile(full_path):
+                # 尝试作为绝对路径
+                if not (os.path.isabs(clean_path) and os.path.isfile(clean_path)):
+                    logger.warning(f"[ReportTool] 🚫 拒绝报告: 文件不存在 '{file_path}'")
+                    return ToolResult(
+                        success=False,
+                        error=f"无法创建报告：文件 '{file_path}' 在项目中不存在。"
+                              f"请先使用 read_file 工具验证文件存在，然后再报告漏洞。"
+                    )
+
         # 验证严重程度
         valid_severities = ["critical", "high", "medium", "low", "info"]
         severity = severity.lower()
