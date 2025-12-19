@@ -434,7 +434,7 @@ export default function EmbeddingConfigPanel() {
       </div>
 
       {/* 说明 */}
-      <div className="bg-muted border border-border p-4 rounded-lg text-xs space-y-2">
+      <div className="bg-muted border border-border p-4 rounded-lg text-xs space-y-3">
         <p className="font-bold uppercase text-muted-foreground flex items-center gap-2">
           <Info className="w-4 h-4 text-sky-400" />
           关于嵌入模型
@@ -445,6 +445,25 @@ export default function EmbeddingConfigPanel() {
           <li>• 推荐使用 <span className="text-foreground">OpenAI text-embedding-3-small</span> 或本地 <span className="text-foreground">Ollama</span></li>
           <li>• 向量维度影响存储空间和检索精度</li>
         </ul>
+
+        {/* OpenAI 兼容 API 引导 */}
+        <div className="mt-3 pt-3 border-t border-border/50">
+          <p className="font-bold text-amber-400 flex items-center gap-2 mb-2">
+            <Zap className="w-4 h-4" />
+            使用 OpenAI 兼容 API
+          </p>
+          <p className="text-muted-foreground mb-2">
+            许多服务商提供 OpenAI 兼容的 API，可以直接使用 <span className="text-foreground">openai</span> 作为提供商：
+          </p>
+          <ul className="text-muted-foreground space-y-1 ml-4">
+            <li>• <span className="text-foreground">DeepSeek</span>: 端点填写 <code className="text-primary bg-primary/10 px-1 rounded">https://api.deepseek.com/v1</code></li>
+            <li>• <span className="text-foreground">Moonshot</span>: 端点填写 <code className="text-primary bg-primary/10 px-1 rounded">https://api.moonshot.cn/v1</code></li>
+            <li>• <span className="text-foreground">智谱 GLM</span>: 端点填写 <code className="text-primary bg-primary/10 px-1 rounded">https://open.bigmodel.cn/api/paas/v4</code></li>
+          </ul>
+          <p className="text-muted-foreground mt-2 text-[11px]">
+            提示：选择 openai 提供商，填入对应服务的 API Key 和自定义端点即可
+          </p>
+        </div>
       </div>
     </div>
   );

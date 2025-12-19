@@ -76,8 +76,8 @@ class TestEmbeddingResponse(BaseModel):
 EMBEDDING_PROVIDERS: List[EmbeddingProvider] = [
     EmbeddingProvider(
         id="openai",
-        name="OpenAI",
-        description="OpenAI 官方嵌入模型，高质量、稳定",
+        name="OpenAI (兼容 DeepSeek/Moonshot/智谱 等)",
+        description="OpenAI 官方或兼容 API，填写自定义端点可接入其他服务商",
         models=[
             "text-embedding-3-small",
             "text-embedding-3-large",
