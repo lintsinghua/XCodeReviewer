@@ -373,6 +373,10 @@ DeepSeek-Coder · Codestral<br/>
 我们非常欢迎您的贡献！无论是提交 Issue、PR 还是完善文档。
 请查看 [CONTRIBUTING.md](./CONTRIBUTING.md) 了解详情。
 
+### 联系作者
+- 邮箱: lintsinghua@qq.com
+- GitHub: [@lintsinghua](https://github.com/lintsinghua)
+
 ## 📄 许可证
 
 本项目采用 [MIT License](LICENSE) 开源。
