@@ -3,6 +3,7 @@ PDF 报告生成服务 - 专业审计版 (WeasyPrint)
 """
 
 import io
+import html
 from datetime import datetime
 from typing import List, Dict, Any
 import math
@@ -398,18 +399,25 @@ class ReportGenerator:
         return ""
 
     @classmethod
+    def _escape_html(cls, text: str) -> str:
+        """安全转义 HTML 特殊字符"""
+        if text is None:
+            return None
+        return html.escape(str(text))
+
+    @classmethod
     def _process_issues(cls, issues: List[Dict]) -> List[Dict]:
         processed = []
         order = {'critical': 0, 'high': 1, 'medium': 2, 'low': 3}
         sorted_issues = sorted(issues, key=lambda x: order.get(x.get('severity', 'low'), 4))
-        
+
         sev_labels = {
             'critical': 'CRITICAL',
             'high': 'HIGH',
             'medium': 'MEDIUM',
             'low': 'LOW'
         }
-        
+
         for i in sorted_issues:
             item = i.copy()
             item['severity'] = item.get('severity', 'low')
@@ -420,18 +428,24 @@ class ReportGenerator:
             code = item.get('code_snippet') or item.get('code') or item.get('context')
             if isinstance(code, list):
                 code = '\n'.join(code)
-            item['code_snippet'] = code if code else None
+            item['code_snippet'] = cls._escape_html(code) if code else None
 
             # 确保 description 不为 None
             desc = item.get('description')
             if not desc or desc == 'None':
                 desc = item.get('title', '')  # 如果没有描述，使用标题
-            item['description'] = desc
+            item['description'] = cls._escape_html(desc)
 
             # 确保 suggestion 不为 None
             suggestion = item.get('suggestion')
             if suggestion == 'None' or suggestion is None:
                 item['suggestion'] = None
+            else:
+                item['suggestion'] = cls._escape_html(suggestion)
+
+            # 转义标题和文件路径
+            item['title'] = cls._escape_html(item.get('title', ''))
+            item['file_path'] = cls._escape_html(item.get('file_path'))
 
             processed.append(item)
         return processed
