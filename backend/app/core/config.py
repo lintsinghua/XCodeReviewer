@@ -80,7 +80,7 @@ class Settings(BaseSettings):
     # ============ Agent 模块配置 ============
 
     # 嵌入模型配置（独立于 LLM 配置）
-    EMBEDDING_PROVIDER: str = "openai"  # openai, azure, ollama, cohere, huggingface, jina
+    EMBEDDING_PROVIDER: str = "openai"  # openai, azure, ollama, cohere, huggingface, jina, qwen
     EMBEDDING_MODEL: str = "text-embedding-3-small"
     EMBEDDING_API_KEY: Optional[str] = None  # 嵌入模型专用 API Key（留空则使用 LLM_API_KEY）
     EMBEDDING_BASE_URL: Optional[str] = None  # 嵌入模型专用 Base URL（留空使用提供商默认地址）

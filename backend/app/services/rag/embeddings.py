@@ -463,6 +463,82 @@ class JinaEmbedding(EmbeddingProvider):
             return results
 
 
+class QwenEmbedding(EmbeddingProvider):
+    """Qwen 嵌入服务（基于阿里云 DashScope embeddings API）"""
+    
+    MODELS = {
+        # DashScope Qwen 嵌入模型及其默认维度
+        "text-embedding-v4": 1024,  # 支持维度: 2048, 1536, 1024(默认), 768, 512, 256, 128, 64
+        "text-embedding-v3": 1024,  # 支持维度: 1024(默认), 768, 512, 256, 128, 64
+        "text-embedding-v2": 1536,  # 支持维度: 1536
+    }
+    
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        base_url: Optional[str] = None,
+        model: str = "text-embedding-v4",
+    ):
+        # 优先使用显式传入的 api_key，其次使用 EMBEDDING_API_KEY/QWEN_API_KEY/LLM_API_KEY
+        self.api_key = (
+            api_key
+            or getattr(settings, "EMBEDDING_API_KEY", None)
+            or getattr(settings, "QWEN_API_KEY", None)
+            or settings.LLM_API_KEY
+        )
+        # DashScope 兼容 OpenAI 的 embeddings 端点
+        self.base_url = base_url or "https://dashscope.aliyuncs.com/compatible-mode/v1"
+        self.model = model
+        self._dimension = self.MODELS.get(model, 1024)
+    
+    @property
+    def dimension(self) -> int:
+        return self._dimension
+    
+    async def embed_text(self, text: str) -> EmbeddingResult:
+        results = await self.embed_texts([text])
+        return results[0]
+    
+    async def embed_texts(self, texts: List[str]) -> List[EmbeddingResult]:
+        if not texts:
+            return []
+        
+        # 与 OpenAI 接口保持一致的截断策略
+        max_length = 8191
+        truncated_texts = [text[:max_length] for text in texts]
+        
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+        }
+        
+        payload = {
+            "model": self.model,
+            "input": truncated_texts,
+            "encoding_format": "float",
+        }
+        
+        url = f"{self.base_url.rstrip('/')}/embeddings"
+        
+        async with httpx.AsyncClient(timeout=60) as client:
+            response = await client.post(url, headers=headers, json=payload)
+            response.raise_for_status()
+            data = response.json()
+            
+            usage = data.get("usage", {}) or {}
+            total_tokens = usage.get("total_tokens") or usage.get("prompt_tokens") or 0
+            
+            results: List[EmbeddingResult] = []
+            for item in data.get("data", []):
+                results.append(EmbeddingResult(
+                    embedding=item["embedding"],
+                    tokens_used=total_tokens // max(len(texts), 1),
+                    model=self.model,
+                ))
+            
+            return results
+
+
 class EmbeddingService:
     """
     嵌入服务
@@ -538,6 +614,9 @@ class EmbeddingService:
         
         elif provider == "jina":
             return JinaEmbedding(api_key=api_key, base_url=base_url, model=model)
+        
+        elif provider == "qwen":
+            return QwenEmbedding(api_key=api_key, base_url=base_url, model=model)
         
         else:
             # 默认使用 OpenAI
