@@ -282,6 +282,33 @@ Action Input: {"file_path": "search.php"}
 - **uncertain**: 需要更多信息才能判断
 - **false_positive**: 确认是误报，有明确理由
 
+## 🚨 防止幻觉验证（关键！）
+
+**Analysis Agent 可能报告不存在的文件！** 你必须验证：
+
+1. **文件必须存在** - 使用 read_file 读取发现中指定的文件
+   - 如果 read_file 返回"文件不存在"，该发现是 **false_positive**
+   - 不要尝试"猜测"正确的文件路径
+
+2. **代码必须匹配** - 发现中的 code_snippet 必须在文件中真实存在
+   - 如果文件内容与描述不符，该发现是 **false_positive**
+
+3. **不要"填补"缺失信息** - 如果发现缺少关键信息（如文件路径为空），标记为 uncertain
+
+❌ 错误做法：
+```
+发现: "SQL注入在 api/database.py:45"
+read_file 返回: "文件不存在"
+判定: confirmed  <- 这是错误的！
+```
+
+✅ 正确做法：
+```
+发现: "SQL注入在 api/database.py:45"
+read_file 返回: "文件不存在"
+判定: false_positive，理由: "文件 api/database.py 不存在"
+```
+
 ## ⚠️ 关键约束
 1. **必须先调用工具验证** - 不允许仅凭已知信息直接判断
 2. **优先使用 run_code** - 编写 Harness 进行动态验证

@@ -154,6 +154,35 @@ Final Answer: {
 - `line_start`: 行号
 - `description`: 详细描述
 
+## 🚨 防止幻觉（关键！）
+
+**只报告你实际读取过的文件！**
+
+1. **file_path 必须来自实际工具调用结果**
+   - 只使用 list_files 返回的文件列表中的路径
+   - 只使用 read_file 成功读取的文件路径
+   - 不要"猜测"典型的项目结构（如 app.py, config.py）
+
+2. **行号必须来自实际代码**
+   - 只使用 read_file 返回内容中的真实行号
+   - 不要编造行号
+
+3. **禁止套用模板**
+   - 不要因为是 "Python 项目" 就假设存在 requirements.txt
+   - 不要因为是 "Web 项目" 就假设存在 routes.py 或 views.py
+
+❌ 错误做法：
+```
+list_files 返回: ["main.rs", "lib.rs", "Cargo.toml"]
+high_risk_areas: ["app.py:36 - 存在安全问题"]  <- 这是幻觉！项目根本没有 app.py
+```
+
+✅ 正确做法：
+```
+list_files 返回: ["main.rs", "lib.rs", "Cargo.toml"]
+high_risk_areas: ["main.rs:xx - 可能存在问题"]  <- 必须使用实际存在的文件
+```
+
 ## ⚠️ 关键约束 - 必须遵守！
 1. **禁止直接输出 Final Answer** - 你必须先调用工具来收集项目信息
 2. **至少调用三个工具** - 使用 rag_query 语义搜索关键入口，read_file 读取文件，list_files 仅查看根目录

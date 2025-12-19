@@ -126,6 +126,10 @@ class VulnerabilityKnowledgeInput(BaseModel):
         ...,
         description="漏洞类型，如: sql_injection, xss, command_injection, path_traversal, ssrf, deserialization, hardcoded_secrets, auth_bypass"
     )
+    project_language: Optional[str] = Field(
+        None,
+        description="目标项目的主要编程语言（如 python, php, javascript, rust, go），用于过滤相关示例"
+    )
 
 
 class GetVulnerabilityKnowledgeTool(AgentTool):
@@ -165,13 +169,13 @@ class GetVulnerabilityKnowledgeTool(AgentTool):
     def args_schema(self) -> Type[BaseModel]:
         return VulnerabilityKnowledgeInput
     
-    async def _execute(self, vulnerability_type: str) -> ToolResult:
+    async def _execute(self, vulnerability_type: str, project_language: Optional[str] = None) -> ToolResult:
         """获取漏洞知识"""
         try:
             knowledge = await security_knowledge_rag.get_vulnerability_knowledge(
                 vulnerability_type
             )
-            
+
             if not knowledge:
                 available = security_knowledge_rag.get_all_vulnerability_types()
                 return ToolResult(
@@ -179,33 +183,90 @@ class GetVulnerabilityKnowledgeTool(AgentTool):
                     data=f"未找到漏洞类型 '{vulnerability_type}' 的知识。\n\n可用的漏洞类型: {', '.join(available)}",
                     metadata={"available_types": available},
                 )
-            
+
             # 格式化输出
             output_parts = [
                 f"# {knowledge.get('title', vulnerability_type)}",
                 f"严重程度: {knowledge.get('severity', 'N/A')}",
             ]
-            
+
             if knowledge.get("cwe_ids"):
                 output_parts.append(f"CWE: {', '.join(knowledge['cwe_ids'])}")
             if knowledge.get("owasp_ids"):
                 output_parts.append(f"OWASP: {', '.join(knowledge['owasp_ids'])}")
-            
+
+            # 🔥 v2.2: 添加语言不匹配警告
+            content = knowledge.get("content", "")
+            knowledge_lang = self._detect_code_language(content)
+
+            if project_language and knowledge_lang:
+                project_lang_lower = project_language.lower()
+                if knowledge_lang.lower() != project_lang_lower:
+                    output_parts.append("")
+                    output_parts.append("=" * 60)
+                    output_parts.append(f"⚠️ **重要警告**: 以下示例代码是 {knowledge_lang.upper()} 语言")
+                    output_parts.append(f"   你正在审计的项目是 {project_language.upper()} 项目")
+                    output_parts.append("   **这些代码示例仅供概念参考，不要直接套用到目标项目！**")
+                    output_parts.append("   请在目标项目中查找该语言特有的等效漏洞模式。")
+                    output_parts.append("=" * 60)
+
             output_parts.append("")
-            output_parts.append(knowledge.get("content", ""))
-            
+            output_parts.append(content)
+
+            # 🔥 v2.2: 添加使用指南
+            output_parts.append("")
+            output_parts.append("---")
+            output_parts.append("📌 **使用指南**:")
+            output_parts.append("1. 以上知识仅供参考，你必须在实际代码中验证漏洞是否存在")
+            output_parts.append("2. 不要假设项目中存在示例中的代码模式")
+            output_parts.append("3. 只有在 read_file 读取到的代码中确实存在问题时才报告漏洞")
+            output_parts.append("4. 如果示例语言与项目语言不同，请查找该语言的等效漏洞模式")
+
             return ToolResult(
                 success=True,
                 data="\n".join(output_parts),
-                metadata=knowledge,
+                metadata={
+                    **knowledge,
+                    "knowledge_language": knowledge_lang,
+                    "project_language": project_language,
+                },
             )
-            
+
         except Exception as e:
             logger.error(f"Get vulnerability knowledge failed: {e}")
             return ToolResult(
                 success=False,
                 error=f"获取漏洞知识失败: {str(e)}",
             )
+
+    def _detect_code_language(self, content: str) -> Optional[str]:
+        """检测知识内容中的主要代码语言"""
+        # 检测代码块中的语言标记
+        import re
+        code_blocks = re.findall(r'```(\w+)', content)
+        if code_blocks:
+            # 统计最常见的语言
+            from collections import Counter
+            lang_counts = Counter(code_blocks)
+            most_common = lang_counts.most_common(1)
+            if most_common:
+                return most_common[0][0]
+
+        # 基于内容特征检测
+        if "def " in content or "import " in content or "@app.route" in content:
+            return "python"
+        if "<?php" in content or "$_GET" in content or "$_POST" in content:
+            return "php"
+        if "function " in content and ("const " in content or "let " in content):
+            return "javascript"
+        if "func " in content and "package " in content:
+            return "go"
+        if "fn " in content and "let mut" in content:
+            return "rust"
+        if "public class" in content or "private void" in content:
+            return "java"
+
+        return None
 
 
 class ListKnowledgeModulesInput(BaseModel):
