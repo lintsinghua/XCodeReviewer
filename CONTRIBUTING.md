@@ -64,7 +64,7 @@
 | 依赖 | 版本要求 | 说明 |
 |------|---------|------|
 | Node.js | 18+ | 前端运行环境 |
-| Python | 3.13+ | 后端运行环境 |
+| Python | 3.11+ | 后端运行环境 |
 | PostgreSQL | 15+ | 数据库 |
 | pnpm | 8+ | 推荐的前端包管理器 |
 | uv | 最新版 | 推荐的 Python 包管理器 |
@@ -89,12 +89,9 @@ docker run -d \
 cd backend
 
 # 2. 创建虚拟环境
-uv venv
-source .venv/bin/activate  # Linux/macOS
-# 或 .venv\Scripts\activate  # Windows
-
-# 3. 安装依赖
-uv pip install -e .
+# 使用 uv 管理环境（推荐）
+uv sync
+source .venv/bin/activate
 
 # 4. 配置环境变量
 cp env.example .env
