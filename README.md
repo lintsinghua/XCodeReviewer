@@ -7,10 +7,6 @@
 </div>
 
 <div align="center">
-  <img src="frontend/public/DeepAudit.gif" alt="DeepAudit Demo" width="90%">
-</div>
-
-<div align="center">
 
 [![Version](https://img.shields.io/badge/version-3.0.2-blue.svg)](https://github.com/lintsinghua/DeepAudit/releases)
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
@@ -23,6 +19,13 @@
 [![Stars](https://img.shields.io/github/stars/lintsinghua/DeepAudit?style=social)](https://github.com/lintsinghua/DeepAudit/stargazers)
 [![Forks](https://img.shields.io/github/forks/lintsinghua/DeepAudit?style=social)](https://github.com/lintsinghua/DeepAudit/network/members)
 
+<a href="https://trendshift.io/repositories/15634" target="_blank"><img src="https://trendshift.io/api/badge/repositories/15634" alt="lintsinghua%2FDeepAudit | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
+
+
+</div>
+
+<div align="center">
+  <img src="frontend/public/DeepAudit.gif" alt="DeepAudit Demo" width="90%">
 </div>
 
 ---
