@@ -1,7 +1,5 @@
 # DeepAudit - 人人拥有的 AI 审计战队，让漏洞挖掘触手可及 🦸‍♂️
 
-> 让代码漏洞挖掘像呼吸一样简单，小白也能轻松挖洞
-
 <p align="center">
   <strong>简体中文</strong> | <a href="README_EN.md">English</a>
 </p>
