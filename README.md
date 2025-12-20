@@ -2,6 +2,10 @@
 
 > 让代码漏洞挖掘像呼吸一样简单，小白也能轻松挖洞
 
+<p align="center">
+  <strong>简体中文</strong> | <a href="README_EN.md">English</a>
+</p>
+
 <div style="width: 100%; max-width: 600px; margin: 0 auto;">
   <img src="frontend/public/images/logo.png" alt="DeepAudit Logo" style="width: 100%; height: auto; display: block; margin: 0 auto;">
 </div>
