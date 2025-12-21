@@ -1,7 +1,5 @@
 # DeepAudit - Your AI Security Audit Team, Making Vulnerability Discovery Accessible
 
-> Making code vulnerability discovery as easy as breathing, even beginners can find bugs
-
 <p align="center">
   <a href="README_CN.md">简体中文</a> | <strong>English</strong>
 </p>
