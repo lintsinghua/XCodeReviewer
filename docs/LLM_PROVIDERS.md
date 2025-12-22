@@ -291,14 +291,6 @@ LLM_BASE_URL=https://your-proxy.com/v1
 LLM_MODEL=gpt-4o-mini
 ```
 
-**常见中转站**:
-
-| 中转站 | 特点 |
-|--------|------|
-| [OpenRouter](https://openrouter.ai/) | 支持多种模型，统一接口 |
-| [API2D](https://api2d.com/) | 国内访问友好 |
-| [CloseAI](https://www.closeai-asia.com/) | 价格实惠 |
-
 ---
 
 ## 选择建议
