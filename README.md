@@ -336,7 +336,7 @@ DeepSeek-Coder · Codestral<br/>
 </tr>
 </table>
 
-> 💡 支持 API 中转站，解决网络访问问题 | 详细配置 → [LLM 平台支持](docs/LLM_PROVIDERS.md)
+💡 支持 API 中转站，解决网络访问问题 | 详细配置 → [LLM 平台支持](docs/LLM_PROVIDERS.md)
 
 ---
 
