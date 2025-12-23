@@ -388,7 +388,11 @@ DeepSeek-Coder · Codestral<br/>
 | 📧 **邮箱** | **lintsinghua@qq.com** |
 | 🐙 **GitHub** | [@lintsinghua](https://github.com/lintsinghua) |
 
+</div>
+
 ### 💬 交流群
+
+<div align="center">
 
 **欢迎大家入群交流分享、学习、摸鱼~**
 
