@@ -360,6 +360,12 @@ Please check [CONTRIBUTING.md](./CONTRIBUTING.md) for details.
 | **Email** | **lintsinghua@qq.com** |
 | **GitHub** | [@lintsinghua](https://github.com/lintsinghua) |
 
+### 💬 Community Group
+
+**Welcome to join our QQ group for discussion, sharing, learning, and chatting~**
+
+<img src="frontend/public/images/DeepAudit群聊.png" alt="QQ Group" width="200">
+
 </div>
 
 ## License
