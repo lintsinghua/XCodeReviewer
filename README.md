@@ -197,6 +197,37 @@ docker pull ghcr.nju.edu.cn/lintsinghua/deepaudit-sandbox:latest
 
 > 💡 镜像源由 [南京大学开源镜像站](https://mirrors.nju.edu.cn/) 提供支持
 
+<details>
+<summary>💡 配置 Docker 镜像加速（可选，进一步提升拉取速度）（点击展开）</summary>
+
+如果拉取镜像仍然较慢，可以配置 Docker 镜像加速器。编辑 Docker 配置文件并添加以下镜像源：
+
+**Linux / macOS**：编辑 `/etc/docker/daemon.json`
+
+**Windows**：右键 Docker Desktop 图标 → Settings → Docker Engine
+
+```json
+{
+  "registry-mirrors": [
+    "https://docker.1ms.run",
+    "https://dockerproxy.com",
+    "https://hub.rat.dev"
+  ]
+}
+```
+
+保存后重启 Docker 服务：
+
+```bash
+# Linux
+sudo systemctl restart docker
+
+# macOS / Windows
+# 重启 Docker Desktop 应用
+```
+
+</details>
+
 > 🎉 **启动成功！** 访问 http://localhost:3000 开始体验。
 
 ---
