@@ -173,6 +173,37 @@ Using pre-built Docker images, no need to clone code, start with one command:
 curl -fsSL https://raw.githubusercontent.com/lintsinghua/DeepAudit/v3.0.0/docker-compose.prod.yml | docker compose -f - up -d
 ```
 
+<details>
+<summary>💡 Configure Docker Registry Mirrors (Optional, for faster image pulling) (Click to expand)</summary>
+
+If pulling images is still slow, you can configure Docker registry mirrors. Edit the Docker configuration file and add the following mirror sources:
+
+**Linux / macOS**: Edit `/etc/docker/daemon.json`
+
+**Windows**: Right-click Docker Desktop icon → Settings → Docker Engine
+
+```json
+{
+  "registry-mirrors": [
+    "https://docker.1ms.run",
+    "https://dockerproxy.com",
+    "https://hub.rat.dev"
+  ]
+}
+```
+
+Restart Docker service after saving:
+
+```bash
+# Linux
+sudo systemctl restart docker
+
+# macOS / Windows
+# Restart Docker Desktop application
+```
+
+</details>
+
 > **Success!** Visit http://localhost:3000 to start exploring.
 
 ---
