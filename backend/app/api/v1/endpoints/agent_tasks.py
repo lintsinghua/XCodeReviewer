@@ -32,6 +32,8 @@ from app.models.user import User
 from app.models.user_config import UserConfig
 from app.services.agent.event_manager import EventManager
 from app.services.agent.streaming import StreamHandler, StreamEvent, StreamEventType
+from app.services.git_ssh_service import GitSSHOperations
+from app.core.encryption import decrypt_sensitive_data
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -288,12 +290,22 @@ async def _execute_agent_task(task_id: str):
             # 获取用户配置（需要在获取项目根目录之前，以便传递 token）
             user_config = await _get_user_config(db, task.created_by)
 
-            # 从用户配置中提取 token（用于私有仓库克隆）
+            # 从用户配置中提取 token和SSH密钥（用于私有仓库克隆）
             other_config = (user_config or {}).get('otherConfig', {})
             github_token = other_config.get('githubToken') or settings.GITHUB_TOKEN
             gitlab_token = other_config.get('gitlabToken') or settings.GITLAB_TOKEN
 
-            # 获取项目根目录（传递任务指定的分支和认证 token）
+            # 解密SSH私钥
+            ssh_private_key = None
+            if 'sshPrivateKey' in other_config:
+                try:
+                    encrypted_key = other_config['sshPrivateKey']
+                    ssh_private_key = decrypt_sensitive_data(encrypted_key)
+                    logger.info("成功解密SSH私钥")
+                except Exception as e:
+                    logger.warning(f"解密SSH私钥失败: {e}")
+
+            # 获取项目根目录（传递任务指定的分支和认证 token/SSH密钥）
             # 🔥 传递 event_emitter 以发送克隆进度
             project_root = await _get_project_root(
                 project,
@@ -301,6 +313,7 @@ async def _execute_agent_task(task_id: str):
                 task.branch_name,
                 github_token=github_token,
                 gitlab_token=gitlab_token,
+                ssh_private_key=ssh_private_key,  # 🔥 新增SSH密钥
                 event_emitter=event_emitter,  # 🔥 新增
             )
 
@@ -2213,6 +2226,7 @@ async def _get_project_root(
     branch_name: Optional[str] = None,
     github_token: Optional[str] = None,
     gitlab_token: Optional[str] = None,
+    ssh_private_key: Optional[str] = None,  # 🔥 新增：SSH私钥（用于SSH认证）
     event_emitter: Optional[Any] = None,  # 🔥 新增：用于发送实时日志
 ) -> str:
     """
@@ -2228,6 +2242,7 @@ async def _get_project_root(
         branch_name: 分支名称（仓库项目使用，优先于 project.default_branch）
         github_token: GitHub 访问令牌（用于私有仓库）
         gitlab_token: GitLab 访问令牌（用于私有仓库）
+        ssh_private_key: SSH私钥（用于SSH认证）
         event_emitter: 事件发送器（用于发送实时日志）
 
     Returns:
@@ -2303,6 +2318,9 @@ async def _get_project_root(
 
         await emit(f"🔄 正在获取仓库: {repo_url}")
 
+        # 检测是否为SSH URL（SSH链接不支持ZIP下载）
+        is_ssh_url = repo_url.startswith('git@')
+
         # 解析仓库 URL 获取 owner/repo
         parsed = urlparse(repo_url)
         path_parts = parsed.path.strip('/').replace('.git', '').split('/')
@@ -2325,7 +2343,12 @@ async def _get_project_root(
         last_error = ""
 
         # ============ 方案1: 优先使用 ZIP 下载（更快更稳定）============
-        if owner and repo:
+        # SSH链接直接跳过ZIP下载，使用git clone
+        if is_ssh_url:
+            logger.info(f"检测到SSH URL，跳过ZIP下载，直接使用Git克隆")
+            await emit(f"🔑 检测到SSH认证，使用Git克隆...")
+
+        if owner and repo and not is_ssh_url:
             import httpx
 
             for branch in branches_to_try:
@@ -2433,8 +2456,12 @@ async def _get_project_root(
 
         # ============ 方案2: 回退到 git clone ============
         if not download_success:
-            await emit(f"🔄 ZIP 下载失败，回退到 Git 克隆...")
-            logger.info("ZIP download failed, falling back to git clone")
+            if is_ssh_url:
+                # SSH链接直接使用git clone，不是"失败"
+                pass  # 已在上面输出提示
+            else:
+                await emit(f"🔄 ZIP 下载失败，回退到 Git 克隆...")
+                logger.info("ZIP download failed, falling back to git clone")
 
             # 检查 git 是否可用
             try:
@@ -2476,6 +2503,8 @@ async def _get_project_root(
                     parsed.fragment
                 ))
                 await emit(f"🔐 使用 GitLab Token 认证")
+            elif is_ssh_url and ssh_private_key:
+                await emit(f"🔐 使用 SSH Key 认证")
 
             for branch in branches_to_try:
                 check_cancelled()
@@ -2488,36 +2517,68 @@ async def _get_project_root(
                 await emit(f"🔄 尝试克隆分支: {branch}")
 
                 try:
-                    async def run_clone():
-                        return await asyncio.to_thread(
-                            subprocess.run,
-                            ["git", "clone", "--depth", "1", "--branch", branch, auth_url, base_path],
-                            capture_output=True,
-                            text=True,
-                            timeout=120,
-                        )
+                    # SSH URL使用GitSSHOperations（支持SSH密钥认证）
+                    if is_ssh_url and ssh_private_key:
+                        async def run_ssh_clone():
+                            return await asyncio.to_thread(
+                                GitSSHOperations.clone_repo_with_ssh,
+                                repo_url, ssh_private_key, base_path, branch
+                            )
 
-                    clone_task = asyncio.create_task(run_clone())
-                    while not clone_task.done():
-                        check_cancelled()
-                        try:
-                            result = await asyncio.wait_for(asyncio.shield(clone_task), timeout=1.0)
+                        clone_task = asyncio.create_task(run_ssh_clone())
+                        while not clone_task.done():
+                            check_cancelled()
+                            try:
+                                result = await asyncio.wait_for(asyncio.shield(clone_task), timeout=1.0)
+                                break
+                            except asyncio.TimeoutError:
+                                continue
+
+                        if clone_task.done():
+                            result = clone_task.result()
+
+                        # GitSSHOperations返回字典格式
+                        if result.get('success'):
+                            logger.info(f"✅ Git 克隆成功 (SSH, 分支: {branch})")
+                            await emit(f"✅ 仓库获取成功 (SSH克隆, 分支: {branch})")
+                            download_success = True
                             break
-                        except asyncio.TimeoutError:
-                            continue
-
-                    if clone_task.done():
-                        result = clone_task.result()
-
-                    if result.returncode == 0:
-                        logger.info(f"✅ Git 克隆成功 (分支: {branch})")
-                        await emit(f"✅ 仓库获取成功 (Git克隆, 分支: {branch})")
-                        download_success = True
-                        break
+                        else:
+                            last_error = result.get('message', '未知错误')
+                            logger.warning(f"SSH克隆失败 (分支 {branch}): {last_error[:200]}")
+                            await emit(f"⚠️ 分支 {branch} SSH克隆失败...", "warning")
                     else:
-                        last_error = result.stderr
-                        logger.warning(f"克隆失败 (分支 {branch}): {last_error[:200]}")
-                        await emit(f"⚠️ 分支 {branch} 克隆失败...", "warning")
+                        # HTTPS URL使用标准git clone
+                        async def run_clone():
+                            return await asyncio.to_thread(
+                                subprocess.run,
+                                ["git", "clone", "--depth", "1", "--branch", branch, auth_url, base_path],
+                                capture_output=True,
+                                text=True,
+                                timeout=120,
+                            )
+
+                        clone_task = asyncio.create_task(run_clone())
+                        while not clone_task.done():
+                            check_cancelled()
+                            try:
+                                result = await asyncio.wait_for(asyncio.shield(clone_task), timeout=1.0)
+                                break
+                            except asyncio.TimeoutError:
+                                continue
+
+                        if clone_task.done():
+                            result = clone_task.result()
+
+                        if result.returncode == 0:
+                            logger.info(f"✅ Git 克隆成功 (分支: {branch})")
+                            await emit(f"✅ 仓库获取成功 (Git克隆, 分支: {branch})")
+                            download_success = True
+                            break
+                        else:
+                            last_error = result.stderr
+                            logger.warning(f"克隆失败 (分支 {branch}): {last_error[:200]}")
+                            await emit(f"⚠️ 分支 {branch} 克隆失败...", "warning")
                 except subprocess.TimeoutExpired:
                     last_error = f"克隆分支 {branch} 超时"
                     logger.warning(last_error)
@@ -2536,33 +2597,61 @@ async def _get_project_root(
                     os.makedirs(base_path, exist_ok=True)
 
                 try:
-                    async def run_default_clone():
-                        return await asyncio.to_thread(
-                            subprocess.run,
-                            ["git", "clone", "--depth", "1", auth_url, base_path],
-                            capture_output=True,
-                            text=True,
-                            timeout=120,
-                        )
+                    # SSH URL使用GitSSHOperations（不指定分支）
+                    if is_ssh_url and ssh_private_key:
+                        async def run_default_ssh_clone():
+                            return await asyncio.to_thread(
+                                GitSSHOperations.clone_repo_with_ssh,
+                                repo_url, ssh_private_key, base_path, ""  # 空字符串表示使用默认分支
+                            )
 
-                    clone_task = asyncio.create_task(run_default_clone())
-                    while not clone_task.done():
-                        check_cancelled()
-                        try:
-                            result = await asyncio.wait_for(asyncio.shield(clone_task), timeout=1.0)
-                            break
-                        except asyncio.TimeoutError:
-                            continue
+                        clone_task = asyncio.create_task(run_default_ssh_clone())
+                        while not clone_task.done():
+                            check_cancelled()
+                            try:
+                                result = await asyncio.wait_for(asyncio.shield(clone_task), timeout=1.0)
+                                break
+                            except asyncio.TimeoutError:
+                                continue
 
-                    if clone_task.done():
-                        result = clone_task.result()
+                        if clone_task.done():
+                            result = clone_task.result()
 
-                    if result.returncode == 0:
-                        logger.info(f"✅ Git 克隆成功 (默认分支)")
-                        await emit(f"✅ 仓库获取成功 (Git克隆, 默认分支)")
-                        download_success = True
+                        if result.get('success'):
+                            logger.info(f"✅ Git 克隆成功 (SSH, 默认分支)")
+                            await emit(f"✅ 仓库获取成功 (SSH克隆, 默认分支)")
+                            download_success = True
+                        else:
+                            last_error = result.get('message', '未知错误')
                     else:
-                        last_error = result.stderr
+                        # HTTPS URL使用标准git clone
+                        async def run_default_clone():
+                            return await asyncio.to_thread(
+                                subprocess.run,
+                                ["git", "clone", "--depth", "1", auth_url, base_path],
+                                capture_output=True,
+                                text=True,
+                                timeout=120,
+                            )
+
+                        clone_task = asyncio.create_task(run_default_clone())
+                        while not clone_task.done():
+                            check_cancelled()
+                            try:
+                                result = await asyncio.wait_for(asyncio.shield(clone_task), timeout=1.0)
+                                break
+                            except asyncio.TimeoutError:
+                                continue
+
+                        if clone_task.done():
+                            result = clone_task.result()
+
+                        if result.returncode == 0:
+                            logger.info(f"✅ Git 克隆成功 (默认分支)")
+                            await emit(f"✅ 仓库获取成功 (Git克隆, 默认分支)")
+                            download_success = True
+                        else:
+                            last_error = result.stderr
                 except subprocess.TimeoutExpired:
                     last_error = "克隆超时"
                 except asyncio.CancelledError:

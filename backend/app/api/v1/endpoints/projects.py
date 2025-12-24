@@ -378,22 +378,24 @@ async def get_project_files(
         # Handle Repository project
         if not project.repository_url:
             return []
-            
+
         # Get tokens from user config
         from sqlalchemy.future import select
         from app.core.encryption import decrypt_sensitive_data
         from app.core.config import settings
+        from app.services.git_ssh_service import GitSSHOperations
 
-        SENSITIVE_OTHER_FIELDS = ['githubToken', 'gitlabToken']
-        
+        SENSITIVE_OTHER_FIELDS = ['githubToken', 'gitlabToken', 'sshPrivateKey']
+
         result = await db.execute(
             select(UserConfig).where(UserConfig.user_id == current_user.id)
         )
         config = result.scalar_one_or_none()
-        
+
         github_token = settings.GITHUB_TOKEN
         gitlab_token = settings.GITLAB_TOKEN
-        
+        ssh_private_key = None
+
         if config and config.other_config:
             other_config = json.loads(config.other_config)
             for field in SENSITIVE_OTHER_FIELDS:
@@ -403,20 +405,46 @@ async def get_project_files(
                         github_token = decrypted_val
                     elif field == 'gitlabToken':
                         gitlab_token = decrypted_val
+                    elif field == 'sshPrivateKey':
+                        ssh_private_key = decrypted_val
 
-        repo_type = project.repository_type or "other"
-        # 使用传入的 branch 参数，如果没有则使用项目默认分支
+        # 检查是否为SSH URL
+        is_ssh_url = GitSSHOperations.is_ssh_url(project.repository_url)
         target_branch = branch or project.default_branch or "main"
-        
+
         try:
-            if repo_type == "github":
-                # 传入用户自定义排除模式
-                repo_files = await get_github_files(project.repository_url, target_branch, github_token, parsed_exclude_patterns)
-                files = [{"path": f["path"], "size": 0} for f in repo_files]
-            elif repo_type == "gitlab":
-                # 传入用户自定义排除模式
-                repo_files = await get_gitlab_files(project.repository_url, target_branch, gitlab_token, parsed_exclude_patterns)
-                files = [{"path": f["path"], "size": 0} for f in repo_files]
+            if is_ssh_url:
+                # 使用SSH方式获取文件列表
+                if not ssh_private_key:
+                    raise HTTPException(
+                        status_code=400,
+                        detail="仓库使用SSH URL，但未配置SSH密钥。请先在设置中生成SSH密钥。"
+                    )
+
+                print(f"🔐 使用SSH方式获取文件列表: {project.repository_url}")
+                files_with_content = GitSSHOperations.get_repo_files_via_ssh(
+                    project.repository_url,
+                    ssh_private_key,
+                    target_branch,
+                    parsed_exclude_patterns
+                )
+                files = [{"path": f["path"], "size": len(f.get("content", ""))} for f in files_with_content]
+            else:
+                # 使用API方式获取文件列表
+                repo_type = project.repository_type or "other"
+
+                if repo_type == "github":
+                    # 传入用户自定义排除模式
+                    repo_files = await get_github_files(project.repository_url, target_branch, github_token, parsed_exclude_patterns)
+                    files = [{"path": f["path"], "size": 0} for f in repo_files]
+                elif repo_type == "gitlab":
+                    # 传入用户自定义排除模式
+                    repo_files = await get_gitlab_files(project.repository_url, target_branch, gitlab_token, parsed_exclude_patterns)
+                    files = [{"path": f["path"], "size": 0} for f in repo_files]
+                else:
+                    raise HTTPException(status_code=400, detail="不支持的仓库类型")
+        except HTTPException:
+            raise
         except Exception as e:
              print(f"Error fetching repo files: {e}")
              raise HTTPException(status_code=500, detail=f"无法获取仓库文件: {str(e)}")

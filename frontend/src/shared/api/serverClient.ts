@@ -8,6 +8,8 @@ export const apiClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  // 确保重定向时保留Authorization header
+  maxRedirects: 5,
 });
 
 // Request interceptor to add token
