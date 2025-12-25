@@ -94,22 +94,44 @@ class SSHKeyService:
         验证私钥和公钥是否匹配
 
         Args:
-            private_key: SSH私钥（OpenSSH格式）
+            private_key: SSH私钥（支持传统RSA PEM格式或OpenSSH格式）
             public_key: SSH公钥（OpenSSH格式）
 
         Returns:
             是否匹配
         """
         try:
-            from cryptography.hazmat.primitives.serialization import load_ssh_private_key
+            from cryptography.hazmat.primitives.serialization import (
+                load_ssh_private_key,
+                load_pem_private_key
+            )
             from cryptography.hazmat.backends import default_backend
 
-            # 加载私钥
-            private_key_obj = load_ssh_private_key(
-                private_key.encode('utf-8'),
-                password=None,
-                backend=default_backend()
-            )
+            # 尝试加载私钥（支持多种格式）
+            private_key_bytes = private_key.encode('utf-8')
+            private_key_obj = None
+
+            # 首先尝试作为OpenSSH格式加载
+            try:
+                private_key_obj = load_ssh_private_key(
+                    private_key_bytes,
+                    password=None,
+                    backend=default_backend()
+                )
+            except Exception:
+                # 如果失败，尝试作为传统PEM格式加载（支持RSA、DSA、EC等）
+                try:
+                    private_key_obj = load_pem_private_key(
+                        private_key_bytes,
+                        password=None,
+                        backend=default_backend()
+                    )
+                except Exception as e:
+                    print(f"[SSH] Failed to load private key: {e}")
+                    return False
+
+            if not private_key_obj:
+                return False
 
             # 从私钥导出公钥
             derived_public_key = private_key_obj.public_key()
