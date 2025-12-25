@@ -229,7 +229,7 @@ class GitSSHOperations:
         return url.startswith('git@') or url.startswith('ssh://')
 
     @staticmethod
-    def clone_repo_with_ssh(repo_url: str, private_key: str, target_dir: str, branch: str = "main") -> Dict[str, any]:
+    def clone_repo_with_ssh(repo_url: str, private_key: str, target_dir: str, branch: str = None) -> Dict[str, any]:
         """
         使用SSH密钥克隆Git仓库
 
@@ -260,7 +260,7 @@ class GitSSHOperations:
             ssh_cmd_parts = [
                 'ssh',
                 '-i', key_file,
-                '-o', 'StrictHostKeyChecking=no',
+                '-o', 'StrictHostKeyChecking=yes',
                 '-o', 'UserKnownHostsFile=/dev/null',
                 '-o', 'PreferredAuthentications=publickey',
                 '-o', 'IdentitiesOnly=yes'  # 只使用指定的密钥，不使用系统默认密钥
@@ -270,7 +270,11 @@ class GitSSHOperations:
             print(f"[Git Clone] Using DeepAudit SSH key only: {key_file}")
 
             # 执行git clone
-            cmd = ['git', 'clone', '--depth', '1', '--branch', branch, repo_url, target_dir]
+            cmd = ['git', 'clone', '--depth', '1']
+            if branch:  # 只有明确指定分支时才添加
+                cmd.extend(['--branch', branch])
+                cmd.extend([repo_url, target_dir])
+                
             result = subprocess.run(
                 cmd,
                 env=env,
@@ -414,7 +418,7 @@ class GitSSHOperations:
             cmd = [
                 'ssh',
                 '-i', key_file,
-                '-o', 'StrictHostKeyChecking=no',
+                '-o', 'StrictHostKeyChecking=yes',
                 '-o', 'UserKnownHostsFile=/dev/null',
                 '-o', 'ConnectTimeout=10',
                 '-o', 'PreferredAuthentications=publickey',
@@ -444,7 +448,7 @@ class GitSSHOperations:
                     'output': f'提示：服务器显示Anonymous表示公钥未添加到Git服务或未关联到您的账户。\n请在Git服务的设置中添加SSH公钥。\n\n原始输出：\n{output}'
                 }
 
-            # 检查是否认证成功（必须有用户名，不能是Anonymous）
+            # 检查是否认证成功
             success_indicators = [
                 ('successfully authenticated', True),  # GitHub
                 ('hi ', True),                         # GitHub: "Hi username!"

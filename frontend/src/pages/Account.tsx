@@ -487,7 +487,7 @@ export default function Account() {
                   )}
 
                   <p className="text-xs text-muted-foreground">
-                    请将此公钥添加到 <a href="https://github.com/settings/keys" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">GitHub</a> 或 <a href="https://gitlab.com/-/profile/keys" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">GitLab</a> 或 <a href="https://codeup.aliyun.com/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">CodeUp</a> 账户
+                    请将此公钥添加到 <a href="https://github.com/settings/keys" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">GitHub</a> 或 <a href="https://gitlab.com/-/profile/keys" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">GitLab</a> 账户
                   </p>
                 </div>
 

@@ -2319,7 +2319,7 @@ async def _get_project_root(
         await emit(f"🔄 正在获取仓库: {repo_url}")
 
         # 检测是否为SSH URL（SSH链接不支持ZIP下载）
-        is_ssh_url = repo_url.startswith('git@')
+        is_ssh_url = GitSSHOperations.is_ssh_url(repo_url)
 
         # 解析仓库 URL 获取 owner/repo
         parsed = urlparse(repo_url)
@@ -2602,7 +2602,7 @@ async def _get_project_root(
                         async def run_default_ssh_clone():
                             return await asyncio.to_thread(
                                 GitSSHOperations.clone_repo_with_ssh,
-                                repo_url, ssh_private_key, base_path, ""  # 空字符串表示使用默认分支
+                                repo_url, ssh_private_key, base_path, branch
                             )
 
                         clone_task = asyncio.create_task(run_default_ssh_clone())
