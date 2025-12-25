@@ -739,6 +739,20 @@ class CodeIndexer:
         self._needs_rebuild = False
         self._rebuild_reason = ""
 
+    @staticmethod
+    def _read_file_sync(file_path: str) -> str:
+        """
+        同步读取文件内容（用于 asyncio.to_thread 包装）
+
+        Args:
+            file_path: 文件路径
+
+        Returns:
+            文件内容
+        """
+        with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+            return f.read()
+
     async def initialize(self, force_rebuild: bool = False) -> Tuple[bool, str]:
         """
         初始化索引器，检测是否需要重建索引
@@ -916,8 +930,10 @@ class CodeIndexer:
             try:
                 relative_path = os.path.relpath(file_path, directory)
 
-                with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                    content = f.read()
+                # 异步读取文件，避免阻塞事件循环
+                content = await asyncio.to_thread(
+                    self._read_file_sync, file_path
+                )
 
                 if not content.strip():
                     progress.processed_files += 1
@@ -932,8 +948,8 @@ class CodeIndexer:
                 if len(content) > 500000:
                     content = content[:500000]
 
-                # 分块
-                chunks = self.splitter.split_file(content, relative_path)
+                # 异步分块，避免 Tree-sitter 解析阻塞事件循环
+                chunks = await self.splitter.split_file_async(content, relative_path)
 
                 # 为每个 chunk 添加 file_hash
                 for chunk in chunks:
@@ -1018,8 +1034,10 @@ class CodeIndexer:
         for relative_path in files_to_check:
             file_path = current_file_map[relative_path]
             try:
-                with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                    content = f.read()
+                # 异步读取文件，避免阻塞事件循环
+                content = await asyncio.to_thread(
+                    self._read_file_sync, file_path
+                )
                 current_hash = hashlib.md5(content.encode()).hexdigest()
                 if current_hash != indexed_file_hashes.get(relative_path):
                     files_to_update.add(relative_path)
@@ -1055,8 +1073,10 @@ class CodeIndexer:
             is_update = relative_path in files_to_update
 
             try:
-                with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                    content = f.read()
+                # 异步读取文件，避免阻塞事件循环
+                content = await asyncio.to_thread(
+                    self._read_file_sync, file_path
+                )
 
                 if not content.strip():
                     progress.processed_files += 1
@@ -1075,8 +1095,8 @@ class CodeIndexer:
                 if len(content) > 500000:
                     content = content[:500000]
 
-                # 分块
-                chunks = self.splitter.split_file(content, relative_path)
+                # 异步分块，避免 Tree-sitter 解析阻塞事件循环
+                chunks = await self.splitter.split_file_async(content, relative_path)
 
                 # 为每个 chunk 添加 file_hash
                 for chunk in chunks:
