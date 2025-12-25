@@ -275,6 +275,7 @@ export default function Projects() {
     switch (type) {
       case 'github': return <Github className="w-5 h-5" />;
       case 'gitlab': return <GitBranch className="w-5 h-5 text-orange-500" />;
+      case 'gitea': return <GitBranch className="w-5 h-5 text-green-600" />;
       default: return <Folder className="w-5 h-5 text-muted-foreground" />;
     }
   };
@@ -486,6 +487,7 @@ export default function Projects() {
                       <SelectContent className="cyber-dialog border-border">
                         <SelectItem value="github">GITHUB</SelectItem>
                         <SelectItem value="gitlab">GITLAB</SelectItem>
+                        <SelectItem value="gitea">GITEA</SelectItem>
                         <SelectItem value="other">OTHER</SelectItem>
                       </SelectContent>
                     </Select>
@@ -1016,6 +1018,7 @@ export default function Projects() {
                       <SelectContent className="cyber-dialog border-border">
                         <SelectItem value="github">GITHUB</SelectItem>
                         <SelectItem value="gitlab">GITLAB</SelectItem>
+                        <SelectItem value="gitea">GITEA</SelectItem>
                         <SelectItem value="other">OTHER</SelectItem>
                       </SelectContent>
                     </Select>

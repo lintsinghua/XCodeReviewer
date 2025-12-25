@@ -67,7 +67,7 @@
 <td width="50%" align="center">
 <strong>🗂️ 项目管理</strong><br/><br/>
 <img src="frontend/public/images/README-show/项目管理.png" alt="项目管理" width="95%"><br/>
-<em>GitHub/GitLab 导入，多项目协同管理</em>
+<em>GitHub/GitLab/Gitea 导入，多项目协同管理</em>
 </td>
 </tr>
 </table>
@@ -262,10 +262,22 @@ docker compose up -d
 - PostgreSQL 15+
 - Docker (用于沙箱)
 
-### 1. 后端启动
+
+### 1. 手动启动数据库
+
+```bash
+docker compose up -d redis db
+```
+
+### 2. 后端启动
+
+
 
 ```bash
 cd backend
+# 配置环境
+cp env.example .env
+
 # 使用 uv 管理环境（推荐）
 uv sync
 source .venv/bin/activate
@@ -274,10 +286,13 @@ source .venv/bin/activate
 uvicorn app.main:app --reload
 ```
 
-### 2. 前端启动
+### 3. 前端启动
 
 ```bash
 cd frontend
+# 配置环境
+cp .env.example .env
+
 pnpm install
 pnpm dev
 ```
@@ -378,7 +393,7 @@ DeepSeek-Coder · Codestral<br/>
 | 🤖 **Agent 深度审计** | Multi-Agent 协作，自主编排审计策略 | Agent |
 | 🧠 **RAG 知识增强** | 代码语义理解，CWE/CVE 知识库检索 | Agent |
 | 🔒 **沙箱 PoC 验证** | Docker 隔离执行，验证漏洞有效性 | Agent |
-| 🗂️ **项目管理** | GitHub/GitLab 导入，ZIP 上传，10+ 语言支持 | 通用 |
+| 🗂️ **项目管理** | GitHub/GitLab/Gitea 导入，ZIP 上传，10+ 语言支持 | 通用 |
 | ⚡ **即时分析** | 代码片段秒级分析，粘贴即用 | 通用 |
 | 🔍 **五维检测** | Bug · 安全 · 性能 · 风格 · 可维护性 | 通用 |
 | 💡 **What-Why-How** | 精准定位 + 原因解释 + 修复建议 | 通用 |

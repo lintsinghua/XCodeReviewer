@@ -18,7 +18,7 @@ from app.models.user import User
 from app.models.audit import AuditTask, AuditIssue
 from app.models.user_config import UserConfig
 import zipfile
-from app.services.scanner import scan_repo_task, get_github_files, get_gitlab_files, get_github_branches, get_gitlab_branches, should_exclude, is_text_file
+from app.services.scanner import scan_repo_task, get_github_files, get_gitlab_files, get_github_branches, get_gitlab_branches, get_gitea_branches, should_exclude, is_text_file
 from app.services.zip_storage import (
     save_project_zip, load_project_zip, get_project_zip_meta,
     delete_project_zip, has_project_zip
@@ -659,9 +659,10 @@ async def get_project_branches(
     config = config.scalar_one_or_none()
     
     github_token = settings.GITHUB_TOKEN
+    gitea_token = settings.GITEA_TOKEN
     gitlab_token = settings.GITLAB_TOKEN
-    
-    SENSITIVE_OTHER_FIELDS = ['githubToken', 'gitlabToken']
+
+    SENSITIVE_OTHER_FIELDS = ['githubToken', 'gitlabToken', 'giteaToken']
     
     if config and config.other_config:
         import json
@@ -673,12 +674,13 @@ async def get_project_branches(
                     github_token = decrypted_val
                 elif field == 'gitlabToken':
                     gitlab_token = decrypted_val
+                elif field == 'giteaToken':
+                    gitea_token = decrypted_val
     
     repo_type = project.repository_type or "other"
     
     # 详细日志
     print(f"[Branch] 项目: {project.name}, 类型: {repo_type}, URL: {project.repository_url}")
-    print(f"[Branch] GitHub Token: {'已配置' if github_token else '未配置'}, GitLab Token: {'已配置' if gitlab_token else '未配置'}")
     
     try:
         if repo_type == "github":
@@ -689,6 +691,10 @@ async def get_project_branches(
             if not gitlab_token:
                 print("[Branch] 警告: GitLab Token 未配置，可能无法访问私有仓库")
             branches = await get_gitlab_branches(project.repository_url, gitlab_token)
+        elif repo_type == "gitea":
+            if not gitea_token:
+                print("[Branch] 警告: Gitea Token 未配置，可能无法访问私有仓库")
+            branches = await get_gitea_branches(project.repository_url, gitea_token)
         else:
             # 对于其他类型，返回默认分支
             print(f"[Branch] 仓库类型 '{repo_type}' 不支持获取分支，返回默认分支")

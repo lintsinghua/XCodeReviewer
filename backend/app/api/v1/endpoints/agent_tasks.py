@@ -434,7 +434,7 @@ async def _execute_agent_task(task_id: str):
             # 这确保即使 runner.cancel() 失败，Agent 也能通过 checking 全局标志感知取消
             def check_global_cancel():
                 return is_task_cancelled(task_id)
-            
+
             orchestrator.set_cancel_callback(check_global_cancel)
             # 同时也为子 Agent 设置（虽然 Orchestrator 会传播）
             recon_agent.set_cancel_callback(check_global_cancel)

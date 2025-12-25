@@ -31,7 +31,7 @@ exit(0 if asyncio.run(check_db()) else 1)
         echo "✅ 数据库连接成功"
         break
     fi
-    
+
     retry_count=$((retry_count + 1))
     echo "   重试 $retry_count/$max_retries..."
     sleep 2

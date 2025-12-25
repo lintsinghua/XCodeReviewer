@@ -687,7 +687,7 @@ Action Input: {{"参数": "值"}}
 
                         # Use asyncio.wait to poll without cancelling the task
                         done, pending = await asyncio.wait(
-                            [run_task], 
+                            [run_task],
                             timeout=0.5,
                             return_when=asyncio.FIRST_COMPLETED
                         )
