@@ -22,17 +22,23 @@ export const PROJECT_SOURCE_TYPES: Array<{
     }
   ];
 
+// 仓库平台显示名称
+export const REPOSITORY_PLATFORM_LABELS: Record<RepositoryPlatform, string> = {
+  github: 'GitHub',
+  gitlab: 'GitLab',
+  gitea: 'Gitea',
+  other: '其他',
+};
+
 // 仓库平台选项
 export const REPOSITORY_PLATFORMS: Array<{
   value: RepositoryPlatform;
   label: string;
   icon?: string;
-}> = [
-    { value: 'github', label: 'GitHub' },
-    { value: 'gitlab', label: 'GitLab' },
-    { value: 'gitea', label: 'Gitea' },
-    { value: 'other', label: '其他' }
-  ];
+}> = Object.entries(REPOSITORY_PLATFORM_LABELS).map(([value, label]) => ({
+  value: value as RepositoryPlatform,
+  label
+}));
 
 // 项目来源类型的颜色配置
 export const SOURCE_TYPE_COLORS: Record<ProjectSourceType, {

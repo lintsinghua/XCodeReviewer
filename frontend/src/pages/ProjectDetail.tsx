@@ -40,7 +40,7 @@ import CreateTaskDialog from "@/components/audit/CreateTaskDialog";
 import FileSelectionDialog from "@/components/audit/FileSelectionDialog";
 import TerminalProgressDialog from "@/components/audit/TerminalProgressDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { SUPPORTED_LANGUAGES } from "@/shared/constants";
+import { SUPPORTED_LANGUAGES, REPOSITORY_PLATFORMS } from "@/shared/constants";
 
 export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
@@ -529,9 +529,9 @@ export default function ProjectDetail() {
                       >
                         <div className="flex items-center space-x-3">
                           <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${task.status === 'completed' ? 'bg-emerald-500/20' :
-                              task.status === 'running' ? 'bg-sky-500/20' :
-                                task.status === 'failed' ? 'bg-rose-500/20' :
-                                  'bg-muted'
+                            task.status === 'running' ? 'bg-sky-500/20' :
+                              task.status === 'failed' ? 'bg-rose-500/20' :
+                                'bg-muted'
                             }`}>
                             {getStatusIcon(task.status)}
                           </div>
@@ -578,9 +578,9 @@ export default function ProjectDetail() {
                   <div className="flex items-center justify-between mb-4 pb-4 border-b border-border">
                     <div className="flex items-center space-x-3">
                       <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${task.status === 'completed' ? 'bg-emerald-500/20' :
-                          task.status === 'running' ? 'bg-sky-500/20' :
-                            task.status === 'failed' ? 'bg-rose-500/20' :
-                              'bg-muted'
+                        task.status === 'running' ? 'bg-sky-500/20' :
+                          task.status === 'failed' ? 'bg-rose-500/20' :
+                            'bg-muted'
                         }`}>
                         {getStatusIcon(task.status)}
                       </div>
@@ -674,9 +674,9 @@ export default function ProjectDetail() {
                   <div className="flex items-start justify-between">
                     <div className="flex items-start space-x-3">
                       <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${issue.severity === 'critical' ? 'bg-rose-500/20 text-rose-600 dark:text-rose-400' :
-                          issue.severity === 'high' ? 'bg-orange-500/20 text-orange-600 dark:text-orange-400' :
-                            issue.severity === 'medium' ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400' :
-                              'bg-sky-500/20 text-sky-600 dark:text-sky-400'
+                        issue.severity === 'high' ? 'bg-orange-500/20 text-orange-600 dark:text-orange-400' :
+                          issue.severity === 'medium' ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400' :
+                            'bg-sky-500/20 text-sky-600 dark:text-sky-400'
                         }`}>
                         <AlertTriangle className="w-4 h-4" />
                       </div>
@@ -779,10 +779,11 @@ export default function ProjectDetail() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="cyber-dialog border-border">
-                          <SelectItem value="github">GitHub</SelectItem>
-                          <SelectItem value="gitlab">GitLab</SelectItem>
-                          <SelectItem value="gitea">Gitea</SelectItem>
-                          <SelectItem value="other">其他</SelectItem>
+                          {REPOSITORY_PLATFORMS.map((platform) => (
+                            <SelectItem key={platform.value} value={platform.value}>
+                              {platform.label}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>
