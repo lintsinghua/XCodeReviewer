@@ -34,7 +34,7 @@ import { api } from "@/shared/config/database";
 import { runRepositoryAudit, scanStoredZipFile } from "@/features/projects/services";
 import type { Project, AuditTask, CreateProjectForm } from "@/shared/types";
 import { hasZipFile } from "@/shared/utils/zipStorage";
-import { isRepositoryProject, getSourceTypeLabel } from "@/shared/utils/projectUtils";
+import { isRepositoryProject, getSourceTypeLabel, getRepositoryPlatformLabel } from "@/shared/utils/projectUtils";
 import { toast } from "sonner";
 import CreateTaskDialog from "@/components/audit/CreateTaskDialog";
 import FileSelectionDialog from "@/components/audit/FileSelectionDialog";
@@ -475,8 +475,7 @@ export default function ProjectDetail() {
                       <div className="flex items-center justify-between">
                         <span className="text-sm text-muted-foreground uppercase">仓库平台</span>
                         <Badge className="cyber-badge-muted">
-                          {project.repository_type === 'github' ? 'GitHub' :
-                            project.repository_type === 'gitlab' ? 'GitLab' : '其他'}
+                          {getRepositoryPlatformLabel(project.repository_type)}
                         </Badge>
                       </div>
 
@@ -529,12 +528,11 @@ export default function ProjectDetail() {
                         className="flex items-center justify-between p-3 bg-muted/50 rounded-lg hover:bg-muted transition-all group"
                       >
                         <div className="flex items-center space-x-3">
-                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                            task.status === 'completed' ? 'bg-emerald-500/20' :
-                            task.status === 'running' ? 'bg-sky-500/20' :
-                            task.status === 'failed' ? 'bg-rose-500/20' :
-                            'bg-muted'
-                          }`}>
+                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${task.status === 'completed' ? 'bg-emerald-500/20' :
+                              task.status === 'running' ? 'bg-sky-500/20' :
+                                task.status === 'failed' ? 'bg-rose-500/20' :
+                                  'bg-muted'
+                            }`}>
                             {getStatusIcon(task.status)}
                           </div>
                           <div>
@@ -579,12 +577,11 @@ export default function ProjectDetail() {
                 <div key={task.id} className="cyber-card p-6">
                   <div className="flex items-center justify-between mb-4 pb-4 border-b border-border">
                     <div className="flex items-center space-x-3">
-                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                        task.status === 'completed' ? 'bg-emerald-500/20' :
-                        task.status === 'running' ? 'bg-sky-500/20' :
-                        task.status === 'failed' ? 'bg-rose-500/20' :
-                        'bg-muted'
-                      }`}>
+                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${task.status === 'completed' ? 'bg-emerald-500/20' :
+                          task.status === 'running' ? 'bg-sky-500/20' :
+                            task.status === 'failed' ? 'bg-rose-500/20' :
+                              'bg-muted'
+                        }`}>
                         {getStatusIcon(task.status)}
                       </div>
                       <div>
@@ -676,12 +673,11 @@ export default function ProjectDetail() {
                 <div key={index} className="cyber-card p-4 hover:border-border transition-all">
                   <div className="flex items-start justify-between">
                     <div className="flex items-start space-x-3">
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                        issue.severity === 'critical' ? 'bg-rose-500/20 text-rose-600 dark:text-rose-400' :
-                        issue.severity === 'high' ? 'bg-orange-500/20 text-orange-600 dark:text-orange-400' :
-                        issue.severity === 'medium' ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400' :
-                        'bg-sky-500/20 text-sky-600 dark:text-sky-400'
-                      }`}>
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${issue.severity === 'critical' ? 'bg-rose-500/20 text-rose-600 dark:text-rose-400' :
+                          issue.severity === 'high' ? 'bg-orange-500/20 text-orange-600 dark:text-orange-400' :
+                            issue.severity === 'medium' ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400' :
+                              'bg-sky-500/20 text-sky-600 dark:text-sky-400'
+                        }`}>
                         <AlertTriangle className="w-4 h-4" />
                       </div>
                       <div>
@@ -695,13 +691,13 @@ export default function ProjectDetail() {
                     <Badge className={`
                       ${issue.severity === 'critical' ? 'severity-critical' :
                         issue.severity === 'high' ? 'severity-high' :
-                        issue.severity === 'medium' ? 'severity-medium' :
-                        'severity-low'}
+                          issue.severity === 'medium' ? 'severity-medium' :
+                            'severity-low'}
                       font-bold uppercase px-2 py-1 rounded text-xs
                     `}>
                       {issue.severity === 'critical' ? '严重' :
                         issue.severity === 'high' ? '高' :
-                        issue.severity === 'medium' ? '中等' : '低'}
+                          issue.severity === 'medium' ? '中等' : '低'}
                     </Badge>
                   </div>
                   <p className="mt-3 text-sm text-muted-foreground font-mono border-t border-border pt-3">
@@ -785,6 +781,7 @@ export default function ProjectDetail() {
                         <SelectContent className="cyber-dialog border-border">
                           <SelectItem value="github">GitHub</SelectItem>
                           <SelectItem value="gitlab">GitLab</SelectItem>
+                          <SelectItem value="gitea">Gitea</SelectItem>
                           <SelectItem value="other">其他</SelectItem>
                         </SelectContent>
                       </Select>
@@ -831,14 +828,14 @@ export default function ProjectDetail() {
                       className={`flex items-center space-x-2 p-3 border cursor-pointer transition-all rounded ${editForm.programming_languages?.includes(lang)
                         ? 'border-primary bg-primary/10 text-primary'
                         : 'border-border hover:border-border text-muted-foreground'
-                      }`}
+                        }`}
                       onClick={() => handleToggleLanguage(lang)}
                     >
                       <div
                         className={`w-4 h-4 border-2 rounded-sm flex items-center justify-center ${editForm.programming_languages?.includes(lang)
                           ? 'bg-primary border-primary'
                           : 'border-border'
-                        }`}
+                          }`}
                       >
                         {editForm.programming_languages?.includes(lang) && (
                           <CheckCircle className="w-3 h-3 text-foreground" />

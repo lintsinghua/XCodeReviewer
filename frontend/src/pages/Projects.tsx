@@ -485,10 +485,10 @@ export default function Projects() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="cyber-dialog border-border">
-                        <SelectItem value="github">GITHUB</SelectItem>
-                        <SelectItem value="gitlab">GITLAB</SelectItem>
-                        <SelectItem value="gitea">GITEA</SelectItem>
-                        <SelectItem value="other">OTHER</SelectItem>
+                        <SelectItem value="github">GitHub</SelectItem>
+                        <SelectItem value="gitlab">GitLab</SelectItem>
+                        <SelectItem value="gitea">Gitea</SelectItem>
+                        <SelectItem value="other">其他</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -1016,10 +1016,10 @@ export default function Projects() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="cyber-dialog border-border">
-                        <SelectItem value="github">GITHUB</SelectItem>
-                        <SelectItem value="gitlab">GITLAB</SelectItem>
-                        <SelectItem value="gitea">GITEA</SelectItem>
-                        <SelectItem value="other">OTHER</SelectItem>
+                        <SelectItem value="github">GitHub</SelectItem>
+                        <SelectItem value="gitlab">GitLab</SelectItem>
+                        <SelectItem value="gitea">Gitea</SelectItem>
+                        <SelectItem value="other">其他</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
