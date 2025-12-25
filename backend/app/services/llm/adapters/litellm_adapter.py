@@ -416,13 +416,93 @@ class LiteLLMAdapter(BaseLLMAdapter):
                     "finish_reason": "complete",
                 }
 
-        except Exception as e:
-            # 🔥 即使出错，也尝试返回估算的 usage
-            logger.error(f"Stream error: {e}")
+        except litellm.exceptions.RateLimitError as e:
+            # 速率限制错误 - 需要特殊处理
+            logger.error(f"Stream rate limit error: {e}")
+            error_msg = str(e)
+            # 区分"余额不足"和"频率超限"
+            if any(keyword in error_msg.lower() for keyword in ["余额不足", "资源包", "充值", "quota", "exceeded", "billing"]):
+                error_type = "quota_exceeded"
+                user_message = "API 配额已用尽，请检查账户余额或升级计划"
+            else:
+                error_type = "rate_limit"
+                # 尝试从错误消息中提取重试时间
+                import re
+                retry_match = re.search(r"retry\s*(?:in|after)\s*(\d+(?:\.\d+)?)\s*s", error_msg, re.IGNORECASE)
+                retry_seconds = float(retry_match.group(1)) if retry_match else 60
+                user_message = f"API 调用频率超限，建议等待 {int(retry_seconds)} 秒后重试"
+
             output_tokens_estimate = estimate_tokens(accumulated_content) if accumulated_content else 0
             yield {
                 "type": "error",
+                "error_type": error_type,
+                "error": error_msg,
+                "user_message": user_message,
+                "accumulated": accumulated_content,
+                "usage": {
+                    "prompt_tokens": input_tokens_estimate,
+                    "completion_tokens": output_tokens_estimate,
+                    "total_tokens": input_tokens_estimate + output_tokens_estimate,
+                } if accumulated_content else None,
+            }
+
+        except litellm.exceptions.AuthenticationError as e:
+            # 认证错误 - API Key 无效
+            logger.error(f"Stream authentication error: {e}")
+            yield {
+                "type": "error",
+                "error_type": "authentication",
                 "error": str(e),
+                "user_message": "API Key 无效或已过期，请检查配置",
+                "accumulated": accumulated_content,
+                "usage": None,
+            }
+
+        except litellm.exceptions.APIConnectionError as e:
+            # 连接错误 - 网络问题
+            logger.error(f"Stream connection error: {e}")
+            yield {
+                "type": "error",
+                "error_type": "connection",
+                "error": str(e),
+                "user_message": "无法连接到 API 服务，请检查网络连接",
+                "accumulated": accumulated_content,
+                "usage": None,
+            }
+
+        except Exception as e:
+            # 其他错误 - 检查是否是包装的速率限制错误
+            error_msg = str(e)
+            logger.error(f"Stream error: {e}")
+
+            # 检查是否是包装的速率限制错误（如 ServiceUnavailableError 包装 RateLimitError）
+            is_rate_limit = any(keyword in error_msg.lower() for keyword in [
+                "ratelimiterror", "rate limit", "429", "resource_exhausted",
+                "quota exceeded", "too many requests"
+            ])
+
+            if is_rate_limit:
+                # 按速率限制错误处理
+                import re
+                # 检查是否是配额用尽
+                if any(keyword in error_msg.lower() for keyword in ["quota", "exceeded", "billing"]):
+                    error_type = "quota_exceeded"
+                    user_message = "API 配额已用尽，请检查账户余额或升级计划"
+                else:
+                    error_type = "rate_limit"
+                    retry_match = re.search(r"retry\s*(?:in|after)\s*(\d+(?:\.\d+)?)\s*s", error_msg, re.IGNORECASE)
+                    retry_seconds = float(retry_match.group(1)) if retry_match else 60
+                    user_message = f"API 调用频率超限，建议等待 {int(retry_seconds)} 秒后重试"
+            else:
+                error_type = "unknown"
+                user_message = "LLM 调用发生错误，请重试"
+
+            output_tokens_estimate = estimate_tokens(accumulated_content) if accumulated_content else 0
+            yield {
+                "type": "error",
+                "error_type": error_type,
+                "error": error_msg,
+                "user_message": user_message,
                 "accumulated": accumulated_content,
                 "usage": {
                     "prompt_tokens": input_tokens_estimate,
