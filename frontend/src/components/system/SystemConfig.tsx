@@ -51,7 +51,8 @@ export function SystemConfig() {
   const [showApiKey, setShowApiKey] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [testingLLM, setTestingLLM] = useState(false);
-  const [llmTestResult, setLlmTestResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [llmTestResult, setLlmTestResult] = useState<{ success: boolean; message: string; debug?: Record<string, unknown> } | null>(null);
+  const [showDebugInfo, setShowDebugInfo] = useState(true);
 
   useEffect(() => { loadConfig(); }, []);
 
@@ -210,7 +211,7 @@ export function SystemConfig() {
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center space-y-4">
           <div className="loading-spinner mx-auto" />
-          <p className="text-gray-500 font-mono text-sm uppercase tracking-wider">加载配置中...</p>
+          <p className="text-muted-foreground font-mono text-sm uppercase tracking-wider">加载配置中...</p>
         </div>
       </div>
     );
@@ -252,17 +253,17 @@ export function SystemConfig() {
       </div>
 
       <Tabs defaultValue="llm" className="w-full">
-        <TabsList className="grid w-full grid-cols-4 bg-gray-900/50 border border-gray-800 p-1 h-auto gap-1 rounded-lg mb-6">
-          <TabsTrigger value="llm" className="data-[state=active]:bg-primary data-[state=active]:text-white font-mono font-bold uppercase py-2.5 text-gray-400 transition-all rounded text-xs flex items-center gap-2">
+        <TabsList className="grid w-full grid-cols-4 bg-muted border border-border p-1 h-auto gap-1 rounded-lg mb-6">
+          <TabsTrigger value="llm" className="data-[state=active]:bg-primary data-[state=active]:text-foreground font-mono font-bold uppercase py-2.5 text-muted-foreground transition-all rounded text-xs flex items-center gap-2">
             <Zap className="w-3 h-3" /> LLM 配置
           </TabsTrigger>
-          <TabsTrigger value="embedding" className="data-[state=active]:bg-primary data-[state=active]:text-white font-mono font-bold uppercase py-2.5 text-gray-400 transition-all rounded text-xs flex items-center gap-2">
+          <TabsTrigger value="embedding" className="data-[state=active]:bg-primary data-[state=active]:text-foreground font-mono font-bold uppercase py-2.5 text-muted-foreground transition-all rounded text-xs flex items-center gap-2">
             <Brain className="w-3 h-3" /> 嵌入模型
           </TabsTrigger>
-          <TabsTrigger value="analysis" className="data-[state=active]:bg-primary data-[state=active]:text-white font-mono font-bold uppercase py-2.5 text-gray-400 transition-all rounded text-xs flex items-center gap-2">
+          <TabsTrigger value="analysis" className="data-[state=active]:bg-primary data-[state=active]:text-foreground font-mono font-bold uppercase py-2.5 text-muted-foreground transition-all rounded text-xs flex items-center gap-2">
             <Settings className="w-3 h-3" /> 分析参数
           </TabsTrigger>
-          <TabsTrigger value="git" className="data-[state=active]:bg-primary data-[state=active]:text-white font-mono font-bold uppercase py-2.5 text-gray-400 transition-all rounded text-xs flex items-center gap-2">
+          <TabsTrigger value="git" className="data-[state=active]:bg-primary data-[state=active]:text-foreground font-mono font-bold uppercase py-2.5 text-muted-foreground transition-all rounded text-xs flex items-center gap-2">
             <Globe className="w-3 h-3" /> Git 集成
           </TabsTrigger>
         </TabsList>
@@ -272,29 +273,29 @@ export function SystemConfig() {
           <div className="cyber-card p-6 space-y-6">
             {/* Provider Selection */}
             <div className="space-y-2">
-              <Label className="text-xs font-bold text-gray-500 uppercase">选择 LLM 提供商</Label>
+              <Label className="text-xs font-bold text-muted-foreground uppercase">选择 LLM 提供商</Label>
               <Select value={config.llmProvider} onValueChange={(v) => updateConfig('llmProvider', v)}>
                 <SelectTrigger className="h-12 cyber-input">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="bg-[#0c0c12] border-gray-700">
-                  <div className="px-2 py-1.5 text-xs font-bold text-gray-500 uppercase">LiteLLM 统一适配 (推荐)</div>
+                <SelectContent className="cyber-dialog border-border">
+                  <div className="px-2 py-1.5 text-xs font-bold text-muted-foreground uppercase">LiteLLM 统一适配 (推荐)</div>
                   {LLM_PROVIDERS.filter(p => p.category === 'litellm').map(p => (
                     <SelectItem key={p.value} value={p.value} className="font-mono">
                       <span className="flex items-center gap-2">
                         <span>{p.icon}</span>
                         <span>{p.label}</span>
-                        <span className="text-xs text-gray-500">- {p.hint}</span>
+                        <span className="text-xs text-muted-foreground">- {p.hint}</span>
                       </span>
                     </SelectItem>
                   ))}
-                  <div className="px-2 py-1.5 text-xs font-bold text-gray-500 uppercase mt-2">原生适配器</div>
+                  <div className="px-2 py-1.5 text-xs font-bold text-muted-foreground uppercase mt-2">原生适配器</div>
                   {LLM_PROVIDERS.filter(p => p.category === 'native').map(p => (
                     <SelectItem key={p.value} value={p.value} className="font-mono">
                       <span className="flex items-center gap-2">
                         <span>{p.icon}</span>
                         <span>{p.label}</span>
-                        <span className="text-xs text-gray-500">- {p.hint}</span>
+                        <span className="text-xs text-muted-foreground">- {p.hint}</span>
                       </span>
                     </SelectItem>
                   ))}
@@ -305,7 +306,7 @@ export function SystemConfig() {
             {/* API Key */}
             {config.llmProvider !== 'ollama' && (
               <div className="space-y-2">
-                <Label className="text-xs font-bold text-gray-500 uppercase">API Key</Label>
+                <Label className="text-xs font-bold text-muted-foreground uppercase">API Key</Label>
                 <div className="flex gap-2">
                   <Input
                     type={showApiKey ? 'text' : 'password'}
@@ -329,7 +330,7 @@ export function SystemConfig() {
             {/* Model and Base URL */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="text-xs font-bold text-gray-500 uppercase">模型名称 (可选)</Label>
+                <Label className="text-xs font-bold text-muted-foreground uppercase">模型名称 (可选)</Label>
                 <Input
                   value={config.llmModel}
                   onChange={(e) => updateConfig('llmModel', e.target.value)}
@@ -338,7 +339,7 @@ export function SystemConfig() {
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-xs font-bold text-gray-500 uppercase">API Base URL (可选)</Label>
+                <Label className="text-xs font-bold text-muted-foreground uppercase">API Base URL (可选)</Label>
                 <Input
                   value={config.llmBaseUrl}
                   onChange={(e) => updateConfig('llmBaseUrl', e.target.value)}
@@ -349,10 +350,10 @@ export function SystemConfig() {
             </div>
 
             {/* Test Connection */}
-            <div className="pt-4 border-t border-gray-800 border-dashed flex items-center justify-between flex-wrap gap-4">
+            <div className="pt-4 border-t border-border border-dashed flex items-center justify-between flex-wrap gap-4">
               <div className="text-sm">
-                <span className="font-bold text-gray-300">测试连接</span>
-                <span className="text-gray-500 ml-2">验证配置是否正确</span>
+                <span className="font-bold text-foreground">测试连接</span>
+                <span className="text-muted-foreground ml-2">验证配置是否正确</span>
               </div>
               <Button
                 onClick={testLLMConnection}
@@ -374,25 +375,110 @@ export function SystemConfig() {
             </div>
             {llmTestResult && (
               <div className={`p-3 rounded-lg ${llmTestResult.success ? 'bg-emerald-500/10 border border-emerald-500/30' : 'bg-rose-500/10 border border-rose-500/30'}`}>
-                <div className="flex items-center gap-2 text-sm">
-                  {llmTestResult.success ? (
-                    <CheckCircle2 className="h-4 w-4 text-emerald-400" />
-                  ) : (
-                    <AlertCircle className="h-4 w-4 text-rose-400" />
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-sm">
+                    {llmTestResult.success ? (
+                      <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+                    ) : (
+                      <AlertCircle className="h-4 w-4 text-rose-400" />
+                    )}
+                    <span className={llmTestResult.success ? 'text-emerald-300/80' : 'text-rose-300/80'}>
+                      {llmTestResult.message}
+                    </span>
+                  </div>
+                  {llmTestResult.debug && (
+                    <button
+                      onClick={() => setShowDebugInfo(!showDebugInfo)}
+                      className="text-xs text-muted-foreground hover:text-foreground underline"
+                    >
+                      {showDebugInfo ? '隐藏调试信息' : '显示调试信息'}
+                    </button>
                   )}
-                  <span className={llmTestResult.success ? 'text-emerald-300/80' : 'text-rose-300/80'}>
-                    {llmTestResult.message}
-                  </span>
                 </div>
+                {showDebugInfo && llmTestResult.debug && (
+                  <div className="mt-3 pt-3 border-t border-border/50">
+                    <div className="text-xs font-mono space-y-1 text-muted-foreground">
+                      <div className="font-bold text-foreground mb-2">连接信息:</div>
+                      <div>Provider: <span className="text-foreground">{String(llmTestResult.debug.provider)}</span></div>
+                      <div>Model: <span className="text-foreground">{String(llmTestResult.debug.model_used || llmTestResult.debug.model_requested || 'N/A')}</span></div>
+                      <div>Base URL: <span className="text-foreground">{String(llmTestResult.debug.base_url_used || llmTestResult.debug.base_url_requested || '(default)')}</span></div>
+                      <div>Adapter: <span className="text-foreground">{String(llmTestResult.debug.adapter_type || 'N/A')}</span></div>
+                      <div>API Key: <span className="text-foreground">{String(llmTestResult.debug.api_key_prefix)} (长度: {String(llmTestResult.debug.api_key_length)})</span></div>
+                      <div>耗时: <span className="text-foreground">{String(llmTestResult.debug.elapsed_time_ms || 'N/A')} ms</span></div>
+
+                      {/* 用户保存的配置参数 */}
+                      {llmTestResult.debug.saved_config && (
+                        <div className="mt-3 pt-2 border-t border-border/30">
+                          <div className="font-bold text-cyan-400 mb-2">已保存的配置参数:</div>
+                          <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                            <div>温度: <span className="text-foreground">{String((llmTestResult.debug.saved_config as Record<string, unknown>).temperature ?? 'N/A')}</span></div>
+                            <div>最大Tokens: <span className="text-foreground">{String((llmTestResult.debug.saved_config as Record<string, unknown>).max_tokens ?? 'N/A')}</span></div>
+                            <div>超时: <span className="text-foreground">{String((llmTestResult.debug.saved_config as Record<string, unknown>).timeout_ms ?? 'N/A')} ms</span></div>
+                            <div>请求间隔: <span className="text-foreground">{String((llmTestResult.debug.saved_config as Record<string, unknown>).gap_ms ?? 'N/A')} ms</span></div>
+                            <div>并发数: <span className="text-foreground">{String((llmTestResult.debug.saved_config as Record<string, unknown>).concurrency ?? 'N/A')}</span></div>
+                            <div>最大文件数: <span className="text-foreground">{String((llmTestResult.debug.saved_config as Record<string, unknown>).max_analyze_files ?? 'N/A')}</span></div>
+                            <div>输出语言: <span className="text-foreground">{String((llmTestResult.debug.saved_config as Record<string, unknown>).output_language ?? 'N/A')}</span></div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 测试时实际使用的参数 */}
+                      {llmTestResult.debug.test_params && (
+                        <div className="mt-2 pt-2 border-t border-border/30">
+                          <div className="font-bold text-emerald-400 mb-2">测试时使用的参数:</div>
+                          <div className="grid grid-cols-3 gap-x-4">
+                            <div>温度: <span className="text-foreground">{String((llmTestResult.debug.test_params as Record<string, unknown>).temperature ?? 'N/A')}</span></div>
+                            <div>超时: <span className="text-foreground">{String((llmTestResult.debug.test_params as Record<string, unknown>).timeout ?? 'N/A')}s</span></div>
+                            <div>MaxTokens: <span className="text-foreground">{String((llmTestResult.debug.test_params as Record<string, unknown>).max_tokens ?? 'N/A')}</span></div>
+                          </div>
+                        </div>
+                      )}
+
+                      {llmTestResult.debug.error_category && (
+                        <div className="mt-2">错误类型: <span className="text-rose-400">{String(llmTestResult.debug.error_category)}</span></div>
+                      )}
+                      {llmTestResult.debug.error_type && (
+                        <div>异常类型: <span className="text-rose-400">{String(llmTestResult.debug.error_type)}</span></div>
+                      )}
+                      {llmTestResult.debug.status_code && (
+                        <div>HTTP 状态码: <span className="text-rose-400">{String(llmTestResult.debug.status_code)}</span></div>
+                      )}
+                      {llmTestResult.debug.api_response && (
+                        <div className="mt-2">
+                          <div className="font-bold text-amber-400">API 服务器返回:</div>
+                          <pre className="mt-1 p-2 bg-amber-500/10 border border-amber-500/30 rounded text-xs overflow-x-auto">
+                            {String(llmTestResult.debug.api_response)}
+                          </pre>
+                        </div>
+                      )}
+                      {llmTestResult.debug.error_message && (
+                        <div className="mt-2">
+                          <div className="font-bold text-foreground">完整错误信息:</div>
+                          <pre className="mt-1 p-2 bg-background/50 rounded text-xs overflow-x-auto max-h-32 overflow-y-auto">
+                            {String(llmTestResult.debug.error_message)}
+                          </pre>
+                        </div>
+                      )}
+                      {llmTestResult.debug.traceback && (
+                        <details className="mt-2">
+                          <summary className="cursor-pointer text-muted-foreground hover:text-foreground">完整堆栈跟踪</summary>
+                          <pre className="mt-1 p-2 bg-background/50 rounded text-xs overflow-x-auto max-h-48 overflow-y-auto whitespace-pre-wrap">
+                            {String(llmTestResult.debug.traceback)}
+                          </pre>
+                        </details>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
             {/* Advanced Parameters */}
-            <details className="pt-4 border-t border-gray-800 border-dashed">
-              <summary className="font-bold uppercase cursor-pointer hover:text-primary text-gray-400 text-sm">高级参数</summary>
+            <details className="pt-4 border-t border-border border-dashed">
+              <summary className="font-bold uppercase cursor-pointer hover:text-primary text-muted-foreground text-sm">高级参数</summary>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
                 <div className="space-y-2">
-                  <Label className="text-xs text-gray-500 uppercase">超时 (毫秒)</Label>
+                  <Label className="text-xs text-muted-foreground uppercase">超时 (毫秒)</Label>
                   <Input
                     type="number"
                     value={config.llmTimeout}
@@ -401,7 +487,7 @@ export function SystemConfig() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-xs text-gray-500 uppercase">温度 (0-2)</Label>
+                  <Label className="text-xs text-muted-foreground uppercase">温度 (0-2)</Label>
                   <Input
                     type="number"
                     step="0.1"
@@ -413,7 +499,7 @@ export function SystemConfig() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-xs text-gray-500 uppercase">最大 Tokens</Label>
+                  <Label className="text-xs text-muted-foreground uppercase">最大 Tokens</Label>
                   <Input
                     type="number"
                     value={config.llmMaxTokens}
@@ -426,14 +512,14 @@ export function SystemConfig() {
           </div>
 
           {/* Usage Notes */}
-          <div className="bg-gray-900/50 border border-gray-800 p-4 rounded-lg text-xs space-y-2">
-            <p className="font-bold uppercase text-gray-400 flex items-center gap-2">
+          <div className="bg-muted border border-border p-4 rounded-lg text-xs space-y-2">
+            <p className="font-bold uppercase text-muted-foreground flex items-center gap-2">
               <Info className="w-4 h-4 text-sky-400" />
               配置说明
             </p>
-            <p className="text-gray-500">• <strong className="text-gray-400">LiteLLM 统一适配</strong>: 大多数提供商通过 LiteLLM 统一处理，支持自动重试和负载均衡</p>
-            <p className="text-gray-500">• <strong className="text-gray-400">原生适配器</strong>: 百度、MiniMax、豆包因 API 格式特殊，使用专用适配器</p>
-            <p className="text-gray-500">• <strong className="text-gray-400">API 中转站</strong>: 在 Base URL 填入中转站地址即可，API Key 填中转站提供的 Key</p>
+            <p className="text-muted-foreground">• <strong className="text-muted-foreground">LiteLLM 统一适配</strong>: 大多数提供商通过 LiteLLM 统一处理，支持自动重试和负载均衡</p>
+            <p className="text-muted-foreground">• <strong className="text-muted-foreground">原生适配器</strong>: 百度、MiniMax、豆包因 API 格式特殊，使用专用适配器</p>
+            <p className="text-muted-foreground">• <strong className="text-muted-foreground">API 中转站</strong>: 在 Base URL 填入中转站地址即可，API Key 填中转站提供的 Key</p>
           </div>
         </TabsContent>
 
@@ -447,47 +533,47 @@ export function SystemConfig() {
           <div className="cyber-card p-6 space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label className="text-xs font-bold text-gray-500 uppercase">最大分析文件数</Label>
+                <Label className="text-xs font-bold text-muted-foreground uppercase">最大分析文件数</Label>
                 <Input
                   type="number"
                   value={config.maxAnalyzeFiles}
                   onChange={(e) => updateConfig('maxAnalyzeFiles', Number(e.target.value))}
                   className="h-10 cyber-input"
                 />
-                <p className="text-xs text-gray-600">单次任务最多处理的文件数量</p>
+                <p className="text-xs text-muted-foreground">单次任务最多处理的文件数量</p>
               </div>
               <div className="space-y-2">
-                <Label className="text-xs font-bold text-gray-500 uppercase">LLM 并发数</Label>
+                <Label className="text-xs font-bold text-muted-foreground uppercase">LLM 并发数</Label>
                 <Input
                   type="number"
                   value={config.llmConcurrency}
                   onChange={(e) => updateConfig('llmConcurrency', Number(e.target.value))}
                   className="h-10 cyber-input"
                 />
-                <p className="text-xs text-gray-600">同时发送的 LLM 请求数量</p>
+                <p className="text-xs text-muted-foreground">同时发送的 LLM 请求数量</p>
               </div>
               <div className="space-y-2">
-                <Label className="text-xs font-bold text-gray-500 uppercase">请求间隔 (毫秒)</Label>
+                <Label className="text-xs font-bold text-muted-foreground uppercase">请求间隔 (毫秒)</Label>
                 <Input
                   type="number"
                   value={config.llmGapMs}
                   onChange={(e) => updateConfig('llmGapMs', Number(e.target.value))}
                   className="h-10 cyber-input"
                 />
-                <p className="text-xs text-gray-600">每个请求之间的延迟时间</p>
+                <p className="text-xs text-muted-foreground">每个请求之间的延迟时间</p>
               </div>
               <div className="space-y-2">
-                <Label className="text-xs font-bold text-gray-500 uppercase">输出语言</Label>
+                <Label className="text-xs font-bold text-muted-foreground uppercase">输出语言</Label>
                 <Select value={config.outputLanguage} onValueChange={(v) => updateConfig('outputLanguage', v)}>
                   <SelectTrigger className="h-10 cyber-input">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-[#0c0c12] border-gray-700">
+                  <SelectContent className="cyber-dialog border-border">
                     <SelectItem value="zh-CN" className="font-mono">🇨🇳 中文</SelectItem>
                     <SelectItem value="en-US" className="font-mono">🇺🇸 English</SelectItem>
                   </SelectContent>
                 </Select>
-                <p className="text-xs text-gray-600">代码审查结果的输出语言</p>
+                <p className="text-xs text-muted-foreground">代码审查结果的输出语言</p>
               </div>
             </div>
           </div>
@@ -497,7 +583,7 @@ export function SystemConfig() {
         <TabsContent value="git" className="space-y-6">
           <div className="cyber-card p-6 space-y-6">
             <div className="space-y-2">
-              <Label className="text-xs font-bold text-gray-500 uppercase">GitHub Token (可选)</Label>
+              <Label className="text-xs font-bold text-muted-foreground uppercase">GitHub Token (可选)</Label>
               <Input
                 type="password"
                 value={config.githubToken}
@@ -505,7 +591,7 @@ export function SystemConfig() {
                 placeholder="ghp_xxxxxxxxxxxx"
                 className="h-10 cyber-input"
               />
-              <p className="text-xs text-gray-600">
+              <p className="text-xs text-muted-foreground">
                 用于访问私有仓库。获取:{' '}
                 <a href="https://github.com/settings/tokens" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
                   github.com/settings/tokens
@@ -513,7 +599,7 @@ export function SystemConfig() {
               </p>
             </div>
             <div className="space-y-2">
-              <Label className="text-xs font-bold text-gray-500 uppercase">GitLab Token (可选)</Label>
+              <Label className="text-xs font-bold text-muted-foreground uppercase">GitLab Token (可选)</Label>
               <Input
                 type="password"
                 value={config.gitlabToken}
@@ -521,7 +607,7 @@ export function SystemConfig() {
                 placeholder="glpat-xxxxxxxxxxxx"
                 className="h-10 cyber-input"
               />
-              <p className="text-xs text-gray-600">
+              <p className="text-xs text-muted-foreground">
                 用于访问私有仓库。获取:{' '}
                 <a href="https://gitlab.com/-/profile/personal_access_tokens" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
                   gitlab.com/-/profile/personal_access_tokens
@@ -529,7 +615,7 @@ export function SystemConfig() {
               </p>
             </div>
             <div className="space-y-2">
-              <Label className="text-xs font-bold text-gray-500 uppercase">Gitea Token (可选)</Label>
+              <Label className="text-xs font-bold text-muted-foreground uppercase">Gitea Token (可选)</Label>
               <Input
                 type="password"
                 value={config.giteaToken}
@@ -537,20 +623,20 @@ export function SystemConfig() {
                 placeholder="sha1_xxxxxxxxxxxx"
                 className="h-10 cyber-input"
               />
-              <p className="text-xs text-gray-600">
+              <p className="text-xs text-muted-foreground">
                 用于访问 Gitea 私有仓库。获取:{' '}
                 <span className="text-primary">
                   [your-gitea-instance]/user/settings/applications
                 </span>
               </p>
             </div>
-            <div className="bg-gray-900/50 border border-gray-800 p-4 rounded-lg text-xs">
-              <p className="font-bold text-gray-400 flex items-center gap-2 mb-2">
+            <div className="bg-muted border border-border p-4 rounded-lg text-xs">
+              <p className="font-bold text-muted-foreground flex items-center gap-2 mb-2">
                 <Info className="w-4 h-4 text-sky-400" />
                 提示
               </p>
-              <p className="text-gray-500">• 公开仓库无需配置 Token</p>
-              <p className="text-gray-500">• 私有仓库需要配置对应平台的 Token</p>
+              <p className="text-muted-foreground">• 公开仓库无需配置 Token</p>
+              <p className="text-muted-foreground">• 私有仓库需要配置对应平台的 Token</p>
             </div>
           </div>
         </TabsContent>

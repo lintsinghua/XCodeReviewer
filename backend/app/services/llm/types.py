@@ -79,12 +79,14 @@ class LLMError(Exception):
         message: str,
         provider: Optional[LLMProvider] = None,
         status_code: Optional[int] = None,
-        original_error: Optional[Any] = None
+        original_error: Optional[Any] = None,
+        api_response: Optional[str] = None
     ):
         super().__init__(message)
         self.provider = provider
         self.status_code = status_code
         self.original_error = original_error
+        self.api_response = api_response  # API 服务器返回的原始错误信息
 
 
 # 各平台默认模型 (2025年最新推荐)

@@ -155,7 +155,7 @@ export default function DatabaseTest() {
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex items-center justify-between">
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-muted-foreground">
             测试数据库连接状态和基本功能
           </p>
           <Button 
@@ -188,7 +188,7 @@ export default function DatabaseTest() {
                   {getStatusIcon(result.status)}
                   <div>
                     <p className="font-medium text-sm">{result.name}</p>
-                    <p className="text-xs text-gray-500">{result.message}</p>
+                    <p className="text-xs text-muted-foreground">{result.message}</p>
                   </div>
                 </div>
                 {getStatusBadge(result.status)}

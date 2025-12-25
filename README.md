@@ -1,28 +1,32 @@
 # DeepAudit - 人人拥有的 AI 审计战队，让漏洞挖掘触手可及 🦸‍♂️
 
-> 让代码漏洞挖掘像呼吸一样简单，小白也能轻松挖洞
-
 <div style="width: 100%; max-width: 600px; margin: 0 auto;">
   <img src="frontend/public/images/logo.png" alt="DeepAudit Logo" style="width: 100%; height: auto; display: block; margin: 0 auto;">
 </div>
 
 <div align="center">
-  <img src="frontend/public/DeepAudit.gif" alt="DeepAudit Demo" width="90%">
-</div>
 
-<div align="center">
-
-[![Version](https://img.shields.io/badge/version-3.0.1-blue.svg)](https://github.com/lintsinghua/DeepAudit/releases)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Version](https://img.shields.io/badge/version-3.0.2-blue.svg)](https://github.com/lintsinghua/DeepAudit/releases)
+[![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 [![React](https://img.shields.io/badge/React-18-61dafb.svg)](https://reactjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178c6.svg)](https://www.typescriptlang.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688.svg)](https://fastapi.tiangolo.com/)
-[![Python](https://img.shields.io/badge/Python-3.13+-3776ab.svg)](https://www.python.org/)
+[![Python](https://img.shields.io/badge/Python-3.11+-3776ab.svg)](https://www.python.org/)
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/lintsinghua/DeepAudit)
 
 [![Stars](https://img.shields.io/github/stars/lintsinghua/DeepAudit?style=social)](https://github.com/lintsinghua/DeepAudit/stargazers)
 [![Forks](https://img.shields.io/github/forks/lintsinghua/DeepAudit?style=social)](https://github.com/lintsinghua/DeepAudit/network/members)
 
+<a href="https://trendshift.io/repositories/15634" target="_blank"><img src="https://trendshift.io/api/badge/repositories/15634" alt="lintsinghua%2FDeepAudit | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
+
+<p align="center">
+  <strong>简体中文</strong> | <a href="README_EN.md">English</a>
+</p>
+
+</div>
+
+<div align="center">
+  <img src="frontend/public/DeepAudit.gif" alt="DeepAudit Demo" width="90%">
 </div>
 
 ---
@@ -168,17 +172,17 @@ DeepAudit/
 curl -fsSL https://raw.githubusercontent.com/lintsinghua/DeepAudit/v3.0.0/docker-compose.prod.yml | docker compose -f - up -d
 ```
 
-<details>
-<summary>🇨🇳 国内加速部署（点击展开）</summary>
+## 🇨🇳 国内加速部署（作者亲测非常无敌之快）
 
 使用南京大学镜像站加速拉取 Docker 镜像（将 `ghcr.io` 替换为 `ghcr.nju.edu.cn`）：
 
 ```bash
 # 国内加速版 - 使用南京大学 GHCR 镜像站
-curl -fsSL https://raw.githubusercontent.com/lintsinghua/DeepAudit/main/docker-compose.prod.cn.yml | docker compose -f - up -d
+curl -fsSL https://raw.githubusercontent.com/lintsinghua/DeepAudit/v3.0.0/docker-compose.prod.cn.yml | docker compose -f - up -d
 ```
+<details>
+<summary>手动拉取镜像（如需单独拉取）（点击展开）</summary>
 
-**手动拉取镜像（如需单独拉取）：**
 ```bash
 # 前端镜像
 docker pull ghcr.nju.edu.cn/lintsinghua/deepaudit-frontend:latest
@@ -189,8 +193,38 @@ docker pull ghcr.nju.edu.cn/lintsinghua/deepaudit-backend:latest
 # 沙箱镜像
 docker pull ghcr.nju.edu.cn/lintsinghua/deepaudit-sandbox:latest
 ```
+</details>
 
 > 💡 镜像源由 [南京大学开源镜像站](https://mirrors.nju.edu.cn/) 提供支持
+
+<details>
+<summary>💡 配置 Docker 镜像加速（可选，进一步提升拉取速度）（点击展开）</summary>
+
+如果拉取镜像仍然较慢，可以配置 Docker 镜像加速器。编辑 Docker 配置文件并添加以下镜像源：
+
+**Linux / macOS**：编辑 `/etc/docker/daemon.json`
+
+**Windows**：右键 Docker Desktop 图标 → Settings → Docker Engine
+
+```json
+{
+  "registry-mirrors": [
+    "https://docker.1ms.run",
+    "https://dockerproxy.com",
+    "https://hub.rat.dev"
+  ]
+}
+```
+
+保存后重启 Docker 服务：
+
+```bash
+# Linux
+sudo systemctl restart docker
+
+# macOS / Windows
+# 重启 Docker Desktop 应用
+```
 
 </details>
 
@@ -348,7 +382,7 @@ DeepSeek-Coder · Codestral<br/>
 </tr>
 </table>
 
-> 💡 支持 API 中转站，解决网络访问问题 | 详细配置 → [LLM 平台支持](docs/LLM_PROVIDERS.md)
+💡 支持 API 中转站，解决网络访问问题 | 详细配置 → [LLM 平台支持](docs/LLM_PROVIDERS.md)
 
 ---
 
@@ -372,15 +406,14 @@ DeepSeek-Coder · Codestral<br/>
 
 我们正在持续演进，未来将支持更多语言和更强大的 Agent 能力。
 
-- [x] **v1.0**: 基础静态分析，集成 Semgrep
-- [x] **v2.0**: 引入 RAG 知识库，支持 Docker 安全沙箱
-- [x] **v3.0**: **Multi-Agent 协作架构** (Current)
-- [ ] 支持更多漏洞验证 PoC 模板
-- [ ] 支持更多语言
+- [x] 基础静态分析，集成 Semgrep
+- [x] 引入 RAG 知识库，支持 Docker 安全沙箱
+- [x] **Multi-Agent 协作架构** (Current)
+- [ ] 支持更真实的模拟服务环境，进行更真实漏洞验证流程
+- [ ] 沙箱从function_call优化集成为稳定MCP服务
 - [ ] **自动修复 (Auto-Fix)**: Agent 直接提交 PR 修复漏洞
 - [ ] **增量PR审计**: 持续跟踪 PR 变更，智能分析漏洞，并集成CI/CD流程
 - [ ] **优化RAG**: 支持自定义知识库
-- [ ] **优化Agent**: 支持自定义Agent
 
 ---
 
@@ -390,9 +423,32 @@ DeepSeek-Coder · Codestral<br/>
 我们非常欢迎您的贡献！无论是提交 Issue、PR 还是完善文档。
 请查看 [CONTRIBUTING.md](./CONTRIBUTING.md) 了解详情。
 
+### 📬 联系作者
+
+<div align="center">
+
+**欢迎大家来和我交流探讨！无论是技术问题、功能建议还是合作意向，都期待与你沟通~**
+
+| 联系方式 | |
+|:---:|:---:|
+| 📧 **邮箱** | **lintsinghua@qq.com** |
+| 🐙 **GitHub** | [@lintsinghua](https://github.com/lintsinghua) |
+
+</div>
+
+### 💬 交流群
+
+<div align="center">
+
+**欢迎大家入群交流分享、学习、摸鱼~**
+
+<img src="frontend/public/images/DeepAudit群聊.png" alt="QQ交流群" width="200">
+
+</div>
+
 ## 📄 许可证
 
-本项目采用 [MIT License](LICENSE) 开源。
+本项目采用 [AGPL-3.0 License](LICENSE) 开源。
 
 ## 📈 项目热度
 
@@ -409,6 +465,14 @@ DeepSeek-Coder · Codestral<br/>
 <div align="center">
   <strong>Made with ❤️ by <a href="https://github.com/lintsinghua">lintsinghua</a></strong>
 </div>
+
+---
+
+## 致谢
+
+感谢以下开源项目的支持：
+
+[FastAPI](https://fastapi.tiangolo.com/) · [LangChain](https://langchain.com/) · [LangGraph](https://langchain-ai.github.io/langgraph/) · [ChromaDB](https://www.trychroma.com/) · [LiteLLM](https://litellm.ai/) · [Tree-sitter](https://tree-sitter.github.io/) · [Kunlun-M](https://github.com/LoRexxar/Kunlun-M) · [Strix](https://github.com/usestrix/strix) · [React](https://react.dev/) · [Vite](https://vitejs.dev/) · [Radix UI](https://www.radix-ui.com/) · [TailwindCSS](https://tailwindcss.com/) · [shadcn/ui](https://ui.shadcn.com/)
 
 ---
 

@@ -22,7 +22,8 @@ class DoubaoAdapter(BaseLLMAdapter):
             await self.validate_config()
             return await self.retry(lambda: self._send_request(request))
         except Exception as error:
-            self.handle_error(error, "豆包 API调用失败")
+            api_response = getattr(error, 'api_response', None)
+            self.handle_error(error, "豆包 API调用失败", api_response=api_response)
     
     async def _send_request(self, request: LLMRequest) -> LLMResponse:
         """发送请求"""
@@ -50,8 +51,12 @@ class DoubaoAdapter(BaseLLMAdapter):
         
         if response.status_code != 200:
             error_data = response.json() if response.text else {}
-            error_msg = error_data.get("error", {}).get("message", f"HTTP {response.status_code}")
-            raise Exception(f"{error_msg}")
+            error_obj = error_data.get("error", {})
+            error_msg = error_obj.get("message", f"HTTP {response.status_code}")
+            error_code = error_obj.get("code", "")
+            api_response = f"[{error_code}] {error_msg}" if error_code else error_msg
+            err = LLMError(error_msg, self.config.provider, response.status_code, api_response=api_response)
+            raise err
         
         data = response.json()
         choice = data.get("choices", [{}])[0]

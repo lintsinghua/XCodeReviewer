@@ -165,7 +165,7 @@ export class AgentErrorBoundary extends Component<Props, State> {
     }
 
     return (
-      <div className="h-screen bg-[#0a0a0f] flex items-center justify-center p-4">
+      <div className="h-screen cyber-bg-elevated flex items-center justify-center p-4">
         <div className="w-full max-w-lg space-y-6">
           {/* Error Header */}
           <div className="flex items-center gap-4">
@@ -179,16 +179,16 @@ export class AgentErrorBoundary extends Component<Props, State> {
               )} />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-white">Agent Error</h2>
-              <p className="text-sm text-gray-400">{this.getRecoveryHint()}</p>
+              <h2 className="text-xl font-bold text-foreground">Agent Error</h2>
+              <p className="text-sm text-muted-foreground">{this.getRecoveryHint()}</p>
             </div>
           </div>
 
           {/* Error Details */}
-          <div className="bg-[#0d0d12] border border-gray-800 rounded-lg overflow-hidden">
-            <div className="px-4 py-3 border-b border-gray-800 flex items-center gap-2">
-              <Terminal className="w-4 h-4 text-gray-500" />
-              <span className="text-xs text-gray-500 uppercase tracking-wider font-bold">
+          <div className="cyber-dialog border border-border rounded-lg overflow-hidden">
+            <div className="px-4 py-3 border-b border-border flex items-center gap-2">
+              <Terminal className="w-4 h-4 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground uppercase tracking-wider font-bold">
                 Error Details
               </span>
             </div>
@@ -199,20 +199,20 @@ export class AgentErrorBoundary extends Component<Props, State> {
                     <Bug className="w-4 h-4 text-red-400 mt-0.5 flex-shrink-0" />
                     <div>
                       <p className="text-sm font-mono text-red-400">{error.name}</p>
-                      <p className="text-sm text-gray-300">{error.message}</p>
+                      <p className="text-sm text-foreground">{error.message}</p>
                     </div>
                   </div>
                 </div>
               )}
 
               {this.props.taskId && (
-                <div className="text-xs text-gray-500">
-                  Task ID: <span className="font-mono text-gray-400">{this.props.taskId}</span>
+                <div className="text-xs text-muted-foreground">
+                  Task ID: <span className="font-mono text-muted-foreground">{this.props.taskId}</span>
                 </div>
               )}
 
               {retryCount > 0 && (
-                <div className="text-xs text-gray-500">
+                <div className="text-xs text-muted-foreground">
                   Retry attempts: <span className="text-yellow-400">{retryCount}/{maxRetries}</span>
                 </div>
               )}
@@ -220,10 +220,10 @@ export class AgentErrorBoundary extends Component<Props, State> {
               {/* Stack trace (dev only) */}
               {import.meta.env.DEV && error?.stack && (
                 <details className="text-xs">
-                  <summary className="cursor-pointer text-gray-500 hover:text-gray-300 transition-colors">
+                  <summary className="cursor-pointer text-muted-foreground hover:text-foreground transition-colors">
                     Stack Trace
                   </summary>
-                  <pre className="mt-2 p-3 bg-black/50 rounded text-[10px] text-gray-400 overflow-auto max-h-40">
+                  <pre className="mt-2 p-3 bg-background/50 rounded text-xs text-muted-foreground overflow-auto max-h-40">
                     {error.stack}
                   </pre>
                 </details>
@@ -231,10 +231,10 @@ export class AgentErrorBoundary extends Component<Props, State> {
 
               {import.meta.env.DEV && errorInfo?.componentStack && (
                 <details className="text-xs">
-                  <summary className="cursor-pointer text-gray-500 hover:text-gray-300 transition-colors">
+                  <summary className="cursor-pointer text-muted-foreground hover:text-foreground transition-colors">
                     Component Stack
                   </summary>
-                  <pre className="mt-2 p-3 bg-black/50 rounded text-[10px] text-gray-400 overflow-auto max-h-40">
+                  <pre className="mt-2 p-3 bg-background/50 rounded text-xs text-muted-foreground overflow-auto max-h-40">
                     {errorInfo.componentStack}
                   </pre>
                 </details>
@@ -257,7 +257,7 @@ export class AgentErrorBoundary extends Component<Props, State> {
             <Button
               onClick={this.handleGoBack}
               variant="outline"
-              className="flex-1 border-gray-700 hover:bg-gray-800"
+              className="flex-1 border-border hover:bg-muted"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Go Back
@@ -265,7 +265,7 @@ export class AgentErrorBoundary extends Component<Props, State> {
             <Button
               onClick={this.handleReload}
               variant="ghost"
-              className="flex-1 text-gray-400 hover:text-white"
+              className="flex-1 text-muted-foreground hover:text-foreground"
             >
               Refresh Page
             </Button>
@@ -273,7 +273,7 @@ export class AgentErrorBoundary extends Component<Props, State> {
 
           {/* Recovery suggestion */}
           {!canRetry && (
-            <p className="text-center text-xs text-gray-500">
+            <p className="text-center text-xs text-muted-foreground">
               Maximum retry attempts reached. Please refresh the page or contact support.
             </p>
           )}

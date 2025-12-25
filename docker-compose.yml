@@ -1,5 +1,5 @@
 # =============================================
-# DeepAudit v3.0.0 Docker Compose 配置
+# DeepAudit v3.0.2 Docker Compose 配置
 # =============================================
 # 部署: docker compose up -d
 # 查看日志: docker compose logs -f
@@ -41,7 +41,7 @@ services:
         - ALL_PROXY=
     restart: unless-stopped
     volumes:
-      - ./backend/app:/app/app:ro # 挂载代码目录，修改后自动生效
+      # - ./backend/app:/app/app:ro  # 挂载代码目录，修改后自动生效
       - backend_uploads:/app/uploads
       - /var/run/docker.sock:/var/run/docker.sock # 沙箱执行必须
     ports:
@@ -53,6 +53,7 @@ services:
       - REDIS_URL=redis://redis:6379/0
       - AGENT_ENABLED=true
       - SANDBOX_ENABLED=true
+      - SANDBOX_IMAGE=deepaudit/sandbox:latest  # 使用本地构建的沙箱镜像
       # 禁用代理设置，防止容器内无法连接外部 API
       - HTTP_PROXY=
       - HTTPS_PROXY=
@@ -81,11 +82,17 @@ services:
         - ALL_PROXY=
     restart: unless-stopped
     volumes:
-      - ./frontend/dist:/usr/share/nginx/html # 挂载构建产物，本地 pnpm build 后自动生效
-      - ./frontend/nginx.conf:/etc/nginx/conf.d/default.conf:ro # 挂载 nginx 配置
+      # - ./frontend/dist:/usr/share/nginx/html:ro  # 挂载构建产物，本地 pnpm build 后自动生效
+      - ./frontend/nginx.conf:/etc/nginx/conf.d/default.conf:ro  # 挂载 nginx 配置
     ports:
       - "3000:80" # Nginx 监听 80 端口
     environment:
+      # 禁用代理 - nginx 需要直连后端
+      - HTTP_PROXY=
+      - HTTPS_PROXY=
+      - http_proxy=
+      - https_proxy=
+      - NO_PROXY=*
       - VITE_API_BASE_URL=/api/v1
     depends_on:
       - backend

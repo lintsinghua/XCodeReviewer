@@ -359,12 +359,14 @@ Please analyze the following code:
         try:
             adapter = LLMFactory.create_adapter(self.config)
             
+            # 使用用户配置的 temperature（如果未设置则使用 config 中的默认值）
             request = LLMRequest(
                 messages=[
                     LLMMessage(role="system", content=system_prompt),
                     LLMMessage(role="user", content=user_prompt)
                 ],
-                temperature=0.1,
+                temperature=self.config.temperature,
+                max_tokens=self.config.max_tokens,
             )
             
             response = await adapter.complete(request)
@@ -401,39 +403,97 @@ Please analyze the following code:
             logger.error(f"Provider: {self.config.provider.value}, Model: {self.config.model}")
             # 重新抛出异常，让调用者处理
             raise
-    
-    async def chat_completion_raw(
+
+    async def chat_completion(
         self,
         messages: List[Dict[str, str]],
-        temperature: float = 0.1,
-        max_tokens: int = 4096,
+        temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None,
+        tools: Optional[List[Dict[str, Any]]] = None,
     ) -> Dict[str, Any]:
         """
-        🔥 Agent 使用的原始聊天完成接口（兼容旧接口）
-        
+        🔥 Agent 使用的聊天完成接口（支持工具调用）
+
         Args:
             messages: 消息列表，格式为 [{"role": "user", "content": "..."}]
-            temperature: 温度参数
-            max_tokens: 最大token数
-            
+            temperature: 温度参数（None 时使用用户配置）
+            max_tokens: 最大token数（None 时使用用户配置）
+            tools: 工具描述列表（可选）
+
         Returns:
-            包含 content 和 usage 的字典
+            包含 content、usage 和 tool_calls 的字典
         """
+        # 使用用户配置作为默认值
+        actual_temperature = temperature if temperature is not None else self.config.temperature
+        actual_max_tokens = max_tokens if max_tokens is not None else self.config.max_tokens
+
         # 转换消息格式
         llm_messages = [
             LLMMessage(role=msg["role"], content=msg["content"])
             for msg in messages
         ]
-        
+
         request = LLMRequest(
             messages=llm_messages,
-            temperature=temperature,
-            max_tokens=max_tokens,
+            temperature=actual_temperature,
+            max_tokens=actual_max_tokens,
+            tools=tools,
         )
-        
+
         adapter = LLMFactory.create_adapter(self.config)
         response = await adapter.complete(request)
-        
+
+        result = {
+            "content": response.content,
+            "usage": {
+                "prompt_tokens": response.usage.prompt_tokens if response.usage else 0,
+                "completion_tokens": response.usage.completion_tokens if response.usage else 0,
+                "total_tokens": response.usage.total_tokens if response.usage else 0,
+            },
+        }
+
+        # 添加工具调用信息
+        if response.tool_calls:
+            result["tool_calls"] = response.tool_calls
+
+        return result
+
+    async def chat_completion_raw(
+        self,
+        messages: List[Dict[str, str]],
+        temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        """
+        🔥 Agent 使用的原始聊天完成接口（兼容旧接口）
+
+        Args:
+            messages: 消息列表，格式为 [{"role": "user", "content": "..."}]
+            temperature: 温度参数（None 时使用用户配置）
+            max_tokens: 最大token数（None 时使用用户配置）
+
+        Returns:
+            包含 content 和 usage 的字典
+        """
+        # 使用用户配置作为默认值
+        actual_temperature = temperature if temperature is not None else self.config.temperature
+        actual_max_tokens = max_tokens if max_tokens is not None else self.config.max_tokens
+
+        # 转换消息格式
+        llm_messages = [
+            LLMMessage(role=msg["role"], content=msg["content"])
+            for msg in messages
+        ]
+
+        request = LLMRequest(
+            messages=llm_messages,
+            temperature=actual_temperature,
+            max_tokens=actual_max_tokens,
+        )
+
+        adapter = LLMFactory.create_adapter(self.config)
+        response = await adapter.complete(request)
+
         return {
             "content": response.content,
             "usage": {
@@ -446,29 +506,33 @@ Please analyze the following code:
     async def chat_completion_stream(
         self,
         messages: List[Dict[str, str]],
-        temperature: float = 0.1,
-        max_tokens: int = 4096,
+        temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None,
     ):
         """
         流式聊天完成接口，逐 token 返回
-        
+
         Args:
             messages: 消息列表
-            temperature: 温度参数
-            max_tokens: 最大token数
-            
+            temperature: 温度参数（None 时使用用户配置）
+            max_tokens: 最大token数（None 时使用用户配置）
+
         Yields:
             dict: {"type": "token", "content": str} 或 {"type": "done", ...}
         """
+        # 使用用户配置作为默认值
+        actual_temperature = temperature if temperature is not None else self.config.temperature
+        actual_max_tokens = max_tokens if max_tokens is not None else self.config.max_tokens
+
         llm_messages = [
             LLMMessage(role=msg["role"], content=msg["content"])
             for msg in messages
         ]
-        
+
         request = LLMRequest(
             messages=llm_messages,
-            temperature=temperature,
-            max_tokens=max_tokens,
+            temperature=actual_temperature,
+            max_tokens=actual_max_tokens,
         )
         
         if self.config.provider in NATIVE_ONLY_PROVIDERS:
@@ -869,15 +933,17 @@ Please analyze the following code:
         
         try:
             adapter = LLMFactory.create_adapter(self.config)
-            
+
+            # 使用用户配置的 temperature 和 max_tokens
             request = LLMRequest(
                 messages=[
                     LLMMessage(role="system", content=full_system_prompt),
                     LLMMessage(role="user", content=user_prompt)
                 ],
-                temperature=0.1,
+                temperature=self.config.temperature,
+                max_tokens=self.config.max_tokens,
             )
-            
+
             response = await adapter.complete(request)
             content = response.content
             

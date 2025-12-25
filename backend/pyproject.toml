@@ -1,6 +1,6 @@
 [project]
 name = "deepaudit-backend"
-version = "3.0.1"
+version = "3.0.2"
 description = "DeepAudit Backend API - AI-Powered Code Security Audit Platform"
 requires-python = ">=3.11"
 readme = "README.md"
@@ -60,9 +60,9 @@ dependencies = [
     "chromadb>=0.4.22",
 
     # ============ Code Parsing ============
-    # tree-sitter-languages 1.10.x 与 tree-sitter 0.22+ 不兼容
-    "tree-sitter==0.21.3",
-    "tree-sitter-languages>=1.10.0",
+    # 使用 tree-sitter-language-pack 替代已弃用的 tree-sitter-languages
+    "tree-sitter>=0.23.0",
+    "tree-sitter-language-pack>=0.4.0",
     "pygments>=2.17.0",
 
     # ============ Docker Sandbox ============

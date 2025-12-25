@@ -91,8 +91,8 @@ const FORMAT_CONFIG: Record<ReportFormat, {
     icon: <FileText className="w-5 h-5" />,
     extension: ".md",
     mime: "text/markdown",
-    color: "text-sky-400",
-    bgColor: "bg-sky-500/10 border-sky-500/30",
+    color: "text-sky-600 dark:text-sky-400",
+    bgColor: "bg-sky-100 dark:bg-sky-500/10 border-sky-300 dark:border-sky-500/30",
   },
   json: {
     label: "JSON",
@@ -100,8 +100,8 @@ const FORMAT_CONFIG: Record<ReportFormat, {
     icon: <FileJson className="w-5 h-5" />,
     extension: ".json",
     mime: "application/json",
-    color: "text-amber-400",
-    bgColor: "bg-amber-500/10 border-amber-500/30",
+    color: "text-amber-600 dark:text-amber-400",
+    bgColor: "bg-amber-100 dark:bg-amber-500/10 border-amber-300 dark:border-amber-500/30",
   },
   html: {
     label: "HTML",
@@ -109,8 +109,8 @@ const FORMAT_CONFIG: Record<ReportFormat, {
     icon: <FileCode className="w-5 h-5" />,
     extension: ".html",
     mime: "text/html",
-    color: "text-emerald-400",
-    bgColor: "bg-emerald-500/10 border-emerald-500/30",
+    color: "text-emerald-600 dark:text-emerald-400",
+    bgColor: "bg-emerald-100 dark:bg-emerald-500/10 border-emerald-300 dark:border-emerald-500/30",
   },
 };
 
@@ -126,11 +126,11 @@ const DEFAULT_EXPORT_OPTIONS: ExportOptions = {
 
 function getSeverityColor(severity: string): string {
   const colors: Record<string, string> = {
-    critical: "text-rose-400",
-    high: "text-orange-400",
-    medium: "text-amber-400",
-    low: "text-sky-400",
-    info: "text-slate-400",
+    critical: "text-rose-600 dark:text-rose-400",
+    high: "text-orange-600 dark:text-orange-400",
+    medium: "text-amber-600 dark:text-amber-400",
+    low: "text-sky-600 dark:text-sky-400",
+    info: "text-muted-foreground",
   };
   return colors[severity.toLowerCase()] || colors.info;
 }
@@ -145,10 +145,10 @@ function formatBytes(bytes: number): string {
 
 // 获取安全评分颜色
 function getScoreColor(score: number): { text: string; bg: string; glow: string } {
-  if (score >= 80) return { text: "text-emerald-400", bg: "stroke-emerald-500", glow: "drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]" };
-  if (score >= 60) return { text: "text-amber-400", bg: "stroke-amber-500", glow: "drop-shadow-[0_0_8px_rgba(245,158,11,0.5)]" };
-  if (score >= 40) return { text: "text-orange-400", bg: "stroke-orange-500", glow: "drop-shadow-[0_0_8px_rgba(249,115,22,0.5)]" };
-  return { text: "text-rose-400", bg: "stroke-rose-500", glow: "drop-shadow-[0_0_8px_rgba(244,63,94,0.5)]" };
+  if (score >= 80) return { text: "text-emerald-600 dark:text-emerald-400", bg: "stroke-emerald-500", glow: "" };
+  if (score >= 60) return { text: "text-amber-600 dark:text-amber-400", bg: "stroke-amber-500", glow: "" };
+  if (score >= 40) return { text: "text-orange-600 dark:text-orange-400", bg: "stroke-orange-500", glow: "" };
+  return { text: "text-rose-600 dark:text-rose-400", bg: "stroke-rose-500", glow: "" };
 }
 
 // ============ Sub Components ============
@@ -181,7 +181,7 @@ const CircularProgress = memo(function CircularProgress({
           fill="none"
           stroke="currentColor"
           strokeWidth={strokeWidth}
-          className="text-slate-800/50"
+          className="text-slate-300 dark:text-slate-700"
         />
         {/* Progress circle */}
         <circle
@@ -200,7 +200,7 @@ const CircularProgress = memo(function CircularProgress({
         <span className={`text-xl font-bold font-mono ${colors.text}`}>
           {value.toFixed(0)}
         </span>
-        <span className="text-[8px] text-slate-500 uppercase tracking-wider">分</span>
+        <span className="text-[8px] text-muted-foreground uppercase tracking-wider">分</span>
       </div>
     </div>
   );
@@ -223,24 +223,24 @@ const EnhancedStatsPanel = memo(function EnhancedStatsPanel({
       icon: <Bug className="w-4 h-4" />,
       label: "漏洞总数",
       value: totalFindings,
-      color: "text-white",
-      iconColor: "text-rose-400",
+      color: "text-foreground",
+      iconColor: "text-rose-600 dark:text-rose-400",
       trend: totalFindings > 0 ? "up" : null,
     },
     {
       icon: <AlertTriangle className="w-4 h-4" />,
       label: "高危问题",
       value: criticalAndHigh,
-      color: criticalAndHigh > 0 ? "text-rose-400" : "text-slate-400",
-      iconColor: "text-orange-400",
+      color: criticalAndHigh > 0 ? "text-rose-600 dark:text-rose-400" : "text-muted-foreground",
+      iconColor: "text-orange-600 dark:text-orange-400",
       trend: criticalAndHigh > 0 ? "critical" : null,
     },
     {
       icon: <CheckCircle2 className="w-4 h-4" />,
       label: "已验证",
       value: verified,
-      color: "text-emerald-400",
-      iconColor: "text-emerald-400",
+      color: "text-emerald-600 dark:text-emerald-400",
+      iconColor: "text-emerald-600 dark:text-emerald-400",
       trend: null,
     },
   ];
@@ -248,7 +248,7 @@ const EnhancedStatsPanel = memo(function EnhancedStatsPanel({
   return (
     <div className="flex items-stretch gap-4">
       {/* 环形安全评分 */}
-      <div className="flex items-center justify-center p-3 rounded-xl bg-gradient-to-br from-slate-800/60 to-slate-900/60 border border-slate-700/40 backdrop-blur-sm">
+      <div className="flex items-center justify-center p-3 rounded-xl bg-gradient-to-br from-muted to-background border border-border backdrop-blur-sm">
         <CircularProgress value={score} size={72} strokeWidth={5} />
       </div>
 
@@ -257,13 +257,13 @@ const EnhancedStatsPanel = memo(function EnhancedStatsPanel({
         {stats.map((stat, index) => (
           <div
             key={index}
-            className="relative p-3 rounded-xl bg-gradient-to-br from-slate-800/40 to-slate-900/40 border border-slate-700/30 backdrop-blur-sm group hover:border-slate-600/50 transition-all duration-300"
+            className="relative p-3 rounded-xl bg-gradient-to-br from-muted/40 to-background/40 border border-border backdrop-blur-sm group hover:border-border transition-all duration-300"
           >
             <div className="flex items-center gap-2 mb-1.5">
               <div className={`${stat.iconColor} opacity-80`}>
                 {stat.icon}
               </div>
-              <span className="text-[10px] text-slate-500 uppercase tracking-wider font-medium">
+              <span className="text-xs text-muted-foreground uppercase tracking-wider font-medium">
                 {stat.label}
               </span>
             </div>
@@ -272,7 +272,7 @@ const EnhancedStatsPanel = memo(function EnhancedStatsPanel({
                 {stat.value}
               </span>
               {stat.trend === "critical" && stat.value > 0 && (
-                <Zap className="w-3 h-3 text-rose-400 animate-pulse" />
+                <Zap className="w-3 h-3 text-rose-600 dark:text-rose-400" />
               )}
             </div>
 
@@ -307,25 +307,25 @@ const FormatSelector = memo(function FormatSelector({
               relative p-4 rounded-xl border transition-all duration-300 text-left group
               ${isActive
                 ? `${config.bgColor} border-opacity-100 shadow-lg`
-                : "bg-slate-800/30 border-slate-700/30 hover:border-slate-600/50 hover:bg-slate-800/50"
+                : "bg-muted border-border hover:border-border hover:bg-muted"
               }
             `}
           >
             {/* 选中指示器 */}
             {isActive && (
               <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-primary flex items-center justify-center shadow-lg shadow-primary/30">
-                <Check className="w-3 h-3 text-white" />
+                <Check className="w-3 h-3 text-foreground" />
               </div>
             )}
 
-            <div className={`mb-2 ${isActive ? config.color : "text-slate-400 group-hover:text-slate-300"}`}>
+            <div className={`mb-2 ${isActive ? config.color : "text-muted-foreground group-hover:text-foreground"}`}>
               {config.icon}
             </div>
 
-            <div className={`text-sm font-semibold mb-0.5 ${isActive ? "text-white" : "text-slate-300"}`}>
+            <div className={`text-sm font-semibold mb-0.5 ${isActive ? "text-foreground" : "text-foreground"}`}>
               {config.label}
             </div>
-            <div className="text-[10px] text-slate-500">
+            <div className="text-xs text-muted-foreground">
               {config.description}
             </div>
 
@@ -363,19 +363,19 @@ const ExportOptionsPanel = memo(function ExportOptionsPanel({
   ];
 
   return (
-    <div className="rounded-xl border border-slate-700/40 bg-slate-800/20 overflow-hidden">
+    <div className="rounded-xl border border-border bg-muted/50 overflow-hidden">
       <button
         onClick={onToggle}
-        className="w-full flex items-center justify-between p-3 hover:bg-slate-700/20 transition-colors"
+        className="w-full flex items-center justify-between p-3 hover:bg-muted/20 transition-colors"
       >
         <div className="flex items-center gap-2">
-          <Settings2 className="w-4 h-4 text-slate-400" />
-          <span className="text-sm font-medium text-slate-300">导出选项</span>
+          <Settings2 className="w-4 h-4 text-muted-foreground" />
+          <span className="text-sm font-medium text-foreground">导出选项</span>
         </div>
         {expanded ? (
-          <ChevronUp className="w-4 h-4 text-slate-500" />
+          <ChevronUp className="w-4 h-4 text-muted-foreground" />
         ) : (
-          <ChevronDown className="w-4 h-4 text-slate-500" />
+          <ChevronDown className="w-4 h-4 text-muted-foreground" />
         )}
       </button>
 
@@ -390,11 +390,11 @@ const ExportOptionsPanel = memo(function ExportOptionsPanel({
             {optionItems.map((item) => (
               <label
                 key={item.key}
-                className="flex items-center justify-between p-2 rounded-lg hover:bg-slate-700/20 cursor-pointer transition-colors"
+                className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/20 cursor-pointer transition-colors"
               >
                 <div className="flex-1">
-                  <div className="text-xs font-medium text-slate-300">{item.label}</div>
-                  <div className="text-[10px] text-slate-500">{item.description}</div>
+                  <div className="text-xs font-medium text-foreground">{item.label}</div>
+                  <div className="text-xs text-muted-foreground">{item.description}</div>
                 </div>
                 <Switch
                   checked={options[item.key as keyof ExportOptions]}
@@ -425,23 +425,23 @@ const PreviewSearchBar = memo(function PreviewSearchBar({
   onClear: () => void;
 }) {
   return (
-    <div className="flex items-center gap-2 px-3 py-2 bg-slate-800/30 border-b border-slate-700/30">
-      <Search className="w-3.5 h-3.5 text-slate-500" />
+    <div className="flex items-center gap-2 px-3 py-2 bg-muted border-b border-border">
+      <Search className="w-3.5 h-3.5 text-muted-foreground" />
       <input
         type="text"
         value={searchQuery}
         onChange={(e) => onSearchChange(e.target.value)}
         placeholder="搜索预览内容..."
-        className="flex-1 bg-transparent text-xs text-slate-300 placeholder:text-slate-600 outline-none"
+        className="flex-1 bg-transparent text-xs text-foreground placeholder:text-muted-foreground outline-none"
       />
       {searchQuery && (
         <>
-          <span className="text-[10px] text-slate-500 font-mono">
+          <span className="text-xs text-muted-foreground font-mono">
             {matchCount} 匹配
           </span>
           <button
             onClick={onClear}
-            className="p-1 rounded hover:bg-slate-700/50 text-slate-500 hover:text-slate-300 transition-colors"
+            className="p-1 rounded hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors"
           >
             <X className="w-3 h-3" />
           </button>
@@ -455,18 +455,18 @@ const PreviewSearchBar = memo(function PreviewSearchBar({
 const PreviewSkeleton = memo(function PreviewSkeleton() {
   return (
     <div className="space-y-4 animate-pulse">
-      <div className="h-6 bg-slate-700/30 rounded w-3/4" />
+      <div className="h-6 bg-muted/30 rounded w-3/4" />
       <div className="space-y-2">
-        <div className="h-4 bg-slate-700/20 rounded w-full" />
-        <div className="h-4 bg-slate-700/20 rounded w-5/6" />
-        <div className="h-4 bg-slate-700/20 rounded w-4/6" />
+        <div className="h-4 bg-muted/20 rounded w-full" />
+        <div className="h-4 bg-muted/20 rounded w-5/6" />
+        <div className="h-4 bg-muted/20 rounded w-4/6" />
       </div>
-      <div className="h-20 bg-slate-700/20 rounded" />
+      <div className="h-20 bg-muted/20 rounded" />
       <div className="space-y-2">
-        <div className="h-4 bg-slate-700/20 rounded w-full" />
-        <div className="h-4 bg-slate-700/20 rounded w-3/4" />
+        <div className="h-4 bg-muted/20 rounded w-full" />
+        <div className="h-4 bg-muted/20 rounded w-3/4" />
       </div>
-      <div className="h-16 bg-slate-700/20 rounded" />
+      <div className="h-16 bg-muted/20 rounded" />
     </div>
   );
 });
@@ -486,7 +486,7 @@ const MarkdownPreview = memo(function MarkdownPreview({
     const parts = text.split(regex);
     return parts.map((part, i) =>
       regex.test(part) ? (
-        <mark key={i} className="bg-primary/40 text-white px-0.5 rounded">{part}</mark>
+        <mark key={i} className="bg-primary/40 text-foreground px-0.5 rounded">{part}</mark>
       ) : (
         part
       )
@@ -506,30 +506,30 @@ const MarkdownPreview = memo(function MarkdownPreview({
       if (line.startsWith("```")) {
         if (inCodeBlock) {
           elements.push(
-            <div key={`code-${index}`} className="my-4 rounded-xl bg-[#0d1117] border border-slate-700/50 overflow-hidden shadow-lg">
-              <div className="flex items-center justify-between px-4 py-2 bg-gradient-to-r from-slate-800/80 to-slate-800/40 border-b border-slate-700/50">
+            <div key={`code-${index}`} className="my-4 rounded-xl bg-card border border-border/50 overflow-hidden shadow-lg">
+              <div className="flex items-center justify-between px-4 py-2 bg-gradient-to-r from-muted to-muted/40 border-b border-border/50">
                 <div className="flex items-center gap-2">
                   <div className="flex gap-1.5">
                     <div className="w-2.5 h-2.5 rounded-full bg-rose-500/80" />
                     <div className="w-2.5 h-2.5 rounded-full bg-amber-500/80" />
                     <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/80" />
                   </div>
-                  <span className="text-[10px] text-slate-400 uppercase tracking-wider font-mono ml-2">
+                  <span className="text-xs text-muted-foreground uppercase tracking-wider font-mono ml-2">
                     {codeLanguage || "code"}
                   </span>
                 </div>
-                <Terminal className="w-3.5 h-3.5 text-slate-500" />
+                <Terminal className="w-3.5 h-3.5 text-muted-foreground" />
               </div>
               <div className="relative">
                 {/* 行号 */}
-                <div className="absolute left-0 top-0 bottom-0 w-10 bg-slate-900/50 border-r border-slate-700/30 select-none">
-                  <div className="p-3 text-[10px] font-mono text-slate-600 leading-5">
+                <div className="absolute left-0 top-0 bottom-0 w-10 bg-background border-r border-border select-none">
+                  <div className="p-3 text-xs font-mono text-muted-foreground leading-5">
                     {codeContent.map((_, i) => (
                       <div key={i}>{i + 1}</div>
                     ))}
                   </div>
                 </div>
-                <pre className="p-3 pl-14 text-xs font-mono text-slate-300 overflow-x-auto leading-5">
+                <pre className="p-3 pl-14 text-xs font-mono text-foreground overflow-x-auto leading-5">
                   {codeContent.map((codeLine, i) => (
                     <div key={i}>{highlightText(codeLine, searchQuery) || " "}</div>
                   ))}
@@ -555,7 +555,7 @@ const MarkdownPreview = memo(function MarkdownPreview({
       // Headers with decorative elements
       if (line.startsWith("# ")) {
         elements.push(
-          <h1 key={index} className="text-xl font-bold text-white mt-8 mb-4 pb-3 border-b border-slate-700/50 flex items-center gap-3">
+          <h1 key={index} className="text-xl font-bold text-foreground mt-8 mb-4 pb-3 border-b border-border/50 flex items-center gap-3">
             <span className="w-1 h-6 bg-primary rounded-full" />
             {highlightText(line.slice(2), searchQuery)}
           </h1>
@@ -564,7 +564,7 @@ const MarkdownPreview = memo(function MarkdownPreview({
       }
       if (line.startsWith("## ")) {
         elements.push(
-          <h2 key={index} className="text-lg font-bold text-white mt-6 mb-3 flex items-center gap-2">
+          <h2 key={index} className="text-lg font-bold text-foreground mt-6 mb-3 flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-primary/60" />
             {highlightText(line.slice(3), searchQuery)}
           </h2>
@@ -573,7 +573,7 @@ const MarkdownPreview = memo(function MarkdownPreview({
       }
       if (line.startsWith("### ")) {
         elements.push(
-          <h3 key={index} className="text-base font-semibold text-slate-200 mt-5 mb-2 pl-2 border-l-2 border-slate-600">
+          <h3 key={index} className="text-base font-semibold text-foreground mt-5 mb-2 pl-2 border-l-2 border-border">
             {highlightText(line.slice(4), searchQuery)}
           </h3>
         );
@@ -584,9 +584,9 @@ const MarkdownPreview = memo(function MarkdownPreview({
       if (line.match(/^---+$/)) {
         elements.push(
           <div key={index} className="my-6 flex items-center gap-3">
-            <div className="flex-1 h-px bg-gradient-to-r from-transparent via-slate-700 to-transparent" />
-            <div className="w-1.5 h-1.5 rounded-full bg-slate-700" />
-            <div className="flex-1 h-px bg-gradient-to-r from-transparent via-slate-700 to-transparent" />
+            <div className="flex-1 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
+            <div className="w-1.5 h-1.5 rounded-full bg-muted" />
+            <div className="flex-1 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
           </div>
         );
         return;
@@ -595,7 +595,7 @@ const MarkdownPreview = memo(function MarkdownPreview({
       // List items with better styling
       if (line.match(/^[-*]\s/)) {
         elements.push(
-          <div key={index} className="flex gap-3 text-sm text-slate-300 ml-3 my-1 group">
+          <div key={index} className="flex gap-3 text-sm text-foreground ml-3 my-1 group">
             <span className="text-primary mt-1.5 text-xs group-hover:scale-125 transition-transform">●</span>
             <span className="flex-1">{highlightText(line.slice(2), searchQuery)}</span>
           </div>
@@ -608,12 +608,12 @@ const MarkdownPreview = memo(function MarkdownPreview({
         const parts = line.split(/\*\*(.+?)\*\*/g);
         const lineElements = parts.map((part, i) => {
           if (i % 2 === 1) {
-            return <strong key={i} className="text-white font-semibold">{highlightText(part, searchQuery)}</strong>;
+            return <strong key={i} className="text-foreground font-semibold">{highlightText(part, searchQuery)}</strong>;
           }
           return highlightText(part, searchQuery);
         });
         elements.push(
-          <p key={index} className="text-sm text-slate-300 my-1.5 leading-relaxed">
+          <p key={index} className="text-sm text-foreground my-1.5 leading-relaxed">
             {lineElements}
           </p>
         );
@@ -628,7 +628,7 @@ const MarkdownPreview = memo(function MarkdownPreview({
 
       // Regular paragraphs
       elements.push(
-        <p key={index} className="text-sm text-slate-300 my-1.5 leading-relaxed">
+        <p key={index} className="text-sm text-foreground my-1.5 leading-relaxed">
           {highlightText(line, searchQuery)}
         </p>
       );
@@ -663,11 +663,11 @@ const JsonPreview = memo(function JsonPreview({
         .replace(/: "([^"]+)"/g, ': <span class="text-emerald-400">"$1"</span>')
         .replace(/: (\d+\.?\d*)/g, ': <span class="text-amber-400">$1</span>')
         .replace(/: (true|false)/g, ': <span class="text-sky-400">$1</span>')
-        .replace(/: (null)/g, ': <span class="text-slate-500">$1</span>');
+        .replace(/: (null)/g, ': <span class="text-muted-foreground">$1</span>');
 
       if (searchQuery) {
         const regex = new RegExp(`(${searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
-        result = result.replace(regex, '<mark class="bg-primary/40 text-white px-0.5 rounded">$1</mark>');
+        result = result.replace(regex, '<mark class="bg-primary/40 text-foreground px-0.5 rounded">$1</mark>');
       }
 
       return result;
@@ -681,15 +681,15 @@ const JsonPreview = memo(function JsonPreview({
   return (
     <div className="relative">
       {/* 行号区域 */}
-      <div className="absolute left-0 top-0 bottom-0 w-10 bg-slate-900/30 border-r border-slate-700/30 select-none">
-        <div className="py-3 text-[10px] font-mono text-slate-600 text-right pr-2 leading-5">
+      <div className="absolute left-0 top-0 bottom-0 w-10 bg-background border-r border-border select-none">
+        <div className="py-3 text-xs font-mono text-muted-foreground text-right pr-2 leading-5">
           {lines.map((_, i) => (
             <div key={i}>{i + 1}</div>
           ))}
         </div>
       </div>
       <pre
-        className="text-xs font-mono text-slate-300 whitespace-pre-wrap pl-14 py-3 leading-5"
+        className="text-xs font-mono text-foreground whitespace-pre-wrap pl-14 py-3 leading-5"
         dangerouslySetInnerHTML={{ __html: highlightJson(content) }}
       />
     </div>
@@ -716,11 +716,11 @@ const HtmlPreview = memo(function HtmlPreview({
       .replace(/(&lt;\/?[a-zA-Z][a-zA-Z0-9]*)/g, '<span class="text-rose-400">$1</span>')
       .replace(/(\s[a-zA-Z-]+)=/g, '<span class="text-amber-400">$1</span>=')
       .replace(/"([^"]*)"/g, '"<span class="text-emerald-400">$1</span>"')
-      .replace(/(&lt;!DOCTYPE[^&]*&gt;)/gi, '<span class="text-slate-500">$1</span>');
+      .replace(/(&lt;!DOCTYPE[^&]*&gt;)/gi, '<span class="text-muted-foreground">$1</span>');
 
     if (searchQuery) {
       const regex = new RegExp(`(${searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
-      result = result.replace(regex, '<mark class="bg-primary/40 text-white px-0.5 rounded">$1</mark>');
+      result = result.replace(regex, '<mark class="bg-primary/40 text-foreground px-0.5 rounded">$1</mark>');
     }
 
     return result;
@@ -729,12 +729,12 @@ const HtmlPreview = memo(function HtmlPreview({
   return (
     <div className="relative">
       <pre
-        className="text-xs font-mono text-slate-400 whitespace-pre-wrap leading-5"
+        className="text-xs font-mono text-muted-foreground whitespace-pre-wrap leading-5"
         dangerouslySetInnerHTML={{ __html: highlightHtml(truncatedContent) }}
       />
       {isTruncated && (
-        <div className="mt-4 pt-4 border-t border-slate-700/30 text-center">
-          <span className="text-xs text-slate-500 bg-slate-800/50 px-3 py-1.5 rounded-full">
+        <div className="mt-4 pt-4 border-t border-border text-center">
+          <span className="text-xs text-muted-foreground bg-muted px-3 py-1.5 rounded-full">
             已截断显示，完整内容请下载查看
           </span>
         </div>
@@ -1622,28 +1622,21 @@ export const ReportExportDialog = memo(function ReportExportDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl h-[90vh] bg-gradient-to-b from-[#0a0a0f] to-[#0d0d14] border-slate-700/50 p-0 gap-0 overflow-hidden shadow-2xl shadow-black/50">
-        {/* Header - 增强设计 */}
-        <div className="relative px-6 py-5 border-b border-slate-700/50 bg-gradient-to-r from-[#0d0d12] via-[#0f0f16] to-[#0d0d12]">
-          {/* 装饰性背景元素 */}
-          <div className="absolute inset-0 overflow-hidden">
-            <div className="absolute -top-20 -right-20 w-40 h-40 bg-primary/5 rounded-full blur-3xl" />
-            <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-sky-500/5 rounded-full blur-2xl" />
-          </div>
-
+      <DialogContent className="max-w-5xl h-[90vh] bg-background border-border p-0 gap-0 overflow-hidden shadow-2xl">
+        {/* Header */}
+        <div className="relative px-6 py-5 border-b border-border bg-card">
           <DialogHeader className="relative">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <div className="relative p-3 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/30 shadow-lg shadow-primary/10">
+                <div className="relative p-3 rounded-xl bg-primary/10 border border-primary/30">
                   <FileDown className="w-6 h-6 text-primary" />
-                  <div className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-emerald-500 border-2 border-[#0a0a0f] animate-pulse" />
                 </div>
                 <div>
-                  <DialogTitle className="text-xl font-bold text-white flex items-center gap-2">
+                  <DialogTitle className="text-xl font-bold text-foreground flex items-center gap-2">
                     导出审计报告
                     <Sparkles className="w-4 h-4 text-primary/60" />
                   </DialogTitle>
-                  <p className="text-xs text-slate-500 mt-1 font-mono flex items-center gap-2">
+                  <p className="text-xs text-muted-foreground mt-1 font-mono flex items-center gap-2">
                     <Clock className="w-3 h-3" />
                     {task.name || `Task ${task.id.slice(0, 8)}`}
                   </p>
@@ -1651,12 +1644,12 @@ export const ReportExportDialog = memo(function ReportExportDialog({
               </div>
 
               {/* 快捷键提示 */}
-              <div className="hidden md:flex items-center gap-2 text-[10px] text-slate-600">
-                <div className="flex items-center gap-1 px-2 py-1 rounded bg-slate-800/50 border border-slate-700/30">
+              <div className="hidden md:flex items-center gap-2 text-xs text-muted-foreground">
+                <div className="flex items-center gap-1 px-2 py-1 rounded bg-muted border border-border">
                   <Keyboard className="w-3 h-3" />
                   <span>⌘S 下载</span>
                 </div>
-                <div className="flex items-center gap-1 px-2 py-1 rounded bg-slate-800/50 border border-slate-700/30">
+                <div className="flex items-center gap-1 px-2 py-1 rounded bg-muted border border-border">
                   <span>1-3 切换</span>
                 </div>
               </div>
@@ -1667,17 +1660,17 @@ export const ReportExportDialog = memo(function ReportExportDialog({
         {/* 主体内容区域 */}
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Stats Summary - 增强统计卡片 */}
-          <div className="px-6 py-4 border-b border-slate-700/30 bg-[#0b0b10]/80">
+          <div className="px-6 py-4 border-b border-border bg-card/80">
             <EnhancedStatsPanel task={task} findings={findings} />
           </div>
 
           {/* 两栏布局：左侧配置，右侧预览 */}
           <div className="flex-1 flex min-h-0">
             {/* 左侧：格式选择和配置 */}
-            <div className="w-72 flex-shrink-0 border-r border-slate-700/30 bg-[#0a0a0e]/50 p-4 space-y-4 overflow-y-auto">
+            <div className="w-72 flex-shrink-0 border-r border-border bg-card/50 p-4 space-y-4 overflow-y-auto">
               {/* 格式选择 */}
               <div>
-                <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
                   <FileText className="w-3.5 h-3.5" />
                   选择格式
                 </h3>
@@ -1696,16 +1689,16 @@ export const ReportExportDialog = memo(function ReportExportDialog({
               />
 
               {/* 格式信息 */}
-              <div className="p-3 rounded-xl bg-slate-800/30 border border-slate-700/30">
+              <div className="p-3 rounded-xl bg-muted border border-border">
                 <div className="flex items-center gap-2 mb-2">
                   <div className={FORMAT_CONFIG[activeFormat].color}>
                     {FORMAT_CONFIG[activeFormat].icon}
                   </div>
-                  <span className="text-sm font-medium text-white">
+                  <span className="text-sm font-medium text-foreground">
                     {FORMAT_CONFIG[activeFormat].label}
                   </span>
                 </div>
-                <p className="text-[11px] text-slate-500 leading-relaxed">
+                <p className="text-xs text-muted-foreground leading-relaxed">
                   {activeFormat === "markdown" && "Markdown格式便于编辑和版本控制，可用任何文本编辑器打开。"}
                   {activeFormat === "json" && "JSON格式包含完整的结构化数据，适合程序处理和数据分析。"}
                   {activeFormat === "html" && "HTML格式可直接在浏览器中查看，包含完整样式和布局。"}
@@ -1714,32 +1707,32 @@ export const ReportExportDialog = memo(function ReportExportDialog({
             </div>
 
             {/* 右侧：预览区域 */}
-            <div className="flex-1 flex flex-col min-h-0 bg-[#0d0d12]">
+            <div className="flex-1 flex flex-col min-h-0 cyber-dialog">
               {/* 预览工具栏 */}
-              <div className="flex-shrink-0 flex items-center justify-between px-4 py-2.5 border-b border-slate-700/30 bg-slate-800/20">
+              <div className="flex-shrink-0 flex items-center justify-between px-4 py-2.5 border-b border-border bg-muted/50">
                 <div className="flex items-center gap-3">
                   <div className="flex items-center gap-2">
-                    <Eye className="w-4 h-4 text-slate-500" />
-                    <span className="text-xs text-slate-400 font-medium">预览</span>
+                    <Eye className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-xs text-muted-foreground font-medium">预览</span>
                   </div>
-                  <Badge className="text-[10px] bg-slate-700/50 text-slate-400 border-0 font-mono">
+                  <Badge className="text-xs bg-muted/50 text-muted-foreground border-0 font-mono">
                     {formatBytes(preview.content.length)}
                   </Badge>
                 </div>
 
                 <div className="flex items-center gap-2">
                   {/* 搜索框 */}
-                  <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-slate-800/50 border border-slate-700/30">
-                    <Search className="w-3.5 h-3.5 text-slate-500" />
+                  <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-muted border border-border">
+                    <Search className="w-3.5 h-3.5 text-muted-foreground" />
                     <input
                       type="text"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder="搜索..."
-                      className="w-24 bg-transparent text-xs text-slate-300 placeholder:text-slate-600 outline-none"
+                      className="w-24 bg-transparent text-xs text-foreground placeholder:text-muted-foreground outline-none"
                     />
                     {searchQuery && (
-                      <span className="text-[10px] text-slate-500 font-mono">
+                      <span className="text-xs text-muted-foreground font-mono">
                         {searchMatchCount}
                       </span>
                     )}
@@ -1751,7 +1744,7 @@ export const ReportExportDialog = memo(function ReportExportDialog({
                     size="sm"
                     onClick={handleCopy}
                     disabled={preview.loading || !preview.content}
-                    className="h-8 px-2.5 text-xs text-slate-400 hover:text-white hover:bg-slate-700/50"
+                    className="h-8 px-2.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50"
                   >
                     {copied ? (
                       <Check className="w-3.5 h-3.5 mr-1.5 text-emerald-400" />
@@ -1766,7 +1759,7 @@ export const ReportExportDialog = memo(function ReportExportDialog({
                     size="sm"
                     onClick={() => fetchPreview(activeFormat, true)}
                     disabled={preview.loading}
-                    className="h-8 px-2.5 text-xs text-slate-400 hover:text-white hover:bg-slate-700/50"
+                    className="h-8 px-2.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50"
                   >
                     <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${preview.loading ? 'animate-spin' : ''}`} />
                     刷新
@@ -1787,8 +1780,8 @@ export const ReportExportDialog = memo(function ReportExportDialog({
                           <AlertTriangle className="w-8 h-8 text-amber-400" />
                         </div>
                         <div>
-                          <p className="text-sm text-slate-300 font-medium mb-1">加载失败</p>
-                          <p className="text-xs text-slate-500">{preview.error}</p>
+                          <p className="text-sm text-foreground font-medium mb-1">加载失败</p>
+                          <p className="text-xs text-muted-foreground">{preview.error}</p>
                         </div>
                         <Button
                           variant="outline"
@@ -1802,7 +1795,7 @@ export const ReportExportDialog = memo(function ReportExportDialog({
                       </div>
                     </div>
                   ) : (
-                    <div className="rounded-xl border border-slate-700/40 overflow-hidden bg-[#0a0a0e]">
+                    <div className="rounded-xl border border-border overflow-hidden bg-card">
                       <div className="p-5 min-h-[300px]">
                         {activeFormat === "markdown" && (
                           <MarkdownPreview content={preview.content} searchQuery={searchQuery} />
@@ -1824,9 +1817,9 @@ export const ReportExportDialog = memo(function ReportExportDialog({
         </div>
 
         {/* Footer - 增强设计 */}
-        <div className="px-6 py-4 border-t border-slate-700/50 bg-gradient-to-r from-[#0d0d12] via-[#0f0f16] to-[#0d0d12]">
+        <div className="px-6 py-4 border-t border-border bg-card">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3 text-xs text-slate-500">
+            <div className="flex items-center gap-3 text-xs text-muted-foreground">
               <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border ${FORMAT_CONFIG[activeFormat].bgColor}`}>
                 <span className={FORMAT_CONFIG[activeFormat].color}>
                   {FORMAT_CONFIG[activeFormat].icon}
@@ -1841,7 +1834,7 @@ export const ReportExportDialog = memo(function ReportExportDialog({
               <Button
                 variant="ghost"
                 onClick={() => onOpenChange(false)}
-                className="h-10 px-5 text-sm text-slate-400 hover:text-white"
+                className="h-10 px-5 text-sm text-muted-foreground hover:text-foreground"
               >
                 取消
               </Button>

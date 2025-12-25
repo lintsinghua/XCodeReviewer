@@ -166,14 +166,14 @@ export default function Dashboard() {
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center space-y-4">
           <div className="loading-spinner mx-auto" />
-          <p className="text-gray-500 font-mono text-sm uppercase tracking-wider">加载数据中...</p>
+          <p className="text-muted-foreground font-mono text-base uppercase tracking-wider">加载数据中...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 p-6 bg-[#0a0a0f] min-h-screen font-mono relative">
+    <div className="space-y-6 p-6 bg-background min-h-screen font-mono relative">
       {/* Grid background */}
       <div className="absolute inset-0 cyber-grid-subtle pointer-events-none" />
 
@@ -182,7 +182,7 @@ export default function Dashboard() {
         <div className="relative z-10 cyber-card p-4 border-amber-500/30 bg-amber-500/5">
           <div className="flex items-start gap-3">
             <AlertTriangle className="w-5 h-5 text-amber-400 mt-0.5" />
-            <div className="text-sm text-gray-300">
+            <div className="text-sm text-foreground/80">
               当前使用<span className="text-amber-400 font-bold">演示模式</span>，显示的是模拟数据。
               <Link to="/admin" className="ml-2 text-primary font-bold hover:underline">
                 前往配置 →
@@ -200,8 +200,8 @@ export default function Dashboard() {
             <div>
               <p className="stat-label">总项目数</p>
               <p className="stat-value">{stats?.total_projects || 0}</p>
-              <p className="text-xs text-emerald-400 mt-1 flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+              <p className="text-sm text-emerald-400 mt-1 flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-emerald-400" />
                 活跃: {stats?.active_projects || 0}
               </p>
             </div>
@@ -217,8 +217,8 @@ export default function Dashboard() {
             <div>
               <p className="stat-label">审计任务</p>
               <p className="stat-value">{stats?.total_tasks || 0}</p>
-              <p className="text-xs text-emerald-400 mt-1 flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+              <p className="text-sm text-emerald-400 mt-1 flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-emerald-400" />
                 已完成: {stats?.completed_tasks || 0}
               </p>
             </div>
@@ -234,8 +234,8 @@ export default function Dashboard() {
             <div>
               <p className="stat-label">发现问题</p>
               <p className="stat-value">{stats?.total_issues || 0}</p>
-              <p className="text-xs text-amber-400 mt-1 flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+              <p className="text-sm text-amber-400 mt-1 flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-amber-400" />
                 已解决: {stats?.resolved_issues || 0}
               </p>
             </div>
@@ -254,12 +254,12 @@ export default function Dashboard() {
                 {stats?.avg_quality_score ? stats.avg_quality_score.toFixed(1) : '0.0'}
               </p>
               {stats?.avg_quality_score ? (
-                <p className="text-xs text-emerald-400 mt-1 flex items-center gap-1">
-                  <TrendingUp className="w-3 h-3" />
+                <p className="text-sm text-emerald-400 mt-1 flex items-center gap-1">
+                  <TrendingUp className="w-4 h-4" />
                   持续改进
                 </p>
               ) : (
-                <p className="text-xs text-gray-500 mt-1">暂无数据</p>
+                <p className="text-sm text-muted-foreground mt-1">暂无数据</p>
               )}
             </div>
             <div className="stat-icon text-violet-400">
@@ -284,25 +284,26 @@ export default function Dashboard() {
               {qualityTrendData.length > 0 ? (
                 <ResponsiveContainer width="100%" height={220}>
                   <LineChart data={qualityTrendData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#1f1f2e" />
-                    <XAxis dataKey="date" stroke="#6b7280" fontSize={11} tick={{ fontFamily: 'monospace' }} />
-                    <YAxis stroke="#6b7280" fontSize={11} domain={[0, 100]} tick={{ fontFamily: 'monospace' }} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--cyber-border)" />
+                    <XAxis dataKey="date" stroke="var(--cyber-text-muted)" fontSize={11} tick={{ fontFamily: 'monospace' }} />
+                    <YAxis stroke="var(--cyber-text-muted)" fontSize={11} domain={[0, 100]} tick={{ fontFamily: 'monospace' }} />
                     <Tooltip
                       contentStyle={{
-                        backgroundColor: '#0c0c12',
-                        border: '1px solid #2a2a35',
+                        backgroundColor: 'var(--cyber-bg-elevated)',
+                        border: '1px solid var(--cyber-border)',
                         borderRadius: '4px',
                         fontFamily: 'monospace',
-                        fontSize: '12px'
+                        fontSize: '12px',
+                        color: 'var(--cyber-text)'
                       }}
                     />
                     <Line
                       type="monotone"
                       dataKey="score"
-                      stroke="#FF6B2C"
+                      stroke="hsl(var(--primary))"
                       strokeWidth={2}
-                      dot={{ fill: '#FF6B2C', stroke: '#0c0c12', strokeWidth: 2, r: 4 }}
-                      activeDot={{ r: 6, fill: '#FF6B2C' }}
+                      dot={{ fill: 'hsl(var(--primary))', stroke: 'var(--cyber-bg)', strokeWidth: 2, r: 4 }}
+                      activeDot={{ r: 6, fill: 'hsl(var(--primary))' }}
                     />
                   </LineChart>
                 </ResponsiveContainer>
@@ -331,7 +332,7 @@ export default function Dashboard() {
                       label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
                       outerRadius={70}
                       dataKey="value"
-                      stroke="#0c0c12"
+                      stroke="var(--cyber-bg)"
                       strokeWidth={2}
                     >
                       {issueTypeData.map((entry) => (
@@ -340,11 +341,12 @@ export default function Dashboard() {
                     </Pie>
                     <Tooltip
                       contentStyle={{
-                        backgroundColor: '#0c0c12',
-                        border: '1px solid #2a2a35',
+                        backgroundColor: 'var(--cyber-bg-elevated)',
+                        border: '1px solid var(--cyber-border)',
                         borderRadius: '4px',
                         fontFamily: 'monospace',
-                        fontSize: '12px'
+                        fontSize: '12px',
+                        color: 'var(--cyber-text)'
                       }}
                     />
                   </PieChart>
@@ -370,21 +372,33 @@ export default function Dashboard() {
                   <Link
                     key={project.id}
                     to={`/projects/${project.id}`}
-                    className="block p-4 bg-gray-900/50 border border-gray-800/50 rounded-lg hover:bg-gray-800/50 hover:border-gray-700 transition-all group"
+                    className="block p-4 rounded-lg transition-all group"
+                    style={{
+                      background: 'var(--cyber-bg-elevated)',
+                      border: '1px solid var(--cyber-border)'
+                    }}
+                    onMouseOver={(e) => {
+                      e.currentTarget.style.background = 'var(--cyber-hover-bg)';
+                      e.currentTarget.style.borderColor = 'var(--cyber-border-accent)';
+                    }}
+                    onMouseOut={(e) => {
+                      e.currentTarget.style.background = 'var(--cyber-bg-elevated)';
+                      e.currentTarget.style.borderColor = 'var(--cyber-border)';
+                    }}
                   >
                     <div className="flex items-start justify-between mb-2">
-                      <h4 className="font-semibold text-gray-200 group-hover:text-primary transition-colors truncate">
+                      <h4 className="font-semibold text-foreground group-hover:text-primary transition-colors truncate">
                         {project.name}
                       </h4>
                       <Badge className={`ml-2 flex-shrink-0 ${project.is_active ? 'cyber-badge-success' : 'cyber-badge-muted'}`}>
                         {project.is_active ? '活跃' : '暂停'}
                       </Badge>
                     </div>
-                    <p className="text-xs text-gray-500 line-clamp-2 mb-3">
+                    <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
                       {project.description || '暂无描述'}
                     </p>
-                    <div className="flex items-center text-xs text-gray-600">
-                      <Calendar className="w-3 h-3 mr-1" />
+                    <div className="flex items-center text-sm text-muted-foreground">
+                      <Calendar className="w-4 h-4 mr-1" />
                       {new Date(project.created_at).toLocaleDateString('zh-CN')}
                     </div>
                   </Link>
@@ -405,7 +419,7 @@ export default function Dashboard() {
               <Clock className="w-5 h-5 text-emerald-400" />
               <h3 className="section-title">最近任务</h3>
               <Link to="/audit-tasks" className="ml-auto">
-                <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white">
+                <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
                   查看全部 <ArrowUpRight className="w-3 h-3 ml-1" />
                 </Button>
               </Link>
@@ -416,7 +430,16 @@ export default function Dashboard() {
                   <Link
                     key={task.id}
                     to={`/tasks/${task.id}`}
-                    className="flex items-center justify-between p-3 bg-gray-900/30 rounded-lg hover:bg-gray-800/50 transition-all group"
+                    className="flex items-center justify-between p-3 rounded-lg transition-all group"
+                    style={{
+                      background: 'var(--cyber-bg-elevated)',
+                    }}
+                    onMouseOver={(e) => {
+                      e.currentTarget.style.background = 'var(--cyber-hover-bg)';
+                    }}
+                    onMouseOut={(e) => {
+                      e.currentTarget.style.background = 'var(--cyber-bg-elevated)';
+                    }}
                   >
                     <div className="flex items-center gap-3">
                       <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
@@ -429,11 +452,11 @@ export default function Dashboard() {
                          <AlertTriangle className="w-4 h-4" />}
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-gray-200 group-hover:text-primary transition-colors">
+                        <p className="text-base font-medium text-foreground group-hover:text-primary transition-colors">
                           {task.project?.name || '未知项目'}
                         </p>
-                        <p className="text-xs text-gray-500">
-                          质量分: <span className="text-white">{task.quality_score?.toFixed(1) || '0.0'}</span>
+                        <p className="text-sm text-muted-foreground">
+                          质量分: <span className="text-foreground">{task.quality_score?.toFixed(1) || '0.0'}</span>
                         </p>
                       </div>
                     </div>
@@ -494,7 +517,7 @@ export default function Dashboard() {
             </div>
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-400">数据库模式</span>
+                <span className="text-base text-muted-foreground">数据库模式</span>
                 <Badge className={`
                   ${dbMode === 'api' ? 'cyber-badge-primary' :
                     dbMode === 'local' ? 'cyber-badge-info' :
@@ -505,36 +528,36 @@ export default function Dashboard() {
                 </Badge>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-400">活跃项目</span>
-                <span className="text-sm font-bold text-white">{stats?.active_projects || 0}</span>
+                <span className="text-base text-muted-foreground">活跃项目</span>
+                <span className="text-base font-bold text-foreground">{stats?.active_projects || 0}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-400">运行中任务</span>
-                <span className="text-sm font-bold text-sky-400">
+                <span className="text-base text-muted-foreground">运行中任务</span>
+                <span className="text-base font-bold text-sky-400">
                   {recentTasks.filter(t => t.status === 'running').length}
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-400">待解决问题</span>
-                <span className="text-sm font-bold text-amber-400">
+                <span className="text-base text-muted-foreground">待解决问题</span>
+                <span className="text-base font-bold text-amber-400">
                   {stats ? stats.total_issues - stats.resolved_issues : 0}
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-400 flex items-center gap-1">
-                  <Shield className="w-3 h-3" />
+                <span className="text-base text-muted-foreground flex items-center gap-1">
+                  <Shield className="w-4 h-4" />
                   审计规则
                 </span>
-                <span className="text-sm font-bold text-violet-400">
+                <span className="text-base font-bold text-violet-400">
                   {ruleStats.enabled}/{ruleStats.total}
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-400 flex items-center gap-1">
-                  <MessageSquare className="w-3 h-3" />
+                <span className="text-base text-muted-foreground flex items-center gap-1">
+                  <MessageSquare className="w-4 h-4" />
                   提示词模板
                 </span>
-                <span className="text-sm font-bold text-emerald-400">
+                <span className="text-base font-bold text-emerald-400">
                   {templateStats.active}/{templateStats.total}
                 </span>
               </div>
@@ -572,28 +595,28 @@ export default function Dashboard() {
                     <Link
                       key={task.id}
                       to={`/tasks/${task.id}`}
-                      className={`block p-3 rounded-lg border transition-all hover:border-gray-700 ${
-                        task.status === 'completed' ? 'bg-emerald-500/5 border-emerald-500/20' :
-                        task.status === 'running' ? 'bg-sky-500/5 border-sky-500/20' :
-                        task.status === 'failed' ? 'bg-rose-500/5 border-rose-500/20' :
-                        'bg-gray-800/30 border-gray-800/50'
+                      className={`block p-3 rounded-lg border transition-all ${
+                        task.status === 'completed' ? 'bg-emerald-500/5 border-emerald-500/20 hover:border-emerald-500/40' :
+                        task.status === 'running' ? 'bg-sky-500/5 border-sky-500/20 hover:border-sky-500/40' :
+                        task.status === 'failed' ? 'bg-rose-500/5 border-rose-500/20 hover:border-rose-500/40' :
+                        'bg-muted/30 border-border hover:border-border'
                       }`}
                     >
-                      <p className="text-sm font-medium text-gray-200">{statusText}</p>
-                      <p className="text-xs text-gray-500 mt-1 line-clamp-1">
+                      <p className="text-base font-medium text-foreground">{statusText}</p>
+                      <p className="text-sm text-muted-foreground mt-1 line-clamp-1">
                         项目 "{task.project?.name || '未知项目'}"
                         {task.status === 'completed' && task.issues_count > 0 &&
                           ` - 发现 ${task.issues_count} 个问题`
                         }
                       </p>
-                      <p className="text-[10px] text-gray-600 mt-1">{timeAgo}</p>
+                      <p className="text-sm text-muted-foreground/70 mt-1">{timeAgo}</p>
                     </Link>
                   );
                 })
               ) : (
                 <div className="empty-state py-6">
-                  <Clock className="w-8 h-8 text-gray-600 mb-2" />
-                  <p className="text-sm text-gray-500">暂无活动记录</p>
+                  <Clock className="w-10 h-10 text-muted-foreground mb-2" />
+                  <p className="text-base text-muted-foreground">暂无活动记录</p>
                 </div>
               )}
             </div>

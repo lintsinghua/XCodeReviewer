@@ -57,17 +57,30 @@ class BaseLLMAdapter(ABC):
                 self.config.provider
             )
     
-    def handle_error(self, error: Any, context: str = "") -> None:
-        """处理API错误"""
+    def handle_error(self, error: Any, context: str = "", api_response: str = None) -> None:
+        """处理API错误
+
+        Args:
+            error: 原始异常
+            context: 错误上下文描述
+            api_response: API 服务器返回的原始响应信息
+        """
         message = str(error)
         status_code = getattr(error, 'status_code', None)
-        
+
+        # 如果错误本身已经有 api_response，优先使用
+        if api_response is None:
+            api_response = getattr(error, 'api_response', None)
+
         # 针对不同错误类型提供更详细的信息
         if "超时" in message or "timeout" in message.lower():
             message = f"请求超时 ({self.config.timeout}s)。建议：\n" \
                      f"1. 检查网络连接是否正常\n" \
                      f"2. 尝试增加超时时间\n" \
                      f"3. 验证API端点是否正确"
+        elif any(keyword in message for keyword in ["余额不足", "资源包", "充值", "quota", "insufficient", "balance"]):
+            message = f"账户余额不足或配额已用尽，请充值后重试"
+            status_code = status_code or 402
         elif status_code == 401 or status_code == 403:
             message = f"API认证失败。建议：\n" \
                      f"1. 检查API Key是否正确配置\n" \
@@ -83,14 +96,15 @@ class BaseLLMAdapter(ABC):
                      f"1. 稍后重试\n" \
                      f"2. 检查服务商状态页面\n" \
                      f"3. 尝试切换其他LLM提供商"
-        
+
         full_message = f"{context}: {message}" if context else message
-        
+
         raise LLMError(
             full_message,
             self.config.provider,
             status_code,
-            error
+            error,
+            api_response=api_response
         )
     
     async def retry(self, fn, max_attempts: int = 3, delay: float = 1.0) -> Any:

@@ -35,7 +35,7 @@ class EmbeddingProvider(BaseModel):
 
 class EmbeddingConfig(BaseModel):
     """嵌入模型配置"""
-    provider: str = Field(description="提供商: openai, ollama, azure, cohere, huggingface")
+    provider: str = Field(description="提供商: openai, ollama, azure, cohere, huggingface, jina, qwen")
     model: str = Field(description="模型名称")
     api_key: Optional[str] = Field(default=None, description="API Key (如需要)")
     base_url: Optional[str] = Field(default=None, description="自定义 API 端点")
@@ -76,8 +76,8 @@ class TestEmbeddingResponse(BaseModel):
 EMBEDDING_PROVIDERS: List[EmbeddingProvider] = [
     EmbeddingProvider(
         id="openai",
-        name="OpenAI",
-        description="OpenAI 官方嵌入模型，高质量、稳定",
+        name="OpenAI (兼容 DeepSeek/Moonshot/智谱 等)",
+        description="OpenAI 官方或兼容 API，填写自定义端点可接入其他服务商",
         models=[
             "text-embedding-3-small",
             "text-embedding-3-large",
@@ -151,6 +151,18 @@ EMBEDDING_PROVIDERS: List[EmbeddingProvider] = [
         ],
         requires_api_key=True,
         default_model="jina-embeddings-v2-base-code",
+    ),
+    EmbeddingProvider(
+        id="qwen",
+        name="Qwen (DashScope)",
+        description="阿里云 DashScope Qwen 嵌入模型，兼容 OpenAI embeddings 接口",
+        models=[
+            "text-embedding-v4",
+            "text-embedding-v3",
+            "text-embedding-v2",
+        ],
+        requires_api_key=True,
+        default_model="text-embedding-v4",
     ),
 ]
 
@@ -397,6 +409,11 @@ def _get_model_dimensions(provider: str, model: str) -> int:
         "jina-embeddings-v2-base-code": 768,
         "jina-embeddings-v2-base-en": 768,
         "jina-embeddings-v2-base-zh": 768,
+        
+        # Qwen (DashScope)
+        "text-embedding-v4": 1024,  # 支持维度: 2048, 1536, 1024(默认), 768, 512, 256, 128, 64
+        "text-embedding-v3": 1024,  # 支持维度: 1024(默认), 768, 512, 256, 128, 64
+        "text-embedding-v2": 1536,  # 支持维度: 1536
     }
     
     return dimensions_map.get(model, 768)

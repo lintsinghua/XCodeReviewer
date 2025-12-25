@@ -47,7 +47,7 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#0a0a0f] relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center cyber-bg-elevated relative overflow-hidden">
       {/* Scanline overlay */}
       <div className="absolute inset-0 pointer-events-none z-20">
         <div
@@ -79,7 +79,7 @@ export default function Register() {
       />
 
       {/* Corner Decorations */}
-      <div className="absolute top-4 left-4 text-[10px] font-mono text-gray-700 z-30 space-y-1">
+      <div className="absolute top-4 left-4 text-xs font-mono text-muted-foreground z-30 space-y-1">
         <div className="flex items-center gap-2">
           <Terminal className="w-3 h-3" />
           <span>REG_MODULE: ACTIVE</span>
@@ -94,17 +94,17 @@ export default function Register() {
         </div>
       </div>
 
-      <div className="absolute top-4 right-4 text-[10px] font-mono text-gray-700 text-right z-30 space-y-1">
+      <div className="absolute top-4 right-4 text-xs font-mono text-muted-foreground text-right z-30 space-y-1">
         <div>SECURE_CONN: TRUE</div>
         <div>VALIDATION: ENABLED</div>
         <div>HASH: SHA-256</div>
       </div>
 
-      <div className="absolute bottom-4 left-4 text-[10px] font-mono text-gray-700 z-30">
+      <div className="absolute bottom-4 left-4 text-xs font-mono text-muted-foreground z-30">
         DEEPAUDIT_REG_v3
       </div>
 
-      <div className="absolute bottom-4 right-4 text-[10px] font-mono text-gray-700 z-30">
+      <div className="absolute bottom-4 right-4 text-xs font-mono text-muted-foreground z-30">
         {new Date().toISOString().split("T")[0]}
       </div>
 
@@ -112,7 +112,7 @@ export default function Register() {
       <div className="w-full max-w-md relative z-30 px-4">
         {/* Logo & Title */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center p-3 bg-[#0c0c12] border border-gray-800/60 rounded-lg mb-6"
+          <div className="inline-flex items-center justify-center p-3 cyber-dialog border border-border/60 rounded-lg mb-6"
                style={{ boxShadow: '0 0 30px rgba(255,107,44,0.1)' }}>
             <img
               src="/logo_deepaudit.png"
@@ -125,24 +125,24 @@ export default function Register() {
             style={{ textShadow: "0 0 30px rgba(255,107,44,0.5), 0 0 60px rgba(255,107,44,0.3)" }}
           >
             <span className="text-primary">DEEP</span>
-            <span className="text-white">AUDIT</span>
+            <span className="text-foreground">AUDIT</span>
           </div>
-          <p className="text-sm font-mono text-gray-500">
+          <p className="text-sm font-mono text-muted-foreground">
             // Create New Account
           </p>
         </div>
 
         {/* Register Form Card */}
-        <div className="bg-[#0c0c12] border border-gray-800/60 rounded-lg overflow-hidden"
+        <div className="cyber-dialog border border-border/60 rounded-lg overflow-hidden"
              style={{ boxShadow: '0 4px 30px rgba(0,0,0,0.5)' }}>
           {/* Card Header */}
-          <div className="flex items-center gap-2 px-4 py-3 bg-[#0a0a0f] border-b border-gray-800/50">
+          <div className="flex items-center gap-2 px-4 py-3 cyber-bg-elevated border-b border-border">
             <div className="flex items-center gap-1.5">
               <div className="w-3 h-3 rounded-full bg-red-500/80" />
               <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
               <div className="w-3 h-3 rounded-full bg-green-500/80" />
             </div>
-            <span className="ml-2 font-mono text-[11px] text-gray-500 tracking-wider">
+            <span className="ml-2 font-mono text-xs text-muted-foreground tracking-wider">
               register@deepaudit
             </span>
           </div>
@@ -152,7 +152,7 @@ export default function Register() {
               <div className="space-y-2">
                 <Label
                   htmlFor="fullName"
-                  className="font-mono text-xs text-gray-400 uppercase tracking-wider"
+                  className="font-mono text-xs text-muted-foreground uppercase tracking-wider"
                 >
                   姓名
                 </Label>
@@ -163,16 +163,16 @@ export default function Register() {
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     required
-                    className="h-12 pl-11 font-mono bg-[#0a0a0f] border-gray-700/50 text-gray-200 placeholder:text-gray-600 focus:border-primary/50 focus:ring-0"
+                    className="h-12 pl-11 font-mono cyber-bg-elevated border-border/50 text-foreground placeholder:text-muted-foreground focus:border-primary/50 focus:ring-0"
                   />
-                  <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600" />
+                  <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 </div>
               </div>
 
               <div className="space-y-2">
                 <Label
                   htmlFor="email"
-                  className="font-mono text-xs text-gray-400 uppercase tracking-wider"
+                  className="font-mono text-xs text-muted-foreground uppercase tracking-wider"
                 >
                   邮箱地址
                 </Label>
@@ -184,16 +184,16 @@ export default function Register() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    className="h-12 pl-11 font-mono bg-[#0a0a0f] border-gray-700/50 text-gray-200 placeholder:text-gray-600 focus:border-primary/50 focus:ring-0"
+                    className="h-12 pl-11 font-mono cyber-bg-elevated border-border/50 text-foreground placeholder:text-muted-foreground focus:border-primary/50 focus:ring-0"
                   />
-                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600" />
+                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 </div>
               </div>
 
               <div className="space-y-2">
                 <Label
                   htmlFor="password"
-                  className="font-mono text-xs text-gray-400 uppercase tracking-wider"
+                  className="font-mono text-xs text-muted-foreground uppercase tracking-wider"
                 >
                   密码
                 </Label>
@@ -205,15 +205,15 @@ export default function Register() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                    className="h-12 pl-11 font-mono bg-[#0a0a0f] border-gray-700/50 text-gray-200 placeholder:text-gray-600 focus:border-primary/50 focus:ring-0"
+                    className="h-12 pl-11 font-mono cyber-bg-elevated border-border/50 text-foreground placeholder:text-muted-foreground focus:border-primary/50 focus:ring-0"
                   />
-                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600" />
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 </div>
               </div>
 
               <Button
                 type="submit"
-                className="w-full h-12 text-base font-bold uppercase tracking-wider bg-primary hover:bg-primary/90 text-white border border-primary/50 transition-all"
+                className="w-full h-12 text-base font-bold uppercase tracking-wider bg-primary hover:bg-primary/90 text-foreground border border-primary/50 transition-all"
                 style={{ boxShadow: '0 0 20px rgba(255,107,44,0.3)' }}
                 disabled={loading}
               >
@@ -229,8 +229,8 @@ export default function Register() {
             </form>
 
             {/* Footer */}
-            <div className="mt-6 pt-5 border-t border-gray-800/50 text-center">
-              <p className="text-sm font-mono text-gray-500">
+            <div className="mt-6 pt-5 border-t border-border text-center">
+              <p className="text-sm font-mono text-muted-foreground">
                 已有账号？{" "}
                 <span
                   className="text-primary font-bold cursor-pointer hover:underline"
@@ -245,7 +245,7 @@ export default function Register() {
 
         {/* Version Info */}
         <div className="mt-6 text-center">
-          <p className="font-mono text-[10px] text-gray-600 uppercase">
+          <p className="font-mono text-xs text-muted-foreground uppercase">
             Version {version} · Secure Registration
           </p>
         </div>

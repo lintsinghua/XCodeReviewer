@@ -39,14 +39,14 @@ export default function ProjectSelector({
         </Label>
         <Badge
           variant="outline"
-          className="text-xs rounded-none border-black font-mono"
+          className="text-xs rounded-none border-border font-mono"
         >
           {filteredProjects.length} 个可用项目
         </Badge>
       </div>
 
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-black w-4 h-4" />
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-foreground w-4 h-4" />
         <Input
           placeholder="搜索项目名称..."
           value={searchTerm}
@@ -91,7 +91,7 @@ function ProjectCard({
       className={`cursor-pointer transition-all border-2 p-4 relative ${
         isSelected
           ? "border-primary bg-blue-50 shadow-[4px_4px_0px_0px_rgba(37,99,235,1)] translate-x-[-2px] translate-y-[-2px]"
-          : "border-black bg-white hover:bg-gray-50 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-2px] hover:translate-y-[-2px]"
+          : "border-border bg-background hover:bg-background hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-2px] hover:translate-y-[-2px]"
       }`}
       onClick={onSelect}
     >
@@ -101,11 +101,11 @@ function ProjectCard({
             {project.name}
           </h4>
           {project.description && (
-            <p className="text-xs text-gray-600 mt-1 line-clamp-2 font-mono">
+            <p className="text-xs text-muted-foreground mt-1 line-clamp-2 font-mono">
               {project.description}
             </p>
           )}
-          <div className="flex items-center space-x-4 mt-2 text-xs text-gray-500 font-mono font-bold">
+          <div className="flex items-center space-x-4 mt-2 text-xs text-muted-foreground font-mono font-bold">
             <span
               className={`px-1.5 py-0.5 ${isRepo ? "bg-blue-100 text-blue-700" : "bg-amber-100 text-amber-700"}`}
             >
@@ -122,8 +122,8 @@ function ProjectCard({
           </div>
         </div>
         {isSelected && (
-          <div className="w-5 h-5 bg-primary border-2 border-black flex items-center justify-center">
-            <div className="w-2 h-2 bg-white" />
+          <div className="w-5 h-5 bg-primary border-2 border-border flex items-center justify-center">
+            <div className="w-2 h-2 bg-background" />
           </div>
         )}
       </div>
@@ -141,7 +141,7 @@ function LoadingSpinner() {
 
 function EmptyState({ hasSearch }: { hasSearch: boolean }) {
   return (
-    <div className="col-span-2 text-center py-8 text-gray-500 font-mono">
+    <div className="col-span-2 text-center py-8 text-muted-foreground font-mono">
       <FileText className="w-8 h-8 mx-auto mb-2 opacity-50" />
       <p className="text-sm">
         {hasSearch ? "未找到匹配的项目" : "暂无可用项目"}

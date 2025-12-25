@@ -19,7 +19,8 @@ class MinimaxAdapter(BaseLLMAdapter):
             await self.validate_config()
             return await self.retry(lambda: self._send_request(request))
         except Exception as error:
-            self.handle_error(error, "MiniMax API调用失败")
+            api_response = getattr(error, 'api_response', None)
+            self.handle_error(error, "MiniMax API调用失败", api_response=api_response)
     
     async def _send_request(self, request: LLMRequest) -> LLMResponse:
         """发送请求"""
@@ -47,15 +48,23 @@ class MinimaxAdapter(BaseLLMAdapter):
         
         if response.status_code != 200:
             error_data = response.json() if response.text else {}
-            error_msg = error_data.get("base_resp", {}).get("status_msg", f"HTTP {response.status_code}")
-            raise Exception(f"{error_msg}")
-        
+            base_resp = error_data.get("base_resp", {})
+            error_msg = base_resp.get("status_msg", f"HTTP {response.status_code}")
+            error_code = base_resp.get("status_code", "")
+            api_response = f"[{error_code}] {error_msg}" if error_code else error_msg
+            err = LLMError(error_msg, self.config.provider, response.status_code, api_response=api_response)
+            raise err
+
         data = response.json()
-        
+
         # MiniMax 特殊的错误处理
-        if data.get("base_resp", {}).get("status_code") != 0:
-            error_msg = data.get("base_resp", {}).get("status_msg", "未知错误")
-            raise Exception(f"MiniMax API错误: {error_msg}")
+        base_resp = data.get("base_resp", {})
+        if base_resp.get("status_code") != 0:
+            error_msg = base_resp.get("status_msg", "未知错误")
+            error_code = base_resp.get("status_code", "")
+            api_response = f"[{error_code}] {error_msg}"
+            err = LLMError(f"MiniMax API错误: {error_msg}", self.config.provider, api_response=api_response)
+            raise err
         
         choice = data.get("choices", [{}])[0]
         

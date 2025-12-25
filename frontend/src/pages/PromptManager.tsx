@@ -180,17 +180,17 @@ export default function PromptManager() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-[#0a0a0f]">
+      <div className="flex items-center justify-center min-h-screen cyber-bg-elevated">
         <div className="text-center space-y-4">
           <div className="loading-spinner mx-auto" />
-          <p className="text-gray-500 font-mono text-sm uppercase tracking-wider">加载中...</p>
+          <p className="text-muted-foreground font-mono text-sm uppercase tracking-wider">加载中...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 p-6 bg-[#0a0a0f] min-h-screen font-mono relative">
+    <div className="space-y-6 p-6 cyber-bg-elevated min-h-screen font-mono relative">
       {/* Grid background */}
       <div className="absolute inset-0 cyber-grid-subtle pointer-events-none" />
 
@@ -249,7 +249,7 @@ export default function PromptManager() {
       <div className="cyber-card p-0 relative z-10">
         <div className="cyber-card-header">
           <Terminal className="w-5 h-5 text-primary" />
-          <h3 className="text-lg font-bold uppercase tracking-wider text-white">提示词模板管理</h3>
+          <h3 className="text-lg font-bold uppercase tracking-wider text-foreground">提示词模板管理</h3>
           <div className="ml-auto">
             <Button onClick={() => { resetForm(); setShowCreateDialog(true); }} className="cyber-btn-primary h-9">
               <Plus className="w-4 h-4 mr-2" />
@@ -279,15 +279,15 @@ export default function PromptManager() {
             return (
               <div key={template.id} className={`cyber-card p-0 ${!template.is_active ? 'opacity-60' : ''}`}>
                 {/* Template Header */}
-                <div className="p-5 border-b border-gray-800">
+                <div className="p-5 border-b border-border">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-gray-800 border border-gray-700 flex items-center justify-center rounded">
-                        <TemplateIcon className="w-5 h-5 text-gray-400" />
+                      <div className="w-10 h-10 bg-muted border border-border flex items-center justify-center rounded">
+                        <TemplateIcon className="w-5 h-5 text-muted-foreground" />
                       </div>
                       <div>
-                        <h3 className="font-bold text-base text-white uppercase">{template.name}</h3>
-                        <p className="text-xs text-gray-500 line-clamp-1">{template.description}</p>
+                        <h3 className="font-bold text-base text-foreground uppercase">{template.name}</h3>
+                        <p className="text-xs text-muted-foreground line-clamp-1">{template.description}</p>
                       </div>
                     </div>
                   </div>
@@ -301,7 +301,7 @@ export default function PromptManager() {
                 {/* Template Content Preview */}
                 <div className="p-4">
                   <div
-                    className="text-xs text-emerald-400 line-clamp-3 bg-[#0a0a0f] p-3 border border-gray-800 font-mono mb-4 cursor-pointer hover:border-gray-700 transition-colors rounded"
+                    className="text-xs text-emerald-400 line-clamp-3 cyber-bg-elevated p-3 border border-border font-mono mb-4 cursor-pointer hover:border-border transition-colors rounded"
                     onClick={() => openViewDialog(template)}
                     title="点击查看完整内容"
                   >
@@ -344,9 +344,9 @@ export default function PromptManager() {
 
       {/* Create/Edit Dialog */}
       <Dialog open={showCreateDialog || showEditDialog} onOpenChange={(open) => { if (!open) { setShowCreateDialog(false); setShowEditDialog(false); } }}>
-        <DialogContent className="!w-[min(90vw,700px)] !max-w-none max-h-[85vh] flex flex-col p-0 gap-0 bg-[#0c0c12] border border-gray-800 rounded-lg">
-          <DialogHeader className="px-6 py-4 border-b border-gray-800 flex-shrink-0 bg-gray-900/50">
-            <DialogTitle className="flex items-center gap-3 font-mono text-white">
+        <DialogContent className="!w-[min(90vw,700px)] !max-w-none max-h-[85vh] flex flex-col p-0 gap-0 cyber-dialog border border-border rounded-lg">
+          <DialogHeader className="px-6 py-4 border-b border-border flex-shrink-0 bg-muted">
+            <DialogTitle className="flex items-center gap-3 font-mono text-foreground">
               <div className="p-2 bg-primary/20 rounded border border-primary/30">
                 <Terminal className="w-5 h-5 text-primary" />
               </div>
@@ -354,7 +354,7 @@ export default function PromptManager() {
                 <span className="text-base font-bold uppercase tracking-wider">
                   {showEditDialog ? '编辑模板' : '新建模板'}
                 </span>
-                <p className="text-xs text-gray-500 font-normal mt-0.5">
+                <p className="text-xs text-muted-foreground font-normal mt-0.5">
                   {showEditDialog ? 'Edit Template' : 'Create Template'}
                 </p>
               </div>
@@ -363,29 +363,29 @@ export default function PromptManager() {
           <div className="flex-1 overflow-y-auto p-6 space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="text-xs font-bold text-gray-500 uppercase">模板名称 *</Label>
+                <Label className="text-xs font-bold text-muted-foreground uppercase">模板名称 *</Label>
                 <Input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="如：安全专项审计" className="cyber-input" />
               </div>
               <div className="space-y-2">
-                <Label className="text-xs font-bold text-gray-500 uppercase">模板类型</Label>
+                <Label className="text-xs font-bold text-muted-foreground uppercase">模板类型</Label>
                 <Select value={form.template_type} onValueChange={v => setForm({ ...form, template_type: v })}>
                   <SelectTrigger className="cyber-input"><SelectValue /></SelectTrigger>
-                  <SelectContent className="bg-[#0c0c12] border-gray-700">
+                  <SelectContent className="cyber-dialog border-border">
                     {TEMPLATE_TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
             </div>
             <div className="space-y-2">
-              <Label className="text-xs font-bold text-gray-500 uppercase">描述</Label>
+              <Label className="text-xs font-bold text-muted-foreground uppercase">描述</Label>
               <Input value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="模板用途描述" className="cyber-input" />
             </div>
             <Tabs defaultValue="zh" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 bg-gray-900/50 border border-gray-800 p-1 h-auto gap-1 rounded">
-                <TabsTrigger value="zh" className="data-[state=active]:bg-primary data-[state=active]:text-white font-mono font-bold uppercase py-2 text-gray-400 transition-all rounded-sm text-xs">
+              <TabsList className="grid w-full grid-cols-2 bg-muted border border-border p-1 h-auto gap-1 rounded">
+                <TabsTrigger value="zh" className="data-[state=active]:bg-primary data-[state=active]:text-foreground font-mono font-bold uppercase py-2 text-muted-foreground transition-all rounded-sm text-xs">
                   中文提示词
                 </TabsTrigger>
-                <TabsTrigger value="en" className="data-[state=active]:bg-primary data-[state=active]:text-white font-mono font-bold uppercase py-2 text-gray-400 transition-all rounded-sm text-xs">
+                <TabsTrigger value="en" className="data-[state=active]:bg-primary data-[state=active]:text-foreground font-mono font-bold uppercase py-2 text-muted-foreground transition-all rounded-sm text-xs">
                   英文提示词
                 </TabsTrigger>
               </TabsList>
@@ -398,10 +398,10 @@ export default function PromptManager() {
             </Tabs>
             <div className="flex items-center gap-2">
               <Switch checked={form.is_active} onCheckedChange={v => setForm({ ...form, is_active: v })} />
-              <Label className="text-xs font-bold text-gray-400 uppercase">启用此模板</Label>
+              <Label className="text-xs font-bold text-muted-foreground uppercase">启用此模板</Label>
             </div>
           </div>
-          <DialogFooter className="flex-shrink-0 flex justify-end gap-3 px-6 py-4 bg-gray-900/50 border-t border-gray-800">
+          <DialogFooter className="flex-shrink-0 flex justify-end gap-3 px-6 py-4 bg-muted border-t border-border">
             <Button variant="outline" onClick={() => { setShowCreateDialog(false); setShowEditDialog(false); }} className="cyber-btn-outline">取消</Button>
             <Button onClick={showEditDialog ? handleUpdate : handleCreate} className="cyber-btn-primary">{showEditDialog ? '保存' : '创建'}</Button>
           </DialogFooter>
@@ -410,9 +410,9 @@ export default function PromptManager() {
 
       {/* Test Dialog */}
       <Dialog open={showTestDialog} onOpenChange={setShowTestDialog}>
-        <DialogContent className="!w-[min(95vw,1200px)] !max-w-none max-h-[85vh] flex flex-col p-0 gap-0 bg-[#0c0c12] border border-gray-800 rounded-lg">
-          <DialogHeader className="px-6 py-4 border-b border-gray-800 flex-shrink-0 bg-gray-900/50">
-            <DialogTitle className="flex items-center gap-3 font-mono text-white">
+        <DialogContent className="!w-[min(95vw,1200px)] !max-w-none max-h-[85vh] flex flex-col p-0 gap-0 cyber-dialog border border-border rounded-lg">
+          <DialogHeader className="px-6 py-4 border-b border-border flex-shrink-0 bg-muted">
+            <DialogTitle className="flex items-center gap-3 font-mono text-foreground">
               <div className="p-2 bg-violet-500/20 rounded border border-violet-500/30">
                 <Sparkles className="w-5 h-5 text-violet-400" />
               </div>
@@ -420,7 +420,7 @@ export default function PromptManager() {
                 <span className="text-base font-bold uppercase tracking-wider">
                   测试提示词: {selectedTemplate?.name}
                 </span>
-                <p className="text-xs text-gray-500 font-normal mt-0.5">使用示例代码测试提示词效果</p>
+                <p className="text-xs text-muted-foreground font-normal mt-0.5">使用示例代码测试提示词效果</p>
               </div>
             </DialogTitle>
           </DialogHeader>
@@ -429,14 +429,14 @@ export default function PromptManager() {
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
-                  <Label className="text-xs font-bold text-gray-500 uppercase">编程语言</Label>
+                  <Label className="text-xs font-bold text-muted-foreground uppercase">编程语言</Label>
                   <Select value={testForm.language} onValueChange={v => {
                     const templateCodes = selectedTemplate ? TEMPLATE_TEST_CODES[selectedTemplate.name] : null;
                     const code = templateCodes?.[v] || TEST_CODE_SAMPLES[v] || TEST_CODE_SAMPLES.python;
                     setTestForm({ ...testForm, language: v, code });
                   }}>
                     <SelectTrigger className="cyber-input"><SelectValue /></SelectTrigger>
-                    <SelectContent className="bg-[#0c0c12] border-gray-700">
+                    <SelectContent className="cyber-dialog border-border">
                       <SelectItem value="python">Python</SelectItem>
                       <SelectItem value="javascript">JavaScript</SelectItem>
                       <SelectItem value="java">Java</SelectItem>
@@ -444,10 +444,10 @@ export default function PromptManager() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-xs font-bold text-gray-500 uppercase">提示词语言</Label>
+                  <Label className="text-xs font-bold text-muted-foreground uppercase">提示词语言</Label>
                   <Select value={testForm.promptLang} onValueChange={(v: 'zh' | 'en') => setTestForm({ ...testForm, promptLang: v })}>
                     <SelectTrigger className="cyber-input"><SelectValue /></SelectTrigger>
-                    <SelectContent className="bg-[#0c0c12] border-gray-700">
+                    <SelectContent className="cyber-dialog border-border">
                       <SelectItem value="zh">中文提示词</SelectItem>
                       <SelectItem value="en">英文提示词</SelectItem>
                     </SelectContent>
@@ -455,7 +455,7 @@ export default function PromptManager() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label className="text-xs font-bold text-gray-500 uppercase">测试代码</Label>
+                <Label className="text-xs font-bold text-muted-foreground uppercase">测试代码</Label>
                 <Textarea value={testForm.code} onChange={e => setTestForm({ ...testForm, code: e.target.value })} rows={10} className="cyber-input font-mono text-sm text-emerald-400" />
               </div>
               <Button onClick={handleTest} disabled={testing} className="w-full cyber-btn-primary h-12">
@@ -464,8 +464,8 @@ export default function PromptManager() {
             </div>
             {/* Right: Results */}
             <div className="space-y-4">
-              <Label className="text-xs font-bold text-gray-500 uppercase">分析结果</Label>
-              <div className="border border-gray-800 h-[400px] overflow-auto bg-[#0a0a0f] rounded">
+              <Label className="text-xs font-bold text-muted-foreground uppercase">分析结果</Label>
+              <div className="border border-border h-[400px] overflow-auto cyber-bg-elevated rounded">
                 {testResult ? (
                   testResult.success ? (
                     <div className="flex flex-col h-full">
@@ -482,15 +482,15 @@ export default function PromptManager() {
 
                       {/* Quality Score */}
                       {testResult.result?.quality_score !== undefined && (
-                        <div className="p-3 bg-gray-900/50 border-b border-gray-800 flex items-center justify-between">
-                          <span className="text-xs font-bold uppercase text-gray-500">质量评分</span>
+                        <div className="p-3 bg-muted border-b border-border flex items-center justify-between">
+                          <span className="text-xs font-bold uppercase text-muted-foreground">质量评分</span>
                           <div className="flex items-center gap-2">
                             <div className={`text-2xl font-bold ${testResult.result.quality_score >= 80 ? 'text-emerald-400' :
                               testResult.result.quality_score >= 60 ? 'text-amber-400' : 'text-rose-400'
                               }`}>
                               {testResult.result.quality_score}
                             </div>
-                            <span className="text-xs text-gray-500">/ 100</span>
+                            <span className="text-xs text-muted-foreground">/ 100</span>
                           </div>
                         </div>
                       )}
@@ -500,14 +500,14 @@ export default function PromptManager() {
                         {testResult.result?.issues?.length > 0 ? (
                           <div className="space-y-3">
                             <div className="flex items-center justify-between mb-2">
-                              <span className="text-xs font-bold uppercase text-gray-500">发现问题</span>
+                              <span className="text-xs font-bold uppercase text-muted-foreground">发现问题</span>
                               <Badge className="cyber-badge-danger">
                                 {testResult.result.issues.length} 个
                               </Badge>
                             </div>
                             {testResult.result.issues.map((issue: any, idx: number) => (
                               <div key={idx} className="cyber-card p-0 overflow-hidden">
-                                <div className={`px-3 py-2 border-b border-gray-800 flex items-center justify-between ${issue.severity === 'critical' ? 'bg-rose-500/20 text-rose-400' :
+                                <div className={`px-3 py-2 border-b border-border flex items-center justify-between ${issue.severity === 'critical' ? 'bg-rose-500/20 text-rose-400' :
                                   issue.severity === 'high' ? 'bg-orange-500/20 text-orange-400' :
                                     issue.severity === 'medium' ? 'bg-amber-500/20 text-amber-400' : 'bg-sky-500/20 text-sky-400'
                                   }`}>
@@ -515,9 +515,9 @@ export default function PromptManager() {
                                   {issue.line && <span className="text-xs opacity-80">行 {issue.line}</span>}
                                 </div>
                                 <div className="p-3">
-                                  <h4 className="font-bold text-sm mb-1 text-gray-200">{issue.title}</h4>
+                                  <h4 className="font-bold text-sm mb-1 text-foreground">{issue.title}</h4>
                                   {issue.description && (
-                                    <p className="text-xs text-gray-500 leading-relaxed">{issue.description}</p>
+                                    <p className="text-xs text-muted-foreground leading-relaxed">{issue.description}</p>
                                   )}
                                   {issue.suggestion && (
                                     <div className="mt-2 p-2 bg-sky-500/10 border-l-2 border-sky-500 rounded-r">
@@ -537,7 +537,7 @@ export default function PromptManager() {
                               <Check className="w-6 h-6 text-emerald-400" />
                             </div>
                             <p className="font-bold text-emerald-400 uppercase text-sm">未发现问题</p>
-                            <p className="text-xs text-gray-500 mt-1">代码质量良好</p>
+                            <p className="text-xs text-muted-foreground mt-1">代码质量良好</p>
                           </div>
                         )}
                       </ScrollArea>
@@ -567,8 +567,8 @@ export default function PromptManager() {
                     </div>
                   )
                 ) : (
-                  <div className="flex flex-col items-center justify-center h-full text-gray-500">
-                    <div className="w-16 h-16 bg-gray-800 border border-gray-700 flex items-center justify-center mb-4 rounded">
+                  <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+                    <div className="w-16 h-16 bg-muted border border-border flex items-center justify-center mb-4 rounded">
                       <Play className="w-8 h-8 opacity-50" />
                     </div>
                     <p className="font-mono uppercase text-sm">点击"运行测试"</p>
@@ -578,7 +578,7 @@ export default function PromptManager() {
               </div>
             </div>
           </div>
-          <DialogFooter className="flex-shrink-0 flex justify-end gap-3 px-6 py-4 bg-gray-900/50 border-t border-gray-800">
+          <DialogFooter className="flex-shrink-0 flex justify-end gap-3 px-6 py-4 bg-muted border-t border-border">
             <Button variant="outline" onClick={() => setShowTestDialog(false)} className="cyber-btn-outline">关闭</Button>
           </DialogFooter>
         </DialogContent>
@@ -586,9 +586,9 @@ export default function PromptManager() {
 
       {/* View Dialog */}
       <Dialog open={showViewDialog} onOpenChange={setShowViewDialog}>
-        <DialogContent className="!w-[min(90vw,800px)] !max-w-none max-h-[85vh] flex flex-col p-0 gap-0 bg-[#0c0c12] border border-gray-800 rounded-lg">
-          <DialogHeader className="px-6 py-4 border-b border-gray-800 flex-shrink-0 bg-gray-900/50">
-            <DialogTitle className="flex items-center gap-3 font-mono text-white">
+        <DialogContent className="!w-[min(90vw,800px)] !max-w-none max-h-[85vh] flex flex-col p-0 gap-0 cyber-dialog border border-border rounded-lg">
+          <DialogHeader className="px-6 py-4 border-b border-border flex-shrink-0 bg-muted">
+            <DialogTitle className="flex items-center gap-3 font-mono text-foreground">
               <div className="p-2 bg-primary/20 rounded border border-primary/30">
                 <FileText className="w-5 h-5 text-primary" />
               </div>
@@ -596,7 +596,7 @@ export default function PromptManager() {
                 <span className="text-base font-bold uppercase tracking-wider">
                   {viewTemplate?.name}
                 </span>
-                <p className="text-xs text-gray-500 font-normal mt-0.5">{viewTemplate?.description || 'View Template'}</p>
+                <p className="text-xs text-muted-foreground font-normal mt-0.5">{viewTemplate?.description || 'View Template'}</p>
               </div>
             </DialogTitle>
           </DialogHeader>
@@ -613,27 +613,27 @@ export default function PromptManager() {
             </div>
 
             <Tabs defaultValue="zh" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 bg-gray-900/50 border border-gray-800 p-1 h-auto gap-1 rounded">
-                <TabsTrigger value="zh" className="data-[state=active]:bg-primary data-[state=active]:text-white font-mono font-bold uppercase py-2 text-gray-400 transition-all rounded-sm text-xs">
+              <TabsList className="grid w-full grid-cols-2 bg-muted border border-border p-1 h-auto gap-1 rounded">
+                <TabsTrigger value="zh" className="data-[state=active]:bg-primary data-[state=active]:text-foreground font-mono font-bold uppercase py-2 text-muted-foreground transition-all rounded-sm text-xs">
                   中文提示词
                 </TabsTrigger>
-                <TabsTrigger value="en" className="data-[state=active]:bg-primary data-[state=active]:text-white font-mono font-bold uppercase py-2 text-gray-400 transition-all rounded-sm text-xs">
+                <TabsTrigger value="en" className="data-[state=active]:bg-primary data-[state=active]:text-foreground font-mono font-bold uppercase py-2 text-muted-foreground transition-all rounded-sm text-xs">
                   英文提示词
                 </TabsTrigger>
               </TabsList>
               <TabsContent value="zh" className="mt-4">
-                <div className="bg-[#0a0a0f] text-emerald-400 p-4 border border-gray-800 font-mono text-sm whitespace-pre-wrap max-h-[500px] overflow-y-auto rounded">
+                <div className="cyber-bg-elevated text-emerald-400 p-4 border border-border font-mono text-sm whitespace-pre-wrap max-h-[500px] overflow-y-auto rounded">
                   {viewTemplate?.content_zh || '(无中文内容)'}
                 </div>
               </TabsContent>
               <TabsContent value="en" className="mt-4">
-                <div className="bg-[#0a0a0f] text-emerald-400 p-4 border border-gray-800 font-mono text-sm whitespace-pre-wrap max-h-[500px] overflow-y-auto rounded">
+                <div className="cyber-bg-elevated text-emerald-400 p-4 border border-border font-mono text-sm whitespace-pre-wrap max-h-[500px] overflow-y-auto rounded">
                   {viewTemplate?.content_en || '(No English content)'}
                 </div>
               </TabsContent>
             </Tabs>
           </div>
-          <DialogFooter className="flex-shrink-0 flex justify-end gap-3 px-6 py-4 bg-gray-900/50 border-t border-gray-800">
+          <DialogFooter className="flex-shrink-0 flex justify-end gap-3 px-6 py-4 bg-muted border-t border-border">
             <Button variant="outline" onClick={() => copyToClipboard(viewTemplate?.content_zh || viewTemplate?.content_en || '')} className="cyber-btn-outline">
               <Copy className="w-4 h-4 mr-2" />
               复制内容

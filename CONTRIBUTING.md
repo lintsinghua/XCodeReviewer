@@ -129,7 +129,7 @@ pnpm dev
 
 ### 后端 (Python)
 
-- 使用 Python 3.13+ 类型注解
+- 使用 Python 3.11+ 类型注解
 - 遵循 PEP 8 代码风格
 - 使用 Ruff 进行代码格式化和检查
 - 使用 mypy 进行类型检查

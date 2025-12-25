@@ -292,18 +292,73 @@ class LLMTestResponse(BaseModel):
     message: str
     model: Optional[str] = None
     response: Optional[str] = None
+    # 调试信息
+    debug: Optional[dict] = None
 
 
 @router.post("/test-llm", response_model=LLMTestResponse)
 async def test_llm_connection(
     request: LLMTestRequest,
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(deps.get_current_user),
 ) -> Any:
     """测试LLM连接是否正常"""
     from app.services.llm.factory import LLMFactory, NATIVE_ONLY_PROVIDERS
     from app.services.llm.adapters import LiteLLMAdapter, BaiduAdapter, MinimaxAdapter, DoubaoAdapter
-    from app.services.llm.types import LLMConfig, LLMProvider, LLMRequest, LLMMessage, DEFAULT_MODELS
-    
+    from app.services.llm.types import LLMConfig, LLMProvider, LLMRequest, LLMMessage, DEFAULT_MODELS, DEFAULT_BASE_URLS
+    import traceback
+    import time
+
+    start_time = time.time()
+
+    # 获取用户保存的配置
+    result = await db.execute(
+        select(UserConfig).where(UserConfig.user_id == current_user.id)
+    )
+    user_config_record = result.scalar_one_or_none()
+
+    # 解析用户配置
+    saved_llm_config = {}
+    saved_other_config = {}
+    if user_config_record:
+        if user_config_record.llm_config:
+            saved_llm_config = decrypt_config(
+                json.loads(user_config_record.llm_config),
+                SENSITIVE_LLM_FIELDS
+            )
+        if user_config_record.other_config:
+            saved_other_config = decrypt_config(
+                json.loads(user_config_record.other_config),
+                SENSITIVE_OTHER_FIELDS
+            )
+
+    # 从保存的配置中获取参数（用于调试显示）
+    saved_timeout_ms = saved_llm_config.get('llmTimeout', settings.LLM_TIMEOUT * 1000)
+    saved_temperature = saved_llm_config.get('llmTemperature', settings.LLM_TEMPERATURE)
+    saved_max_tokens = saved_llm_config.get('llmMaxTokens', settings.LLM_MAX_TOKENS)
+    saved_concurrency = saved_other_config.get('llmConcurrency', settings.LLM_CONCURRENCY)
+    saved_gap_ms = saved_other_config.get('llmGapMs', settings.LLM_GAP_MS)
+    saved_max_files = saved_other_config.get('maxAnalyzeFiles', settings.MAX_ANALYZE_FILES)
+    saved_output_lang = saved_other_config.get('outputLanguage', settings.OUTPUT_LANGUAGE)
+
+    debug_info = {
+        "provider": request.provider,
+        "model_requested": request.model,
+        "base_url_requested": request.baseUrl,
+        "api_key_length": len(request.apiKey) if request.apiKey else 0,
+        "api_key_prefix": request.apiKey[:8] + "..." if request.apiKey and len(request.apiKey) > 8 else "(empty)",
+        # 用户保存的配置参数
+        "saved_config": {
+            "timeout_ms": saved_timeout_ms,
+            "temperature": saved_temperature,
+            "max_tokens": saved_max_tokens,
+            "concurrency": saved_concurrency,
+            "gap_ms": saved_gap_ms,
+            "max_analyze_files": saved_max_files,
+            "output_language": saved_output_lang,
+        },
+    }
+
     try:
         # 解析provider
         provider_map = {
@@ -319,27 +374,47 @@ async def test_llm_connection(
             'doubao': LLMProvider.DOUBAO,
             'ollama': LLMProvider.OLLAMA,
         }
-        
+
         provider = provider_map.get(request.provider.lower())
         if not provider:
+            debug_info["error_type"] = "unsupported_provider"
             return LLMTestResponse(
                 success=False,
-                message=f"不支持的LLM提供商: {request.provider}"
+                message=f"不支持的LLM提供商: {request.provider}",
+                debug=debug_info
             )
-        
+
         # 获取默认模型
         model = request.model or DEFAULT_MODELS.get(provider)
-        
+        base_url = request.baseUrl or DEFAULT_BASE_URLS.get(provider, "")
+
+        # 测试时使用用户保存的所有配置参数
+        test_timeout = int(saved_timeout_ms / 1000) if saved_timeout_ms else settings.LLM_TIMEOUT
+        test_temperature = saved_temperature if saved_temperature is not None else settings.LLM_TEMPERATURE
+        test_max_tokens = saved_max_tokens if saved_max_tokens else settings.LLM_MAX_TOKENS
+
+        debug_info["model_used"] = model
+        debug_info["base_url_used"] = base_url
+        debug_info["is_native_adapter"] = provider in NATIVE_ONLY_PROVIDERS
+        debug_info["test_params"] = {
+            "timeout": test_timeout,
+            "temperature": test_temperature,
+            "max_tokens": test_max_tokens,
+        }
+
+        print(f"[LLM Test] 开始测试: provider={provider.value}, model={model}, base_url={base_url}, temperature={test_temperature}, timeout={test_timeout}s, max_tokens={test_max_tokens}")
+
         # 创建配置
         config = LLMConfig(
             provider=provider,
             api_key=request.apiKey,
             model=model,
             base_url=request.baseUrl,
-            timeout=30,  # 测试使用较短的超时时间
-            max_tokens=50,  # 测试使用较少的token
+            timeout=test_timeout,
+            temperature=test_temperature,
+            max_tokens=test_max_tokens,
         )
-        
+
         # 直接创建新的适配器实例（不使用缓存），确保使用最新的配置
         if provider in NATIVE_ONLY_PROVIDERS:
             native_adapter_map = {
@@ -348,59 +423,106 @@ async def test_llm_connection(
                 LLMProvider.DOUBAO: DoubaoAdapter,
             }
             adapter = native_adapter_map[provider](config)
+            debug_info["adapter_type"] = type(adapter).__name__
         else:
             adapter = LiteLLMAdapter(config)
-        
+            debug_info["adapter_type"] = "LiteLLMAdapter"
+            # 获取 LiteLLM 实际使用的模型名
+            debug_info["litellm_model"] = getattr(adapter, '_get_litellm_model', lambda: model)() if hasattr(adapter, '_get_litellm_model') else model
+
         test_request = LLMRequest(
             messages=[
                 LLMMessage(role="user", content="Say 'Hello' in one word.")
             ],
-            max_tokens=50,
+            temperature=test_temperature,
+            max_tokens=test_max_tokens,
         )
-        
+
+        print(f"[LLM Test] 发送测试请求...")
         response = await adapter.complete(test_request)
-        
+
+        elapsed_time = time.time() - start_time
+        debug_info["elapsed_time_ms"] = round(elapsed_time * 1000, 2)
+
         # 验证响应内容
         if not response or not response.content:
+            debug_info["error_type"] = "empty_response"
+            debug_info["raw_response"] = str(response) if response else None
+            print(f"[LLM Test] 空响应: {response}")
             return LLMTestResponse(
                 success=False,
-                message="LLM 返回空响应，请检查 API Key 和配置"
+                message="LLM 返回空响应，请检查 API Key 和配置",
+                debug=debug_info
             )
-        
+
+        debug_info["response_length"] = len(response.content)
+        debug_info["usage"] = {
+            "prompt_tokens": getattr(response, 'prompt_tokens', None),
+            "completion_tokens": getattr(response, 'completion_tokens', None),
+            "total_tokens": getattr(response, 'total_tokens', None),
+        }
+
+        print(f"[LLM Test] 成功! 响应: {response.content[:50]}... 耗时: {elapsed_time:.2f}s")
+
         return LLMTestResponse(
             success=True,
-            message="LLM连接测试成功",
+            message=f"连接成功 ({elapsed_time:.2f}s)",
             model=model,
-            response=response.content[:100] if response.content else None
+            response=response.content[:100] if response.content else None,
+            debug=debug_info
         )
-        
+
     except Exception as e:
+        elapsed_time = time.time() - start_time
         error_msg = str(e)
+        error_type = type(e).__name__
+
+        debug_info["elapsed_time_ms"] = round(elapsed_time * 1000, 2)
+        debug_info["error_type"] = error_type
+        debug_info["error_message"] = error_msg
+        debug_info["traceback"] = traceback.format_exc()
+
+        # 提取 LLMError 中的 api_response
+        if hasattr(e, 'api_response') and e.api_response:
+            debug_info["api_response"] = e.api_response
+        if hasattr(e, 'status_code') and e.status_code:
+            debug_info["status_code"] = e.status_code
+
+        print(f"[LLM Test] 失败: {error_type}: {error_msg}")
+        print(f"[LLM Test] Traceback:\n{traceback.format_exc()}")
+
         # 提供更友好的错误信息
-        if "401" in error_msg or "invalid_api_key" in error_msg.lower() or "incorrect api key" in error_msg.lower():
-            return LLMTestResponse(
-                success=False,
-                message="API Key 无效或已过期，请检查后重试"
-            )
+        friendly_message = error_msg
+
+        # 优先检查余额不足（因为某些 API 用 429 表示余额不足）
+        if any(keyword in error_msg for keyword in ["余额不足", "资源包", "充值", "quota", "insufficient", "balance", "402"]):
+            friendly_message = "账户余额不足或配额已用尽，请充值后重试"
+            debug_info["error_category"] = "insufficient_balance"
+        elif "401" in error_msg or "invalid_api_key" in error_msg.lower() or "incorrect api key" in error_msg.lower():
+            friendly_message = "API Key 无效或已过期，请检查后重试"
+            debug_info["error_category"] = "auth_invalid_key"
         elif "authentication" in error_msg.lower():
-            return LLMTestResponse(
-                success=False,
-                message="认证失败，请检查 API Key 是否正确"
-            )
+            friendly_message = "认证失败，请检查 API Key 是否正确"
+            debug_info["error_category"] = "auth_failed"
         elif "timeout" in error_msg.lower():
-            return LLMTestResponse(
-                success=False,
-                message="连接超时，请检查网络或 API 地址是否正确"
-            )
-        elif "connection" in error_msg.lower():
-            return LLMTestResponse(
-                success=False,
-                message="无法连接到 API 服务，请检查网络或 API 地址"
-            )
-        
+            friendly_message = "连接超时，请检查网络或 API 地址是否正确"
+            debug_info["error_category"] = "timeout"
+        elif "connection" in error_msg.lower() or "connect" in error_msg.lower():
+            friendly_message = "无法连接到 API 服务，请检查网络或 API 地址"
+            debug_info["error_category"] = "connection"
+        elif "rate" in error_msg.lower() and "limit" in error_msg.lower():
+            friendly_message = "API 请求频率超限，请稍后重试"
+            debug_info["error_category"] = "rate_limit"
+        elif "model" in error_msg.lower() and ("not found" in error_msg.lower() or "does not exist" in error_msg.lower()):
+            friendly_message = f"模型 '{debug_info.get('model_used', 'unknown')}' 不存在或无权访问"
+            debug_info["error_category"] = "model_not_found"
+        else:
+            debug_info["error_category"] = "unknown"
+
         return LLMTestResponse(
             success=False,
-            message=f"LLM连接测试失败: {error_msg}"
+            message=friendly_message,
+            debug=debug_info
         )
 
 

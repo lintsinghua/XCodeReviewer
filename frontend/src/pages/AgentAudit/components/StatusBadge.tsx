@@ -24,48 +24,48 @@ const STATUS_CONFIG: Record<string, {
   pending: {
     icon: <Clock className="w-3.5 h-3.5" />,
     iconSm: <Clock className="w-3 h-3" />,
-    bg: "bg-gray-800/80 border-gray-600/50",
-    text: "text-gray-300",
+    bg: "bg-muted border-border",
+    text: "text-foreground",
     label: "PENDING",
   },
   running: {
     icon: <Loader2 className="w-3.5 h-3.5 animate-spin" />,
     iconSm: <Loader2 className="w-3 h-3 animate-spin" />,
-    bg: "bg-green-950/80 border-green-500/50",
-    text: "text-green-400",
+    bg: "bg-green-100 dark:bg-green-950/80 border-green-500/50",
+    text: "text-green-700 dark:text-green-400",
     label: "RUNNING",
-    glow: "shadow-[0_0_8px_rgba(74,222,128,0.3)]",
+    glow: "dark:shadow-[0_0_8px_rgba(74,222,128,0.3)]",
     animate: true,
   },
   completed: {
     icon: <CheckCircle2 className="w-3.5 h-3.5" />,
     iconSm: <CheckCircle2 className="w-3 h-3" />,
-    bg: "bg-green-950/60 border-green-600/50",
-    text: "text-green-400",
+    bg: "bg-green-100 dark:bg-green-950/60 border-green-600/50",
+    text: "text-green-700 dark:text-green-400",
     label: "COMPLETED",
   },
   failed: {
     icon: <XCircle className="w-3.5 h-3.5" />,
     iconSm: <XCircle className="w-3 h-3" />,
-    bg: "bg-red-950/60 border-red-600/50",
-    text: "text-red-400",
+    bg: "bg-red-100 dark:bg-red-950/60 border-red-600/50",
+    text: "text-red-700 dark:text-red-400",
     label: "FAILED",
-    glow: "shadow-[0_0_8px_rgba(248,113,113,0.2)]",
+    glow: "dark:shadow-[0_0_8px_rgba(248,113,113,0.2)]",
   },
   cancelled: {
     icon: <Square className="w-3.5 h-3.5" />,
     iconSm: <Square className="w-3 h-3" />,
-    bg: "bg-yellow-950/60 border-yellow-600/50",
-    text: "text-yellow-400",
+    bg: "bg-yellow-100 dark:bg-yellow-950/60 border-yellow-600/50",
+    text: "text-yellow-700 dark:text-yellow-400",
     label: "CANCELLED",
   },
   error: {
     icon: <AlertCircle className="w-3.5 h-3.5" />,
     iconSm: <AlertCircle className="w-3 h-3" />,
-    bg: "bg-red-950/60 border-red-600/50",
-    text: "text-red-400",
+    bg: "bg-red-100 dark:bg-red-950/60 border-red-600/50",
+    text: "text-red-700 dark:text-red-400",
     label: "ERROR",
-    glow: "shadow-[0_0_8px_rgba(248,113,113,0.2)]",
+    glow: "dark:shadow-[0_0_8px_rgba(248,113,113,0.2)]",
   },
 };
 
@@ -81,7 +81,7 @@ export const StatusBadge = memo(function StatusBadge({ status, size = "default" 
         ${config.bg}
         ${config.text}
         ${config.glow || ''}
-        ${isSmall ? 'px-1.5 py-0.5 text-[9px]' : 'px-2 py-1 text-[10px]'}
+        ${isSmall ? 'px-2 py-1 text-sm' : 'px-2.5 py-1.5 text-sm'}
       `}
     >
       {isSmall ? config.iconSm : config.icon}

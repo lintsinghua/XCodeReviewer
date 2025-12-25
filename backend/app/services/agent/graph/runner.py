@@ -331,8 +331,8 @@ class AgentRunner:
         self.verification_tools = {
             **base_tools,
             # 验证工具 - 移除旧的 vulnerability_validation 和 dataflow_analysis，强制使用沙箱
-            # 🔥 新增：漏洞报告工具（仅Verification可用）
-            "create_vulnerability_report": CreateVulnerabilityReportTool(),
+            # 🔥 新增：漏洞报告工具（仅Verification可用）- v2.1: 传递 project_root
+            "create_vulnerability_report": CreateVulnerabilityReportTool(self.project_root),
             # 🔥 新增：反思工具
             "reflect": ReflectTool(),
         }

@@ -189,7 +189,7 @@ export default function EmbeddingConfigPanel() {
       <div className="flex items-center justify-center min-h-[300px]">
         <div className="text-center space-y-4">
           <div className="loading-spinner mx-auto" />
-          <p className="text-gray-500 font-mono text-sm uppercase tracking-wider">加载配置中...</p>
+          <p className="text-muted-foreground font-mono text-sm uppercase tracking-wider">加载配置中...</p>
         </div>
       </div>
     );
@@ -202,26 +202,26 @@ export default function EmbeddingConfigPanel() {
         <div className="cyber-card p-4 border-primary/30">
           <div className="flex items-center gap-2 mb-3">
             <Server className="w-4 h-4 text-primary" />
-            <span className="font-mono font-bold text-sm uppercase text-gray-300">当前配置</span>
+            <span className="font-mono font-bold text-sm uppercase text-foreground">当前配置</span>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-gray-900/50 p-3 rounded-lg border border-gray-800">
-              <p className="text-xs text-gray-500 uppercase mb-1">提供商</p>
+            <div className="bg-muted p-3 rounded-lg border border-border">
+              <p className="text-xs text-muted-foreground uppercase mb-1">提供商</p>
               <Badge className="bg-primary/20 text-primary border-primary/50 font-mono">
                 {currentConfig.provider}
               </Badge>
             </div>
-            <div className="bg-gray-900/50 p-3 rounded-lg border border-gray-800">
-              <p className="text-xs text-gray-500 uppercase mb-1">模型</p>
-              <p className="font-mono text-sm text-gray-300 truncate">{currentConfig.model}</p>
+            <div className="bg-muted p-3 rounded-lg border border-border">
+              <p className="text-xs text-muted-foreground uppercase mb-1">模型</p>
+              <p className="font-mono text-sm text-foreground truncate">{currentConfig.model}</p>
             </div>
-            <div className="bg-gray-900/50 p-3 rounded-lg border border-gray-800">
-              <p className="text-xs text-gray-500 uppercase mb-1">向量维度</p>
-              <p className="font-mono text-sm text-gray-300">{currentConfig.dimensions}</p>
+            <div className="bg-muted p-3 rounded-lg border border-border">
+              <p className="text-xs text-muted-foreground uppercase mb-1">向量维度</p>
+              <p className="font-mono text-sm text-foreground">{currentConfig.dimensions}</p>
             </div>
-            <div className="bg-gray-900/50 p-3 rounded-lg border border-gray-800">
-              <p className="text-xs text-gray-500 uppercase mb-1">批处理大小</p>
-              <p className="font-mono text-sm text-gray-300">{currentConfig.batch_size}</p>
+            <div className="bg-muted p-3 rounded-lg border border-border">
+              <p className="text-xs text-muted-foreground uppercase mb-1">批处理大小</p>
+              <p className="font-mono text-sm text-foreground">{currentConfig.batch_size}</p>
             </div>
           </div>
         </div>
@@ -231,12 +231,12 @@ export default function EmbeddingConfigPanel() {
       <div className="cyber-card p-6 space-y-6">
         {/* 提供商选择 */}
         <div className="space-y-2">
-          <Label className="text-xs font-bold text-gray-500 uppercase">嵌入模型提供商</Label>
+          <Label className="text-xs font-bold text-muted-foreground uppercase">嵌入模型提供商</Label>
           <Select value={selectedProvider} onValueChange={handleProviderChange}>
             <SelectTrigger className="h-12 cyber-input">
               <SelectValue placeholder="选择提供商" />
             </SelectTrigger>
-            <SelectContent className="bg-[#0c0c12] border-gray-700">
+            <SelectContent className="cyber-dialog border-border">
               {providers.map((provider) => (
                 <SelectItem key={provider.id} value={provider.id} className="font-mono">
                   <div className="flex items-center gap-2">
@@ -253,7 +253,7 @@ export default function EmbeddingConfigPanel() {
           </Select>
 
           {selectedProviderInfo && (
-            <p className="text-xs text-gray-500 flex items-center gap-1">
+            <p className="text-xs text-muted-foreground flex items-center gap-1">
               <Info className="w-3 h-3 text-sky-400" />
               {selectedProviderInfo.description}
             </p>
@@ -263,7 +263,7 @@ export default function EmbeddingConfigPanel() {
         {/* 模型选择/输入 */}
         {selectedProviderInfo && (
           <div className="space-y-2">
-            <Label className="text-xs font-bold text-gray-500 uppercase">模型</Label>
+            <Label className="text-xs font-bold text-muted-foreground uppercase">模型</Label>
             <Input
               type="text"
               value={selectedModel}
@@ -273,7 +273,7 @@ export default function EmbeddingConfigPanel() {
             />
             {selectedProviderInfo.models.length > 0 && (
               <div className="flex flex-wrap gap-2 mt-2">
-                <span className="text-xs text-gray-500">预设模型：</span>
+                <span className="text-xs text-muted-foreground">预设模型：</span>
                 {selectedProviderInfo.models.map((model) => (
                   <button
                     key={model}
@@ -282,7 +282,7 @@ export default function EmbeddingConfigPanel() {
                     className={`px-2 py-1 text-xs font-mono rounded border transition-colors ${
                       selectedModel === model
                         ? "bg-primary/20 border-primary/50 text-primary"
-                        : "bg-gray-800/50 border-gray-700 text-gray-400 hover:border-gray-600 hover:text-gray-300"
+                        : "bg-muted border-border text-muted-foreground hover:border-border hover:text-foreground"
                     }`}
                   >
                     {model}
@@ -296,7 +296,7 @@ export default function EmbeddingConfigPanel() {
         {/* API Key */}
         {selectedProviderInfo?.requires_api_key && (
           <div className="space-y-2">
-            <Label className="text-xs font-bold text-gray-500 uppercase">
+            <Label className="text-xs font-bold text-muted-foreground uppercase">
               API Key
               <span className="text-rose-400 ml-1">*</span>
             </Label>
@@ -307,7 +307,7 @@ export default function EmbeddingConfigPanel() {
               placeholder="输入 API Key"
               className="h-10 cyber-input"
             />
-            <p className="text-xs text-gray-600">
+            <p className="text-xs text-muted-foreground">
               API Key 将安全存储，不会显示在页面上
             </p>
           </div>
@@ -315,8 +315,8 @@ export default function EmbeddingConfigPanel() {
 
         {/* 自定义端点 */}
         <div className="space-y-2">
-          <Label className="text-xs font-bold text-gray-500 uppercase">
-            自定义 API 端点 <span className="text-gray-600">(可选)</span>
+          <Label className="text-xs font-bold text-muted-foreground uppercase">
+            自定义 API 端点 <span className="text-muted-foreground">(可选)</span>
           </Label>
           <Input
             type="url"
@@ -335,14 +335,14 @@ export default function EmbeddingConfigPanel() {
             }
             className="h-10 cyber-input"
           />
-          <p className="text-xs text-gray-600">
+          <p className="text-xs text-muted-foreground">
             用于 API 代理或自托管服务
           </p>
         </div>
 
         {/* 批处理大小 */}
         <div className="space-y-2">
-          <Label className="text-xs font-bold text-gray-500 uppercase">批处理大小</Label>
+          <Label className="text-xs font-bold text-muted-foreground uppercase">批处理大小</Label>
           <Input
             type="number"
             value={batchSize}
@@ -351,7 +351,7 @@ export default function EmbeddingConfigPanel() {
             max={500}
             className="h-10 cyber-input w-32"
           />
-          <p className="text-xs text-gray-600">
+          <p className="text-xs text-muted-foreground">
             每批嵌入的文本数量，建议 50-100
           </p>
         </div>
@@ -379,14 +379,14 @@ export default function EmbeddingConfigPanel() {
                 {testResult.success ? "测试成功" : "测试失败"}
               </span>
             </div>
-            <p className="text-sm text-gray-400">{testResult.message}</p>
+            <p className="text-sm text-muted-foreground">{testResult.message}</p>
             {testResult.success && (
-              <div className="mt-3 pt-3 border-t border-gray-800 text-xs text-gray-500 space-y-1 font-mono">
-                <div>向量维度: <span className="text-gray-300">{testResult.dimensions}</span></div>
-                <div>延迟: <span className="text-gray-300">{testResult.latency_ms}ms</span></div>
+              <div className="mt-3 pt-3 border-t border-border text-xs text-muted-foreground space-y-1 font-mono">
+                <div>向量维度: <span className="text-foreground">{testResult.dimensions}</span></div>
+                <div>延迟: <span className="text-foreground">{testResult.latency_ms}ms</span></div>
                 {testResult.sample_embedding && (
                   <div className="truncate">
-                    示例向量: <span className="text-gray-400">[{testResult.sample_embedding.slice(0, 5).map((v) => v.toFixed(4)).join(", ")}...]</span>
+                    示例向量: <span className="text-muted-foreground">[{testResult.sample_embedding.slice(0, 5).map((v) => v.toFixed(4)).join(", ")}...]</span>
                   </div>
                 )}
               </div>
@@ -395,7 +395,7 @@ export default function EmbeddingConfigPanel() {
         )}
 
         {/* 操作按钮 */}
-        <div className="flex items-center gap-3 pt-4 border-t border-gray-800 border-dashed">
+        <div className="flex items-center gap-3 pt-4 border-t border-border border-dashed">
           <Button
             onClick={handleTest}
             disabled={testing || !selectedProvider || !selectedModel}
@@ -434,17 +434,36 @@ export default function EmbeddingConfigPanel() {
       </div>
 
       {/* 说明 */}
-      <div className="bg-gray-900/50 border border-gray-800 p-4 rounded-lg text-xs space-y-2">
-        <p className="font-bold uppercase text-gray-400 flex items-center gap-2">
+      <div className="bg-muted border border-border p-4 rounded-lg text-xs space-y-3">
+        <p className="font-bold uppercase text-muted-foreground flex items-center gap-2">
           <Info className="w-4 h-4 text-sky-400" />
           关于嵌入模型
         </p>
-        <ul className="text-gray-500 space-y-1 ml-6">
+        <ul className="text-muted-foreground space-y-1 ml-6">
           <li>• 嵌入模型用于 Agent 审计的代码语义搜索 (RAG)</li>
           <li>• 与分析使用的 LLM 独立配置，互不影响</li>
-          <li>• 推荐使用 <span className="text-gray-300">OpenAI text-embedding-3-small</span> 或本地 <span className="text-gray-300">Ollama</span></li>
+          <li>• 推荐使用 <span className="text-foreground">OpenAI text-embedding-3-small</span> 或本地 <span className="text-foreground">Ollama</span></li>
           <li>• 向量维度影响存储空间和检索精度</li>
         </ul>
+
+        {/* OpenAI 兼容 API 引导 */}
+        <div className="mt-3 pt-3 border-t border-border/50">
+          <p className="font-bold text-amber-400 flex items-center gap-2 mb-2">
+            <Zap className="w-4 h-4" />
+            使用 OpenAI 兼容 API
+          </p>
+          <p className="text-muted-foreground mb-2">
+            许多服务商提供 OpenAI 兼容的 API，可以直接使用 <span className="text-foreground">openai</span> 作为提供商：
+          </p>
+          <ul className="text-muted-foreground space-y-1 ml-4">
+            <li>• <span className="text-foreground">DeepSeek</span>: 端点填写 <code className="text-primary bg-primary/10 px-1 rounded">https://api.deepseek.com/v1</code></li>
+            <li>• <span className="text-foreground">Moonshot</span>: 端点填写 <code className="text-primary bg-primary/10 px-1 rounded">https://api.moonshot.cn/v1</code></li>
+            <li>• <span className="text-foreground">智谱 GLM</span>: 端点填写 <code className="text-primary bg-primary/10 px-1 rounded">https://open.bigmodel.cn/api/paas/v4</code></li>
+          </ul>
+          <p className="text-muted-foreground mt-2 text-[11px]">
+            提示：选择 openai 提供商，填入对应服务的 API Key 和自定义端点即可
+          </p>
+        </div>
       </div>
     </div>
   );

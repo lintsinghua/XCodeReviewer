@@ -1,5 +1,5 @@
 # =============================================
-# DeepAudit v3.0.0 生产环境一键部署配置
+# DeepAudit v3.0.2 生产环境一键部署配置
 # =============================================
 # 使用预构建的 GHCR 镜像，无需本地构建
 # 部署命令: curl -fsSL https://raw.githubusercontent.com/lintsinghua/DeepAudit/main/docker-compose.prod.yml | docker compose -f - up -d
@@ -54,10 +54,15 @@ services:
       - LLM_MODEL=${LLM_MODEL:-gpt-4o}
       - LLM_API_KEY=${LLM_API_KEY:-your-api-key-here}
       - LLM_BASE_URL=${LLM_BASE_URL:-}
-      # 禁用代理
+      # 禁用代理 - 必须同时设置大小写变量
       - HTTP_PROXY=
       - HTTPS_PROXY=
+      - http_proxy=
+      - https_proxy=
+      - all_proxy=
+      - ALL_PROXY=
       - NO_PROXY=*
+      - no_proxy=*
     depends_on:
       db:
         condition: service_healthy
@@ -86,6 +91,13 @@ services:
     restart: unless-stopped
     ports:
       - "3000:80"
+    environment:
+      # 禁用代理 - nginx 需要直连后端
+      - HTTP_PROXY=
+      - HTTPS_PROXY=
+      - http_proxy=
+      - https_proxy=
+      - NO_PROXY=*
     depends_on:
       - backend
     networks:

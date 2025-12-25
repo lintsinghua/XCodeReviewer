@@ -14,6 +14,7 @@ from pydantic import BaseModel, Field
 from dataclasses import dataclass
 
 from .base import AgentTool, ToolResult
+from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -21,13 +22,17 @@ logger = logging.getLogger(__name__)
 @dataclass
 class SandboxConfig:
     """沙箱配置"""
-    image: str = "deepaudit/sandbox:latest"
+    image: str = None  # 默认从 settings.SANDBOX_IMAGE 读取
     memory_limit: str = "512m"
     cpu_limit: float = 1.0
     timeout: int = 60
     network_mode: str = "none"  # none, bridge, host
     read_only: bool = True
     user: str = "1000:1000"
+
+    def __post_init__(self):
+        if self.image is None:
+            self.image = settings.SANDBOX_IMAGE
 
 
 class SandboxManager:
@@ -108,7 +113,19 @@ class SandboxManager:
             }
         
         timeout = timeout or self.config.timeout
-        
+
+        # 禁用代理环境变量，防止 Docker 自动注入的代理干扰容器网络
+        no_proxy_env = {
+            "HTTP_PROXY": "",
+            "HTTPS_PROXY": "",
+            "http_proxy": "",
+            "https_proxy": "",
+            "NO_PROXY": "*",
+            "no_proxy": "*",
+        }
+        # 合并用户传入的环境变量（用户变量优先）
+        container_env = {**no_proxy_env, **(env or {})}
+
         try:
             # 创建临时目录
             with tempfile.TemporaryDirectory() as temp_dir:
@@ -131,7 +148,7 @@ class SandboxManager:
                             "/tmp": "rw,size=100m,mode=1777"
                         },
                     "working_dir": working_dir or "/workspace",
-                    "environment": env or {},
+                    "environment": container_env,
                     # 安全配置
                     "cap_drop": ["ALL"],
                     "security_opt": ["no-new-privileges:true"],
@@ -222,14 +239,22 @@ class SandboxManager:
         
         timeout = timeout or self.config.timeout
 
-        try:
-            # 🔥 清除代理环境变量的方式：在命令前添加 unset
-            # 因为设置空字符串会导致工具尝试解析空 URI 而出错
-            unset_proxy_prefix = "unset HTTP_PROXY HTTPS_PROXY http_proxy https_proxy; "
-            wrapped_command = unset_proxy_prefix + command
+        # 禁用代理环境变量，防止 Docker 自动注入的代理干扰容器网络
+        no_proxy_env = {
+            "HTTP_PROXY": "",
+            "HTTPS_PROXY": "",
+            "http_proxy": "",
+            "https_proxy": "",
+            "NO_PROXY": "*",
+            "no_proxy": "*",
+        }
+        # 合并用户传入的环境变量（用户变量优先）
+        container_env = {**no_proxy_env, **(env or {})}
 
-            # 用户传入的环境变量
-            container_env = env or {}
+        try:
+            # 清除代理环境变量：在命令前添加 unset（双重保险）
+            unset_proxy_prefix = "unset HTTP_PROXY HTTPS_PROXY http_proxy https_proxy ALL_PROXY all_proxy 2>/dev/null; "
+            wrapped_command = unset_proxy_prefix + command
 
             # 准备容器配置
             container_config = {
@@ -247,10 +272,10 @@ class SandboxManager:
                 },
                 "tmpfs": {
                     "/home/sandbox": "rw,size=100m,mode=1777",
-                    "/tmp": "rw,size=100m,mode=1777"  # 🔥 添加 /tmp 目录供工具写入临时文件
+                    "/tmp": "rw,size=100m,mode=1777"  # 添加 /tmp 目录供工具写入临时文件
                 },
                 "working_dir": "/workspace",
-                "environment": container_env,  # 🔥 用户传入的环境变量
+                "environment": container_env,
                 "cap_drop": ["ALL"],
                 "security_opt": ["no-new-privileges:true"],
             }
@@ -489,12 +514,24 @@ class SandboxTool(AgentTool):
     在安全隔离的环境中执行代码和命令
     """
 
-    # 允许的命令前缀
+    # 允许的命令前缀 - 放宽限制以支持更灵活的测试
     ALLOWED_COMMANDS = [
-        "python", "python3", "node", "curl", "wget",
-        "cat", "head", "tail", "grep", "find", "ls",
-        "echo", "printf", "test", "id", "whoami",
-        "php",  # 🔥 添加 PHP 支持
+        # 编程语言解释器
+        "python", "python3", "node", "php", "ruby", "perl",
+        "go", "java", "javac", "bash", "sh",
+        # 网络工具
+        "curl", "wget", "nc", "netcat",
+        # 文件操作
+        "cat", "head", "tail", "grep", "find", "ls", "wc",
+        "sed", "awk", "cut", "sort", "uniq", "tr", "xargs",
+        # 系统信息（用于验证命令执行）
+        "echo", "printf", "test", "id", "whoami", "uname",
+        "env", "printenv", "pwd", "hostname",
+        # 编码/解码工具
+        "base64", "xxd", "od", "hexdump",
+        # 其他实用工具
+        "timeout", "time", "sleep", "true", "false",
+        "md5sum", "sha256sum", "strings",
     ]
     
     def __init__(self, sandbox_manager: Optional[SandboxManager] = None):

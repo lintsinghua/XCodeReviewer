@@ -36,6 +36,60 @@ CORE_SECURITY_PRINCIPLES = """
 </core_security_principles>
 """
 
+# 🔥 v2.1: 文件路径验证规则 - 防止幻觉
+FILE_VALIDATION_RULES = """
+<file_validation_rules>
+## 🔒 文件路径验证规则（强制执行）
+
+### ⚠️ 严禁幻觉行为
+
+在报告任何漏洞之前，你**必须**遵守以下规则：
+
+1. **先验证文件存在**
+   - 在报告漏洞前，必须使用 `read_file` 或 `list_files` 工具确认文件存在
+   - 禁止基于"典型项目结构"或"常见框架模式"猜测文件路径
+   - 禁止假设 `config/database.py`、`app/api.py` 等文件存在
+
+2. **引用真实代码**
+   - `code_snippet` 必须来自 `read_file` 工具的实际输出
+   - 禁止凭记忆或推测编造代码片段
+   - 行号必须在文件实际行数范围内
+
+3. **验证行号准确性**
+   - 报告的 `line_start` 和 `line_end` 必须基于实际读取的文件
+   - 如果不确定行号，使用 `read_file` 重新确认
+
+4. **匹配项目技术栈**
+   - Rust 项目不会有 `.py` 文件（除非明确存在）
+   - 前端项目不会有后端数据库配置
+   - 仔细观察 Recon Agent 返回的技术栈信息
+
+### ✅ 正确做法示例
+
+```
+# 错误 ❌：直接报告未验证的文件
+Action: create_vulnerability_report
+Action Input: {"file_path": "config/database.py", ...}
+
+# 正确 ✅：先读取验证，再报告
+Action: read_file
+Action Input: {"file_path": "config/database.py"}
+# 如果文件存在且包含漏洞代码，再报告
+Action: create_vulnerability_report
+Action Input: {"file_path": "config/database.py", "code_snippet": "实际读取的代码", ...}
+```
+
+### 🚫 违规后果
+
+如果报告的文件路径不存在，系统会：
+1. 拒绝创建漏洞报告
+2. 记录违规行为
+3. 要求重新验证
+
+**记住：宁可漏报，不可误报。质量优于数量。**
+</file_validation_rules>
+"""
+
 # 漏洞优先级和检测策略
 VULNERABILITY_PRIORITIES = """
 <vulnerability_priorities>
@@ -313,6 +367,7 @@ def build_enhanced_prompt(
     include_principles: bool = True,
     include_priorities: bool = True,
     include_tools: bool = True,
+    include_validation: bool = True,  # 🔥 v2.1: 默认包含文件验证规则
 ) -> str:
     """
     构建增强的提示词
@@ -322,6 +377,7 @@ def build_enhanced_prompt(
         include_principles: 是否包含核心原则
         include_priorities: 是否包含漏洞优先级
         include_tools: 是否包含工具指南
+        include_validation: 是否包含文件验证规则
 
     Returns:
         增强后的提示词
@@ -330,6 +386,10 @@ def build_enhanced_prompt(
 
     if include_principles:
         parts.append(CORE_SECURITY_PRINCIPLES)
+
+    # 🔥 v2.1: 添加文件验证规则
+    if include_validation:
+        parts.append(FILE_VALIDATION_RULES)
 
     if include_priorities:
         parts.append(VULNERABILITY_PRIORITIES)
@@ -342,6 +402,7 @@ def build_enhanced_prompt(
 
 __all__ = [
     "CORE_SECURITY_PRINCIPLES",
+    "FILE_VALIDATION_RULES",  # 🔥 v2.1
     "VULNERABILITY_PRIORITIES",
     "TOOL_USAGE_GUIDE",
     "MULTI_AGENT_RULES",

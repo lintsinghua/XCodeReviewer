@@ -13,7 +13,7 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (token: string) => Promise<void>;
+  login: (token: string, rememberMe?: boolean) => Promise<void>;
   logout: () => void;
 }
 
@@ -26,7 +26,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     const checkAuth = async () => {
-      const token = localStorage.getItem('access_token');
+      // Check both localStorage (remember me) and sessionStorage (session only)
+      const token = localStorage.getItem('access_token') || sessionStorage.getItem('access_token');
       if (token) {
         try {
           const response = await apiClient.get('/users/me');
@@ -43,8 +44,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     checkAuth();
   }, []);
 
-  const login = async (token: string) => {
-    localStorage.setItem('access_token', token);
+  const login = async (token: string, rememberMe: boolean = false) => {
+    // Clear any existing tokens first
+    localStorage.removeItem('access_token');
+    sessionStorage.removeItem('access_token');
+
+    // Store token based on rememberMe preference
+    if (rememberMe) {
+      localStorage.setItem('access_token', token);
+    } else {
+      sessionStorage.setItem('access_token', token);
+    }
+
     try {
         const response = await apiClient.get('/users/me');
         setUser(response.data);
@@ -56,6 +67,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = () => {
     localStorage.removeItem('access_token');
+    sessionStorage.removeItem('access_token');
     setUser(null);
     setIsAuthenticated(false);
   };
