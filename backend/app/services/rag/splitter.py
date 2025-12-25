@@ -154,7 +154,7 @@ class TreeSitterParser:
         ".c": "c",
         ".h": "c",
         ".hpp": "cpp",
-        ".cs": "c_sharp",
+        ".cs": "csharp",
         ".php": "php",
         ".rb": "ruby",
         ".kt": "kotlin",
@@ -197,7 +197,7 @@ class TreeSitterParser:
     # tree-sitter-languages 支持的语言列表
     SUPPORTED_LANGUAGES = {
         "python", "javascript", "typescript", "tsx", "java", "go", "rust",
-        "c", "cpp", "c_sharp", "php", "ruby", "kotlin", "swift", "bash",
+        "c", "cpp", "csharp", "php", "ruby", "kotlin", "swift", "bash",
         "json", "yaml", "html", "css", "sql", "markdown",
     }
 
