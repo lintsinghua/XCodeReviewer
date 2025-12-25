@@ -487,11 +487,11 @@ class BaseAgent(ABC):
     
         # 🔥 外部取消检查回调
         self._cancel_callback = None
-    
+
     def set_cancel_callback(self, callback) -> None:
         """设置外部取消检查回调"""
         self._cancel_callback = callback
-    
+
     @property
     def is_cancelled(self) -> bool:
         """检查是否已取消（包含内部标志和外部回调）"""
@@ -971,11 +971,11 @@ class BaseAgent(ABC):
             )
             # 兼容不同版本的 python async generator
             iterator = stream.__aiter__()
-            
+
             import time
             first_token_received = False
             last_activity = time.time()
-            
+
             while True:
                 # 检查取消
                 if self.is_cancelled:
@@ -988,7 +988,7 @@ class BaseAgent(ABC):
                     timeout = 30.0 if not first_token_received else 60.0
                     
                     chunk = await asyncio.wait_for(iterator.__anext__(), timeout=timeout)
-                    
+
                     last_activity = time.time()
                     
                     if chunk["type"] == "token":
@@ -1006,21 +1006,21 @@ class BaseAgent(ABC):
                             # 实际上 service.py 中 chat_completion_stream 保证了 accumulated 存在
                             # 这里我们信任 service 层的 accumulated
                             pass
-                            
+
                         # Double check if accumulated is empty but we have token
                         if not accumulated and token:
                             accumulated += token # Fallback
-                        
+
                         await self.emit_thinking_token(token, accumulated)
                         # 🔥 CRITICAL: 让出控制权给事件循环，让 SSE 有机会发送事件
                         await asyncio.sleep(0)
-                        
+
                     elif chunk["type"] == "done":
                         accumulated = chunk["content"]
                         if chunk.get("usage"):
                             total_tokens = chunk["usage"].get("total_tokens", 0)
                         break
-                        
+
                     elif chunk["type"] == "error":
                         accumulated = chunk.get("accumulated", "")
                         error_msg = chunk.get("error", "Unknown error")
@@ -1030,7 +1030,7 @@ class BaseAgent(ABC):
                         else:
                             accumulated = f"[系统错误: {error_msg}] 请重新思考并输出你的决策。"
                         break
-                
+
                 except StopAsyncIteration:
                     break
                 except asyncio.TimeoutError:

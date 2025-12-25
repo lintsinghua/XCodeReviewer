@@ -24,7 +24,7 @@ export interface Profile {
 export type ProjectSourceType = 'repository' | 'zip';
 
 // 仓库平台类型
-export type RepositoryPlatform = 'github' | 'gitlab' | 'other';
+export type RepositoryPlatform = 'github' | 'gitlab' | 'gitea' | 'other';
 
 // 项目相关类型
 export interface Project {

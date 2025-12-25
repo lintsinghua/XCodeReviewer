@@ -48,6 +48,7 @@ export function getRepositoryPlatformLabel(platform?: string): string {
   const labels: Record<string, string> = {
     github: 'GitHub',
     gitlab: 'GitLab',
+    gitea: 'Gitea',
     other: '其他'
   };
   return labels[platform || 'other'] || '其他';

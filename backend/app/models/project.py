@@ -16,7 +16,7 @@ class Project(Base):
     
     # 仓库相关字段 (仅 source_type='repository' 时使用)
     repository_url = Column(String, nullable=True)
-    repository_type = Column(String, default="other")  # github, gitlab, other
+    repository_type = Column(String, default="other")  # github, gitlab, gitea, other
     default_branch = Column(String, default="main")
     
     programming_languages = Column(Text, default="[]")  # Stored as JSON string

@@ -41,7 +41,7 @@ const DEFAULT_MODELS: Record<string, string> = {
 interface SystemConfigData {
   llmProvider: string; llmApiKey: string; llmModel: string; llmBaseUrl: string;
   llmTimeout: number; llmTemperature: number; llmMaxTokens: number;
-  githubToken: string; gitlabToken: string;
+  githubToken: string; gitlabToken: string; giteaToken: string;
   maxAnalyzeFiles: number; llmConcurrency: number; llmGapMs: number; outputLanguage: string;
 }
 
@@ -79,6 +79,7 @@ export function SystemConfig() {
           llmMaxTokens: llmConfig.llmMaxTokens || 4096,
           githubToken: otherConfig.githubToken || '',
           gitlabToken: otherConfig.gitlabToken || '',
+          giteaToken: otherConfig.giteaToken || '',
           maxAnalyzeFiles: otherConfig.maxAnalyzeFiles ?? 0,
           llmConcurrency: otherConfig.llmConcurrency || 3,
           llmGapMs: otherConfig.llmGapMs || 2000,
@@ -98,7 +99,7 @@ export function SystemConfig() {
         setConfig({
           llmProvider: 'openai', llmApiKey: '', llmModel: '', llmBaseUrl: '',
           llmTimeout: 150000, llmTemperature: 0.1, llmMaxTokens: 4096,
-          githubToken: '', gitlabToken: '',
+          githubToken: '', gitlabToken: '', giteaToken: '',
           maxAnalyzeFiles: 0, llmConcurrency: 3, llmGapMs: 2000, outputLanguage: 'zh-CN',
         });
       }
@@ -107,7 +108,7 @@ export function SystemConfig() {
       setConfig({
         llmProvider: 'openai', llmApiKey: '', llmModel: '', llmBaseUrl: '',
         llmTimeout: 150000, llmTemperature: 0.1, llmMaxTokens: 4096,
-        githubToken: '', gitlabToken: '',
+        githubToken: '', gitlabToken: '', giteaToken: '',
         maxAnalyzeFiles: 0, llmConcurrency: 3, llmGapMs: 2000, outputLanguage: 'zh-CN',
       });
     } finally {
@@ -126,7 +127,7 @@ export function SystemConfig() {
           llmMaxTokens: config.llmMaxTokens,
         },
         otherConfig: {
-          githubToken: config.githubToken, gitlabToken: config.gitlabToken,
+          githubToken: config.githubToken, gitlabToken: config.gitlabToken, giteaToken: config.giteaToken,
           maxAnalyzeFiles: config.maxAnalyzeFiles, llmConcurrency: config.llmConcurrency,
           llmGapMs: config.llmGapMs, outputLanguage: config.outputLanguage,
         },
@@ -145,6 +146,7 @@ export function SystemConfig() {
           llmMaxTokens: llmConfig.llmMaxTokens || 4096,
           githubToken: otherConfig.githubToken || '',
           gitlabToken: otherConfig.gitlabToken || '',
+          giteaToken: otherConfig.giteaToken || '',
           maxAnalyzeFiles: otherConfig.maxAnalyzeFiles ?? 0,
           llmConcurrency: otherConfig.llmConcurrency || 3,
           llmGapMs: otherConfig.llmGapMs || 2000,
@@ -610,6 +612,22 @@ export function SystemConfig() {
                 <a href="https://gitlab.com/-/profile/personal_access_tokens" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
                   gitlab.com/-/profile/personal_access_tokens
                 </a>
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs font-bold text-muted-foreground uppercase">Gitea Token (可选)</Label>
+              <Input
+                type="password"
+                value={config.giteaToken}
+                onChange={(e) => updateConfig('giteaToken', e.target.value)}
+                placeholder="sha1_xxxxxxxxxxxx"
+                className="h-10 cyber-input"
+              />
+              <p className="text-xs text-muted-foreground">
+                用于访问 Gitea 私有仓库。获取:{' '}
+                <span className="text-primary">
+                  [your-gitea-instance]/user/settings/applications
+                </span>
               </p>
             </div>
             <div className="bg-muted border border-border p-4 rounded-lg text-xs">

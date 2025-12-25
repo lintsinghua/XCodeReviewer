@@ -67,7 +67,7 @@
 <td width="50%" align="center">
 <strong>🗂️ 项目管理</strong><br/><br/>
 <img src="frontend/public/images/README-show/项目管理.png" alt="项目管理" width="95%"><br/>
-<em>GitHub/GitLab 导入，多项目协同管理</em>
+<em>GitHub/GitLab/Gitea 导入，多项目协同管理</em>
 </td>
 </tr>
 </table>
@@ -197,6 +197,37 @@ docker pull ghcr.nju.edu.cn/lintsinghua/deepaudit-sandbox:latest
 
 > 💡 镜像源由 [南京大学开源镜像站](https://mirrors.nju.edu.cn/) 提供支持
 
+<details>
+<summary>💡 配置 Docker 镜像加速（可选，进一步提升拉取速度）（点击展开）</summary>
+
+如果拉取镜像仍然较慢，可以配置 Docker 镜像加速器。编辑 Docker 配置文件并添加以下镜像源：
+
+**Linux / macOS**：编辑 `/etc/docker/daemon.json`
+
+**Windows**：右键 Docker Desktop 图标 → Settings → Docker Engine
+
+```json
+{
+  "registry-mirrors": [
+    "https://docker.1ms.run",
+    "https://dockerproxy.com",
+    "https://hub.rat.dev"
+  ]
+}
+```
+
+保存后重启 Docker 服务：
+
+```bash
+# Linux
+sudo systemctl restart docker
+
+# macOS / Windows
+# 重启 Docker Desktop 应用
+```
+
+</details>
+
 > 🎉 **启动成功！** 访问 http://localhost:3000 开始体验。
 
 ---
@@ -231,10 +262,22 @@ docker compose up -d
 - PostgreSQL 15+
 - Docker (用于沙箱)
 
-### 1. 后端启动
+
+### 1. 手动启动数据库
+
+```bash
+docker compose up -d redis db
+```
+
+### 2. 后端启动
+
+
 
 ```bash
 cd backend
+# 配置环境
+cp env.example .env
+
 # 使用 uv 管理环境（推荐）
 uv sync
 source .venv/bin/activate
@@ -243,10 +286,13 @@ source .venv/bin/activate
 uvicorn app.main:app --reload
 ```
 
-### 2. 前端启动
+### 3. 前端启动
 
 ```bash
 cd frontend
+# 配置环境
+cp .env.example .env
+
 pnpm install
 pnpm dev
 ```
@@ -347,7 +393,7 @@ DeepSeek-Coder · Codestral<br/>
 | 🤖 **Agent 深度审计** | Multi-Agent 协作，自主编排审计策略 | Agent |
 | 🧠 **RAG 知识增强** | 代码语义理解，CWE/CVE 知识库检索 | Agent |
 | 🔒 **沙箱 PoC 验证** | Docker 隔离执行，验证漏洞有效性 | Agent |
-| 🗂️ **项目管理** | GitHub/GitLab 导入，ZIP 上传，10+ 语言支持 | 通用 |
+| 🗂️ **项目管理** | GitHub/GitLab/Gitea 导入，ZIP 上传，10+ 语言支持 | 通用 |
 | ⚡ **即时分析** | 代码片段秒级分析，粘贴即用 | 通用 |
 | 🔍 **五维检测** | Bug · 安全 · 性能 · 风格 · 可维护性 | 通用 |
 | 💡 **What-Why-How** | 精准定位 + 原因解释 + 修复建议 | 通用 |

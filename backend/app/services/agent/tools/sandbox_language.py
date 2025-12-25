@@ -767,7 +767,9 @@ class GoTestTool(BaseLanguageTestTool):
         param_code = ""
         if params:
             args = ["program"] + list(params.values())
-            param_code = f"    os.Args = []string{{{', '.join([f'\"{a}\"' for a in args])}}}\n"
+            args_str = ', '.join([f'"{a}"' for a in args])
+            param_code = "    os.Args = []string{{{}}}\n".format(args_str)
+            # param_code = f"    os.Args = []string{{{', '.join([f'\"{a}\"' for a in args])}}}\n"
             for key, value in params.items():
                 param_code += f'    os.Setenv("{key.upper()}", "{value}")\n'
 

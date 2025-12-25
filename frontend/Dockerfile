@@ -33,8 +33,8 @@ RUN pnpm config set network-timeout 300000 && \
 # 复制源代码
 COPY . .
 
-# 🔥 构建时使用相对路径 /api - Nginx 会处理代理
-ENV VITE_API_BASE_URL=/api/v1
+# 🔥 构建时使用占位符 - 实现 Build Once Run Anywhere
+ENV VITE_API_BASE_URL=__API_BASE_URL__
 
 # 构建生产版本
 RUN pnpm build
@@ -50,6 +50,11 @@ COPY --from=builder /app/dist /usr/share/nginx/html
 # 复制 Nginx 配置 (包含 SSE 反向代理配置)
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
+# 复制启动脚本
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
+
 EXPOSE 80
 
+ENTRYPOINT ["/docker-entrypoint.sh"]
 CMD ["nginx", "-g", "daemon off;"]
