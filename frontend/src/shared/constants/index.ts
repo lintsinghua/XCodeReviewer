@@ -62,13 +62,6 @@ export const PROJECT_SOURCE_TYPES = {
   ZIP: 'zip',
 } as const;
 
-// 仓库平台类型
-export const REPOSITORY_TYPES = {
-  GITHUB: 'github',
-  GITLAB: 'gitlab',
-  OTHER: 'other',
-} as const;
-
 // 分析深度
 export const ANALYSIS_DEPTH = {
   BASIC: 'basic',

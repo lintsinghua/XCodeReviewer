@@ -44,7 +44,7 @@ import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import CreateTaskDialog from "@/components/audit/CreateTaskDialog";
 import TerminalProgressDialog from "@/components/audit/TerminalProgressDialog";
-import { SUPPORTED_LANGUAGES } from "@/shared/constants";
+import { SUPPORTED_LANGUAGES, REPOSITORY_PLATFORMS } from "@/shared/constants";
 
 export default function Projects() {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -485,10 +485,11 @@ export default function Projects() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="cyber-dialog border-border">
-                        <SelectItem value="github">GITHUB</SelectItem>
-                        <SelectItem value="gitlab">GITLAB</SelectItem>
-                        <SelectItem value="gitea">GITEA</SelectItem>
-                        <SelectItem value="other">OTHER</SelectItem>
+                        {REPOSITORY_PLATFORMS.map((platform) => (
+                          <SelectItem key={platform.value} value={platform.value}>
+                            {platform.label}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -1016,10 +1017,11 @@ export default function Projects() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="cyber-dialog border-border">
-                        <SelectItem value="github">GITHUB</SelectItem>
-                        <SelectItem value="gitlab">GITLAB</SelectItem>
-                        <SelectItem value="gitea">GITEA</SelectItem>
-                        <SelectItem value="other">OTHER</SelectItem>
+                        {REPOSITORY_PLATFORMS.map((platform) => (
+                          <SelectItem key={platform.value} value={platform.value}>
+                            {platform.label}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>

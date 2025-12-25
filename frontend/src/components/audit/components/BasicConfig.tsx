@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/select";
 import { GitBranch, Zap, Info } from "lucide-react";
 import type { Project, CreateAuditTaskForm } from "@/shared/types";
-import { isRepositoryProject, isZipProject } from "@/shared/utils/projectUtils";
+import { isRepositoryProject, isZipProject, getRepositoryPlatformLabel } from "@/shared/utils/projectUtils";
 import ZipFileSection from "./ZipFileSection";
 import type { ZipFileMeta } from "@/shared/utils/zipStorage";
 
@@ -138,7 +138,7 @@ function ProjectInfoCard({ project }: { project: Project }) {
             {isRepo && (
               <>
                 <p>
-                  仓库平台：{project.repository_type?.toUpperCase() || "OTHER"}
+                  仓库平台：{getRepositoryPlatformLabel(project.repository_type)}
                 </p>
                 <p>默认分支：{project.default_branch}</p>
               </>
