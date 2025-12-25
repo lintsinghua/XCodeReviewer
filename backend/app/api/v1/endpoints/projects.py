@@ -16,6 +16,7 @@ from app.db.session import get_db, AsyncSessionLocal
 from app.models.project import Project
 from app.models.user import User
 from app.models.audit import AuditTask, AuditIssue
+from app.models.agent_task import AgentTask, AgentTaskStatus, AgentFinding
 from app.models.user_config import UserConfig
 import zipfile
 from app.services.scanner import scan_repo_task, get_github_files, get_gitlab_files, get_github_branches, get_gitlab_branches, get_gitea_branches, should_exclude, is_text_file
@@ -161,27 +162,52 @@ async def get_stats(
     )
     projects = projects_result.scalars().all()
     project_ids = [p.id for p in projects]
-    
-    # 只统计当前用户项目的任务
+
+    # 统计旧的 AuditTask
     tasks_result = await db.execute(
         select(AuditTask).where(AuditTask.project_id.in_(project_ids)) if project_ids else select(AuditTask).where(False)
     )
     tasks = tasks_result.scalars().all()
     task_ids = [t.id for t in tasks]
-    
-    # 只统计当前用户任务的问题
+
+    # 统计旧的 AuditIssue
     issues_result = await db.execute(
         select(AuditIssue).where(AuditIssue.task_id.in_(task_ids)) if task_ids else select(AuditIssue).where(False)
     )
     issues = issues_result.scalars().all()
-    
+
+    # 🔥 同时统计新的 AgentTask
+    agent_tasks_result = await db.execute(
+        select(AgentTask).where(AgentTask.project_id.in_(project_ids)) if project_ids else select(AgentTask).where(False)
+    )
+    agent_tasks = agent_tasks_result.scalars().all()
+    agent_task_ids = [t.id for t in agent_tasks]
+
+    # 🔥 统计 AgentFinding
+    agent_findings_result = await db.execute(
+        select(AgentFinding).where(AgentFinding.task_id.in_(agent_task_ids)) if agent_task_ids else select(AgentFinding).where(False)
+    )
+    agent_findings = agent_findings_result.scalars().all()
+
+    # 合并统计（旧任务 + 新 Agent 任务）
+    total_tasks = len(tasks) + len(agent_tasks)
+    completed_tasks = (
+        len([t for t in tasks if t.status == "completed"]) +
+        len([t for t in agent_tasks if t.status == AgentTaskStatus.COMPLETED])
+    )
+    total_issues = len(issues) + len(agent_findings)
+    resolved_issues = (
+        len([i for i in issues if i.status == "resolved"]) +
+        len([f for f in agent_findings if f.status == "resolved"])
+    )
+
     return {
         "total_projects": len(projects),
         "active_projects": len([p for p in projects if p.is_active]),
-        "total_tasks": len(tasks),
-        "completed_tasks": len([t for t in tasks if t.status == "completed"]),
-        "total_issues": len(issues),
-        "resolved_issues": len([i for i in issues if i.status == "resolved"]),
+        "total_tasks": total_tasks,
+        "completed_tasks": completed_tasks,
+        "total_issues": total_issues,
+        "resolved_issues": resolved_issues,
     }
 
 @router.get("/{id}", response_model=ProjectResponse)
