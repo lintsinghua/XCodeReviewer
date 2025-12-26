@@ -59,3 +59,11 @@ export const testSSHKey = async (repoUrl: string): Promise<SSHKeyTestResponse> =
   });
   return response.data;
 };
+
+/**
+ * 清理known_hosts文件
+ */
+export const clearKnownHosts = async (): Promise<{ success: boolean; message: string }> => {
+  const response = await apiClient.delete<{ success: boolean; message: string }>('/ssh-keys/known-hosts');
+  return response.data;
+};

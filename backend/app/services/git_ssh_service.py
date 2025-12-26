@@ -16,6 +16,66 @@ from cryptography.hazmat.primitives.asymmetric import ed25519, rsa
 from cryptography.hazmat.backends import default_backend
 
 
+def get_ssh_config_dir() -> str:
+    """
+    获取SSH配置目录路径，如果不存在则创建
+
+    Returns:
+        SSH配置目录的绝对路径
+    """
+    from app.core.config import settings
+
+    ssh_config_path = Path(settings.SSH_CONFIG_PATH)
+
+    # 确保目录存在
+    ssh_config_path.mkdir(parents=True, exist_ok=True)
+
+    # 设置目录权限（仅所有者可访问）
+    if sys.platform != 'win32':
+        os.chmod(ssh_config_path, 0o700)
+
+    return str(ssh_config_path.absolute())
+
+
+def get_known_hosts_file() -> str:
+    """
+    获取known_hosts文件路径，如果不存在则创建
+
+    Returns:
+        known_hosts文件的绝对路径
+    """
+    ssh_config_dir = get_ssh_config_dir()
+    known_hosts_file = Path(ssh_config_dir) / 'known_hosts'
+
+    # 如果文件不存在则创建
+    if not known_hosts_file.exists():
+        known_hosts_file.touch()
+        # 设置文件权限
+        if sys.platform != 'win32':
+            os.chmod(known_hosts_file, 0o600)
+
+    return str(known_hosts_file.absolute())
+
+
+def clear_known_hosts() -> bool:
+    """
+    清理known_hosts文件内容
+
+    Returns:
+        是否清理成功
+    """
+    try:
+        known_hosts_file = get_known_hosts_file()
+        # 清空文件内容
+        with open(known_hosts_file, 'w') as f:
+            f.write('')
+        print(f"[SSH] Cleared known_hosts file: {known_hosts_file}")
+        return True
+    except Exception as e:
+        print(f"[SSH] Failed to clear known_hosts: {e}")
+        return False
+
+
 def set_secure_file_permissions(file_path: str):
     """
     设置文件的安全权限（Unix: 0600, Windows: 只有当前用户可读写）
@@ -253,6 +313,9 @@ class GitSSHOperations:
                 f.write(private_key)
             set_secure_file_permissions(key_file)
 
+            # 使用持久化的known_hosts文件
+            known_hosts_file = get_known_hosts_file()
+
             # 设置Git SSH命令，只使用DeepAudit生成的SSH密钥
             env = os.environ.copy()
 
@@ -260,21 +323,22 @@ class GitSSHOperations:
             ssh_cmd_parts = [
                 'ssh',
                 '-i', key_file,
-                '-o', 'StrictHostKeyChecking=yes',
-                '-o', 'UserKnownHostsFile=/dev/null',
+                '-o', 'StrictHostKeyChecking=accept-new',  # 首次连接时自动接受并保存host key
+                '-o', f'UserKnownHostsFile={known_hosts_file}',  # 使用持久化known_hosts文件
                 '-o', 'PreferredAuthentications=publickey',
                 '-o', 'IdentitiesOnly=yes'  # 只使用指定的密钥，不使用系统默认密钥
             ]
 
             env['GIT_SSH_COMMAND'] = ' '.join(ssh_cmd_parts)
-            print(f"[Git Clone] Using DeepAudit SSH key only: {key_file}")
+            print(f"[Git Clone] Using DeepAudit SSH key: {key_file}")
+            print(f"[Git Clone] Using known_hosts file: {known_hosts_file}")
 
             # 执行git clone
             cmd = ['git', 'clone', '--depth', '1']
             if branch:  # 只有明确指定分支时才添加
                 cmd.extend(['--branch', branch])
-                cmd.extend([repo_url, target_dir])
-                
+            cmd.extend([repo_url, target_dir])
+
             result = subprocess.run(
                 cmd,
                 env=env,
@@ -414,18 +478,23 @@ class GitSSHOperations:
 
             set_secure_file_permissions(key_file)
 
+            # 使用持久化的known_hosts文件
+            known_hosts_file = get_known_hosts_file()
+
             # 构建SSH命令（只使用DeepAudit密钥）
             cmd = [
                 'ssh',
                 '-i', key_file,
-                '-o', 'StrictHostKeyChecking=yes',
-                '-o', 'UserKnownHostsFile=/dev/null',
+                '-o', 'StrictHostKeyChecking=accept-new',  # 首次连接时自动接受并保存host key
+                '-o', f'UserKnownHostsFile={known_hosts_file}',  # 使用持久化known_hosts文件
                 '-o', 'ConnectTimeout=10',
                 '-o', 'PreferredAuthentications=publickey',
                 '-o', 'IdentitiesOnly=yes',  # 只使用指定的密钥，不使用系统默认密钥
                 '-v',  # 详细输出
                 '-T', f'git@{host_part}'
             ]
+
+            print(f"[SSH Test] Using known_hosts file: {known_hosts_file}")
 
             result = subprocess.run(
                 cmd,
@@ -443,9 +512,9 @@ class GitSSHOperations:
             # 必须在检查成功之前检查，因为Anonymous表示认证技术上成功但没有关联用户
             if 'anonymous' in output_lower:
                 return {
-                    'success': False,
+                    'success': True,
                     'message': 'SSH连接成功，但公钥未关联用户账户',
-                    'output': f'提示：服务器显示Anonymous表示公钥未添加到Git服务或未关联到您的账户。\n请在Git服务的设置中添加SSH公钥。\n\n原始输出：\n{output}'
+                    'output': f'提示：服务器显示Anonymous,在使用部署密钥时是正常现象。\n请在Git服务的设置中添加SSH公钥。\n\n原始输出：\n{output}'
                 }
 
             # 检查是否认证成功

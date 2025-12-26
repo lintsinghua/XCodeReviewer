@@ -13,7 +13,7 @@ from app.api import deps
 from app.db.session import get_db
 from app.models.user import User
 from app.models.user_config import UserConfig
-from app.services.git_ssh_service import SSHKeyService, GitSSHOperations
+from app.services.git_ssh_service import SSHKeyService, GitSSHOperations, clear_known_hosts
 from app.core.encryption import encrypt_sensitive_data, decrypt_sensitive_data
 
 router = APIRouter()
@@ -225,3 +225,30 @@ async def test_ssh_key(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"测试SSH密钥失败: {str(e)}")
+
+
+@router.delete("/known-hosts")
+async def clear_known_hosts_file(
+    current_user: User = Depends(deps.get_current_user),
+) -> Any:
+    """
+    清理known_hosts文件
+
+    清空SSH known_hosts文件中保存的所有主机密钥。
+    下次连接时会重新接受并保存新的host key。
+    """
+    try:
+        success = clear_known_hosts()
+
+        if success:
+            return {
+                "success": True,
+                "message": "known_hosts文件已清理，下次连接时会重新保存主机密钥"
+            }
+        else:
+            raise HTTPException(status_code=500, detail="清理known_hosts文件失败")
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"清理失败: {str(e)}")

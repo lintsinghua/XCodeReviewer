@@ -26,12 +26,13 @@ import {
   Key,
   Copy,
   Trash2,
-  CheckCircle2
+  CheckCircle2,
+  ServerCrash
 } from "lucide-react";
 import { apiClient } from "@/shared/api/serverClient";
 import { toast } from "sonner";
 import type { Profile } from "@/shared/types";
-import { generateSSHKey, getSSHKey, deleteSSHKey, testSSHKey } from "@/shared/api/sshKeys";
+import { generateSSHKey, getSSHKey, deleteSSHKey, testSSHKey, clearKnownHosts } from "@/shared/api/sshKeys";
 
 export default function Account() {
   const navigate = useNavigate();
@@ -56,6 +57,7 @@ export default function Account() {
   const [sshKey, setSSHKey] = useState<{ has_key: boolean; public_key?: string; fingerprint?: string }>({ has_key: false });
   const [generatingKey, setGeneratingKey] = useState(false);
   const [deletingKey, setDeletingKey] = useState(false);
+  const [clearingKnownHosts, setClearingKnownHosts] = useState(false);
   const [testingKey, setTestingKey] = useState(false);
   const [testRepoUrl, setTestRepoUrl] = useState("");
   const [showDeleteKeyDialog, setShowDeleteKeyDialog] = useState(false);
@@ -152,6 +154,23 @@ export default function Account() {
       toast.error(error.response?.data?.detail || "测试SSH密钥失败");
     } finally {
       setTestingKey(false);
+    }
+  };
+
+  const handleClearKnownHosts = async () => {
+    try {
+      setClearingKnownHosts(true);
+      const result = await clearKnownHosts();
+      if (result.success) {
+        toast.success(result.message || "known_hosts已清理");
+      } else {
+        toast.error("清理known_hosts失败");
+      }
+    } catch (error: any) {
+      console.error('Failed to clear known_hosts:', error);
+      toast.error(error.response?.data?.detail || "清理known_hosts失败");
+    } finally {
+      setClearingKnownHosts(false);
     }
   };
 
@@ -523,8 +542,26 @@ export default function Account() {
                   </div>
                 </div>
 
-                {/* Delete Key */}
-                <div className="flex justify-end pt-4 border-t border-border">
+                {/* Delete Key and Clear Known Hosts */}
+                <div className="flex justify-end gap-2 pt-4 border-t border-border">
+                  <Button
+                    variant="outline"
+                    onClick={handleClearKnownHosts}
+                    disabled={clearingKnownHosts}
+                    className="cyber-btn-outline h-10"
+                  >
+                    {clearingKnownHosts ? (
+                      <>
+                        <div className="loading-spinner w-4 h-4 mr-2" />
+                        清理中...
+                      </>
+                    ) : (
+                      <>
+                        <ServerCrash className="w-4 h-4 mr-2" />
+                        清理 known_hosts
+                      </>
+                    )}
+                  </Button>
                   <Button
                     variant="destructive"
                     onClick={() => setShowDeleteKeyDialog(true)}

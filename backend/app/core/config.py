@@ -90,6 +90,9 @@ class Settings(BaseSettings):
     
     # 向量数据库配置
     VECTOR_DB_PATH: str = "./data/vector_db"  # 向量数据库持久化目录
+
+    # SSH配置
+    SSH_CONFIG_PATH: str = "./data/ssh"  # SSH配置目录（存储known_hosts等）
     
     # Agent 配置
     AGENT_MAX_ITERATIONS: int = 50  # Agent 最大迭代次数
