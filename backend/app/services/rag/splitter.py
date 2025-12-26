@@ -4,6 +4,7 @@
 """
 
 import re
+import asyncio
 import hashlib
 import logging
 from typing import List, Dict, Any, Optional, Tuple, Set
@@ -154,7 +155,7 @@ class TreeSitterParser:
         ".c": "c",
         ".h": "c",
         ".hpp": "cpp",
-        ".cs": "c_sharp",
+        ".cs": "csharp",
         ".php": "php",
         ".rb": "ruby",
         ".kt": "kotlin",
@@ -197,7 +198,7 @@ class TreeSitterParser:
     # tree-sitter-languages 支持的语言列表
     SUPPORTED_LANGUAGES = {
         "python", "javascript", "typescript", "tsx", "java", "go", "rust",
-        "c", "cpp", "c_sharp", "php", "ruby", "kotlin", "swift", "bash",
+        "c", "cpp", "csharp", "php", "ruby", "kotlin", "swift", "bash",
         "json", "yaml", "html", "css", "sql", "markdown",
     }
 
@@ -230,21 +231,30 @@ class TreeSitterParser:
             return False
     
     def parse(self, code: str, language: str) -> Optional[Any]:
-        """解析代码返回 AST"""
+        """解析代码返回 AST（同步方法）"""
         if not self._ensure_initialized(language):
             return None
-        
+
         parser = self._parsers.get(language)
         if not parser:
             return None
-        
+
         try:
             tree = parser.parse(code.encode())
             return tree
         except Exception as e:
             logger.warning(f"Failed to parse code: {e}")
             return None
-    
+
+    async def parse_async(self, code: str, language: str) -> Optional[Any]:
+        """
+        异步解析代码返回 AST
+
+        将 CPU 密集型的 Tree-sitter 解析操作放到线程池中执行，
+        避免阻塞事件循环
+        """
+        return await asyncio.to_thread(self.parse, code, language)
+
     def extract_definitions(self, tree: Any, code: str, language: str) -> List[Dict[str, Any]]:
         """从 AST 提取定义"""
         if tree is None:
@@ -449,9 +459,31 @@ class CodeSplitter:
         except Exception as e:
             logger.warning(f"分块失败 {file_path}: {e}, 使用简单分块")
             chunks = self._split_by_lines(content, file_path, language)
-        
+
         return chunks
-    
+
+    async def split_file_async(
+        self,
+        content: str,
+        file_path: str,
+        language: Optional[str] = None
+    ) -> List[CodeChunk]:
+        """
+        异步分割单个文件
+
+        将 CPU 密集型的分块操作（包括 Tree-sitter 解析）放到线程池中执行，
+        避免阻塞事件循环。
+
+        Args:
+            content: 文件内容
+            file_path: 文件路径
+            language: 编程语言（可选）
+
+        Returns:
+            代码块列表
+        """
+        return await asyncio.to_thread(self.split_file, content, file_path, language)
+
     def _split_by_ast(
         self,
         content: str,

@@ -284,7 +284,56 @@ Action Input: {{"参数": "值"}}
                 
                 # 重置空响应计数器
                 self._empty_retry_count = 0
-                
+
+                # 🔥 检查是否是 API 错误（而非格式错误）
+                if llm_output.startswith("[API_ERROR:"):
+                    # 提取错误类型和消息
+                    match = re.match(r"\[API_ERROR:(\w+)\]\s*(.*)", llm_output)
+                    if match:
+                        error_type = match.group(1)
+                        error_message = match.group(2)
+
+                        if error_type == "rate_limit":
+                            # 速率限制 - 等待后重试
+                            api_retry_count = getattr(self, '_api_retry_count', 0) + 1
+                            self._api_retry_count = api_retry_count
+                            if api_retry_count >= 3:
+                                logger.error(f"[{self.name}] Too many rate limit errors, stopping")
+                                await self.emit_event("error", f"API 速率限制重试次数过多: {error_message}")
+                                break
+                            logger.warning(f"[{self.name}] Rate limit hit, waiting before retry ({api_retry_count}/3)")
+                            await self.emit_event("warning", f"API 速率限制，等待后重试 ({api_retry_count}/3)")
+                            await asyncio.sleep(30)  # 等待 30 秒后重试
+                            continue
+
+                        elif error_type == "quota_exceeded":
+                            # 配额用尽 - 终止任务
+                            logger.error(f"[{self.name}] API quota exceeded: {error_message}")
+                            await self.emit_event("error", f"API 配额已用尽: {error_message}")
+                            break
+
+                        elif error_type == "authentication":
+                            # 认证错误 - 终止任务
+                            logger.error(f"[{self.name}] API authentication error: {error_message}")
+                            await self.emit_event("error", f"API 认证失败: {error_message}")
+                            break
+
+                        elif error_type == "connection":
+                            # 连接错误 - 重试
+                            api_retry_count = getattr(self, '_api_retry_count', 0) + 1
+                            self._api_retry_count = api_retry_count
+                            if api_retry_count >= 3:
+                                logger.error(f"[{self.name}] Too many connection errors, stopping")
+                                await self.emit_event("error", f"API 连接错误重试次数过多: {error_message}")
+                                break
+                            logger.warning(f"[{self.name}] Connection error, retrying ({api_retry_count}/3)")
+                            await self.emit_event("warning", f"API 连接错误，重试中 ({api_retry_count}/3)")
+                            await asyncio.sleep(5)  # 等待 5 秒后重试
+                            continue
+
+                # 重置 API 重试计数器（成功获取响应后）
+                self._api_retry_count = 0
+
                 # 解析 LLM 的决策
                 step = self._parse_llm_response(llm_output)
                 

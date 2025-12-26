@@ -4,6 +4,7 @@
  */
 
 import type { Project, ProjectSourceType } from '@/shared/types';
+import { REPOSITORY_PLATFORM_LABELS } from '@/shared/constants/projectTypes';
 
 /**
  * 判断项目是否为仓库类型
@@ -45,13 +46,7 @@ export function getSourceTypeBadge(sourceType: ProjectSourceType): string {
  * 获取仓库平台的显示名称
  */
 export function getRepositoryPlatformLabel(platform?: string): string {
-  const labels: Record<string, string> = {
-    github: 'GitHub',
-    gitlab: 'GitLab',
-    gitea: 'Gitea',
-    other: '其他'
-  };
-  return labels[platform || 'other'] || '其他';
+  return REPOSITORY_PLATFORM_LABELS[platform as keyof typeof REPOSITORY_PLATFORM_LABELS] || REPOSITORY_PLATFORM_LABELS.other;
 }
 
 /**

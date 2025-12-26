@@ -36,7 +36,7 @@ import type { AuditTask, AuditIssue } from "@/shared/types";
 import { toast } from "sonner";
 import ExportReportDialog from "@/components/reports/ExportReportDialog";
 import { calculateTaskProgress } from "@/shared/utils/utils";
-import { isRepositoryProject, getSourceTypeLabel } from "@/shared/utils/projectUtils";
+import { isRepositoryProject, getSourceTypeLabel, getRepositoryPlatformLabel } from "@/shared/utils/projectUtils";
 
 // AI explanation parser
 function parseAIExplanation(aiExplanation: string) {
@@ -86,12 +86,11 @@ function IssuesList({ issues }: { issues: AuditIssue[] }) {
     <div key={issue.id || index} className="cyber-card p-4 hover:border-border transition-all group">
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-start space-x-3">
-          <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-            issue.severity === 'critical' ? 'bg-rose-500/20 text-rose-400' :
-            issue.severity === 'high' ? 'bg-orange-500/20 text-orange-400' :
-            issue.severity === 'medium' ? 'bg-amber-500/20 text-amber-400' :
-            'bg-sky-500/20 text-sky-400'
-          }`}>
+          <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${issue.severity === 'critical' ? 'bg-rose-500/20 text-rose-400' :
+              issue.severity === 'high' ? 'bg-orange-500/20 text-orange-400' :
+                issue.severity === 'medium' ? 'bg-amber-500/20 text-amber-400' :
+                  'bg-sky-500/20 text-sky-400'
+            }`}>
             {getTypeIcon(issue.issue_type)}
           </div>
           <div className="flex-1">
@@ -112,7 +111,7 @@ function IssuesList({ issues }: { issues: AuditIssue[] }) {
         <Badge className={`${getSeverityClasses(issue.severity)} font-bold uppercase px-2 py-1 rounded text-xs`}>
           {issue.severity === 'critical' ? '严重' :
             issue.severity === 'high' ? '高' :
-            issue.severity === 'medium' ? '中等' : '低'}
+              issue.severity === 'medium' ? '中等' : '低'}
         </Badge>
       </div>
 
@@ -702,7 +701,7 @@ export default function TaskDetail() {
                   {isRepositoryProject(task.project) && (
                     <div>
                       <p className="text-xs font-bold text-muted-foreground uppercase mb-1">仓库平台</p>
-                      <p className="text-base font-bold text-foreground">{task.project.repository_type?.toUpperCase() || 'OTHER'}</p>
+                      <p className="text-base font-bold text-foreground">{getRepositoryPlatformLabel(task.project.repository_type)}</p>
                     </div>
                   )}
                   {task.project.programming_languages && (

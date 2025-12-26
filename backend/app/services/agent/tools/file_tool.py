@@ -6,6 +6,7 @@
 import os
 import re
 import fnmatch
+import asyncio
 from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, Field
 
@@ -44,7 +45,37 @@ class FileReadTool(AgentTool):
         self.project_root = project_root
         self.exclude_patterns = exclude_patterns or []
         self.target_files = set(target_files) if target_files else None
-    
+
+    @staticmethod
+    def _read_file_lines_sync(file_path: str, start_idx: int, end_idx: int) -> tuple:
+        """同步读取文件指定行范围（用于 asyncio.to_thread）"""
+        selected_lines = []
+        total_lines = 0
+        file_size = os.path.getsize(file_path)
+
+        with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+            for i, line in enumerate(f):
+                total_lines = i + 1
+                if i >= start_idx and i < end_idx:
+                    selected_lines.append(line)
+                elif i >= end_idx:
+                    if i < end_idx + 1000:
+                        continue
+                    else:
+                        remaining_bytes = file_size - f.tell()
+                        avg_line_size = f.tell() / (i + 1)
+                        estimated_remaining_lines = int(remaining_bytes / avg_line_size) if avg_line_size > 0 else 0
+                        total_lines = i + 1 + estimated_remaining_lines
+                        break
+
+        return selected_lines, total_lines
+
+    @staticmethod
+    def _read_all_lines_sync(file_path: str) -> List[str]:
+        """同步读取文件所有行（用于 asyncio.to_thread）"""
+        with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+            return f.readlines()
+
     @property
     def name(self) -> str:
         return "read_file"
@@ -136,51 +167,34 @@ class FileReadTool(AgentTool):
             
             # 🔥 对于大文件，使用流式读取指定行范围
             if is_large_file and (start_line is not None or end_line is not None):
-                # 流式读取，避免一次性加载整个文件
-                selected_lines = []
-                total_lines = 0
-                
                 # 计算实际的起始和结束行
                 start_idx = max(0, (start_line or 1) - 1)
                 end_idx = end_line if end_line else start_idx + max_lines
-                
-                with open(full_path, 'r', encoding='utf-8', errors='ignore') as f:
-                    for i, line in enumerate(f):
-                        total_lines = i + 1
-                        if i >= start_idx and i < end_idx:
-                            selected_lines.append(line)
-                        elif i >= end_idx:
-                            # 继续计数以获取总行数，但限制读取量
-                            if i < end_idx + 1000:  # 最多再读1000行来估算总行数
-                                continue
-                            else:
-                                # 估算剩余行数
-                                remaining_bytes = file_size - f.tell()
-                                avg_line_size = f.tell() / (i + 1)
-                                estimated_remaining_lines = int(remaining_bytes / avg_line_size) if avg_line_size > 0 else 0
-                                total_lines = i + 1 + estimated_remaining_lines
-                                break
-                
+
+                # 异步读取文件，避免阻塞事件循环
+                selected_lines, total_lines = await asyncio.to_thread(
+                    self._read_file_lines_sync, full_path, start_idx, end_idx
+                )
+
                 # 更新实际的结束索引
                 end_idx = min(end_idx, start_idx + len(selected_lines))
             else:
-                # 正常读取小文件
-                with open(full_path, 'r', encoding='utf-8', errors='ignore') as f:
-                    lines = f.readlines()
-                
+                # 异步读取小文件，避免阻塞事件循环
+                lines = await asyncio.to_thread(self._read_all_lines_sync, full_path)
+
                 total_lines = len(lines)
-                
+
                 # 处理行范围
                 if start_line is not None:
                     start_idx = max(0, start_line - 1)
                 else:
                     start_idx = 0
-                
+
                 if end_line is not None:
                     end_idx = min(total_lines, end_line)
                 else:
                     end_idx = min(total_lines, start_idx + max_lines)
-                
+
                 # 截取指定行
                 selected_lines = lines[start_idx:end_idx]
             
@@ -259,7 +273,7 @@ class FileSearchTool(AgentTool):
         self.project_root = project_root
         self.exclude_patterns = exclude_patterns or []
         self.target_files = set(target_files) if target_files else None
-        
+
         # 从 exclude_patterns 中提取目录排除
         self.exclude_dirs = set(self.DEFAULT_EXCLUDE_DIRS)
         for pattern in self.exclude_patterns:
@@ -267,7 +281,13 @@ class FileSearchTool(AgentTool):
                 self.exclude_dirs.add(pattern[:-3])
             elif "/" not in pattern and "*" not in pattern:
                 self.exclude_dirs.add(pattern)
-    
+
+    @staticmethod
+    def _read_file_lines_sync(file_path: str) -> List[str]:
+        """同步读取文件所有行（用于 asyncio.to_thread）"""
+        with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+            return f.readlines()
+
     @property
     def name(self) -> str:
         return "search_code"
@@ -360,11 +380,13 @@ class FileSearchTool(AgentTool):
                         continue
                     
                     try:
-                        with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                            lines = f.readlines()
-                        
+                        # 异步读取文件，避免阻塞事件循环
+                        lines = await asyncio.to_thread(
+                            self._read_file_lines_sync, file_path
+                        )
+
                         files_searched += 1
-                        
+
                         for i, line in enumerate(lines):
                             if pattern.search(line):
                                 # 获取上下文

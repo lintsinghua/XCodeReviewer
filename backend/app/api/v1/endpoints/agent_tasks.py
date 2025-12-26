@@ -294,6 +294,7 @@ async def _execute_agent_task(task_id: str):
             other_config = (user_config or {}).get('otherConfig', {})
             github_token = other_config.get('githubToken') or settings.GITHUB_TOKEN
             gitlab_token = other_config.get('gitlabToken') or settings.GITLAB_TOKEN
+            gitea_token = other_config.get('giteaToken') or settings.GITEA_TOKEN
 
             # 解密SSH私钥
             ssh_private_key = None
@@ -313,6 +314,7 @@ async def _execute_agent_task(task_id: str):
                 task.branch_name,
                 github_token=github_token,
                 gitlab_token=gitlab_token,
+                gitea_token=gitea_token,  # 🔥 新增
                 ssh_private_key=ssh_private_key,  # 🔥 新增SSH密钥
                 event_emitter=event_emitter,  # 🔥 新增
             )
@@ -2226,6 +2228,7 @@ async def _get_project_root(
     branch_name: Optional[str] = None,
     github_token: Optional[str] = None,
     gitlab_token: Optional[str] = None,
+    gitea_token: Optional[str] = None,  # 🔥 新增
     ssh_private_key: Optional[str] = None,  # 🔥 新增：SSH私钥（用于SSH认证）
     event_emitter: Optional[Any] = None,  # 🔥 新增：用于发送实时日志
 ) -> str:
@@ -2242,6 +2245,7 @@ async def _get_project_root(
         branch_name: 分支名称（仓库项目使用，优先于 project.default_branch）
         github_token: GitHub 访问令牌（用于私有仓库）
         gitlab_token: GitLab 访问令牌（用于私有仓库）
+        gitea_token: Gitea 访问令牌（用于私有仓库）
         ssh_private_key: SSH私钥（用于SSH认证）
         event_emitter: 事件发送器（用于发送实时日志）
 
@@ -2503,9 +2507,19 @@ async def _get_project_root(
                     parsed.fragment
                 ))
                 await emit(f"🔐 使用 GitLab Token 认证")
+            elif repo_type == "gitea" and gitea_token:
+                auth_url = urlunparse((
+                    parsed.scheme,
+                    f"{gitea_token}@{parsed.netloc}",
+                    parsed.path,
+                    parsed.params,
+                    parsed.query,
+                    parsed.fragment
+                ))
+                await emit(f"🔐 使用 Gitea Token 认证")
             elif is_ssh_url and ssh_private_key:
                 await emit(f"🔐 使用 SSH Key 认证")
-
+                
             for branch in branches_to_try:
                 check_cancelled()
 

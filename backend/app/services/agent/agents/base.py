@@ -1024,10 +1024,18 @@ class BaseAgent(ABC):
                     elif chunk["type"] == "error":
                         accumulated = chunk.get("accumulated", "")
                         error_msg = chunk.get("error", "Unknown error")
-                        logger.error(f"[{self.name}] Stream error: {error_msg}")
-                        if accumulated:
-                            total_tokens = chunk.get("usage", {}).get("total_tokens", 0)
-                        else:
+                        error_type = chunk.get("error_type", "unknown")
+                        user_message = chunk.get("user_message", error_msg)
+                        logger.error(f"[{self.name}] Stream error ({error_type}): {error_msg}")
+
+                        if chunk.get("usage"):
+                            total_tokens = chunk["usage"].get("total_tokens", 0)
+
+                        # 使用特殊前缀标记 API 错误，让调用方能够识别
+                        # 格式：[API_ERROR:error_type] user_message
+                        if error_type in ("rate_limit", "quota_exceeded", "authentication", "connection"):
+                            accumulated = f"[API_ERROR:{error_type}] {user_message}"
+                        elif not accumulated:
                             accumulated = f"[系统错误: {error_msg}] 请重新思考并输出你的决策。"
                         break
 
