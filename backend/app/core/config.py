@@ -93,6 +93,9 @@ class Settings(BaseSettings):
 
     # SSH配置
     SSH_CONFIG_PATH: str = "./data/ssh"  # SSH配置目录（存储known_hosts等）
+    SSH_CLONE_TIMEOUT: int = 300  # SSH克隆超时时间（秒）
+    SSH_TEST_TIMEOUT: int = 15  # SSH测试连接超时时间（秒）
+    SSH_CONNECT_TIMEOUT: int = 10  # SSH连接超时时间（秒）
     
     # Agent 配置
     AGENT_MAX_ITERATIONS: int = 50  # Agent 最大迭代次数

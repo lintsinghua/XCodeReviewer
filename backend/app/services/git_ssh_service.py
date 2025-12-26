@@ -4,6 +4,9 @@ Git SSH服务 - 生成SSH密钥并使用SSH方式访问Git仓库
 
 import os
 import sys
+import re
+import shlex
+import logging
 import tempfile
 import subprocess
 import shutil
@@ -14,6 +17,55 @@ from pathlib import Path
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ed25519, rsa
 from cryptography.hazmat.backends import default_backend
+
+# 配置日志
+logger = logging.getLogger(__name__)
+
+
+def is_valid_branch_name(branch: str) -> bool:
+    """
+    验证 Git 分支名是否合法
+
+    Git 分支名规则:
+    - 不能以 . 或 - 开头
+    - 不能包含 .., ~, ^, :, ?, *, [, \\, 空格
+    - 不能以 / 结尾
+    - 不能以 .lock 结尾
+
+    Args:
+        branch: 分支名
+
+    Returns:
+        是否为合法的分支名
+    """
+    if not branch:
+        return False
+
+    # 基本格式检查：只允许字母、数字、-、_、/、.
+    if not re.match(r'^[\w\-/.]+$', branch):
+        return False
+
+    # 不能以 . 或 - 开头
+    if branch.startswith('.') or branch.startswith('-'):
+        return False
+
+    # 不能以 / 结尾
+    if branch.endswith('/'):
+        return False
+
+    # 不能以 .lock 结尾
+    if branch.endswith('.lock'):
+        return False
+
+    # 不能包含连续的 ..
+    if '..' in branch:
+        return False
+
+    # 不能包含连续的 //
+    if '//' in branch:
+        return False
+
+    return True
 
 
 def get_ssh_config_dir() -> str:
@@ -69,10 +121,10 @@ def clear_known_hosts() -> bool:
         # 清空文件内容
         with open(known_hosts_file, 'w') as f:
             f.write('')
-        print(f"[SSH] Cleared known_hosts file: {known_hosts_file}")
+        logger.info(f"Cleared known_hosts file: {known_hosts_file}")
         return True
     except Exception as e:
-        print(f"[SSH] Failed to clear known_hosts: {e}")
+        logger.error(f"Failed to clear known_hosts: {e}")
         return False
 
 
@@ -99,7 +151,7 @@ def set_secure_file_permissions(file_path: str):
                 check=True
             )
         except Exception as e:
-            print(f"Warning: Failed to set Windows file permissions: {e}")
+            logger.warning(f"Failed to set Windows file permissions: {e}")
             # 尝试使用os.chmod作为后备方案
             try:
                 os.chmod(file_path, 0o600)
@@ -145,7 +197,7 @@ class SSHKeyService:
             return f"SHA256:{fingerprint}"
 
         except Exception as e:
-            print(f"[SSH] Fingerprint calculation error: {e}")
+            logger.error(f"Fingerprint calculation error: {e}")
             return None
 
     @staticmethod
@@ -187,7 +239,7 @@ class SSHKeyService:
                         backend=default_backend()
                     )
                 except Exception as e:
-                    print(f"[SSH] Failed to load private key: {e}")
+                    logger.debug(f"Failed to load private key: {e}")
                     return False
 
             if not private_key_obj:
@@ -207,7 +259,7 @@ class SSHKeyService:
             return expected_public == actual_public
 
         except Exception as e:
-            print(f"[SSH] Key verification error: {e}")
+            logger.error(f"Key verification error: {e}")
             return False
 
     @staticmethod
@@ -302,8 +354,15 @@ class GitSSHOperations:
         Returns:
             操作结果字典
         """
+        from app.core.config import settings
+
         temp_dir = None
         try:
+            # 验证分支名（如果提供）
+            if branch and not is_valid_branch_name(branch):
+                logger.warning(f"Invalid branch name rejected: {branch}")
+                return {'success': False, 'message': f'无效的分支名: {branch}'}
+
             # 创建临时目录存放SSH密钥
             temp_dir = tempfile.mkdtemp(prefix='deepaudit_ssh_')
             key_file = os.path.join(temp_dir, 'id_rsa')
@@ -319,19 +378,18 @@ class GitSSHOperations:
             # 设置Git SSH命令，只使用DeepAudit生成的SSH密钥
             env = os.environ.copy()
 
-            # 构建SSH命令（只使用DeepAudit密钥）
-            ssh_cmd_parts = [
-                'ssh',
-                '-i', key_file,
-                '-o', 'StrictHostKeyChecking=accept-new',  # 首次连接时自动接受并保存host key
-                '-o', f'UserKnownHostsFile={known_hosts_file}',  # 使用持久化known_hosts文件
-                '-o', 'PreferredAuthentications=publickey',
-                '-o', 'IdentitiesOnly=yes'  # 只使用指定的密钥，不使用系统默认密钥
-            ]
+            # 构建SSH命令（使用 shlex.quote 转义路径防止命令注入）
+            ssh_cmd = (
+                f"ssh -i {shlex.quote(key_file)} "
+                f"-o StrictHostKeyChecking=accept-new "
+                f"-o UserKnownHostsFile={shlex.quote(known_hosts_file)} "
+                f"-o PreferredAuthentications=publickey "
+                f"-o IdentitiesOnly=yes"
+            )
 
-            env['GIT_SSH_COMMAND'] = ' '.join(ssh_cmd_parts)
-            print(f"[Git Clone] Using DeepAudit SSH key: {key_file}")
-            print(f"[Git Clone] Using known_hosts file: {known_hosts_file}")
+            env['GIT_SSH_COMMAND'] = ssh_cmd
+            logger.debug(f"Using SSH key file: {key_file}")
+            logger.debug(f"Using known_hosts file: {known_hosts_file}")
 
             # 执行git clone
             cmd = ['git', 'clone', '--depth', '1']
@@ -344,7 +402,7 @@ class GitSSHOperations:
                 env=env,
                 capture_output=True,
                 text=True,
-                timeout=300
+                timeout=settings.SSH_CLONE_TIMEOUT
             )
 
             if result.returncode == 0:
@@ -354,6 +412,7 @@ class GitSSHOperations:
                     'path': target_dir
                 }
             else:
+                logger.error(f"Git clone failed: {result.stderr}")
                 return {
                     'success': False,
                     'message': '仓库克隆失败',
@@ -361,8 +420,10 @@ class GitSSHOperations:
                 }
 
         except subprocess.TimeoutExpired:
-            return {'success': False, 'message': '克隆超时（超过5分钟）'}
+            logger.error(f"Git clone timeout after {settings.SSH_CLONE_TIMEOUT}s")
+            return {'success': False, 'message': f'克隆超时（超过{settings.SSH_CLONE_TIMEOUT}秒）'}
         except Exception as e:
+            logger.error(f"Git clone error: {e}")
             return {'success': False, 'message': f'克隆失败: {str(e)}'}
         finally:
             # 清理临时文件
@@ -429,13 +490,13 @@ class GitSSHOperations:
                             'content': content
                         })
                     except Exception as e:
-                        print(f"读取文件 {rel_path} 失败: {e}")
+                        logger.debug(f"读取文件 {rel_path} 失败: {e}")
                         continue
 
             return files
 
         except Exception as e:
-            print(f"获取SSH仓库文件失败: {e}")
+            logger.error(f"获取SSH仓库文件失败: {e}")
             raise
         finally:
             # 清理临时克隆目录
@@ -454,6 +515,8 @@ class GitSSHOperations:
         Returns:
             测试结果字典
         """
+        from app.core.config import settings
+
         temp_dir = None
         try:
             # 从URL提取主机
@@ -461,6 +524,11 @@ class GitSSHOperations:
                 host_part = repo_url.split('@')[1].split(':')[0]
             else:
                 return {'success': False, 'message': 'URL格式无效'}
+
+            # 验证主机名格式（防止注入）
+            if not re.match(r'^[\w\-\.]+$', host_part):
+                logger.warning(f"Invalid host name rejected: {host_part}")
+                return {'success': False, 'message': '无效的主机名'}
 
             # 创建临时目录存放密钥
             temp_dir = tempfile.mkdtemp(prefix='deepaudit_ssh_test_')
@@ -472,57 +540,53 @@ class GitSSHOperations:
 
             # 验证文件是否被创建
             if not os.path.exists(key_file):
-                return {'success': False, 'message': f'私钥文件创建失败: {key_file}'}
-
-            file_size = os.path.getsize(key_file)
+                return {'success': False, 'message': '私钥文件创建失败'}
 
             set_secure_file_permissions(key_file)
 
             # 使用持久化的known_hosts文件
             known_hosts_file = get_known_hosts_file()
 
-            # 构建SSH命令（只使用DeepAudit密钥）
+            # 构建SSH命令（使用列表形式避免shell注入）
             cmd = [
                 'ssh',
                 '-i', key_file,
-                '-o', 'StrictHostKeyChecking=accept-new',  # 首次连接时自动接受并保存host key
-                '-o', f'UserKnownHostsFile={known_hosts_file}',  # 使用持久化known_hosts文件
-                '-o', 'ConnectTimeout=10',
+                '-o', 'StrictHostKeyChecking=accept-new',
+                '-o', f'UserKnownHostsFile={known_hosts_file}',
+                '-o', f'ConnectTimeout={settings.SSH_CONNECT_TIMEOUT}',
                 '-o', 'PreferredAuthentications=publickey',
-                '-o', 'IdentitiesOnly=yes',  # 只使用指定的密钥，不使用系统默认密钥
-                '-v',  # 详细输出
+                '-o', 'IdentitiesOnly=yes',
+                '-v',
                 '-T', f'git@{host_part}'
             ]
 
-            print(f"[SSH Test] Using known_hosts file: {known_hosts_file}")
+            logger.debug(f"Testing SSH connection to: {host_part}")
 
             result = subprocess.run(
                 cmd,
                 capture_output=True,
                 text=True,
-                timeout=15
+                timeout=settings.SSH_TEST_TIMEOUT
             )
 
             # GitHub/GitLab/CodeUp的SSH测试通常返回非0状态码，但会在输出中显示认证成功
             output = result.stdout + result.stderr
             output_lower = output.lower()
 
-
             # 特别检查Anonymous（表示公钥未添加或未关联用户账户）
-            # 必须在检查成功之前检查，因为Anonymous表示认证技术上成功但没有关联用户
             if 'anonymous' in output_lower:
                 return {
                     'success': True,
                     'message': 'SSH连接成功，但公钥未关联用户账户',
-                    'output': f'提示：服务器显示Anonymous,在使用部署密钥时是正常现象。\n请在Git服务的设置中添加SSH公钥。\n\n原始输出：\n{output}'
+                    'output': '提示：服务器显示Anonymous,在使用部署密钥时是正常现象。\n请在Git服务的设置中添加SSH公钥。'
                 }
 
             # 检查是否认证成功
             success_indicators = [
-                ('successfully authenticated', True),  # GitHub
-                ('hi ', True),                         # GitHub: "Hi username!"
-                ('welcome to gitlab', '@' in output),  # GitLab需要有@username
-                ('welcome to codeup', '@' in output),  # CodeUp需要有@username
+                ('successfully authenticated', True),
+                ('hi ', True),
+                ('welcome to gitlab', '@' in output),
+                ('welcome to codeup', '@' in output),
             ]
 
             is_success = False
@@ -557,16 +621,18 @@ class GitSSHOperations:
                 }
 
         except subprocess.TimeoutExpired:
+            logger.warning(f"SSH test timeout after {settings.SSH_TEST_TIMEOUT}s")
             return {
                 'success': False,
-                'message': 'SSH连接超时（15秒）',
+                'message': f'SSH连接超时（{settings.SSH_TEST_TIMEOUT}秒）',
                 'output': '连接超时，请检查网络或Git服务可用性'
             }
         except Exception as e:
+            logger.error(f"SSH test error: {e}")
             return {
                 'success': False,
-                'message': f'测试失败: {str(e)}',
-                'output': str(e)
+                'message': '测试失败，请稍后重试',
+                'output': ''
             }
         finally:
             if temp_dir and os.path.exists(temp_dir):
