@@ -10,7 +10,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Textarea } from "@/components/ui/textarea";
 import {
   User,
   Mail,
@@ -22,17 +21,11 @@ import {
   LogOut,
   UserPlus,
   GitBranch,
-  Terminal,
-  Key,
-  Copy,
-  Trash2,
-  CheckCircle2,
-  ServerCrash
+  Terminal
 } from "lucide-react";
 import { apiClient } from "@/shared/api/serverClient";
 import { toast } from "sonner";
 import type { Profile } from "@/shared/types";
-import { generateSSHKey, getSSHKey, deleteSSHKey, testSSHKey, clearKnownHosts } from "@/shared/api/sshKeys";
 
 export default function Account() {
   const navigate = useNavigate();
@@ -53,18 +46,8 @@ export default function Account() {
   });
   const [changingPassword, setChangingPassword] = useState(false);
 
-  // SSH Key states
-  const [sshKey, setSSHKey] = useState<{ has_key: boolean; public_key?: string; fingerprint?: string }>({ has_key: false });
-  const [generatingKey, setGeneratingKey] = useState(false);
-  const [deletingKey, setDeletingKey] = useState(false);
-  const [clearingKnownHosts, setClearingKnownHosts] = useState(false);
-  const [testingKey, setTestingKey] = useState(false);
-  const [testRepoUrl, setTestRepoUrl] = useState("");
-  const [showDeleteKeyDialog, setShowDeleteKeyDialog] = useState(false);
-
   useEffect(() => {
     loadProfile();
-    loadSSHKey();
   }, []);
 
   const loadProfile = async () => {
@@ -83,101 +66,6 @@ export default function Account() {
       toast.error("加载账号信息失败");
     } finally {
       setLoading(false);
-    }
-  };
-
-  const loadSSHKey = async () => {
-    try {
-      const data = await getSSHKey();
-      setSSHKey(data);
-    } catch (error) {
-      console.error('Failed to load SSH key:', error);
-    }
-  };
-
-  const handleGenerateSSHKey = async () => {
-    try {
-      setGeneratingKey(true);
-      const data = await generateSSHKey();
-      setSSHKey({ has_key: true, public_key: data.public_key, fingerprint: data.fingerprint });
-      toast.success(data.message);
-    } catch (error: any) {
-      console.error('Failed to generate SSH key:', error);
-      toast.error(error.response?.data?.detail || "生成SSH密钥失败");
-    } finally {
-      setGeneratingKey(false);
-    }
-  };
-
-  const handleDeleteSSHKey = async () => {
-    try {
-      setDeletingKey(true);
-      await deleteSSHKey();
-      setSSHKey({ has_key: false });
-      toast.success("SSH密钥已删除");
-      setShowDeleteKeyDialog(false);
-    } catch (error: any) {
-      console.error('Failed to delete SSH key:', error);
-      toast.error(error.response?.data?.detail || "删除SSH密钥失败");
-    } finally {
-      setDeletingKey(false);
-    }
-  };
-
-  const handleTestSSHKey = async () => {
-    if (!testRepoUrl) {
-      toast.error("请输入仓库URL");
-      return;
-    }
-    try {
-      setTestingKey(true);
-      const result = await testSSHKey(testRepoUrl);
-      if (result.success) {
-        toast.success("SSH连接测试成功");
-        // 在控制台输出详细信息
-        if (result.output) {
-          console.log("SSH测试输出:", result.output);
-        }
-      } else {
-        // 显示详细的错误信息
-        toast.error(result.message || "SSH连接测试失败", {
-          description: result.output ? `详情: ${result.output.substring(0, 100)}...` : undefined,
-          duration: 5000,
-        });
-        // 在控制台输出完整错误信息
-        if (result.output) {
-          console.error("SSH测试失败:", result.output);
-        }
-      }
-    } catch (error: any) {
-      console.error('Failed to test SSH key:', error);
-      toast.error(error.response?.data?.detail || "测试SSH密钥失败");
-    } finally {
-      setTestingKey(false);
-    }
-  };
-
-  const handleClearKnownHosts = async () => {
-    try {
-      setClearingKnownHosts(true);
-      const result = await clearKnownHosts();
-      if (result.success) {
-        toast.success(result.message || "known_hosts已清理");
-      } else {
-        toast.error("清理known_hosts失败");
-      }
-    } catch (error: any) {
-      console.error('Failed to clear known_hosts:', error);
-      toast.error(error.response?.data?.detail || "清理known_hosts失败");
-    } finally {
-      setClearingKnownHosts(false);
-    }
-  };
-
-  const handleCopyPublicKey = () => {
-    if (sshKey.public_key) {
-      navigator.clipboard.writeText(sshKey.public_key);
-      toast.success("公钥已复制到剪贴板");
     }
   };
 
@@ -421,161 +309,6 @@ export default function Account() {
           </div>
         </div>
 
-        {/* SSH Key Management */}
-        <div className="lg:col-span-3 cyber-card p-0">
-          <div className="cyber-card-header">
-            <Key className="w-5 h-5 text-emerald-400" />
-            <h3 className="text-lg font-bold uppercase tracking-wider text-foreground">SSH 密钥管理</h3>
-          </div>
-          <div className="p-6 space-y-4">
-            <div className="flex items-start gap-3 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
-              <div className="flex-shrink-0 mt-0.5">
-                <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center">
-                  <Key className="w-4 h-4 text-emerald-400" />
-                </div>
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm text-foreground font-medium mb-1">
-                  使用 SSH 密钥访问 Git 仓库
-                </p>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  生成 SSH 密钥对后，将公钥添加到 GitHub/GitLab，即可使用 SSH URL 访问私有仓库。私钥将被加密存储。
-                </p>
-              </div>
-            </div>
-
-            {!sshKey.has_key ? (
-              <div className="text-center py-8">
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-muted/50 mb-4">
-                  <Key className="w-8 h-8 text-muted-foreground" />
-                </div>
-                <p className="text-sm text-muted-foreground mb-4">尚未生成 SSH 密钥</p>
-                <Button
-                  onClick={handleGenerateSSHKey}
-                  disabled={generatingKey}
-                  className="cyber-btn-primary h-10"
-                >
-                  {generatingKey ? (
-                    <>
-                      <div className="loading-spinner w-4 h-4 mr-2" />
-                      生成中...
-                    </>
-                  ) : (
-                    <>
-                      <Key className="w-4 h-4 mr-2" />
-                      生成 SSH 密钥
-                    </>
-                  )}
-                </Button>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {/* Public Key Display */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-xs font-bold text-muted-foreground uppercase flex items-center gap-2">
-                      <CheckCircle2 className="w-3 h-3 text-emerald-400" />
-                      SSH 公钥
-                    </Label>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={handleCopyPublicKey}
-                      className="h-8 text-xs"
-                    >
-                      <Copy className="w-3 h-3 mr-1" />
-                      复制
-                    </Button>
-                  </div>
-                  <Textarea
-                    value={sshKey.public_key || ""}
-                    readOnly
-                    className="cyber-input font-mono text-xs h-24 resize-none"
-                  />
-
-                  {/* 显示指纹 */}
-                  {sshKey.fingerprint && (
-                    <div className="p-3 bg-muted/50 rounded border border-border">
-                      <Label className="text-xs font-bold text-muted-foreground uppercase mb-1 block">
-                        公钥指纹 (SHA256)
-                      </Label>
-                      <code className="text-xs text-emerald-400 font-mono break-all">
-                        {sshKey.fingerprint}
-                      </code>
-                    </div>
-                  )}
-
-                  <p className="text-xs text-muted-foreground">
-                    请将此公钥添加到 <a href="https://github.com/settings/keys" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">GitHub</a> 或 <a href="https://gitlab.com/-/profile/keys" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">GitLab</a> 账户
-                  </p>
-                </div>
-
-                {/* Test SSH Connection */}
-                <div className="space-y-2 pt-4 border-t border-border">
-                  <Label className="text-xs font-bold text-muted-foreground uppercase">
-                    测试 SSH 连接
-                  </Label>
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="git@github.com:username/repo.git"
-                      value={testRepoUrl}
-                      onChange={(e) => setTestRepoUrl(e.target.value)}
-                      className="cyber-input font-mono text-xs"
-                    />
-                    <Button
-                      onClick={handleTestSSHKey}
-                      disabled={testingKey}
-                      className="cyber-btn-outline whitespace-nowrap"
-                    >
-                      {testingKey ? (
-                        <>
-                          <div className="loading-spinner w-4 h-4 mr-2" />
-                          测试中...
-                        </>
-                      ) : (
-                        <>
-                          <Terminal className="w-4 h-4 mr-2" />
-                          测试连接
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Delete Key and Clear Known Hosts */}
-                <div className="flex justify-end gap-2 pt-4 border-t border-border">
-                  <Button
-                    variant="outline"
-                    onClick={handleClearKnownHosts}
-                    disabled={clearingKnownHosts}
-                    className="cyber-btn-outline h-10"
-                  >
-                    {clearingKnownHosts ? (
-                      <>
-                        <div className="loading-spinner w-4 h-4 mr-2" />
-                        清理中...
-                      </>
-                    ) : (
-                      <>
-                        <ServerCrash className="w-4 h-4 mr-2" />
-                        清理 known_hosts
-                      </>
-                    )}
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    onClick={() => setShowDeleteKeyDialog(true)}
-                    className="bg-rose-500/20 hover:bg-rose-500/30 text-rose-400 border border-rose-500/30 h-10"
-                  >
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    删除密钥
-                  </Button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
         {/* Password Change */}
         <div className="lg:col-span-3 cyber-card p-0">
           <div className="cyber-card-header">
@@ -651,40 +384,6 @@ export default function Account() {
               className="bg-rose-500/20 hover:bg-rose-500/30 text-rose-400 border border-rose-500/30"
             >
               确认退出
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Delete SSH Key Confirmation Dialog */}
-      <AlertDialog open={showDeleteKeyDialog} onOpenChange={setShowDeleteKeyDialog}>
-        <AlertDialogContent className="cyber-card border-rose-500/30 cyber-dialog">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-lg font-bold uppercase text-foreground flex items-center gap-2">
-              <Trash2 className="w-5 h-5 text-rose-400" />
-              确认删除 SSH 密钥？
-            </AlertDialogTitle>
-            <AlertDialogDescription className="text-muted-foreground">
-              删除后将无法使用 SSH 方式访问 Git 仓库，需要重新生成密钥。此操作不可恢复。
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel className="cyber-btn-outline" disabled={deletingKey}>
-              取消
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDeleteSSHKey}
-              disabled={deletingKey}
-              className="bg-rose-500/20 hover:bg-rose-500/30 text-rose-400 border border-rose-500/30"
-            >
-              {deletingKey ? (
-                <>
-                  <div className="loading-spinner w-4 h-4 mr-2" />
-                  删除中...
-                </>
-              ) : (
-                "确认删除"
-              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
