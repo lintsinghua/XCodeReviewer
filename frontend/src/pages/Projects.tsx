@@ -33,7 +33,8 @@ import {
   Terminal,
   Github,
   Folder,
-  ArrowUpRight
+  ArrowUpRight,
+  Key
 } from "lucide-react";
 import { api } from "@/shared/config/database";
 import { validateZipFile } from "@/features/projects/services";
@@ -276,6 +277,7 @@ export default function Projects() {
       case 'github': return <Github className="w-5 h-5" />;
       case 'gitlab': return <GitBranch className="w-5 h-5 text-orange-500" />;
       case 'gitea': return <GitBranch className="w-5 h-5 text-green-600" />;
+      case 'other': return <Key className="w-5 h-5 text-cyan-500" />;
       default: return <Folder className="w-5 h-5 text-muted-foreground" />;
     }
   };
@@ -476,7 +478,7 @@ export default function Projects() {
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="repository_type" className="font-mono font-bold uppercase text-xs text-muted-foreground">仓库类型</Label>
+                    <Label htmlFor="repository_type" className="font-mono font-bold uppercase text-xs text-muted-foreground">认证类型</Label>
                     <Select
                       value={createForm.repository_type}
                       onValueChange={(value: any) => setCreateForm({ ...createForm, repository_type: value })}
@@ -514,9 +516,23 @@ export default function Projects() {
                       id="repository_url"
                       value={createForm.repository_url}
                       onChange={(e) => setCreateForm({ ...createForm, repository_url: e.target.value })}
-                      placeholder="https://github.com/user/repo"
+                      placeholder={
+                        createForm.repository_type === 'other'
+                          ? "git@github.com:user/repo.git"
+                          : "https://github.com/user/repo"
+                      }
                       className="cyber-input"
                     />
+                    {createForm.repository_type === 'other' && (
+                      <p className="text-xs text-muted-foreground font-mono">
+                        💡 SSH Key认证请使用 git@ 格式的SSH URL
+                      </p>
+                    )}
+                    {createForm.repository_type !== 'other' && (
+                      <p className="text-xs text-muted-foreground font-mono">
+                        💡 Token认证请使用 https:// 格式的URL
+                      </p>
+                    )}
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="default_branch" className="font-mono font-bold uppercase text-xs text-muted-foreground">默认分支</Label>
@@ -1001,14 +1017,28 @@ export default function Projects() {
                     id="edit-repo-url"
                     value={editForm.repository_url}
                     onChange={(e) => setEditForm({ ...editForm, repository_url: e.target.value })}
-                    placeholder="https://github.com/user/repo"
+                    placeholder={
+                      editForm.repository_type === 'other'
+                        ? "git@github.com:user/repo.git"
+                        : "https://github.com/user/repo"
+                    }
                     className="cyber-input mt-1"
                   />
+                  {editForm.repository_type === 'other' && (
+                    <p className="text-xs text-muted-foreground font-mono mt-1">
+                      💡 SSH Key认证请使用 git@ 格式的SSH URL
+                    </p>
+                  )}
+                  {editForm.repository_type !== 'other' && (
+                    <p className="text-xs text-muted-foreground font-mono mt-1">
+                      💡 Token认证请使用 https:// 格式的URL
+                    </p>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="edit-repo-type" className="font-mono font-bold uppercase text-xs text-muted-foreground">仓库平台</Label>
+                    <Label htmlFor="edit-repo-type" className="font-mono font-bold uppercase text-xs text-muted-foreground">认证类型</Label>
                     <Select
                       value={editForm.repository_type}
                       onValueChange={(value: any) => setEditForm({ ...editForm, repository_type: value })}
